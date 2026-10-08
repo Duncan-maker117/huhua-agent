@@ -36,7 +36,7 @@ from app.services.candidate_material import (
     parse_existing_resume,
 )
 from app.services.resume_review import resume_to_text, review_resume
-from app.services.resume_strategy import build_resume_strategy
+from app.services.resume_strategy import build_resume_strategy, has_job_description
 from app.services.resume_workspace import bounded_web_sources
 
 logger = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
     resume_strategy = state.get("resume_strategy") or build_resume_strategy(
         jd_info=jd_info,
         jd_keywords=jd_kw,
-        has_jd=bool(jd_info),
+        has_jd=has_job_description(jd_info),
     )
 
     base_basic = collected.get("basic_info") or {}
@@ -1067,6 +1067,10 @@ def _has_jd_text(text: str) -> bool:
 
 ROLE_DIRECTION_KEYWORDS = [
     "产品经理",
+    "AI 产品",
+    "AI产品",
+    "数据分析",
+    "算法",
     "后端",
     "前端",
     "工程师",
@@ -1104,6 +1108,37 @@ def _looks_like_role_direction(text: str) -> bool:
         for kw in ("想投", "应聘", "求职", "目标", "岗位", "方向", "校招", "实习")
     )
     return has_role and (has_intent or len(text) <= 16)
+
+
+def _direction_profile_update(state: dict, message: str, collected: dict | None = None) -> dict:
+    """Persist direction targets separately from JD evidence and personal facts."""
+    if has_job_description(state.get("jd_info")) or state.get("jd_text"):
+        return {}
+    from app.services.role_profile import role_profile_from_direction
+
+    # Uploaded material can contain old objectives. An explicit trailing user
+    # instruction wins; instructions embedded in file text are not commands.
+    instruction = message
+    if "[文件:" in message or "[文件：" in message:
+        instruction = message.rsplit("\n\n---\n\n", 1)[-1] if "\n\n---\n\n" in message else ""
+    direction = instruction.strip() if _looks_like_role_direction(instruction) else ""
+    match = _re.search(
+        r"(?:想投|应聘|求职意向(?:就写)?|求职方向(?:是)?|岗位方向(?:是)?|投递)"
+        r"\s*[:：]?\s*[「“]?([^。\n，；;」”]{2,80})", instruction,
+    )
+    if match:
+        direction = _re.split(r"(?:的一?[页份]|简历|，|。)", match.group(1), maxsplit=1)[0].strip()
+    if not direction and not (state.get("jd_info") or {}).get("role_profile"):
+        direction = ((collected or {}).get("basic_info") or {}).get("objective", "")
+        direction = direction or "、".join(state.get("jd_keywords") or [])
+    if not direction:
+        return {}
+    profile = role_profile_from_direction(direction)
+    info = {"role_profile": profile, "role_direction": direction}
+    return {
+        "jd_info": info, "jd_skipped": True, "jd_keywords": [direction],
+        "resume_strategy": build_resume_strategy(jd_info=info, jd_keywords=[direction], has_jd=False),
+    }
 
 
 def _make_non_streaming_llm(
@@ -1205,6 +1240,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             "jd_skipped": True,
             "jd_keywords": jd_keywords,
             "resume_strategy": resume_strategy,
+            **_direction_profile_update(state, last_human),
         }
 
     # 先跑 Triage
@@ -1246,6 +1282,9 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
                 has_jd=False,
             )
             update["resume_strategy"] = resume_strategy
+            update.update(_direction_profile_update(
+                {**state, "jd_keywords": decision.jd_keywords}, last_human,
+            ))
             priorities = "、".join(resume_strategy.get("recruiter_priorities", [])[:4])
             reply = (
                 f"好，收到。岗位方向：{'、'.join(decision.jd_keywords)}。\n\n"
@@ -1290,8 +1329,16 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     collected = await _recover_candidate_history(state, llm)
-    working = {**state, "collected_info": collected}
+    latest_message = next((m for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), None)
+    profile_update = (_direction_profile_update(state, latest_message.content, collected)
+                      if latest_message and _candidate_source_allowed(latest_message) else {})
+    working = {**state, **profile_update, "collected_info": collected}
     result = await _collecting_turn_node(working, llm)
+    result = {**profile_update, **result}
+    if not profile_update and result.get("collected_info"):
+        result.update(_direction_profile_update(
+            {**state, **result}, "", result["collected_info"],
+        ))
     result["candidate_history_reconciled"] = True
     latest = result.get("collected_info", collected)
     if latest != state.get("collected_info"):
@@ -1328,7 +1375,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             or build_resume_strategy(
                 jd_info=state.get("jd_info") or None,
                 jd_keywords=state.get("jd_keywords") or [],
-                has_jd=bool(state.get("jd_info")),
+                has_jd=has_job_description(state.get("jd_info")),
             ),
         }
         if generate_requested:
@@ -1430,7 +1477,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     resume_strategy = state.get("resume_strategy") or build_resume_strategy(
         jd_info=state.get("jd_info") or None,
         jd_keywords=state.get("jd_keywords") or [],
-        has_jd=bool(state.get("jd_info")),
+        has_jd=has_job_description(state.get("jd_info")),
     )
     base_update: dict[str, Any] = {
         "collected_info": collected,
@@ -1551,7 +1598,7 @@ async def _build_canonical_resume_data(
     resume_strategy = state.get("resume_strategy") or build_resume_strategy(
         jd_info=jd_info or None,
         jd_keywords=state.get("jd_keywords") or [],
-        has_jd=bool(jd_info),
+        has_jd=has_job_description(jd_info),
     )
     # 所有下游输出都从 ResumeData 生成，避免三份内容逐渐分叉。
     serialized = _serialize_to_resume_data(
@@ -1845,14 +1892,14 @@ async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             {
                 **state,
                 "stage": "COLLECTING",
-                "jd_skipped": not bool(state.get("jd_info")),
+                "jd_skipped": not has_job_description(state.get("jd_info")),
             },
             llm,
         )
         return {
             **result,
             "stage": "COLLECTING",
-            "jd_skipped": not bool(state.get("jd_info")),
+            "jd_skipped": not has_job_description(state.get("jd_info")),
             "requested_task": "auto",
         }
     response = await run_resume_review(state, latest, llm, return_message=True)

@@ -17,6 +17,14 @@ def _unique(items: list[str]) -> list[str]:
     return list(dict.fromkeys(items))
 
 
+def has_job_description(info: dict | None) -> bool:
+    """A direction-derived profile is a target, not an employer-supplied JD."""
+    return bool(isinstance(info, dict) and any(
+        value for key, value in info.items()
+        if key not in {"role_profile", "role_direction"}
+    ))
+
+
 def build_resume_strategy(
     jd_info: dict | None = None,
     jd_keywords: list[str] | None = None,
@@ -34,7 +42,7 @@ def build_resume_strategy(
         + _strings(jd_info.get("key_responsibilities"))
         + jd_keywords
     )[:6]
-    mode = "jd_match" if has_jd and jd_info else "capability"
+    mode = "jd_match" if has_jd and has_job_description(jd_info) else "capability"
     if not priorities:
         priorities = ["具体行动", "可核实的成果", "与目标岗位相关的能力"]
     return {

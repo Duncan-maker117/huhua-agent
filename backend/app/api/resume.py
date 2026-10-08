@@ -125,7 +125,8 @@ async def _current_resume(request: Request, session_id: str):
     vals = protect_state(owner, (state.values if state else {}) or {})
     if vals:
         stage = vals.get("stage") or "JD_INPUT"
-        has_jd = bool(vals.get("jd_info") or vals.get("jd_text"))
+        from app.services.resume_strategy import has_job_description
+        has_jd = bool(has_job_description(vals.get("jd_info")) or vals.get("jd_text"))
     rd = current_canonical(vals, stored, _serialize_to_resume_data)
     rd = protect_data(owner, rd)
     if not stage and stored:

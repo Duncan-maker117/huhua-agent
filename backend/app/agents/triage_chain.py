@@ -17,6 +17,8 @@ Triage Agent · 对话路由决策器
 """
 
 import logging
+from app.services.resume_strategy import has_job_description
+
 from enum import Enum
 from typing import Any
 
@@ -181,7 +183,7 @@ def build_state_for_triage(state: dict[str, Any]) -> dict[str, Any]:
         + len(collected.get("projects", []))
     )
     return {
-        "has_jd": bool(state.get("jd_info")),
+        "has_jd": has_job_description(state.get("jd_info")),
         "jd_skipped": bool(state.get("jd_skipped", False)),
         "experience_count": exp_count,
         "dig_attempts": int(state.get("dig_attempts", 0)),

@@ -9,8 +9,9 @@ from tenacity import (
     retry_if_exception_type,
 )
 
-from app.agents.prompts import JD_DECODER_PROMPT
+from app.agents.prompts import build_jd_decoder_prompt
 from app.schemas.decoder import JdInfo
+from app.services.role_profile import validate_jd_role_profile
 from app.services.model_privacy import ContactRedactor, redact_model_messages
 
 logger = logging.getLogger(__name__)
@@ -73,7 +74,10 @@ async def run_decoder_chain(
 
     # 单次调用，统一 Prompt 同时输出 JSON + 毒舌文本
     messages = redact_model_messages(
-        JD_DECODER_PROMPT.format_messages(context=context, jd_text=safe_jd_text), privacy
+        build_jd_decoder_prompt(jd_text).format_messages(
+            context=context, jd_text=safe_jd_text
+        ),
+        privacy,
     )
     output = await llm.ainvoke(messages)
 
@@ -98,7 +102,8 @@ async def _run_without_rag(jd_text: str, llm: ChatOpenAI | None) -> dict:
         }
     privacy = ContactRedactor()
     messages = redact_model_messages(
-        JD_DECODER_PROMPT.format_messages(context="", jd_text=jd_text), privacy
+        build_jd_decoder_prompt(jd_text).format_messages(context="", jd_text=jd_text),
+        privacy,
     )
     output = await llm.ainvoke(messages)
     jd_info, decode_text = _split_output(privacy.restore(output.content))
@@ -113,7 +118,13 @@ def _validate_jd_info(info: dict, jd_text: str) -> dict:
     This is a source-location check, not proof that semantic extraction is correct.
     """
     try:
-        parsed = JdInfo.model_validate(info)
+        if not isinstance(info, dict):
+            return _empty_jd_info()
+        normalized = {
+            **info,
+            "role_profile": validate_jd_role_profile(info.get("role_profile"), jd_text),
+        }
+        parsed = JdInfo.model_validate(normalized)
     except Exception:
         logger.warning("JD info has an invalid structure")
         return _empty_jd_info()
@@ -258,25 +269,4 @@ def _parse_decode_text(content: str) -> tuple[list[dict], str]:
 
 
 def _empty_jd_info() -> dict:
-    return {
-        "job_title": "",
-        "company": "",
-        "industry": "",
-        "experience_years": "",
-        "education": "",
-        "required_skills": [],
-        "key_responsibilities": [],
-        "preferred_qualities": [],
-        "salary_range": "",
-        "hard_requirements": [],
-        "keyword_cloud": {
-            "core_keywords": [],
-            "secondary_keywords": [],
-            "industry_keywords": [],
-        },
-        "resume_strategy": {
-            "must_highlight": [],
-            "recommended_format": "",
-            "keyword_density_targets": [],
-        },
-    }
+    return JdInfo().model_dump()

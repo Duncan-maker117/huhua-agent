@@ -29,7 +29,11 @@ from zoneinfo import ZoneInfo
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
-from simulate_user import answer_question, select_answer, validate_case  # noqa: E402
+from simulate_user import answer_question, select_answer  # noqa: E402
+from private_case import (  # noqa: E402
+    assert_private_model_policy, evaluate_edit, evaluate_real01, followup_limit,
+    is_private, load_cases, measure_rendered_resume, safe_output,
+)
 
 
 def timestamp() -> str:
@@ -147,7 +151,8 @@ def usage_total(records: list[dict]) -> dict:
 
 
 def transcript_text(case: dict, turns: list[dict]) -> str:
-    lines = [f"# {case['id']} — 合成资料基线", "", f"Truth 审定状态：{case.get('truth_review_status', 'unknown')}；本次输出仍待 Claude 差异复核。", ""]
+    label = "私有真实材料固定回放" if is_private(case) else "合成资料基线"
+    lines = [f"# {case['id']} — {label}", "", f"Truth 审定状态：{case.get('truth_review_status', 'unknown')}；本次输出仍待 Claude 差异复核。", ""]
     for turn in turns:
         lines.extend([f"## 第 {turn['turn']} 轮 · {turn['phase']}", "", "### 用户", "", turn["user"],
                       "", "### Agent", "", turn.get("assistant") or "（没有公开回复）", "",
@@ -231,10 +236,14 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     from app.services.session_store import load_resume_session, session_lock
     from judge import deterministic_score, judge_version, judge_edit
 
+    if is_private(case):
+        safe_output([case], output, "")
+        if judge_llm is not None:
+            raise ValueError("Private replay has no authorized independent semantic judge")
     folder = output / case["id"]
     folder.mkdir(parents=True, exist_ok=True)
     write_json(folder / "case.json", case)
-    sid = create_conversation("synthetic-benchmark")["session_id"]
+    sid = create_conversation("private-benchmark" if is_private(case) else "synthetic-benchmark")["session_id"]
     graph = get_graph(llm)
     config = {"configurable": {"thread_id": sid}}
     recorder = VersionRecorder()
@@ -242,6 +251,7 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     observed: list[str] = []
     disclosed: set[int] = set()
     committed: dict = {}
+    committed_context: dict = {}
     edit_inputs = []
     model_calls = []
     review_calls = []
@@ -249,7 +259,7 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     failed = False
 
     async def turn(text: str, phase: str, *, task="auto", simulation=None):
-        nonlocal committed, failed
+        nonlocal committed, committed_context, failed
         number = len(turns) + 1
         if phase != "jd":
             # Pass only material already shown to the graph, never future truth.
@@ -297,6 +307,14 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             recorder.record(committed, turn=number, stage=stage, kind="committed", observed=observed,
                             disclosed_fact_indices=sorted(disclosed))
             record["stage"] = stage
+            if is_private(case):
+                current = history[-1].values if history else {}
+                committed_context = {key: copy.deepcopy(current[key]) for key in
+                                     ("session_constraints", "field_conflicts") if key in current}
+                record["acceptance_context"] = copy.deepcopy(committed_context)
+                for version in recorder.versions:
+                    if version["turn"] == number:
+                        version["acceptance_context"] = copy.deepcopy(committed_context)
         except Exception as exc:
             record.update(status="error", state_error_type=type(exc).__name__)
             failed = True
@@ -316,7 +334,7 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             break
         disclosed.update(case.get("opening_fact_indices", [[] for _ in case["opening_turns"]])[index])
         await turn(opening, "opening")
-    for _ in range(args.max_followups):
+    for _ in range(followup_limit(case, args.max_followups)):
         if failed or not turns:
             break
         counter = counter_type()
@@ -342,10 +360,13 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
         if failed:
             break
         before = copy.deepcopy(committed)
+        before_context = copy.deepcopy(committed_context)
         result = await turn(instruction, "edit")
         edit_inputs.append({"turn": result["turn"], "instruction": instruction, "before": before,
                             "after": copy.deepcopy(committed), "observed_facts": list(observed),
-                            "turn_status": result["status"]})
+                            "turn_status": result["status"],
+                            **({"before_context": before_context, "after_context": copy.deepcopy(committed_context)}
+                               if is_private(case) else {})})
     write_json(folder / "resume.json", committed)
 
     scores = {"versions": [], "edits": [], "pairwise": {"status": "not_applicable_baseline_has_no_comparator"},
@@ -387,6 +408,31 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
                                 "turn_status": edit["turn_status"], "score": score, "review_calls": counter.calls})
         write_json(folder / "scores.json", scores)
     write_json(folder / "edit-inputs.json", edit_inputs)
+    if is_private(case):
+        # Golden reference is deliberately absent from every graph/model input.
+        # Per-version rendered evidence stays beside the private frozen inputs.
+        template_id = case.get("acceptance", {}).get("template_id", "t001-jianyue")
+        rendered_cache = {}
+        def render(data):
+            key = digest(data)
+            if key not in rendered_cache:
+                rendered_cache[key] = measure_rendered_resume(data, template_id, page_limit=1,
+                                                              pdf_path=folder / "rendered" / f"{key}.pdf")
+            return rendered_cache[key]
+        private_versions = [{"version_id": version["version_id"], "turn": version["turn"],
+                             "user_visible": version["user_visible"],
+                             "acceptance": evaluate_real01(version["resume_data"], rendered=render(version["resume_data"]),
+                                                           context=version.get("acceptance_context"))}
+                            for version in recorder.versions]
+        private_edits = [{"turn": edit["turn"], **evaluate_edit(
+            edit["before"], edit["after"], before_rendered=render(edit["before"]), rendered=render(edit["after"]),
+            before_context=edit.get("before_context"), context=edit.get("after_context"), turn_status=edit["turn_status"])}
+            for edit in edit_inputs]
+        write_json(folder / "private-acceptance.json", {
+            "case_id": case["id"], "status": "deterministic_only_pending_semantic_review",
+            "golden_reference": case.get("golden_reference"),
+            "versions": private_versions, "edits": private_edits,
+            "final": evaluate_real01(committed, rendered=render(committed), context=committed_context)})
     draft_commits = [c for c in recorder.commits if c["stage"] in {"EVALUATING", "DRAFTED", "EXPORT"} and c["has_experience"]]
     first_draft = first_draft_version(recorder.versions)
     first_version = first_draft["version_id"] if first_draft else None
@@ -469,12 +515,13 @@ async def run_live(cases, args, output, manifest):
     settings = get_settings()
     if not settings.LLM_API_KEY:
         raise RuntimeError("LLM credential is not configured")
-    if args.judge_model in {settings.LLM_MODEL, settings.LLM_STRUCTURED_MODEL}:
+    assert_private_model_policy(cases, args, settings)
+    if not args.graph_only and args.judge_model in {settings.LLM_MODEL, settings.LLM_STRUCTURED_MODEL}:
         raise ValueError("Judge model must differ from both graph models")
     # Exactly mirrors the existing chat entry point. Do not tune the baseline.
     llm = ChatOpenAI(model=settings.LLM_MODEL, api_key=settings.LLM_API_KEY,
                      base_url=settings.LLM_BASE_URL, temperature=0.7, streaming=True)
-    judge_llm = ChatOpenAI(model=args.judge_model, api_key=settings.LLM_API_KEY,
+    judge_llm = None if args.graph_only else ChatOpenAI(model=args.judge_model, api_key=settings.LLM_API_KEY,
                            base_url=settings.LLM_BASE_URL, temperature=0, timeout=args.judge_timeout,
                            max_retries=0, max_tokens=12000,
                            extra_body={"thinking": {"type": "enabled"}}, reasoning_effort="high")
@@ -492,7 +539,7 @@ async def run_live(cases, args, output, manifest):
                                                           "rejudge_versions": args.rejudge_versions})
     else:
         manifest.update(writer_model=settings.LLM_MODEL, structured_model=settings.LLM_STRUCTURED_MODEL,
-                    judge_model=args.judge_model, judge_temperature=0, judge_reasoning_effort="high",
+                    judge_model=None if args.graph_only else args.judge_model, judge_temperature=0, judge_reasoning_effort="high",
                     graph_temperature=0.7, concurrency=args.concurrency,
                     max_followups=args.max_followups, turn_timeout_seconds=args.turn_timeout,
                     judge_timeout_seconds=args.judge_timeout,
@@ -540,6 +587,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--case", action="append", default=[])
+    parser.add_argument("--include-private", action="store_true", help="Explicitly include gitignored cases-private fixtures")
+    parser.add_argument("--cases-dir", type=Path, help="Explicit case directory; custom directories are classified private")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--concurrency", type=int, choices=range(1, 4), default=2)
     parser.add_argument("--max-followups", type=int, choices=range(5), default=4)
@@ -556,10 +605,9 @@ def main() -> int:
         parser.error("--rejudge-versions requires --rescore; never repeats graph conversations")
     if args.rescore and args.graph_only:
         parser.error("--rescore cannot be combined with --graph-only")
-    paths = sorted(args.rescore.glob("*/case.json")) if args.rescore else sorted((HERE / "cases").glob("*.json"))
-    cases = [json.loads(path.read_text(encoding="utf-8")) for path in paths]
-    for case in cases:
-        validate_case(case)
+    if args.rescore and (args.cases_dir or args.include_private):
+        parser.error("--rescore reads frozen cases; do not combine it with case-directory selection")
+    cases = load_cases(cases_dir=args.cases_dir, include_private=args.include_private, rescore=args.rescore)
     if len({case['id'] for case in cases}) != len(cases):
         raise ValueError("Duplicate case IDs")
     if args.case:
@@ -568,17 +616,27 @@ def main() -> int:
         cases = [case for case in cases if case["id"] in args.case]
     if not cases:
         raise ValueError("No cases found")
+    private = any(is_private(case) for case in cases)
+    output = safe_output(cases, args.rescore or args.output,
+                         datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d-%H%M%S") + "-baseline")
+    if private and args.live and not args.graph_only:
+        parser.error("Private cases currently require --graph-only; semantic review stays explicitly pending")
     if not args.live:
         print(json.dumps({"mode": "dry_run", "case_count": len(cases), "cases": [case['id'] for case in cases],
-                          "max_followups": args.max_followups, "model_called": False}, ensure_ascii=False))
+                          "max_followups": args.max_followups,
+                          "fixed_two_turn_cases": [case['id'] for case in cases if is_private(case)],
+                          "private": private, "output": str(output), "model_called": False}, ensure_ascii=False))
         return 0
-    output = (args.rescore or args.output or HERE / "runs" / (datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d-%H%M%S") + "-baseline")).resolve()
     if not args.rescore and output.exists() and any(output.iterdir()):
         raise ValueError("Refusing to overwrite an existing run")
+    if private:
+        os.umask(0o077)
     output.mkdir(parents=True, exist_ok=True)
     manifest = (json.loads((output / "manifest.json").read_text()) if args.rescore else
                 {**source_manifest(), "started_at": timestamp(), "case_hashes": {case['id']: digest(case) for case in cases},
-                 "phase": "PR0", "scope": "synthetic_old_stream_agent_baseline"})
+                 "phase": "PR0", "scope": "private_fixed_replay" if private else "synthetic_old_stream_agent_baseline",
+                 "private": private,
+                 "private_case_ids": [case['id'] for case in cases if is_private(case)]})
     if args.rescore:
         manifest.pop("status", None)
         manifest.setdefault("rescore_attempts", []).append({"started_at": timestamp(), "cases": [c["id"] for c in cases],

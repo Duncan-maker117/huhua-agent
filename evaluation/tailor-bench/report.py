@@ -22,6 +22,9 @@ QUALITY_DIMENSIONS = (
 _spec = importlib.util.spec_from_file_location("_tailor_report_judge", Path(__file__).with_name("judge.py"))
 _judge = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_judge)
+_private_spec = importlib.util.spec_from_file_location("_tailor_report_private", Path(__file__).with_name("private_case.py"))
+_private = importlib.util.module_from_spec(_private_spec)
+_private_spec.loader.exec_module(_private)
 
 
 def _read(path: Path, default: Any, problems: list[str]) -> Any:
@@ -262,6 +265,7 @@ def _case_report(folder: Path, queue: list[dict]) -> dict:
     scores = _read(folder / "scores.json", {}, problems)
     versions = _read(folder / "versions.json", [], problems)
     turns = _read(folder / "turns.json", [], problems)
+    acceptance = (_read(folder / "private-acceptance.json", {}, problems) if _private.is_private(case) else None)
     cid = folder.name
     requirements = _requirements(case)
     # Manifest-reserved PR0 cases must not disappear while a run is incomplete.
@@ -389,7 +393,7 @@ def _case_report(folder: Path, queue: list[dict]) -> dict:
             "final_score_status": final["score_status"] if final else "no_draft" if run_attempted else "unknown",
             "has_visible_content": has_visible_content, "final_coverage": coverage,
             "final_coverage_of_truth": coverage, "final_coverage_of_disclosed": disclosed_coverage,
-            "product_observations": observations,
+            "product_observations": observations, "private_acceptance": acceptance,
             "gap_requirements": [row for row in case.get("requirements", []) if row.get("expected_status") == "gap"],
             "expected_edits": expected_edits, "edits": edits, "edit_counts": dict(edit_counts),
             "versions": version_rows, "version_count": len(version_rows),
@@ -432,15 +436,60 @@ def _usage_text(value: dict) -> str:
     return "unknown" if tokens is None else f"{tokens:,}{suffix}"
 
 
+def _render_private(aggregate: dict) -> str:
+    """Keep saved private evidence separate from synthetic PR0 score claims."""
+    run = aggregate["run"]
+    lines = ["# Tailor · real-01 私有真实材料基线", "",
+             f"状态：**{aggregate['status']}**；历史源码 `{_cell(run.get('git_commit', 'unknown'))}`；新模型调用见 manifest.json。",
+             "这是已保存 UI 两轮材料的导入和确定性检查。语义事实、质量与覆盖率未评分，不能把待审当作通过。",
+             "", "## 页数与复合修改", "",
+             "目标共 8 项，拆为 14 个可观察操作。`already_satisfied` 表示修改前已经满足，不能算第二轮执行。",
+             "估算行数只用于诊断；页数只取对应 PDF 的 `pdfinfo` 实测结果。", "",
+             "| 用例 | 第一轮页数 | 第二轮页数 | 最终目标通过 | 第二轮目标执行 | 第二轮操作执行 | 原已满足 | 未知 |",
+             "|---|---:|---:|---:|---:|---:|---:|---:|"]
+    for case in aggregate["cases"]:
+        record = case.get("private_acceptance") or {}
+        versions = record.get("versions") or []
+        first = (versions[0].get("acceptance") or {}) if versions else {}
+        final = record.get("final") or {}
+        edit = (record.get("edits") or [{}])[-1]
+        first_pages = first.get("render", {}).get("pages")
+        final_pages = final.get("render", {}).get("pages")
+        counts = edit.get("op_counts") or {}
+        lines.append(f"| [{case['case_id']}]({case['case_id']}/private-acceptance.json) | "
+                     f"{first_pages if first_pages is not None else 'unknown'} | "
+                     f"{final_pages if final_pages is not None else 'unknown'} | "
+                     f"{final.get('goal_counts', {}).get('pass', 0)}/{final.get('goal_total', 8)} | "
+                     f"{edit.get('goal_executed', 0)}/{edit.get('goal_total', 8)} | "
+                     f"{edit.get('op_executed', 0)}/{edit.get('op_total', 14)} | "
+                     f"{counts.get('already_satisfied', 0)} | {counts.get('unknown', 0)} |")
+        length = final.get("length") or {}
+        lines.extend(["", f"{case['case_id']}：终稿 {length.get('bullet_count', 'unknown')} 条 bullet；"
+                      f"参照稿 7 条。规范化三元组重复候选 {len(length.get('duplicate_pairs', []))} 对，"
+                      "语义去重需人工看证据。", "",
+                      "[逐版本与操作证据](" + case["case_id"] + "/private-acceptance.json) 包含实际 PDF 页数、"
+                      "估算/可定位行数、冲突与事实限制的人工复核清单。", ""])
+    lines.extend(["## 仍待复核", "",
+                  "- 事实边界与已知冲突：原型、Stub、目标数值、日期及职责，需要逐来源核对。",
+                  "- 旧链路语义评分未执行；公开合成用例的评分和历史结论不能移到 real-01。",
+                  "- [manifest.json](manifest.json) 保存源文件哈希；[review-queue.json](review-queue.json) 保存待审入口。", ""])
+    return "\n".join(lines)
+
+
 def _render(aggregate: dict) -> str:
+    if aggregate.get("private"):
+        return _render_private(aggregate)
     run, totals = aggregate["run"], aggregate["totals"]
     truth, disclosed = totals["coverage_of_truth"], totals["coverage_of_disclosed"]
     edits, facts, product = totals["edits"], totals["facts"], totals["product_findings"]
     truth_label = "合成 truth 已获 Claude 审定" if aggregate["truth_review_status"] == "approved_by_claude" else "合成 truth 仍待 Claude 审定"
-    lines = ["# Tailor PR0 · 旧链路逐版本基线", "",
+    private = aggregate.get("private", False)
+    if private:
+        truth_label = "真实材料有已知冲突；golden 只作验收参照，语义事实仍待复核"
+    lines = ["# Tailor · 私有真实材料回放" if private else "# Tailor PR0 · 旧链路逐版本基线", "",
              f"运行：{_cell(run.get('started_at', 'unknown'))}；源码快照 `{_cell(run.get('git_commit', 'unknown'))}`。",
              f"写作模型 `{_cell(run.get('writer_model', 'unknown'))}`；评审模型 `{_cell(run.get('judge_model', 'unknown'))}`。", "",
-             f"本报告状态：**{aggregate['status']}**。{totals['cases']} 个合成用例，{totals['versions']} 个变化版本（可见 {totals['visible_versions']}，仅内部 {totals['internal_only_versions']}）。",
+             f"本报告状态：**{aggregate['status']}**。{totals['cases']} 个{'用例（含私有真实材料）' if private else '合成用例'}，{totals['versions']} 个变化版本（可见 {totals['visible_versions']}，仅内部 {totals['internal_only_versions']}）。",
              f"{truth_label}；**本轮输出的确认新增经历事实仍为 null（未知）**，需 Claude 差异复核。模型评分不替代复核确认。", "",
              "## 历史复核归属", "",
              "[Claude 对 v1 的复核](../../claude-review-response.txt)确认：`20261008-baseline` 的新增经历事实为 0，另有 1 例未经支持的求职意向扩写。"
@@ -535,6 +584,21 @@ def _render(aggregate: dict) -> str:
     if aggregate.get("limitations"):
         lines.extend(["", "## 本次运行的已知限制", ""])
         lines.extend("- " + note for note in aggregate["limitations"])
+    private_cases = [case for case in aggregate["cases"] if case.get("private_acceptance")]
+    if private_cases:
+        lines.extend(["", "## §10 私有验收：8 项目标与底层操作", "",
+                      "仅确定性检查，不能代替语义/事实复核。第一轮状态与第二轮执行分开：本来满足的操作记 already_satisfied，不冒充本轮执行；缺少真实 PDF 或页数证据记 unknown。golden 的一页描述不是渲染证据。",
+                      "", "| 用例 | 八项目标通过 | 实际页数 | 第二轮目标执行 | 底层操作执行 | 未知操作 |", "|---|---|---|---|---|---|"])
+        for case in private_cases:
+            record = case["private_acceptance"]
+            final = record.get("final", {})
+            edit = (record.get("edits") or [{}])[-1]
+            pages = final.get("render", {}).get("pages")
+            lines.append(f"| [{case['case_id']}]({case['case_id']}/private-acceptance.json) | {final.get('goal_counts', {}).get('pass', 0)}/{final.get('goal_total', 8)} | {pages if pages is not None else 'unknown'} | {edit.get('goal_executed', 0)}/{edit.get('goal_total', 8)} | {edit.get('op_executed', 0)}/{edit.get('op_total', 14)} | {edit.get('op_counts', {}).get('unknown', 'unknown')} |")
+            reference = final.get("golden_comparison", {})
+            lines.extend(["", f"{case['case_id']}：bullet {final.get('length', {}).get('bullet_count', 'unknown')}（参照 7 条 / 4 项目）；"
+                          f"顺序 {reference.get('observed_project_order', [])}；重复候选 {len(final.get('length', {}).get('duplicate_pairs', []))}（规范化三元组重叠率 ≥0.6）。",
+                          "日期冲突、Huhua 原始时间、原型/Stub/10 秒目标等限制及来源级人工复核清单见 private-acceptance.json。实际 PDF 行数能唯一定位才计数，估算行数不充当排版通过。"])
     lines.extend(["", "## Claude 复核入口", "",
                   f"- [review-queue.json](review-queue.json)：{aggregate['review_queue_count']} 项待审任务；事实疑点、不可判定单元、质量检查分别标注。",
                   "- [aggregate.json](aggregate.json)：双覆盖分母、unknown、编辑分类、逐版状态、stage 诊断和使用量。",
@@ -548,6 +612,10 @@ def build_report(output: Path) -> dict:
     output = Path(output)
     problems: list[str] = []
     manifest = _read(output / "manifest.json", {}, problems)
+    frozen_cases = [_read(path, {}, problems) for path in output.glob("*/case.json")]
+    private = manifest.get("private") is True or any(_private.is_private(case) for case in frozen_cases)
+    if private:
+        _private.safe_output([{"private": True}], output, "")
     reserved = set((manifest.get("case_hashes") or {}).keys())
     found = {path.parent.name for path in output.glob("*/case.json")}
     case_ids = sorted(reserved | found)
@@ -594,7 +662,7 @@ def build_report(output: Path) -> dict:
     usage = {kind: _sum_usage([case.get(f"{kind}_usage") for case in cases]) for kind in ("graph", "judge", "simulator")}
     usage["all_models"] = _sum_usage([case.get(f"{kind}_usage") for case in cases for kind in ("graph", "judge", "simulator")])
     aggregate = {
-        "report_version": 2, "status": "evaluated_pending_claude" if complete else "incomplete",
+        "report_version": 2, "private": private, "status": "evaluated_pending_claude" if complete else "incomplete",
         "run": {key: manifest.get(key) for key in ("started_at", "finished_at", "git_commit", "git_branch", "writer_model", "structured_model", "judge_model", "status", "backend_unchanged")},
         "manifest_problems": problems, "truth_review_status": "approved_by_claude" if cases and all(case["truth_review_status"] == "approved_by_claude" for case in cases) else "pending_claude",
         "historical_review": {"run_id": "20261008-baseline", "reviewer": "Claude", "source": "../../claude-review-response.txt",

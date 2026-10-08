@@ -51,6 +51,28 @@
 `--case ai-pm-01` 可限定运行/重评用例；输出目录已有内容时拒绝覆盖。
 模型响应格式错误保留已解析的评分 JSON 与受控校验原因；不保存 provider 错误正文、凭证或推理内容。
 
+## real-01：私有真实材料
+
+默认命令始终只选上面的 12 个公开合成用例。`real-01` 的原上传消息、237 字第二轮修改指令及来源事实只存于 Git 忽略的 `cases-private/real-01.json`；`golden-one-page.md` 仅作验收参照，绝不送入 graph、模拟用户或 writer。所有含此用例的运行只能写入 Git 忽略的 `runs-private/`，不能指定公开 `runs/` 或仓库外路径。
+
+已保存的旧 UI 实测可离线导入新基线，不调用任何模型，也不修改原始材料、PDF 或既有 run：
+
+```sh
+.venv/bin/python evaluation/tailor-bench/private_case.py \
+  --from-real-run data/output/tailor-real-materials-20261008 \
+  --output evaluation/tailor-bench/runs-private/NEW-SAVED-BASELINE
+```
+
+本地已导入 `runs-private/20261008-saved-real-01-baseline/`：两轮稿件完全相同，两份保存的 PDF 哈希相同，实际均为 3 页；终稿 32 条 bullet。8 项用户目标中 1 项原本满足、7 项失败；第二轮 14 个底层操作执行 0 个，1 个原本满足、1 个因缺少历史会话约束证据而未知，其余 12 个未执行。导入状态为 `incomplete`，因为语义事实、质量和覆盖率尚未评分。详细证据见本地私有目录的 `summary.md`、`private-acceptance.json` 与 `manifest.json`。
+
+显式选择私有回放的无模型预检：
+
+```sh
+.venv/bin/python evaluation/tailor-bench/run_bench.py --include-private --case real-01 --graph-only
+```
+
+需要实际重跑当前 graph 时才加 `--live` 与一个**新的** `runs-private/` 输出路径。私有 live 只允许 `https://api.deepseek.com` 的 `deepseek-flash`（主模型与结构化模型），且必须 `--graph-only`；独立语义 judge 尚无授权，因此不能送往默认 `deepseek-v4-pro`。固定两轮回放不插入模拟追问。报告分开列出 8 个用户目标、14 个操作、`already_satisfied` 与 `executed`，以及真实 PDF 页数和仅用于诊断的估算行数。
+
 ## 评测口径
 
 1. JD 独立一轮走当前 `task=decode_jd` 入口，候选材料和 edit 均走 `task=auto`。无 JD 用例直接发送方向。

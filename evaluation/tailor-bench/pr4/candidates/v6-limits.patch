@@ -1,0 +1,210 @@
+--- a/backend/app/services/resume_limits.py
++++ b/backend/app/services/resume_limits.py
+@@ -32,6 +32,49 @@
+ _SUBJECT_END = re.compile(r"(?:模块|功能|接口|系统|项目|页面|版本|环境|方案|服务|数据|统计|测试|流程|评估|工作)$")
+ 
+ 
++_QUOTE_PAIRS = {"「": "」", "『": "』", "“": "”", '"': '"'}
++_QUOTED_CLAIM = re.compile(r'「[^「」]+」|『[^『』]+』|“[^“”]+”|"[^"]+"')
++_DESIGN_DECLARATION = re.compile(
++    r'^(?:产品(?:设计|理念|定位):)?(?P<verb>定义|确立|采用)'
++    r'(?P<quote>「[^「」]+」|『[^『』]+』|“[^“”]+”|"[^"]+")'
++    r'(?:的)?(?:核心)?(?P<kind>理念|原则|定位)$')
++
++
++def _split_outside_quotes(pattern: re.Pattern, text: str) -> list[str]:
++    """Keep complete quoted claims together, including their internal commas.
++
++    An unmatched opener conservatively keeps the remainder as one clause rather
++    than extracting a dangling negation with its subject missing.
++    """
++    parts, stack = [], []
++    start = index = 0
++    while index < len(text):
++        char = text[index]
++        if stack and char == stack[-1]:
++            stack.pop()
++        elif char in _QUOTE_PAIRS:
++            stack.append(_QUOTE_PAIRS[char])
++        elif not stack and (match := pattern.match(text, index)):
++            parts.append(text[start:index])
++            start = index = match.end()
++            continue
++        index += 1
++    parts.append(text[start:])
++    return parts
++
++
++def _design_declaration_key(clause: str) -> tuple[str, str, str] | None:
++    """Only equivalent, affirmative declarations of the same complete principle.
++
++    No subsystem subject, future/negative prefix or omitted quote fragment is
++    accepted. Other quoted status/role limits use the normal full-clause check.
++    """
++    match = _DESIGN_DECLARATION.fullmatch(normalize_text(clause))
++    if not match or not _ASSERTED_LIMIT.search(match['quote']):
++        return None
++    return match['verb'], match['quote'][1:-1], match['kind']
++
++
+ def _limit_clauses(fact: dict) -> list[str]:
+     """Extract intact source clauses, never a limitation invented by fact.text.
+ 
+@@ -45,8 +88,8 @@
+     if not source or not _STATUS_LIMIT.search(_experience_negation_text(source)):
+         return []
+     limits = []
+-    for sentence in _SENTENCE_BREAK.split(source):
+-        clauses = [part.strip() for part in _COMMA_BREAK.split(sentence) if part.strip()]
++    for sentence in _split_outside_quotes(_SENTENCE_BREAK, source):
++        clauses = [part.strip() for part in _split_outside_quotes(_COMMA_BREAK, sentence) if part.strip()]
+         if any(_STATUS_LIMIT.search(_experience_negation_text(clause)) for clause in clauses) and _CONDITION_HINT.search(sentence):
+             # Do not detach a plan from prerequisites, including a condition
+             # inside a clause or after the action. Approval/acceptance/waiting
+@@ -85,10 +128,23 @@
+ 
+ def _limit_key(text: str) -> str:
+     # Only a narrow grammatical equivalence, preserving the action and object.
+-    return re.sub(r"尚未|并未|还未|没有", "未", normalize_text(text)).strip("。；;.,，")
++    return re.sub(r"尚未|并未|还未|没有|没(?=部署)", "未", normalize_text(text)).strip("。；;.,，")
+ 
+ 
+ def _already_visible(clause: str, texts: Sequence[str]) -> bool:
++    declaration = _design_declaration_key(clause)
++    if declaration:
++        # A substring inside "计划定义…" or a conditional sentence is not an
++        # affirmative declaration, even when the complete quote is identical.
++        for text in texts:
++            for sentence in _split_outside_quotes(_SENTENCE_BREAK, text):
++                unquoted = _QUOTED_CLAIM.sub("", sentence)
++                if _ASSERTED_LIMIT.search(unquoted) or _CONDITION_HINT.search(unquoted):
++                    continue
++                if any(declaration == _design_declaration_key(part)
++                       for part in _split_outside_quotes(_COMMA_BREAK, sentence)):
++                    return True
++        return False
+     key = _limit_key(clause)
+     if key and any(key in _limit_key(text) for text in texts):
+         return True
+--- /dev/null
++++ b/tests/test_resume_limit_quote_boundaries.py
+@@ -0,0 +1,119 @@
++"""Synthetic complete-quote and same-object negative-limit regressions."""
++from copy import deepcopy
++import hashlib
++from pathlib import Path
++import sys
++import unittest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'backend'))
++from app.services.resume_limits import preserve_item_limits  # noqa: E402
++
++
++class ResumeLimitQuoteBoundariesTest(unittest.TestCase):
++    def preserve(self, text, quote, *, cited=False, bullet_indices=None):
++        data = {'projects': [{'item_id': 'p', 'polished_bullets': [text]}]}
++        facts = {'projects': [{'item_id': 'p', 'facts': [
++            {'id': 'f', 'kind': 'action', 'status': 'active', 'text': quote, 'source_quote': quote}]}]}
++        original = deepcopy(facts)
++        meta = {'bullets': {'p': [{'fact_ids': ['f'], 'text_hash': hashlib.sha256(text.encode()).hexdigest()}]}} if cited else {}
++        result = preserve_item_limits(data, meta, facts, item_ids=['p'], bullet_indices=bullet_indices)
++        self.assertEqual(facts, original)
++        return result
++
++    def test_colloquial_deployment_negative_is_same_only_for_same_object(self):
++        for text, quote in [('支付模块未部署', '支付模块没部署'), ('支付模块没部署', '支付模块未部署')]:
++            with self.subTest(text=text):
++                result, _, fallbacks = self.preserve(text, quote)
++                self.assertEqual(result['projects'][0]['polished_bullets'], [text])
++                self.assertEqual(fallbacks, [])
++
++    def test_negative_normalization_retains_other_objects_actions_and_conditions(self):
++        for text, quote in [('搜索模块未部署', '支付模块没部署'),
++                            ('支付模块未测试', '支付模块没部署'),
++                            ('支付模块未部署', '若验收失败，支付模块没部署')]:
++            with self.subTest(text=text, quote=quote):
++                result, _, fallbacks = self.preserve(text, quote)
++                self.assertEqual(result['projects'][0]['polished_bullets'], [text + '；' + quote])
++                self.assertTrue(fallbacks)
++        result, _, fallbacks = self.preserve('完成登记', '完成没收物品登记')
++        self.assertEqual(result['projects'][0]['polished_bullets'], ['完成登记'])
++        self.assertEqual(fallbacks, [])
++
++    def test_full_quoted_design_principle_already_visible_with_core_modifier_omitted(self):
++        for left, right in [('「', '」'), ('『', '』'), ('“', '”'), ('"', '"')]:
++            with self.subTest(left=left):
++                quote = f'{left}工具只给线索，不是裁判{right}'
++                source = f'产品设计：定义{quote}核心理念，设计两种查询入口。'
++                text = f'围绕用户查询问题，定义{quote}理念，设计两种查询入口'
++                result, _, fallbacks = self.preserve(text, source)
++                self.assertEqual(result['projects'][0]['polished_bullets'], [text])
++                self.assertEqual(fallbacks, [])
++
++    def test_missing_quoted_principle_appends_complete_source_declaration(self):
++        source = '产品设计：定义「工具只给线索，不是裁判」核心理念，设计两种查询入口。'
++        result, meta, fallbacks = self.preserve('设计两种查询入口', source)
++        expected = '设计两种查询入口；产品设计：定义「工具只给线索，不是裁判」核心理念'
++        self.assertEqual(result['projects'][0]['polished_bullets'], [expected])
++        self.assertTrue(fallbacks)
++        self.assertEqual(meta['bullets']['p'][0]['text_hash'], '')
++        again, _, repeated = self.preserve(expected, source)
++        self.assertEqual(again, result)
++        self.assertEqual(repeated, [])
++
++    def test_partial_opposite_or_future_quote_does_not_discharge_declaration(self):
++        source = '定义「工具只给线索，不是裁判」核心理念'
++        for text in ['定义「工具只给线索」理念', '定义「工具不仅给线索，也是裁判」理念',
++                     '计划定义「工具只给线索，不是裁判」理念',
++                     '不采用「工具只给线索，不是裁判」理念',
++                     '用户提议「工具只给线索，不是裁判」理念',
++                     '计划定义「工具只给线索，不是裁判」核心理念',
++                     '若评审通过，定义「工具只给线索，不是裁判」理念',
++                     '定义「工具只给线索，不是裁判」理念，前提是评审通过']:
++            with self.subTest(text=text):
++                result, _, fallbacks = self.preserve(text, source)
++                self.assertEqual(result['projects'][0]['polished_bullets'], [text + '；' + source])
++                self.assertTrue(fallbacks)
++
++    def test_quoted_status_keeps_subsystem_subject(self):
++        source = '支付模块状态为「尚未部署，未做交易测试」'
++        for text in ['搜索模块状态为「尚未部署，未做交易测试」', '支付模块尚未部署']:
++            with self.subTest(text=text):
++                result, _, fallbacks = self.preserve(text, source)
++                self.assertEqual(result['projects'][0]['polished_bullets'], [text + '；' + source])
++                self.assertTrue(fallbacks)
++
++    def test_scoped_declaration_is_not_reduced_to_unscoped_identical_quote(self):
++        source = '为支付助手定义「工具只给线索，不是裁判」理念'
++        text = '为检索助手定义「工具只给线索，不是裁判」理念'
++        result, _, fallbacks = self.preserve(text, source)
++        self.assertEqual(result['projects'][0]['polished_bullets'], [text + '；' + source])
++        self.assertTrue(fallbacks)
++
++    def test_valid_fact_id_cannot_hide_second_independent_limit(self):
++        source = '定义「工具只给线索，不是裁判」核心理念；支付模块没部署'
++        text = '定义「工具只给线索，不是裁判」理念'
++        result, meta, fallbacks = self.preserve(text, source, cited=True)
++        expected = text + '；支付模块没部署'
++        self.assertEqual(result['projects'][0]['polished_bullets'], [expected])
++        self.assertEqual(meta['bullets']['p'][0]['text_hash'], hashlib.sha256(expected.encode()).hexdigest())
++        self.assertTrue(fallbacks)
++
++    def test_quote_punctuation_does_not_break_complete_limit(self):
++        source = '定义「工具给出线索；不是裁判」理念，提供查询入口'
++        result, _, _ = self.preserve('提供查询入口', source)
++        self.assertEqual(result['projects'][0]['polished_bullets'], ['提供查询入口；定义「工具给出线索；不是裁判」理念'])
++
++    def test_unmatched_quote_is_not_truncated_to_dangling_tail(self):
++        source = '定义「工具只给线索，不是裁判'
++        result, _, _ = self.preserve('提供查询入口', source)
++        self.assertEqual(result['projects'][0]['polished_bullets'], ['提供查询入口；' + source])
++
++    def test_no_authorized_bullet_does_not_change_document(self):
++        text = '提供查询入口'
++        result, _, fallbacks = self.preserve(text, '支付模块没部署', bullet_indices={'p': set()})
++        self.assertEqual(result['projects'][0]['polished_bullets'], [text])
++        self.assertEqual(fallbacks, [])
++
++
++if __name__ == '__main__':
++    unittest.main()

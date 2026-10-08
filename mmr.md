@@ -27,7 +27,7 @@
 
 ## 当前状态
 
-2026-10-09 Tailor PR4：v4本地提交 `37be26e`，充值后公开/私有全套已结束（旧run保持）。公开58版47评分/11无稿，补评后编辑17/24：2无diff、3未遵循、2因design RuntimeError未运行；首稿12/12≤2轮，3条模型事实疑点，确认新增事实仍待Claude。私有v4两轮44facts/6skills/collected_info不变，node/SQL/PDF绑定正确，无writer回退且未复现无源未上线，但仍2页、3/8目标满足、本轮执行3/14操作（1/8目标），未达golden。v5在tmp整合target_bullets、schema层级恢复、保留证据的合并/缩短、否定量化/复合限制、UI空结果误杀、JD_INPUT本人资料接收与安全错误栈；不把raw_notes直接补成facts，避免旧删除/更正复活。PR5八个独立文件未接graph。Ghostty访问被工具安全限制拒绝，Claude交接文件已备未送；未push、部署或迁移真实库。
+2026-10-09 Tailor PR4 v5：已本地提交ada326e并完成新公开/私有全套（官方Flash；公开Pro独立评分，私有graph-only）。公开12例70轮69版（68可见），58评分/11无稿；仅补评2个引用错误后21/24（87.5%，3失败），仍未验收。25writer诊断24完成1回退，7结构重试恢复6；事实/编辑Judge仍漏检有时→常等越界，确认新增事实待Claude。私有44facts/6skills和完整主档保持、node/SQL/PDF绑定正确，最终2/2/2/1条、5/8目标满足，但2页；第二轮仅新执行2/14操作（9原已满足、3失败），未达golden。MAIN887/887（含21个PR5独立测试），clean864通过/2私有fixture跳过。旧基线218及v4公开102文件哈希不变。引号限制去重候选在pr4/candidates/v6-limits.patch，103项相关离线通过但未合入/未实时验证。PR5八文件仍未接graph。Ghostty工具安全限制拒绝访问，Claude交接已备未送；不能跳过§8门槛。未push、部署或迁移真实库。
 
 2026-10-08 两份本人历史资料真实生成实测完成：Banz 明确授权 DeepSeek V4.1 Flash（API ID `deepseek-flash`）。在独立临时加密库走真实网页上传 PDF + Markdown、生成、纠错及 PDF/Word 下载；主工作区业务仍为 `a742100`，PR1 未合并。四个真实项目均保留，但联系栏「深圳」误成第五项目；一页要求未执行，默认模板 PDF 为 3 页；mtagent 冲突虽列入核对，正文仍含冲突日期/职责；第二轮明确删改等待约 47.6 秒，data/revision/PDF 完全不变。已只读定位联系栏解析过宽、旧 editor 强制原句保留且未接收篇幅指令、信息提取完整回显与对象数组校验矛盾等原因，未改业务代码或上线。含个人资料的原始 PDF/Word、两轮记录及报告仅保存在 Git 忽略目录 `data/output/tailor-real-materials-20261008/summary.md`；两份原件哈希未变。该结果证明当前应用不能直接产出可投递稿，不代表已单独评估模型写作能力。
 
@@ -77,7 +77,7 @@
 
 ## 下一步
 
-PR4 v5最终离线整合通过：MAIN887/887（含21条未接入PR5组件测试），clean候选864通过/2私有fixture跳过。接下来冻结源码、新开公开 runs/20261009-pr4-v5 和私有 runs-private/20261009-pr4-real-01-v5（官方Flash、graph-only）。公开逐版本评分、事实复核和私有golden验收全部保留独立结果；达到编辑≥90%、确认新增事实0后才接PR5。Ghostty被工具安全限制拒绝，Claude交接文件已准备但未送达，不能冒充已评审。旧基线218文件及完成v4的102文件保留。未push、部署或迁移真实库。
+先让Claude读取 evaluation/tailor-bench/claude-pr4-review-request.txt 与 pr4/summary.md、fact-review-v5.md、runtime-review-v5.md，按§7.6/§8复核事实与误杀，并确认下一修复：明确用户条数应约束模型计划；上游完整性需当前轮次/来源/归属契约；schema透明失败；引号/同义限制候选需审边界。不是再充值或重复当前run的问题。工具明确拒绝访问Ghostty，无法自行送达，已准备可直接转交文件。先修复后另开run，旧v5保持；确认新增事实0且编辑≥90%后再接PR5。PR6模板/API交接尚未验收。
 
 先承接 2026-10-08 的核心流程修复：发布需重新构建带 Pango/中文字体的镜像，再用线上独立测试会话核验完整资料、模板恢复及 PDF/Word 下载；本轮没有发布授权或线上验收结果，不把本地浏览器通过写成线上已解决。
 

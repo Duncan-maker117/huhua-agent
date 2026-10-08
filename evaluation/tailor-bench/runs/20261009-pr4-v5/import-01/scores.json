@@ -1,0 +1,2412 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 13,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "计算机科学与技术，本科在读"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该断言在 observed 原文中有直接对应。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组作业",
+                "做本地知识笔记查询 Demo",
+                "没有部署上线",
+                "用 Python 和 Flask 写笔记标题查询接口",
+                "用 SQLite 保存笔记标题和正文",
+                "检查过空关键词和没有匹配项的请求，补了对应提示",
+                "登录和页面是队友写的",
+                "用本地请求手动检查结果",
+                "没有性能测试或用户数据"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "所有断言均有 observed 原文证据。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "社团影像展的小组筹备工作",
+                "用 Figma 画招募页草图",
+                "整理活动介绍文字",
+                "报名管理和正式海报是队友做的",
+                "草图只在社团内部讨论",
+                "没有开发上线",
+                "没统计报名效果"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "所有断言均有 observed 原文证据。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u012",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u013",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 5,
+          "personal_contribution": 5,
+          "results_impact": 3,
+          "professional_expression": 4,
+          "selection_length": 5
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u006",
+                  "quote": "用 Python 和 Flask 写笔记标题查询接口",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u006",
+                  "quote": "检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "fact_indices": [
+                    5
+                  ]
+                },
+                {
+                  "unit_id": "u006",
+                  "quote": "用本地请求手动检查结果\n没有性能测试或用户数据",
+                  "fact_indices": [
+                    6
+                  ]
+                }
+              ],
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5,
+                6
+              ],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [
+                5,
+                6
+              ],
+              "covered_truth_fact_indices": [
+                5,
+                6
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "用 Python 和 Flask 写笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "检查过空关键词和没有匹配项的请求，补了对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  },
+                  {
+                    "unit_id": "u006",
+                    "quote": "用本地请求手动检查结果\n没有性能测试或用户数据",
+                    "fact_indices": [
+                      6
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_truth_fact_indices": [
+                  5,
+                  6
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "用 Python 和 Flask 写笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "检查过空关键词和没有匹配项的请求，补了对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  },
+                  {
+                    "unit_id": "u006",
+                    "quote": "用本地请求手动检查结果\n没有性能测试或用户数据",
+                    "fact_indices": [
+                      6
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_truth_fact_indices": [
+                  5,
+                  6
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2520,
+          "output_tokens": 8607,
+          "total_tokens": 11127
+        },
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11ce8-6d29-7313-bb93-4820284d8c44",
+          "started_at": "2026-10-09T03:05:56.777752+08:00",
+          "usage": {
+            "input_tokens": 2520,
+            "output_tokens": 8607,
+            "total_tokens": 11127
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 13,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "计算机科学与技术，本科在读"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "教育与原简历教育部分一致，有原文支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。",
+                "我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "项目经历的接口、数据库、异常处理和本地验证等各项内容均有原简历原话支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "活动项目描述与原简历一致，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u012",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u013",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 5,
+          "personal_contribution": 4,
+          "results_impact": 3,
+          "professional_expression": 4,
+          "selection_length": 5
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u006",
+                  "quote": "用 Python 和 Flask 写笔记标题查询接口",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u006",
+                  "quote": "用 SQLite 保存笔记标题和正文\n检查过空关键词和没有匹配项的请求，补了对应提示\n登录和页面是队友写的\n用本地请求手动检查结果\n没有性能测试或用户数据\n使用基础 SQL 查询笔记",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u006",
+                  "quote": "检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "fact_indices": [
+                    5
+                  ]
+                },
+                {
+                  "unit_id": "u006",
+                  "quote": "用本地请求手动检查结果\n没有性能测试或用户数据",
+                  "fact_indices": [
+                    6
+                  ]
+                }
+              ],
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5,
+                6
+              ],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [
+                5,
+                6
+              ],
+              "covered_truth_fact_indices": [
+                5,
+                6
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 4,
+            "fact_total": 4,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "用 Python 和 Flask 写笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u006",
+                    "quote": "用 SQLite 保存笔记标题和正文\n检查过空关键词和没有匹配项的请求，补了对应提示\n登录和页面是队友写的\n用本地请求手动检查结果\n没有性能测试或用户数据\n使用基础 SQL 查询笔记",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "检查过空关键词和没有匹配项的请求，补了对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  },
+                  {
+                    "unit_id": "u006",
+                    "quote": "用本地请求手动检查结果\n没有性能测试或用户数据",
+                    "fact_indices": [
+                      6
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_truth_fact_indices": [
+                  5,
+                  6
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 4,
+            "fact_total": 4,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "用 Python 和 Flask 写笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u006",
+                    "quote": "用 SQLite 保存笔记标题和正文\n检查过空关键词和没有匹配项的请求，补了对应提示\n登录和页面是队友写的\n用本地请求手动检查结果\n没有性能测试或用户数据\n使用基础 SQL 查询笔记",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u006",
+                    "quote": "检查过空关键词和没有匹配项的请求，补了对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  },
+                  {
+                    "unit_id": "u006",
+                    "quote": "用本地请求手动检查结果\n没有性能测试或用户数据",
+                    "fact_indices": [
+                      6
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_truth_fact_indices": [
+                  5,
+                  6
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2549,
+          "output_tokens": 6640,
+          "total_tokens": 9189
+        },
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11ce9-4f5d-77d2-9062-da4aae0d8dfa",
+          "started_at": "2026-10-09T03:06:54.685421+08:00",
+          "usage": {
+            "input_tokens": 2549,
+            "output_tokens": 6640,
+            "total_tokens": 9189
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 16,
+          "statement_unit_count": 5,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "Python 后端开发实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "计算机科学与技术，本科在读"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该断言与已披露的教育信息一致，直接有原文支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "我用 SQLite 保存笔记标题和正文",
+                "我检查过空关键词和没有匹配项的请求",
+                "我用本地请求手动检查结果"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "接口开发、数据保存、关键词检查和本地验证均有已披露原文支持，表述为合理解读，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。",
+                "登录和页面是队友写的。",
+                "我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "本人承担接口与数据存储、队友负责登录页面均有原文支持，SQL 查询表述与已披露事实一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我检查过空关键词和没有匹配项的请求，补了对应提示。",
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。",
+                "我用本地请求手动检查结果，没有性能测试或用户数据。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "异常输入处理、Demo 未上线、无性能测试/用户数据均有原文支持，重复表述不影响事实准确性。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "影像展项目的分工、草图内部讨论、未开发上线和未统计效果均有原文支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u012",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u013",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u014",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u015",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u016",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 5,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 5,
+          "personal_contribution": 5,
+          "results_impact": 4,
+          "professional_expression": 3,
+          "selection_length": 4
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u007",
+                  "quote": "用 Python + Flask 开发笔记标题查询接口",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u008",
+                  "quote": "用 SQLite 保存笔记标题与正文，以基础 SQL 实现笔记查询",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u009",
+                  "quote": "检查空关键词与无匹配项的请求，为这两类输入补上对应提示",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5,
+                6
+              ],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [
+                5
+              ],
+              "covered_truth_fact_indices": [
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u007",
+                    "quote": "用 Python + Flask 开发笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u008",
+                    "quote": "用 SQLite 保存笔记标题与正文，以基础 SQL 实现笔记查询",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "检查空关键词与无匹配项的请求，为这两类输入补上对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u007",
+                    "quote": "用 Python + Flask 开发笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u008",
+                    "quote": "用 SQLite 保存笔记标题与正文，以基础 SQL 实现笔记查询",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "检查空关键词与无匹配项的请求，为这两类输入补上对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2707,
+          "output_tokens": 6560,
+          "total_tokens": 9267
+        },
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11cea-18fc-7db1-95c5-3e4346c194ea",
+          "started_at": "2026-10-09T03:07:46.301092+08:00",
+          "usage": {
+            "input_tokens": 2707,
+            "output_tokens": 6560,
+            "total_tokens": 9267
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 6,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 16,
+          "statement_unit_count": 5,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "Python 后端开发实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "计算机科学与技术，本科在读"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "教育信息与简历原文一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "我用本地请求手动检查结果"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "基于原简历中对查询接口和本地验证的描述，概括了接口的输入输出与验证过程。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "用 SQLite 保存笔记标题和正文",
+                "使用基础 SQL 查询笔记",
+                "登录和页面是队友写的"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "SQLite 存储、SQL 查询及队友分工均有原简历原文支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "做本地知识笔记查询 Demo，没有部署上线",
+                "没有性能测试或用户数据"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "异常处理、Demo 状态与未做性能测试的表述均来自已披露内容。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "supported",
+              "observed_quotes": [
+                "社团影像展的小组筹备工作",
+                "整理活动介绍文字",
+                "我用 Figma 画招募页草图",
+                "草图只在社团内部讨论",
+                "没有开发上线",
+                "报名管理和正式海报是队友做的",
+                "也没统计报名效果"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "非技术活动相关表述与原始项目描述一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u012",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u013",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u014",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u015",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u016",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 5,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 5,
+          "personal_contribution": 5,
+          "results_impact": 4,
+          "professional_expression": 3,
+          "selection_length": 5
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u007",
+                  "quote": "用 Python + Flask 开发笔记标题查询接口",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u008",
+                  "quote": "用 SQLite 保存笔记标题与正文，以基础 SQL 实现笔记查询",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u009",
+                  "quote": "检查空关键词与无匹配项的请求，为这两类输入补上对应提示",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5,
+                6
+              ],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [
+                5
+              ],
+              "covered_truth_fact_indices": [
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u007",
+                    "quote": "用 Python + Flask 开发笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u008",
+                    "quote": "用 SQLite 保存笔记标题与正文，以基础 SQL 实现笔记查询",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "检查空关键词与无匹配项的请求，为这两类输入补上对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u007",
+                    "quote": "用 Python + Flask 开发笔记标题查询接口",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u008",
+                    "quote": "用 SQLite 保存笔记标题与正文，以基础 SQL 实现笔记查询",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "检查空关键词与无匹配项的请求，为这两类输入补上对应提示",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2742,
+          "output_tokens": 7571,
+          "total_tokens": 10313
+        },
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11cea-d9ab-7be0-9cbf-af45fc7292fa",
+          "started_at": "2026-10-09T03:08:35.628124+08:00",
+          "usage": {
+            "input_tokens": 2742,
+            "output_tokens": 7571,
+            "total_tokens": 10313
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 5,
+      "instruction": "按这个后端 JD 重新调整整份简历，把已有材料中最相关的本人工作放到重点位置，求职意向改成 Python 后端开发实习，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 新增了“Python 后端开发实习生”求职意向，并将知页索引中的 Python/Flask/SQLite 后端开发内容拆成要点放在影像展之前，突出已有相关开发工作，未补充新经历。",
+        "evidence": [
+          {
+            "before_quote": "",
+            "after_quote": "Python 后端开发实习生"
+          },
+          {
+            "before_quote": "课程小组作业\n做本地知识笔记查询 Demo\n没有部署上线\n用 Python 和 Flask 写笔记标题查询接口\n用 SQLite 保存笔记标题和正文\n检查过空关键词和没有匹配项的请求，补了对应提示\n登录和页面是队友写的\n用本地请求手动检查结果\n没有性能测试或用户数据\n使用基础 SQL 查询笔记",
+            "after_quote": "用 Python + Flask 开发笔记标题查询接口，接收关键词并返回匹配的笔记标题与正文，接口用本地请求手动验证返回结果。"
+          },
+          {
+            "before_quote": "登录和页面是队友写的\n用本地请求手动检查结果",
+            "after_quote": "登录与页面由队友完成，本人承担查询接口与数据存储部分。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1717,
+          "output_tokens": 2674,
+          "total_tokens": 4391
+        },
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11ceb-c0f4-7cb1-9200-3be37bd8d749",
+          "started_at": "2026-10-09T03:09:34.836440+08:00",
+          "usage": {
+            "input_tokens": 1717,
+            "output_tokens": 2674,
+            "total_tokens": 4391
+          }
+        }
+      ]
+    },
+    {
+      "turn": 6,
+      "instruction": "把“影像展招募页”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "after 未执行“精简”要求：原描述中已有重复的“没统计报名效果；也没统计报名效果”未删除，反而在开头新增“社团影像展的小组筹备工作”，整体更长，不符合“精简成一条”。保留了本人工作、团队分工和状态限制，但核心精简未实质执行。",
+        "evidence": [
+          {
+            "before_quote": "整理活动介绍文字；用 Figma 画招募页草图；草图只在社团内部讨论；没有开发上线；报名管理和正式海报是队友做的；没统计报名效果；也没统计报名效果",
+            "after_quote": "社团影像展的小组筹备工作；整理活动介绍文字；用 Figma 画招募页草图；草图只在社团内部讨论；没有开发上线；报名管理和正式海报是队友做的；没统计报名效果；也没统计报名效果"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1837,
+          "output_tokens": 3116,
+          "total_tokens": 4953
+        },
+        "judge_code_sha256": "52bfdbf794cdb703db0884d065279b83034dbd18e39d59736d00530b700af2f1"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11cec-1636-7153-8e2c-0c00895fc12d",
+          "started_at": "2026-10-09T03:09:56.662288+08:00",
+          "usage": {
+            "input_tokens": 1837,
+            "output_tokens": 3116,
+            "total_tokens": 4953
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

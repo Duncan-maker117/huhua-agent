@@ -1,0 +1,1357 @@
+{
+  "case_id": "frontend-01",
+  "status": "completed",
+  "graph_status": "completed",
+  "evaluation_status": "completed",
+  "truth_review_status": "approved_by_claude",
+  "turn_count": 5,
+  "followup_count": 1,
+  "version_count": 5,
+  "visible_version_count": 5,
+  "first_draft_turn": 2,
+  "first_draft_version": "v002",
+  "commits": [
+    {
+      "turn": 1,
+      "stage": "COLLECTING",
+      "hash": "b374c3c57040bde5007adb59e3aa87a5eb54ea1849b46532be2feff9a8e76a58",
+      "has_experience": false,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {},
+        "active_facts": [],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 2,
+      "stage": "COLLECTING",
+      "hash": "0a442372d0911faa275997ef09c7c813e31ccd138357b11f5b858543f19261f8",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c",
+              "name": "书架角",
+              "facts": [
+                {
+                  "id": "f_200d0f0bfe124112a72e3020956bf39d",
+                  "kind": "context",
+                  "text": "课程小组制作了网页 Demo“书架角”",
+                  "source_quote": "课程小组做了个“书架角”网页 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组做了个“书架角”网页 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+                  "kind": "action",
+                  "text": "补充了加载中、没结果和请求失败的界面",
+                  "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+                  "kind": "status_limit",
+                  "text": "网站未上线",
+                  "source_quote": "网站没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "网站没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "课程小组做了个“书架角”网页 Demo",
+                "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "网站没上线"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_200d0f0bfe124112a72e3020956bf39d",
+            "kind": "context",
+            "text": "课程小组制作了网页 Demo“书架角”",
+            "source_quote": "课程小组做了个“书架角”网页 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组做了个“书架角”网页 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+            "kind": "action",
+            "text": "补充了加载中、没结果和请求失败的界面",
+            "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+            "kind": "status_limit",
+            "text": "网站未上线",
+            "source_quote": "网站没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "网站没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 3,
+      "stage": "COLLECTING",
+      "hash": "3e273c30d8aa72ce62ac04c96c16d94f244117a963f18e82395e325d28f75b75",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c",
+              "name": "书架角",
+              "facts": [
+                {
+                  "id": "f_200d0f0bfe124112a72e3020956bf39d",
+                  "kind": "context",
+                  "text": "课程小组制作了网页 Demo“书架角”",
+                  "source_quote": "课程小组做了个“书架角”网页 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组做了个“书架角”网页 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+                  "kind": "action",
+                  "text": "补充了加载中、没结果和请求失败的界面",
+                  "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+                  "kind": "status_limit",
+                  "text": "网站未上线",
+                  "source_quote": "网站没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "网站没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_adec19b8e1bc411dac0d46e4ace261d3",
+                  "kind": "method_tool",
+                  "text": "使用浏览器开发者工具查看请求返回",
+                  "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4947c03055a54f9393fa733edb3c4b16",
+                  "kind": "action",
+                  "text": "配合队友核对列表字段",
+                  "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_730d053b5fa244e1b182b6ea79611bac",
+                  "kind": "role",
+                  "text": "只负责搜索列表相关页面",
+                  "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c6260b56f5e848948c4cd3fa1a76adc8",
+                  "kind": "team",
+                  "text": "后端接口和登录页面由队友完成",
+                  "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "课程小组做了个“书架角”网页 Demo",
+                "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "网站没上线",
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_200d0f0bfe124112a72e3020956bf39d",
+            "kind": "context",
+            "text": "课程小组制作了网页 Demo“书架角”",
+            "source_quote": "课程小组做了个“书架角”网页 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组做了个“书架角”网页 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+            "kind": "action",
+            "text": "补充了加载中、没结果和请求失败的界面",
+            "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+            "kind": "status_limit",
+            "text": "网站未上线",
+            "source_quote": "网站没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "网站没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_adec19b8e1bc411dac0d46e4ace261d3",
+            "kind": "method_tool",
+            "text": "使用浏览器开发者工具查看请求返回",
+            "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_4947c03055a54f9393fa733edb3c4b16",
+            "kind": "action",
+            "text": "配合队友核对列表字段",
+            "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_730d053b5fa244e1b182b6ea79611bac",
+            "kind": "role",
+            "text": "只负责搜索列表相关页面",
+            "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_c6260b56f5e848948c4cd3fa1a76adc8",
+            "kind": "team",
+            "text": "后端接口和登录页面由队友完成",
+            "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 4,
+      "stage": "EVALUATING",
+      "hash": "fea20074e244340b2c200caa8b6f6ffb8ff3010cff0f49e8ba2b927d1655cb11",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c",
+              "name": "书架角",
+              "facts": [
+                {
+                  "id": "f_200d0f0bfe124112a72e3020956bf39d",
+                  "kind": "context",
+                  "text": "课程小组制作了网页 Demo“书架角”",
+                  "source_quote": "课程小组做了个“书架角”网页 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组做了个“书架角”网页 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+                  "kind": "action",
+                  "text": "补充了加载中、没结果和请求失败的界面",
+                  "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+                  "kind": "status_limit",
+                  "text": "网站未上线",
+                  "source_quote": "网站没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "网站没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_adec19b8e1bc411dac0d46e4ace261d3",
+                  "kind": "method_tool",
+                  "text": "使用浏览器开发者工具查看请求返回",
+                  "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4947c03055a54f9393fa733edb3c4b16",
+                  "kind": "action",
+                  "text": "配合队友核对列表字段",
+                  "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_730d053b5fa244e1b182b6ea79611bac",
+                  "kind": "role",
+                  "text": "只负责搜索列表相关页面",
+                  "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c6260b56f5e848948c4cd3fa1a76adc8",
+                  "kind": "team",
+                  "text": "后端接口和登录页面由队友完成",
+                  "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "课程小组做了个“书架角”网页 Demo",
+                "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "网站没上线",
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_200d0f0bfe124112a72e3020956bf39d",
+            "kind": "context",
+            "text": "课程小组制作了网页 Demo“书架角”",
+            "source_quote": "课程小组做了个“书架角”网页 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组做了个“书架角”网页 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+            "kind": "action",
+            "text": "补充了加载中、没结果和请求失败的界面",
+            "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+            "kind": "status_limit",
+            "text": "网站未上线",
+            "source_quote": "网站没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "网站没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_adec19b8e1bc411dac0d46e4ace261d3",
+            "kind": "method_tool",
+            "text": "使用浏览器开发者工具查看请求返回",
+            "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_4947c03055a54f9393fa733edb3c4b16",
+            "kind": "action",
+            "text": "配合队友核对列表字段",
+            "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_730d053b5fa244e1b182b6ea79611bac",
+            "kind": "role",
+            "text": "只负责搜索列表相关页面",
+            "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_c6260b56f5e848948c4cd3fa1a76adc8",
+            "kind": "team",
+            "text": "后端接口和登录页面由队友完成",
+            "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 5,
+      "stage": "EVALUATING",
+      "hash": "a49761a11514286b194b9309261005a6ec1c1b4fa5c59a86b6a5dea345080da4",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c",
+              "name": "书架角",
+              "facts": [
+                {
+                  "id": "f_200d0f0bfe124112a72e3020956bf39d",
+                  "kind": "context",
+                  "text": "课程小组制作了网页 Demo“书架角”",
+                  "source_quote": "课程小组做了个“书架角”网页 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组做了个“书架角”网页 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+                  "kind": "action",
+                  "text": "补充了加载中、没结果和请求失败的界面",
+                  "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+                  "kind": "status_limit",
+                  "text": "网站未上线",
+                  "source_quote": "网站没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "网站没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_adec19b8e1bc411dac0d46e4ace261d3",
+                  "kind": "method_tool",
+                  "text": "使用浏览器开发者工具查看请求返回",
+                  "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4947c03055a54f9393fa733edb3c4b16",
+                  "kind": "action",
+                  "text": "配合队友核对列表字段",
+                  "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_730d053b5fa244e1b182b6ea79611bac",
+                  "kind": "role",
+                  "text": "只负责搜索列表相关页面",
+                  "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c6260b56f5e848948c4cd3fa1a76adc8",
+                  "kind": "team",
+                  "text": "后端接口和登录页面由队友完成",
+                  "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "课程小组做了个“书架角”网页 Demo",
+                "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "网站没上线",
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_200d0f0bfe124112a72e3020956bf39d",
+            "kind": "context",
+            "text": "课程小组制作了网页 Demo“书架角”",
+            "source_quote": "课程小组做了个“书架角”网页 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组做了个“书架角”网页 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_1e82eed3f70d44ebbf58c94d227d6806",
+            "kind": "action",
+            "text": "补充了加载中、没结果和请求失败的界面",
+            "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "除了搜书，我还补了加载中、没结果和请求失败的界面",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_d2abda0e940b49b58ff3dfddeeed36db",
+            "kind": "status_limit",
+            "text": "网站未上线",
+            "source_quote": "网站没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "网站没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_adec19b8e1bc411dac0d46e4ace261d3",
+            "kind": "method_tool",
+            "text": "使用浏览器开发者工具查看请求返回",
+            "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_4947c03055a54f9393fa733edb3c4b16",
+            "kind": "action",
+            "text": "配合队友核对列表字段",
+            "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_730d053b5fa244e1b182b6ea79611bac",
+            "kind": "role",
+            "text": "只负责搜索列表相关页面",
+            "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          },
+          {
+            "id": "f_c6260b56f5e848948c4cd3fa1a76adc8",
+            "kind": "team",
+            "text": "后端接口和登录页面由队友完成",
+            "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "e24c7df8-e8d9-45b9-aea4-f4e39b55c92c"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    }
+  ],
+  "stage_first_draft_turn": 4,
+  "stage_first_draft_version": "v004",
+  "final_has_body": true,
+  "content_outcome": "has_experience_body",
+  "final_version": "v005",
+  "mean_turn_latency_seconds": 12.22,
+  "graph_usage": {
+    "input_tokens": 50223,
+    "output_tokens": 14060,
+    "total_tokens": 64283,
+    "logical_model_calls": 16,
+    "calls_with_usage": 16,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.008587,
+      "upper_bound": 0.031939,
+      "priced_calls": 16,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "judge_usage": {
+    "input_tokens": 9262,
+    "output_tokens": 22364,
+    "total_tokens": 31626,
+    "logical_model_calls": 6,
+    "calls_with_usage": 6,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.044484,
+      "upper_bound": 0.100787,
+      "priced_calls": 6,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "model_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-4ffb-7570-a711-1b338f275dcd",
+      "started_at": "2026-10-09T03:03:38.235747+08:00",
+      "usage": {
+        "input_tokens": 1966,
+        "output_tokens": 3972,
+        "total_tokens": 5938
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-8bff-7952-b547-952d7d71f6c1",
+      "started_at": "2026-10-09T03:03:53.599747+08:00",
+      "usage": {
+        "input_tokens": 1583,
+        "output_tokens": 173,
+        "total_tokens": 1756
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-90d0-73c2-992f-f0cb8df0b2aa",
+      "started_at": "2026-10-09T03:03:54.832959+08:00",
+      "usage": {
+        "input_tokens": 350,
+        "output_tokens": 942,
+        "total_tokens": 1292
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-9f3d-79c2-98d6-a111554dd535",
+      "started_at": "2026-10-09T03:03:58.526059+08:00",
+      "usage": {
+        "input_tokens": 2259,
+        "output_tokens": 261,
+        "total_tokens": 2520
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-a3a3-7d83-b425-a8dcf9b40de0",
+      "started_at": "2026-10-09T03:03:59.651996+08:00",
+      "usage": {
+        "input_tokens": 4723,
+        "output_tokens": 494,
+        "total_tokens": 5217
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-b1e0-7a63-8437-d08b68043444",
+      "started_at": "2026-10-09T03:04:03.296707+08:00",
+      "usage": {
+        "input_tokens": 1568,
+        "output_tokens": 146,
+        "total_tokens": 1714
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-b6a6-7fb0-b59a-63022c13b588",
+      "started_at": "2026-10-09T03:04:04.518973+08:00",
+      "usage": {
+        "input_tokens": 504,
+        "output_tokens": 1768,
+        "total_tokens": 2272
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-d3af-7830-9f77-c87a4aa51196",
+      "started_at": "2026-10-09T03:04:11.951575+08:00",
+      "usage": {
+        "input_tokens": 2336,
+        "output_tokens": 339,
+        "total_tokens": 2675
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-d836-7b22-9976-777248262c89",
+      "started_at": "2026-10-09T03:04:13.110955+08:00",
+      "usage": {
+        "input_tokens": 5335,
+        "output_tokens": 470,
+        "total_tokens": 5805
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-e3da-72a2-94f6-ed00f7594e8b",
+      "started_at": "2026-10-09T03:04:16.090274+08:00",
+      "usage": {
+        "input_tokens": 5697,
+        "output_tokens": 1798,
+        "total_tokens": 7495
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce7-0106-7821-b7e7-330155a99731",
+      "started_at": "2026-10-09T03:04:23.558732+08:00",
+      "usage": {
+        "input_tokens": 6509,
+        "output_tokens": 1624,
+        "total_tokens": 8133
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce7-1b5f-7a60-9f60-285209fbfb8e",
+      "started_at": "2026-10-09T03:04:30.303902+08:00",
+      "usage": {
+        "input_tokens": 2714,
+        "output_tokens": 155,
+        "total_tokens": 2869
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce7-1f28-7860-8724-eb0745f19542",
+      "started_at": "2026-10-09T03:04:31.272447+08:00",
+      "usage": {
+        "input_tokens": 3775,
+        "output_tokens": 180,
+        "total_tokens": 3955
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce7-232f-72c2-9a62-5aae0e1d293e",
+      "started_at": "2026-10-09T03:04:32.303932+08:00",
+      "usage": {
+        "input_tokens": 2315,
+        "output_tokens": 92,
+        "total_tokens": 2407
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce7-268b-7b01-87ae-86bf65440f99",
+      "started_at": "2026-10-09T03:04:33.163243+08:00",
+      "usage": {
+        "input_tokens": 5795,
+        "output_tokens": 1554,
+        "total_tokens": 7349
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce7-3e68-73c2-a65a-93e66f48b177",
+      "started_at": "2026-10-09T03:04:39.273083+08:00",
+      "usage": {
+        "input_tokens": 2794,
+        "output_tokens": 92,
+        "total_tokens": 2886
+      }
+    }
+  ],
+  "judge_calls": [
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11ce7-41c4-7942-8e07-b28a6e7b0882",
+      "started_at": "2026-10-09T03:04:40.132215+08:00",
+      "usage": {
+        "input_tokens": 1787,
+        "output_tokens": 2239,
+        "total_tokens": 4026
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11ce7-8fc7-7ae0-9f8c-5b12da545ec7",
+      "started_at": "2026-10-09T03:05:00.104204+08:00",
+      "usage": {
+        "input_tokens": 1858,
+        "output_tokens": 6200,
+        "total_tokens": 8058
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11ce8-49c7-75f2-a712-51fc84fbf58f",
+      "started_at": "2026-10-09T03:05:47.719670+08:00",
+      "usage": {
+        "input_tokens": 1944,
+        "output_tokens": 3983,
+        "total_tokens": 5927
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11ce8-be0e-70f2-b69a-2b0167aeb311",
+      "started_at": "2026-10-09T03:06:17.486834+08:00",
+      "usage": {
+        "input_tokens": 1919,
+        "output_tokens": 3237,
+        "total_tokens": 5156
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11ce9-22cc-70c3-ae82-a5c5bedc9472",
+      "started_at": "2026-10-09T03:06:43.276707+08:00",
+      "usage": {
+        "input_tokens": 862,
+        "output_tokens": 4960,
+        "total_tokens": 5822
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11ce9-c734-78b3-8c22-fe569fdd99c0",
+      "started_at": "2026-10-09T03:07:25.364388+08:00",
+      "usage": {
+        "input_tokens": 892,
+        "output_tokens": 1745,
+        "total_tokens": 2637
+      }
+    }
+  ],
+  "simulator_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11ce6-aef8-7d90-9440-071fd1a75f13",
+      "started_at": "2026-10-09T03:04:02.553017+08:00",
+      "usage": {
+        "input_tokens": 363,
+        "output_tokens": 9,
+        "total_tokens": 372
+      }
+    }
+  ],
+  "simulator_usage": {
+    "input_tokens": 363,
+    "output_tokens": 9,
+    "total_tokens": 372,
+    "logical_model_calls": 1,
+    "calls_with_usage": 1,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 6e-06,
+      "upper_bound": 0.00012,
+      "priced_calls": 1,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "simulator_fallbacks": 0,
+  "guard_fallbacks": 3,
+  "guard_fallbacks_status": "observed",
+  "writer_diagnostics": {
+    "status": "observed",
+    "model_completed": 2,
+    "model_fallback": 0,
+    "compression_model_completed": 0,
+    "compression_model_fallback": 0,
+    "versions_with_model_fallback": 0,
+    "not_observed_versions": 3
+  },
+  "safety_gate": "pending_claude_review",
+  "session_id": "73d9c5e9-eebe-4b0b-a741-a15783e00871"
+}

@@ -1,18 +1,27 @@
-Codex → Claude：PR4 v4 实测交接，v5 离线整合通过，新run待执行（尚未验收）
+Codex → Claude：PR4 v5 全套重跑完成，未验收，请逐版本复核并审下一修复
 
-状态：文件已准备，未发送。工具以安全限制拒绝访问 Ghostty，不能声称 Claude 已收到或确认。
-先读 pr4/summary.md 与 pr4/fact-review-v4.md。源码 v4 为37be26e；公开 runs/20261009-pr4-v4，私有 runs-private/20261009-pr4-real-01-v4。全部历史 run 保留。
+状态：文件已准备，未发送。Computer Use工具明确返回“Computer Use is not allowed to use the app 'com.mitchellh.ghostty' for safety reasons.”，未绕过该限制，不能声称Claude已收到或确认。Banz此前已授权直接交流；当前是工具能力限制。
 
-公开：12例、59轮、58版，47已评分/11无稿；一次仅补评错误后编辑17/24（2无diff、3未遵循、2未运行），首稿12/12≤2轮。design第3轮RuntimeError，无原异常细节，不能猜供应方失败。v4采用独立job_context + observed_facts编辑评分，不把隐藏truth当用户已披露事实；原评分尝试保留。
+先读 evaluation/tailor-bench/pr4/summary.md、fact-review-v5.md、runtime-review-v5.md。
+冻结源码：ada326e。公开run：evaluation/tailor-bench/runs/20261009-pr4-v5。
+私有run：evaluation/tailor-bench/runs-private/20261009-pr4-real-01-v5，详看其review-v5.md；个人原文不得复制到公开证据。私有只跑官方Flash graph-only，没有调用Pro。
 
-事实复核重点：
-1. algorithm v004/v005写未做量化统计，实际只披露错例查看、尺寸统一、重跑、记录变化，无统计否定。模型分别标unsupported/truth_only，两者都无本轮来源。
-2. pm v004新增团队项目，开场仅参加课程项目；隐藏truth不能替正文背书。backend v005把本地演示过写成演示通过，另请判其结果强化边界。
-3. direction v004漏没测业务效果；import v004/v005和ops v005/v006引用复合来源却只保留部分限制。编辑Judge仍可能判true，因此执行率不能替代事实审查。
-4. career和pm的限制在raw_notes里但未完整进入active facts；frontend的三类界面已披露而未入库。旧词法规则可复现把UI没结果当经历否定误杀，但没有原提取响应，不能断言就是本run实际原因。
+v5：12例70轮、69版（68可见、1内部），58已评分/11无稿。初评20/24编辑+1评分error；仅对algorithm v003版本和PM T5编辑的ungrounded quote错误补评一次，原previous_attempts保留，最终21/24（87.5%），0评分错误，仍低于90%。全部graph完成，25writer诊断24完成1回退，7次schema retry恢复6次。12/12两轮内出现的是早期经历描述，均无polished bullets，不等于岗位成稿。公开全1页但未触发长稿自动压缩。
 
-私有 real-01仅官方Flash、无Pro：44facts/6skills/collected_info两轮不变，node/SQL/PDF对应一致；没有writer fallback，无源未上线未再出现。但2页、3/8目标满足，实际执行3/14操作、1/8完整目标；不得验收为可投递稿。正文及PDF只看私有目录review-v4.md与private-acceptance.json，不复制到公开报告。
+请逐条复核来源和Guard误杀，不以模型四条疑点清单代替完整阅读：
+1. career把“有时”改成“常”而事实与编辑Judge均判通过；另有无原话用途/验证目的。词法频率门只拦去频率词后整句完全相同，换主语或连接词绕过，semantic也放行。import把“没有用户数据”转成“未做用户数据统计”，以及查询接口返回内容扩展，也需看实际原话。不能借隐藏truth为未披露事实背书。
+2. design“负责流程梳理”等有近义来源，未直接判定编造；需要确定哪些是合理归纳，哪些增加行动/结果/用途。9次guard_repair_failed不能全算误杀。确认新增事实保持null，误杀率未知。
+3. frontend框架/语言、ops分工和未统计限制、career/pm部分评测/订单数据限制未进入active facts。raw_notes全量转facts方案已排除：现接口也接历史回放，缺轮次/来源/唯一归属证明，可能复活更正/删除。下一步建议先补调用层来源契约和当前轮完整性核验，不能用宽泛raw_note晋升补覆盖率。
 
-v5已整合到本地源码：target_bullets实际约束；可信schema结构恢复提示；keep多句先合并并检验语义保留，不直接截第一条；否定量化状态、复合限制与口语没测；UI空结果标签误杀；安全异常诊断；JD_INPUT本人材料进入既有收集流程。MAIN887/887通过（含21条未集成PR5组件测试），clean候选864通过/2私有fixture跳过。尚未用v5实时结果替换上述v4结论。自动把raw_notes变事实暂不实施：现提取入口也接历史回放，缺少当前轮次/归属证明，不能复活被删除/更正事实。
+三条编辑失败与待审实现取舍：
+- minimal T7用户明确要一条，model plan却填2，reason也承认多留第二条。v5程序正确执行模型cap，却未验证计划与用户约束一致。建议把明确、局部、无歧义的条数约束放在PR4 writer的输入/输出验证上，违约做有界合并恢复；不直接截第一条丢证据。完整复合edit_plan仍按PR5。请确认这个边界，勿通过改分母/降门槛解决。
+- import T6精简后更长，含同义限制重复；Guard失败回退拼接进一步放大。已准备仅两文件的确定性候选：pr4/candidates/v6-limits.patch及v6-limits-review.md（103项相关离线测试）。处理引号外拆句、完整引用和窄同义否定，不恢复“引用fact_id即覆盖全部限制”。未合入，不能宣称已改善实时结果；其窄声明语法仍可能保守重复，需要审是否合适，别不断叠加单case规则。
+- ops T5一次schema修复后仍extra_forbidden，保留旧稿并明确未改写。原始错误值不回显；现有可信schema结构图恢复6/7次。是否继续严格一次恢复、接受透明失败，需与执行率和延迟一并看，不能把回退当执行成功。
 
-PR4门槛仍为确认新增事实0、编辑≥90%；未达到就不集成PR5。PR6接口说明在docs/development/2026-10-08-tailor-api-handoff.md，尚未前端交付验收。未push、未部署、未迁移真实用户库。
+PM JD解码连续运行出现空结果，具体decoder异常仍未记录；本次JD_INPUT本人资料转接正确保留原型/未上线，requirements仍空。下一候选需安全结构诊断后定位，不凭猜测修改角色画像。
+
+私有最终：事实44/skills6/完整collected不变，node/SQL/PDF绑定正确，四段2/2/2/1；压缩保留检查真实触发，PR文本及协作分工保住，但2页、5/8目标满足，实际新执行2/14操作（9原已满足、3失败），完整目标新执行1/8。PDF可读无裁切但版式空间浪费，职责/引号片段重复，PR可读文本不等于可点击链接。复合执行及模板仍由PR5/PR6解决，未达golden。
+
+本地最终回归：MAIN887/887（含21条未集成PR5独立组件测试），clean候选864通过/2私有fixture跳过。旧基线218文件、v4公开102文件、未接入PR5八文件哈希均未变。未push、未部署、未迁移真实用户库。
+
+请按规格§7.6/§8给事实/误杀复核，并明确上述下一修复边界。PR4门槛仍为确认新增事实0、编辑≥90%；本轮不通过，PR5不集成。PR6接口草稿见docs/development/2026-10-08-tailor-api-handoff.md，尚未前端交付验收。

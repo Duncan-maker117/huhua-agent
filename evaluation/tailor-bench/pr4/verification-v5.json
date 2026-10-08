@@ -1,7 +1,7 @@
 {
   "candidate": "pr4-v5",
   "git_parent_commit": "37be26e51208c6780a544e04effa88b5cfcefae2",
-  "status": "offline_passed_live_pending",
+  "status": "live_finished_not_accepted",
   "changes": [
     "Use validated target_bullets for draft limits, preserving scoped edit boundaries.",
     "Trusted schema structure on bounded repair; no candidate output or values echoed.",
@@ -64,7 +64,7 @@
   "claude_review": "not_delivered_Ghostty_access_disallowed_by_tool",
   "public_run": "evaluation/tailor-bench/runs/20261009-pr4-v5",
   "private_run": "evaluation/tailor-bench/runs-private/20261009-pr4-real-01-v5",
-  "live_status": "not_started",
+  "live_status": "completed",
   "private_policy": "Official api.deepseek.com deepseek-flash graph-only. No Pro or external judges for private input.",
   "limitations": [
     "No automatic promotion of raw_notes to facts; current extractor also receives historical replay without per-turn ownership proof.",
@@ -196,5 +196,417 @@
     "backend/app/tools/docx_template_filler.py": "06811eb68ab74cb4be84aff885dd69e857d7710fefc487c4e8b70c0aae980da7",
     "backend/app/tools/resume_data_docx.py": "c9b542a95bbfac3aca8518ee071f4c0b87f4b7ec1ace2486cdb1262ae4cdd82c",
     "backend/main.py": "51e0c20b636680e795ece12a0595c832452f76f007aa903014961d6feb4b638c"
+  },
+  "git_commit": "ada326e95524942db32efbd3575d1213db4a8eb1",
+  "private_result": {
+    "status": "graph_complete_not_accepted",
+    "judge_model": null,
+    "active_facts": 44,
+    "active_skills": 6,
+    "collected_info_unchanged": true,
+    "node_sql_consistent": true,
+    "page_data_hash_match": true,
+    "pages": 2,
+    "goals_satisfied": 5,
+    "goal_total": 8,
+    "conditions_satisfied": 11,
+    "condition_total": 14,
+    "operations_executed": 2,
+    "operations_already_satisfied": 9,
+    "operations_failed": 3,
+    "full_goals_newly_executed": 1,
+    "review": "evaluation/tailor-bench/runs-private/20261009-pr4-real-01-v5/review-v5.md",
+    "readable_link_caveat": "Private checker records readable PR text, not clickable PDF hyperlinks."
+  },
+  "separate_unintegrated_candidate": {
+    "patch": "evaluation/tailor-bench/pr4/candidates/v6-limits.patch",
+    "review": "evaluation/tailor-bench/pr4/candidates/v6-limits-review.md",
+    "status": "not_integrated_not_live_tested",
+    "related_tests_passed": 103,
+    "new_model_calls": 0,
+    "scope": "Quoted clause boundaries and narrowly equivalent negative deployment status; does not solve general factuality or upstream extraction gaps."
+  },
+  "public_manifest_status": "completed",
+  "public_backend_unchanged": true,
+  "public_totals": {
+    "cases": 12,
+    "versions": 69,
+    "visible_versions": 68,
+    "internal_only_versions": 1,
+    "version_score_statuses": {
+      "no_draft": 11,
+      "completed": 58
+    },
+    "pages": {
+      "rendered": 69,
+      "within_limit": 69,
+      "over_limit": 0,
+      "unknown": 0,
+      "statuses": {
+        "rendered": 69
+      }
+    },
+    "writer_flags": {
+      "transferable": 17
+    },
+    "writer": {
+      "status": "observed",
+      "model_completed": 24,
+      "model_fallback": 1,
+      "compression_model_completed": 0,
+      "compression_model_fallback": 0,
+      "versions_with_model_fallback": 1,
+      "not_observed_versions": 44
+    },
+    "graph_statuses": {
+      "completed": 12
+    },
+    "evaluation_statuses": {
+      "completed": 12
+    },
+    "facts": {
+      "confirmed_new_facts": null,
+      "safe": null,
+      "status": "pending_claude_review",
+      "lexical_flags": 0,
+      "lexical_statuses": {
+        "no_draft": 11,
+        "completed": 58
+      },
+      "semantic_suspicions": 4,
+      "unverifiable_units": 5,
+      "quality_check_counts": {
+        "objective_unsupported": 5,
+        "project_title_mismatch": 4
+      },
+      "semantic_completed_versions": 58,
+      "semantic_unscored_content_versions": 0,
+      "semantic_statuses": {
+        "not_run": 11,
+        "completed_pending_claude": 58
+      },
+      "semantic_verdicts": {
+        "supported": 241,
+        "unsupported": 2,
+        "truth_only": 2,
+        "unverifiable_unit": 5
+      },
+      "visible_lexical_flags": 0,
+      "visible_semantic_suspicions": 4,
+      "internal_lexical_flags": 0,
+      "internal_semantic_suspicions": 0
+    },
+    "coverage": {
+      "total": 24,
+      "covered": 19,
+      "known_uncovered": 5,
+      "unknown": 0,
+      "not_applicable": 0,
+      "observed_lower_bound": 0.7916666666666666,
+      "possible_upper_bound": 0.7916666666666666,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null,
+      "fact_total": 46,
+      "fact_covered": 23,
+      "fact_unknown": 0,
+      "fact_observed_lower_bound": 0.5,
+      "cases_without_fact_denominator": 0
+    },
+    "coverage_of_truth": {
+      "total": 24,
+      "covered": 19,
+      "known_uncovered": 5,
+      "unknown": 0,
+      "not_applicable": 0,
+      "observed_lower_bound": 0.7916666666666666,
+      "possible_upper_bound": 0.7916666666666666,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null,
+      "fact_total": 46,
+      "fact_covered": 23,
+      "fact_unknown": 0,
+      "fact_observed_lower_bound": 0.5,
+      "cases_without_fact_denominator": 0
+    },
+    "coverage_of_disclosed": {
+      "total": 20,
+      "covered": 17,
+      "known_uncovered": 3,
+      "unknown": 0,
+      "not_applicable": 4,
+      "observed_lower_bound": 0.85,
+      "possible_upper_bound": 0.85,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null,
+      "fact_total": 28,
+      "fact_covered": 21,
+      "fact_unknown": 0,
+      "fact_observed_lower_bound": 0.75,
+      "cases_without_fact_denominator": 0
+    },
+    "gap_requirements": 11,
+    "edits": {
+      "expected": 24,
+      "executed": 21,
+      "no_diff": 1,
+      "error": 0,
+      "not_run": 0,
+      "unscored": 0,
+      "no_draft": 0,
+      "not_followed": 2,
+      "uncertain": 0,
+      "observed_lower_bound": 0.875
+    },
+    "quality": {
+      "dimensions": [
+        "jd_relevance",
+        "personal_contribution",
+        "results_impact",
+        "professional_expression",
+        "selection_length"
+      ],
+      "first": {
+        "scored_cases": 12,
+        "missing_cases": 0,
+        "means": {
+          "jd_relevance": 3,
+          "personal_contribution": 2.917,
+          "results_impact": 2.083,
+          "professional_expression": 3.083,
+          "selection_length": 2.75
+        }
+      },
+      "final": {
+        "scored_cases": 12,
+        "missing_cases": 0,
+        "means": {
+          "jd_relevance": 3.917,
+          "personal_contribution": 3.917,
+          "results_impact": 2.333,
+          "professional_expression": 2.917,
+          "selection_length": 3.5
+        }
+      }
+    },
+    "first_draft": {
+      "drafted_cases": 12,
+      "missing_cases": 0,
+      "within_two_turns": 12,
+      "mean_turns_drafted_cases_only": 2
+    },
+    "first_visible_experience": {
+      "drafted_cases": 12,
+      "missing_cases": 0,
+      "within_two_turns": 12,
+      "mean_turns_drafted_cases_only": 2
+    },
+    "latency": {
+      "observed_turns": 70,
+      "mean_seconds": 12.122
+    },
+    "usage": {
+      "graph": {
+        "cases_with_usage": 12,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 676048,
+        "input_tokens_complete": true,
+        "output_tokens": 189215,
+        "output_tokens_complete": true,
+        "total_tokens": 865263,
+        "total_tokens_complete": true,
+        "logical_model_calls": 219,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 219,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.115557,
+          "upper_bound": 0.429871,
+          "priced_calls": 219,
+          "unpriced_calls": 0,
+          "cases_with_range": 12,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "judge": {
+        "cases_with_usage": 12,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 142132,
+        "input_tokens_complete": true,
+        "output_tokens": 396481,
+        "output_tokens_complete": true,
+        "total_tokens": 538613,
+        "total_tokens_complete": true,
+        "logical_model_calls": 83,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 83,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.788159,
+          "upper_bound": 1.757678,
+          "priced_calls": 83,
+          "unpriced_calls": 0,
+          "cases_with_range": 12,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "simulator": {
+        "cases_with_usage": 12,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 7966,
+        "input_tokens_complete": true,
+        "output_tokens": 174,
+        "output_tokens_complete": true,
+        "total_tokens": 8140,
+        "total_tokens_complete": true,
+        "logical_model_calls": 22,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 22,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.000129,
+          "upper_bound": 0.002598,
+          "priced_calls": 22,
+          "unpriced_calls": 0,
+          "cases_with_range": 12,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "all_models": {
+        "cases_with_usage": 36,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 826146,
+        "input_tokens_complete": true,
+        "output_tokens": 585870,
+        "output_tokens_complete": true,
+        "total_tokens": 1412016,
+        "total_tokens_complete": true,
+        "logical_model_calls": 324,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 324,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.903845,
+          "upper_bound": 2.190147,
+          "priced_calls": 324,
+          "unpriced_calls": 0,
+          "cases_with_range": 36,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      }
+    },
+    "product_findings": {
+      "drafted_cases": 12,
+      "no_draft_cases": [],
+      "title_error_cases": [
+        "ops-01"
+      ],
+      "duplicate_project_cases": [],
+      "drafts_without_education": [
+        "ai-pm-01",
+        "algorithm-01",
+        "backend-01",
+        "career-switch-01",
+        "data-01",
+        "design-01",
+        "direction-01",
+        "frontend-01",
+        "minimal-01",
+        "ops-01",
+        "pm-01"
+      ],
+      "disclosed_education_cases": [
+        "import-01"
+      ],
+      "disclosed_education_missing_cases": [],
+      "first_person_cases": [
+        "ai-pm-01",
+        "career-switch-01",
+        "direction-01",
+        "frontend-01",
+        "minimal-01"
+      ],
+      "verbatim_body_cases": [
+        "career-switch-01"
+      ],
+      "duplicate_body_cases": [],
+      "duplicate_sentence_cases": []
+    },
+    "guard": {
+      "fallbacks": 28,
+      "reasons": {
+        "guard_repair_failed": 9,
+        "missing_item_status_limit": 19
+      },
+      "false_positive_rate": null,
+      "status": "observed"
+    }
+  },
+  "artifact_integrity_checks": {
+    "old_baseline": {
+      "files": 218,
+      "changed": []
+    },
+    "v4_public": {
+      "files": 102,
+      "changed": []
+    },
+    "pr5_unintegrated": {
+      "files": 8,
+      "changed": []
+    }
+  },
+  "rescore": {
+    "attempts": 1,
+    "scope": "algorithm-01 v003 version and pm-01 turn 5 edit only, both initial errors",
+    "completed": 2,
+    "previous_attempts_retained": true,
+    "rejudge_completed_scores": false
+  },
+  "initial_public_counts": {
+    "edit_executed": 20,
+    "edit_error": 1,
+    "edit_failed": 3,
+    "version_completed": 57,
+    "version_no_draft": 11,
+    "version_error": 1
+  },
+  "acceptance": {
+    "pr4_passed": false,
+    "edit_minimum": 0.9,
+    "observed_edit_rate": 0.875,
+    "confirmed_new_facts_status": "unknown_pending_Claude_review",
+    "known_codex_factuality_findings": "Frequency amplification and unsupported task/purpose additions require review, including findings missed by the model judge."
   }
 }

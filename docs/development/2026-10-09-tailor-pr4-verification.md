@@ -60,7 +60,7 @@ v4针对限制整段追加、无源未上线/频率/因果、raw_note既有经�
 
 证据入口：[公开实测报告](../../evaluation/tailor-bench/runs/20261009-pr4-v4/summary.md)、[事实预审](../../evaluation/tailor-bench/pr4/fact-review-v4.md)、[运行机制复核](../../evaluation/tailor-bench/pr4/runtime-review-v4.md)。私有复核为 `runs-private/20261009-pr4-real-01-v4/review-v4.md`，不复制其正文。
 
-## v5 离线整合通过（实时验证待补）
+## v5 离线整合及实时重跑完成（未验收）
 
 最终主工作区887/887通过（14.404秒，含21条未提交PR5独立组件测试）；干净git archive候选866项中864通过、2项因无私有fixture跳过（13.885秒）。Ruff/diff通过，独立压缩边界复核25/25。初次失败来自public_beta测试隔离：残留ACCOUNT_SECRET及from-import配置替身，均已受控复现后仅修改测试修复，生产认证未变。失败与成功日志分别保留，源码hash见verification-v5.json。以下为实现说明，不表示实时验收通过。
 
@@ -72,3 +72,13 @@ v4针对限制整段追加、无源未上线/频率/因果、raw_note既有经�
 6. **失败诊断可定位且不泄露资料。** Benchmark只给失败turn增加有界异常链类型和本仓库相对源码文件/函数/行号，包含被 `from None` 隐去的context；不保存异常消息、正文、局部变量、外部路径或凭证。只为新run取证，不回填旧run的缺失异常，不改评分。
 
 未采用raw_notes自动补全事实：当前提取调用尚不能可靠区分本轮新增与历史回放，不能因覆盖率需要复活已删除或已更正事实。模板版面仍属PR6，复合编辑逐项执行仍属PR5；两者未完成不能成为当前事实或一页门槛的豁免理由。
+
+## v5 最终实时证据
+
+冻结源码ada326e，新公开run于02:52开始、03:18完成错误补评。12例70轮，69变化版（68可见/1内部），58评分/11无稿；初评20/24编辑和1错误，仅补评algorithm v003版本及PM T5编辑的引用错误，原尝试各保留1次，最终21/24（87.5%）、0评分错误。三条失败分别是import精简变长、minimal模型计划2违反用户1条、ops结构恢复后仍失败并保留旧稿。
+
+全部12例graph完成，25writer诊断24完成/1回退，7结构重试6恢复。69版本hash、25page hash、67node/SQL事实对、68可见commit hash、12最终稿均匹配。公开69版均1页，但未触发长稿压缩；首稿12/12只是早期可见经历描述，均尚无polished bullets。事实Judge仍漏检有时到常等越界，不能用21/24或模型疑点4的计数替代人工复核。未出现runtimeerror不证明v4 design未知异常已定位。
+
+私有仅Flash，两轮主档44facts/6skills不变，保存与PDF绑定正确；实际发生压缩合并通过、后续缩短拒绝等保护。最终2页、5/8目标满足，实际新执行2/14操作、1/8完整目标；9项原已满足，3项未执行，仍未达golden。个人正文/图像/逐项验收仅在runs-private/20261009-pr4-real-01-v5/review-v5.md。
+
+旧基线218文件、v4公开102文件、未集成PR5八文件哈希不变。事实及运行预审已交付pr4/fact-review-v5.md与runtime-review-v5.md。引号/同对象限制的独立候选pr4/candidates/v6-limits.patch离线103项通过，但未合入、未实时验证，不回填任何v5产物。Claude交接文件已备；Ghostty访问被Computer Use工具安全限制拒绝，尚未送达，不能声称评审通过。PR4及私有golden均未验收，未push/部署/迁移真实库。

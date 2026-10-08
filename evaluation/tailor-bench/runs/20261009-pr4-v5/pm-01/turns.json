@@ -1,0 +1,2232 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：产品经理实习生\n岗位职责：收集使用问题，整理需求优先级，绘制核心操作流程，与设计和开发沟通需求。\n任职要求：能把模糊反馈转成具体问题；有原型或需求文档产出；表达清晰，能说明个人贡献。加分项：有线上转化漏斗或 A/B 测试经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T03:10:25.392734+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "assistant": "这段材料还没有解析出明确岗位信息，请核对文字或补充 JD 原文；已有岗位信息保留。",
+    "elapsed_seconds": 14.633,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-8674-72a0-8ae9-00474210ae95",
+        "started_at": "2026-10-09T03:10:25.396841+08:00",
+        "usage": {
+          "input_tokens": 1992,
+          "output_tokens": 3594,
+          "total_tokens": 5586
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 1992,
+      "output_tokens": 3594,
+      "total_tokens": 5586,
+      "logical_model_calls": 1,
+      "calls_with_usage": 1,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.002162,
+        "upper_bound": 0.00491,
+        "priced_calls": 1,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      3
+    ],
+    "started_at": "2026-10-09T03:10:40.031827+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "name": "拼单清单",
+            "facts": [
+              {
+                "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+                "kind": "context",
+                "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "kind": "action",
+                "text": "问了同学平时怎么记清单。",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我问了同学平时怎么记清单",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+                "kind": "action",
+                "text": "画了提交和确认的流程。",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也画了提交和确认的流程",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_eac7b48400a4400a962683d393e52773",
+                "kind": "status_limit",
+                "text": "是个没开发上线的原型。",
+                "source_quote": "是个没开发上线的原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是个没开发上线的原型",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "我问了同学平时怎么记清单",
+              "也画了提交和确认的流程",
+              "是个没开发上线的原型"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+          "kind": "context",
+          "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+          "kind": "action",
+          "text": "问了同学平时怎么记清单。",
+          "source_quote": "我问了同学平时怎么记清单",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我问了同学平时怎么记清单",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+          "kind": "action",
+          "text": "画了提交和确认的流程。",
+          "source_quote": "也画了提交和确认的流程",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "也画了提交和确认的流程",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_eac7b48400a4400a962683d393e52773",
+          "kind": "status_limit",
+          "text": "是个没开发上线的原型。",
+          "source_quote": "是个没开发上线的原型",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是个没开发上线的原型",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "我已识别这轮补充的「拼单清单」项目信息，正在同步草稿，保存尚未完成。\n\n**需要你补充**：提交和确认的流程是用什么画的（Figma／纸笔／其他）？交付物是流程图还是可点击原型？",
+    "elapsed_seconds": 11.101,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-bfa9-7c22-ab2c-c0dbed3f84b9",
+        "started_at": "2026-10-09T03:10:40.041935+08:00",
+        "usage": {
+          "input_tokens": 1584,
+          "output_tokens": 161,
+          "total_tokens": 1745
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-c468-7da0-9e0c-dc1ab80325e3",
+        "started_at": "2026-10-09T03:10:41.256543+08:00",
+        "usage": {
+          "input_tokens": 352,
+          "output_tokens": 976,
+          "total_tokens": 1328
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-d63b-7c23-b491-17eeac55c838",
+        "started_at": "2026-10-09T03:10:45.819524+08:00",
+        "usage": {
+          "input_tokens": 2286,
+          "output_tokens": 265,
+          "total_tokens": 2551
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-db78-71f3-9643-b3f0800124bf",
+        "started_at": "2026-10-09T03:10:47.160805+08:00",
+        "usage": {
+          "input_tokens": 2468,
+          "output_tokens": 647,
+          "total_tokens": 3115
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 6690,
+      "output_tokens": 2049,
+      "total_tokens": 8739,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001249,
+        "upper_bound": 0.004466,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v002",
+      "v003"
+    ]
+  },
+  {
+    "turn": 3,
+    "phase": "followup",
+    "user": "我用 Axure 做了清单提交和确认状态的交互原型。\n“拼单清单”的产出是需求清单、操作流程和交互原型，没有真实订单或线上转化数据。",
+    "task": "auto",
+    "simulation": {
+      "text": "我用 Axure 做了清单提交和确认状态的交互原型。\n“拼单清单”的产出是需求清单、操作流程和交互原型，没有真实订单或线上转化数据。",
+      "fact_indices": [
+        4,
+        6
+      ],
+      "reason": "model_selected_truth",
+      "selector_status": "completed",
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11cec-eb06-7db2-b1e3-49be015f3b31",
+          "started_at": "2026-10-09T03:10:51.142516+08:00",
+          "usage": {
+            "input_tokens": 400,
+            "output_tokens": 9,
+            "total_tokens": 409
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 400,
+        "output_tokens": 9,
+        "total_tokens": 409,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 7e-06,
+          "upper_bound": 0.000131,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      3,
+      4,
+      6
+    ],
+    "started_at": "2026-10-09T03:10:51.754233+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "name": "拼单清单",
+            "facts": [
+              {
+                "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+                "kind": "context",
+                "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "kind": "action",
+                "text": "问了同学平时怎么记清单。",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我问了同学平时怎么记清单",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+                "kind": "action",
+                "text": "画了提交和确认的流程。",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也画了提交和确认的流程",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_eac7b48400a4400a962683d393e52773",
+                "kind": "status_limit",
+                "text": "是个没开发上线的原型。",
+                "source_quote": "是个没开发上线的原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是个没开发上线的原型",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                "kind": "method_tool",
+                "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+                "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "我问了同学平时怎么记清单",
+              "也画了提交和确认的流程",
+              "是个没开发上线的原型",
+              "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "“拼单清单”的产出是需求清单、操作流程和交互原型，没有真实订单或线上转化数据。"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "Axure",
+            "source_quote": "Axure",
+            "source": "chat",
+            "turn_id": ""
+          }
+        ],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+          "kind": "context",
+          "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+          "kind": "action",
+          "text": "问了同学平时怎么记清单。",
+          "source_quote": "我问了同学平时怎么记清单",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我问了同学平时怎么记清单",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+          "kind": "action",
+          "text": "画了提交和确认的流程。",
+          "source_quote": "也画了提交和确认的流程",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "也画了提交和确认的流程",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_eac7b48400a4400a962683d393e52773",
+          "kind": "status_limit",
+          "text": "是个没开发上线的原型。",
+          "source_quote": "是个没开发上线的原型",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是个没开发上线的原型",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+          "kind": "method_tool",
+          "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+          "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        }
+      ],
+      "active_skills": [
+        {
+          "name": "Axure",
+          "source_quote": "Axure",
+          "source": "chat",
+          "turn_id": ""
+        }
+      ],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别 Axure 交互原型与三类产出，草稿正在同步，尚未保存。\n\n**需要你补充**：访谈后形成的需求清单里，你按什么依据给需求排序（如出现频次、实现成本）？",
+    "elapsed_seconds": 10.372,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-ed78-75b0-96d9-5706275d486e",
+        "started_at": "2026-10-09T03:10:51.768663+08:00",
+        "usage": {
+          "input_tokens": 1575,
+          "output_tokens": 158,
+          "total_tokens": 1733
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11cec-f2de-7823-b6af-47880b4d89d3",
+        "started_at": "2026-10-09T03:10:53.150548+08:00",
+        "usage": {
+          "input_tokens": 559,
+          "output_tokens": 1234,
+          "total_tokens": 1793
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-08cf-7482-a326-cb0b2ee02df4",
+        "started_at": "2026-10-09T03:10:58.767862+08:00",
+        "usage": {
+          "input_tokens": 2154,
+          "output_tokens": 111,
+          "total_tokens": 2265
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-0cf6-7971-889c-88f6dc8cfeba",
+        "started_at": "2026-10-09T03:10:59.830376+08:00",
+        "usage": {
+          "input_tokens": 2764,
+          "output_tokens": 312,
+          "total_tokens": 3076
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7052,
+      "output_tokens": 1815,
+      "total_tokens": 8867,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.00111,
+        "upper_bound": 0.004294,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v004"
+    ]
+  },
+  {
+    "turn": 4,
+    "phase": "followup",
+    "user": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+    "task": "auto",
+    "simulation": {
+      "text": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+      "fact_indices": [
+        2
+      ],
+      "reason": "model_selected_truth",
+      "selector_status": "completed",
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11ced-15fb-7623-860d-843547a82c6e",
+          "started_at": "2026-10-09T03:11:02.139653+08:00",
+          "usage": {
+            "input_tokens": 341,
+            "output_tokens": 7,
+            "total_tokens": 348
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 341,
+        "output_tokens": 7,
+        "total_tokens": 348,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 5e-06,
+          "upper_bound": 0.000111,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      2,
+      3,
+      4,
+      6
+    ],
+    "started_at": "2026-10-09T03:11:03.144869+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "name": "拼单清单",
+            "facts": [
+              {
+                "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+                "kind": "context",
+                "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "kind": "action",
+                "text": "问了同学平时怎么记清单。",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我问了同学平时怎么记清单",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+                "kind": "action",
+                "text": "画了提交和确认的流程。",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也画了提交和确认的流程",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_eac7b48400a4400a962683d393e52773",
+                "kind": "status_limit",
+                "text": "是个没开发上线的原型。",
+                "source_quote": "是个没开发上线的原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是个没开发上线的原型",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                "kind": "method_tool",
+                "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+                "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fc04b0719c6d405e919285ff781a0447",
+                "kind": "action",
+                "text": "把确认状态不清楚排在优先处理的位置。",
+                "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "我问了同学平时怎么记清单",
+              "也画了提交和确认的流程",
+              "是个没开发上线的原型",
+              "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "“拼单清单”的产出是需求清单、操作流程和交互原型，没有真实订单或线上转化数据。",
+              "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "Axure",
+            "source_quote": "Axure",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+          "kind": "context",
+          "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+          "kind": "action",
+          "text": "问了同学平时怎么记清单。",
+          "source_quote": "我问了同学平时怎么记清单",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我问了同学平时怎么记清单",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+          "kind": "action",
+          "text": "画了提交和确认的流程。",
+          "source_quote": "也画了提交和确认的流程",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "也画了提交和确认的流程",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_eac7b48400a4400a962683d393e52773",
+          "kind": "status_limit",
+          "text": "是个没开发上线的原型。",
+          "source_quote": "是个没开发上线的原型",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是个没开发上线的原型",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+          "kind": "method_tool",
+          "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+          "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_fc04b0719c6d405e919285ff781a0447",
+          "kind": "action",
+          "text": "把确认状态不清楚排在优先处理的位置。",
+          "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        }
+      ],
+      "active_skills": [
+        {
+          "name": "Axure",
+          "source_quote": "Axure",
+          "source": "chat",
+          "turn_id": "",
+          "status": "active"
+        }
+      ],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别本轮需求清单与优先级信息，草稿正在同步，保存尚未完成。\n\n**我的建议**：在需求清单中标注「确认状态不清楚」排第一的依据（如被多位同学提到或直接影响下单），让优先级可追溯——仅限实际发生的情况。",
+    "elapsed_seconds": 10.385,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-19f6-7ad1-848a-e252f9688a44",
+        "started_at": "2026-10-09T03:11:03.158950+08:00",
+        "usage": {
+          "input_tokens": 1555,
+          "output_tokens": 132,
+          "total_tokens": 1687
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-1e94-76d2-a857-ba300e927679",
+        "started_at": "2026-10-09T03:11:04.340475+08:00",
+        "usage": {
+          "input_tokens": 581,
+          "output_tokens": 846,
+          "total_tokens": 1427
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-2fef-7110-b107-6bc13f78dfc1",
+        "started_at": "2026-10-09T03:11:08.783654+08:00",
+        "usage": {
+          "input_tokens": 2153,
+          "output_tokens": 109,
+          "total_tokens": 2262
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-3399-7aa3-9373-4c3a47ca053b",
+        "started_at": "2026-10-09T03:11:09.721331+08:00",
+        "usage": {
+          "input_tokens": 2989,
+          "output_tokens": 579,
+          "total_tokens": 3568
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7278,
+      "output_tokens": 1666,
+      "total_tokens": 8944,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001021,
+        "upper_bound": 0.004183,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v005"
+    ]
+  },
+  {
+    "turn": 5,
+    "phase": "edit",
+    "user": "按 JD 再改“拼单清单”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      2,
+      3,
+      4,
+      6
+    ],
+    "started_at": "2026-10-09T03:11:13.545346+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "name": "拼单清单",
+            "facts": [
+              {
+                "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+                "kind": "context",
+                "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "kind": "action",
+                "text": "问了同学平时怎么记清单。",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我问了同学平时怎么记清单",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+                "kind": "action",
+                "text": "画了提交和确认的流程。",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也画了提交和确认的流程",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_eac7b48400a4400a962683d393e52773",
+                "kind": "status_limit",
+                "text": "是个没开发上线的原型。",
+                "source_quote": "是个没开发上线的原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是个没开发上线的原型",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                "kind": "method_tool",
+                "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+                "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fc04b0719c6d405e919285ff781a0447",
+                "kind": "action",
+                "text": "把确认状态不清楚排在优先处理的位置。",
+                "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "我问了同学平时怎么记清单",
+              "也画了提交和确认的流程",
+              "是个没开发上线的原型",
+              "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "“拼单清单”的产出是需求清单、操作流程和交互原型，没有真实订单或线上转化数据。",
+              "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "Axure",
+            "source_quote": "Axure",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+          "kind": "context",
+          "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+          "kind": "action",
+          "text": "问了同学平时怎么记清单。",
+          "source_quote": "我问了同学平时怎么记清单",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我问了同学平时怎么记清单",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+          "kind": "action",
+          "text": "画了提交和确认的流程。",
+          "source_quote": "也画了提交和确认的流程",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "也画了提交和确认的流程",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_eac7b48400a4400a962683d393e52773",
+          "kind": "status_limit",
+          "text": "是个没开发上线的原型。",
+          "source_quote": "是个没开发上线的原型",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是个没开发上线的原型",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+          "kind": "method_tool",
+          "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+          "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_fc04b0719c6d405e919285ff781a0447",
+          "kind": "action",
+          "text": "把确认状态不清楚排在优先处理的位置。",
+          "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        }
+      ],
+      "active_skills": [
+        {
+          "name": "Axure",
+          "source_quote": "Axure",
+          "source": "chat",
+          "turn_id": "",
+          "status": "active"
+        }
+      ],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目、1 条技能。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 8.045,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-4298-77a2-a915-bf7c2d65e935",
+        "started_at": "2026-10-09T03:11:13.560124+08:00",
+        "usage": {
+          "input_tokens": 4512,
+          "output_tokens": 1634,
+          "total_tokens": 6146
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-5d2c-79e1-be25-fafd70fd2f4a",
+        "started_at": "2026-10-09T03:11:20.364645+08:00",
+        "usage": {
+          "input_tokens": 2800,
+          "output_tokens": 206,
+          "total_tokens": 3006
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7312,
+      "output_tokens": 1840,
+      "total_tokens": 9152,
+      "logical_model_calls": 2,
+      "calls_with_usage": 2,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001126,
+        "upper_bound": 0.004402,
+        "priced_calls": 2,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "d918a1b8-0eda-4ac2-ad67-df242615b28f": [
+            {
+              "fact_ids": [
+                "f_d6d497c23dbc416d94b46a40086aeab0",
+                "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "f_fc04b0719c6d405e919285ff781a0447"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": true,
+              "metric_question": "访谈了几位同学、整理出几条需求？",
+              "text_hash": "d4fcc7dbb3cd1d044367f5963c1db3fb40cdc2f9417e58ebb560363a26f3e8dd"
+            },
+            {
+              "fact_ids": [
+                "f_1f42807fc5004efbab0abb4a8e88f74d"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "b4f7b11173986a09ef144a9ba631b5171d6cb8c74534f0bcb80404bfefe0f94c"
+            },
+            {
+              "fact_ids": [
+                "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                "f_eac7b48400a4400a962683d393e52773"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "05b0c91e54c8a1fd6efeec0c324a5bec8edd007003a08e657f65b2bd771517ce"
+            }
+          ]
+        },
+        "version_id": "76ef921d-9a85-48f3-b2ce-2a3605335a91",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [],
+          "experience_plan": [
+            {
+              "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+              "treatment": "lead",
+              "reason": "唯一一段经历，且直接覆盖用户调研、需求优先级、流程与交互原型三类信号；按容量预算 lead 至多 3 条，把调研+需求优先级合并为一条，流程与原型各一条",
+              "target_bullets": 3
+            }
+          ],
+          "section_order": [
+            "projects",
+            "skills",
+            "education",
+            "work_experience",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：仅一段课程项目经历，无复合背景或转行需要一句话概括",
+          "questions": []
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "077da257250030295bdd315ebafbfed9572c058524c1ac6f828b35933a17e7e4",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 0
+        },
+        "compression_writer_diagnostics": [],
+        "compression_retention_checks": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "5749c4b5-73a2-4260-b93d-faafb5e7c619",
+          "label": "修改前",
+          "created_at": "2026-10-08T19:11:21.585890+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+                "name": "拼单清单",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。\n问了同学平时怎么记清单。\n画了提交和确认的流程。\n是个没开发上线的原型。\n用 Axure 做了清单提交和确认状态的交互原型。\n把确认状态不清楚排在优先处理的位置。"
+              }
+            ],
+            "skills": [
+              "Axure"
+            ],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "",
+              "recruiter_priorities": [
+                "具体行动",
+                "可核实的成果",
+                "与目标岗位相关的能力"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        }
+      ],
+      "match_plan": {
+        "requirements": [],
+        "experience_plan": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "treatment": "lead",
+            "reason": "唯一一段经历，且直接覆盖用户调研、需求优先级、流程与交互原型三类信号；按容量预算 lead 至多 3 条，把调研+需求优先级合并为一条，流程与原型各一条",
+            "target_bullets": 3
+          }
+        ],
+        "section_order": [
+          "projects",
+          "skills",
+          "education",
+          "work_experience",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：仅一段课程项目经历，无复合背景或转行需要一句话概括",
+        "questions": []
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v006"
+    ]
+  },
+  {
+    "turn": 6,
+    "phase": "edit",
+    "user": "把“拼单清单”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      2,
+      3,
+      4,
+      6
+    ],
+    "started_at": "2026-10-09T03:11:21.599435+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "name": "拼单清单",
+            "facts": [
+              {
+                "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+                "kind": "context",
+                "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "kind": "action",
+                "text": "问了同学平时怎么记清单。",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我问了同学平时怎么记清单",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+                "kind": "action",
+                "text": "画了提交和确认的流程。",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也画了提交和确认的流程",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_eac7b48400a4400a962683d393e52773",
+                "kind": "status_limit",
+                "text": "是个没开发上线的原型。",
+                "source_quote": "是个没开发上线的原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是个没开发上线的原型",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                "kind": "method_tool",
+                "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+                "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fc04b0719c6d405e919285ff781a0447",
+                "kind": "action",
+                "text": "把确认状态不清楚排在优先处理的位置。",
+                "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+              "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "我问了同学平时怎么记清单",
+              "也画了提交和确认的流程",
+              "是个没开发上线的原型",
+              "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "“拼单清单”的产出是需求清单、操作流程和交互原型，没有真实订单或线上转化数据。",
+              "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。"
+            ]
+          }
+        ],
+        "skills": [
+          {
+            "name": "Axure",
+            "source_quote": "Axure",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_d6d497c23dbc416d94b46a40086aeab0",
+          "kind": "context",
+          "text": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+          "kind": "action",
+          "text": "问了同学平时怎么记清单。",
+          "source_quote": "我问了同学平时怎么记清单",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我问了同学平时怎么记清单",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_1f42807fc5004efbab0abb4a8e88f74d",
+          "kind": "action",
+          "text": "画了提交和确认的流程。",
+          "source_quote": "也画了提交和确认的流程",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "也画了提交和确认的流程",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_eac7b48400a4400a962683d393e52773",
+          "kind": "status_limit",
+          "text": "是个没开发上线的原型。",
+          "source_quote": "是个没开发上线的原型",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是个没开发上线的原型",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_a84d72c36e91449a8dd7fbabfdb3f742",
+          "kind": "method_tool",
+          "text": "用 Axure 做了清单提交和确认状态的交互原型。",
+          "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我用 Axure 做了清单提交和确认状态的交互原型。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        },
+        {
+          "id": "f_fc04b0719c6d405e919285ff781a0447",
+          "kind": "action",
+          "text": "把确认状态不清楚排在优先处理的位置。",
+          "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f"
+        }
+      ],
+      "active_skills": [
+        {
+          "name": "Axure",
+          "source_quote": "Axure",
+          "source": "chat",
+          "turn_id": "",
+          "status": "active"
+        }
+      ],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目、1 条技能。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 5.473,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-6208-7622-8f25-8c91b259792f",
+        "started_at": "2026-10-09T03:11:21.608940+08:00",
+        "usage": {
+          "input_tokens": 4622,
+          "output_tokens": 1149,
+          "total_tokens": 5771
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11ced-74e1-72b3-a4c9-27181e875357",
+        "started_at": "2026-10-09T03:11:26.433338+08:00",
+        "usage": {
+          "input_tokens": 2721,
+          "output_tokens": 92,
+          "total_tokens": 2813
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7343,
+      "output_tokens": 1241,
+      "total_tokens": 8584,
+      "logical_model_calls": 2,
+      "calls_with_usage": 2,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.000767,
+        "upper_bound": 0.003692,
+        "priced_calls": 2,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "d918a1b8-0eda-4ac2-ad67-df242615b28f": [
+            {
+              "fact_ids": [
+                "f_d6d497c23dbc416d94b46a40086aeab0",
+                "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                "f_fc04b0719c6d405e919285ff781a0447",
+                "f_1f42807fc5004efbab0abb4a8e88f74d",
+                "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                "f_eac7b48400a4400a962683d393e52773"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": true,
+              "metric_question": "访谈了几位同学、整理出几条需求？",
+              "text_hash": "2ac43e0f900c4c304063e7ed02b67edcf5248a7dd5e0d80ad76b55aefabbf0eb"
+            }
+          ]
+        },
+        "version_id": "9748cf53-1348-49fd-8f62-0656eebb8e39",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [],
+          "experience_plan": [
+            {
+              "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+              "treatment": "lead",
+              "reason": "用户要求压成一条；该课程项目是唯一经历，需在一条内合并本人动作（访谈、画流程、Axure 原型、需求优先级）与状态限制（未开发上线）",
+              "target_bullets": 1
+            }
+          ],
+          "section_order": [
+            "projects",
+            "education",
+            "work_experience",
+            "skills",
+            "certificates"
+          ],
+          "summary_angle": "",
+          "questions": [
+            {
+              "q": "这个课程项目里除了你还有谁、各自负责什么？",
+              "why": "用户要求保留团队分工，但材料里没有分工信息，无法凭空写",
+              "improves": {
+                "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+                "req_id": ""
+              },
+              "options": [
+                "小组 3–4 人，我负责需求与原型",
+                "我独立完成",
+                "我负责访谈和原型，同学负责流程与文档"
+              ],
+              "value": 3
+            },
+            {
+              "q": "访谈了几位同学、整理出几条需求？",
+              "why": "可把“访谈同学”“需求清单”写成有规模的可核对产出",
+              "improves": {
+                "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+                "req_id": ""
+              },
+              "options": [
+                "访谈 5 位室友/同学，整理 6 条需求",
+                "访谈 3 人，整理 4 条需求",
+                "没有具体统计"
+              ],
+              "value": 2
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "f063873d3bc828b63b3e0c83b6b6b8d37cc807217bd6cb64259480915ddaf940",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 0
+        },
+        "compression_writer_diagnostics": [],
+        "compression_retention_checks": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "5749c4b5-73a2-4260-b93d-faafb5e7c619",
+          "label": "修改前",
+          "created_at": "2026-10-08T19:11:21.585890+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+                "name": "拼单清单",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。\n问了同学平时怎么记清单。\n画了提交和确认的流程。\n是个没开发上线的原型。\n用 Axure 做了清单提交和确认状态的交互原型。\n把确认状态不清楚排在优先处理的位置。"
+              }
+            ],
+            "skills": [
+              "Axure"
+            ],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "",
+              "recruiter_priorities": [
+                "具体行动",
+                "可核实的成果",
+                "与目标岗位相关的能力"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        },
+        {
+          "version_id": "76ef921d-9a85-48f3-b2ce-2a3605335a91",
+          "label": "局部修改",
+          "created_at": "2026-10-08T19:11:27.065096+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+                "name": "拼单清单",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "参加“拼单清单”课程项目，想解决宿舍一起买东西时清单老对不上的问题。\n问了同学平时怎么记清单。\n画了提交和确认的流程。\n是个没开发上线的原型。\n用 Axure 做了清单提交和确认状态的交互原型。\n把确认状态不清楚排在优先处理的位置。",
+                "polished_bullets": [
+                  "针对宿舍拼单清单对不上的问题，访谈同学了解其记清单的习惯，将收集到的问题整理成需求清单，把“确认状态不清楚”排在优先处理位置。",
+                  "梳理拼单的提交与确认流程，画出提交、确认环节的流程图。",
+                  "用 Axure 制作清单提交与确认状态的交互原型，呈现确认状态的处理方案；该原型未开发上线。"
+                ],
+                "hidden": false
+              }
+            ],
+            "skills": [
+              "Axure"
+            ],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "",
+              "recruiter_priorities": [
+                "具体行动",
+                "可核实的成果",
+                "与目标岗位相关的能力"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {
+            "bullets": {
+              "d918a1b8-0eda-4ac2-ad67-df242615b28f": [
+                {
+                  "fact_ids": [
+                    "f_d6d497c23dbc416d94b46a40086aeab0",
+                    "f_9f70e6b58a3b4fe28d88d64a94ee5a91",
+                    "f_fc04b0719c6d405e919285ff781a0447"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": true,
+                  "metric_question": "访谈了几位同学、整理出几条需求？",
+                  "text_hash": "d4fcc7dbb3cd1d044367f5963c1db3fb40cdc2f9417e58ebb560363a26f3e8dd"
+                },
+                {
+                  "fact_ids": [
+                    "f_1f42807fc5004efbab0abb4a8e88f74d"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "b4f7b11173986a09ef144a9ba631b5171d6cb8c74534f0bcb80404bfefe0f94c"
+                },
+                {
+                  "fact_ids": [
+                    "f_a84d72c36e91449a8dd7fbabfdb3f742",
+                    "f_eac7b48400a4400a962683d393e52773"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "05b0c91e54c8a1fd6efeec0c324a5bec8edd007003a08e657f65b2bd771517ce"
+                }
+              ]
+            },
+            "version_id": "76ef921d-9a85-48f3-b2ce-2a3605335a91",
+            "label": "局部修改",
+            "match_plan": {
+              "requirements": [],
+              "experience_plan": [
+                {
+                  "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+                  "treatment": "lead",
+                  "reason": "唯一一段经历，且直接覆盖用户调研、需求优先级、流程与交互原型三类信号；按容量预算 lead 至多 3 条，把调研+需求优先级合并为一条，流程与原型各一条",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "skills",
+                "education",
+                "work_experience",
+                "certificates"
+              ],
+              "summary_angle": "不写个人总结：仅一段课程项目经历，无复合背景或转行需要一句话概括",
+              "questions": []
+            },
+            "omitted": [],
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "077da257250030295bdd315ebafbfed9572c058524c1ac6f828b35933a17e7e4",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass",
+              "schema_retry_count": 0
+            },
+            "compression_writer_diagnostics": [],
+            "compression_retention_checks": [],
+            "guard_fallbacks": [],
+            "change_summary": [
+              "调整了 1 段经历的表述或顺序。"
+            ]
+          }
+        }
+      ],
+      "match_plan": {
+        "requirements": [],
+        "experience_plan": [
+          {
+            "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+            "treatment": "lead",
+            "reason": "用户要求压成一条；该课程项目是唯一经历，需在一条内合并本人动作（访谈、画流程、Axure 原型、需求优先级）与状态限制（未开发上线）",
+            "target_bullets": 1
+          }
+        ],
+        "section_order": [
+          "projects",
+          "education",
+          "work_experience",
+          "skills",
+          "certificates"
+        ],
+        "summary_angle": "",
+        "questions": [
+          {
+            "q": "这个课程项目里除了你还有谁、各自负责什么？",
+            "why": "用户要求保留团队分工，但材料里没有分工信息，无法凭空写",
+            "improves": {
+              "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+              "req_id": ""
+            },
+            "options": [
+              "小组 3–4 人，我负责需求与原型",
+              "我独立完成",
+              "我负责访谈和原型，同学负责流程与文档"
+            ],
+            "value": 3
+          },
+          {
+            "q": "访谈了几位同学、整理出几条需求？",
+            "why": "可把“访谈同学”“需求清单”写成有规模的可核对产出",
+            "improves": {
+              "item_id": "d918a1b8-0eda-4ac2-ad67-df242615b28f",
+              "req_id": ""
+            },
+            "options": [
+              "访谈 5 位室友/同学，整理 6 条需求",
+              "访谈 3 人，整理 4 条需求",
+              "没有具体统计"
+            ],
+            "value": 2
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v007"
+    ]
+  }
+]

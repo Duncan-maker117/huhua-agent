@@ -1,0 +1,201 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "suspicions": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": null,
+        "usage": {}
+      }
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": false,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "suspicions": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": null,
+        "usage": {}
+      }
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "在“报修轻页”中，我根据观察把进度入口移到更明显的位置，并在必填项旁增加说明文字。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该片段描述在必填项旁添加说明文字，observed 中已有对应表述，未新增事实。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "在“报修轻页”中，我观察同学点击原型，记录了找不到进度入口和不理解必填项的情况。\n在“报修轻页”中，我根据观察把进度入口移到更明显的位置，并在必填项旁增加说明文字。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文与 observed 原文一致，包含观察反馈和调整动作，全部主张有 observed 证据。"
+            }
+          ],
+          "suspicions": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 5,
+          "personal_contribution": 4,
+          "results_impact": 3,
+          "professional_expression": 4,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 任务流程与交互原型交付",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            },
+            {
+              "requirement": "r2 根据观察反馈调整信息表达",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "在“报修轻页”中，我观察同学点击原型，记录了找不到进度入口和不理解必填项的情况。\n在“报修轻页”中，我根据观察把进度入口移到更明显的位置，并在必填项旁增加说明文字。"
+                }
+              ],
+              "evidence_supported": true
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1145,
+          "output_tokens": 4387,
+          "total_tokens": 5532
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按 JD 再改“报修轻页”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    },
+    {
+      "turn": 5,
+      "instruction": "把“报修轻页”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    }
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

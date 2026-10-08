@@ -1,0 +1,78 @@
+# Tailor benchmark（PR0）
+
+用 12 个**完全虚构、待 Claude 审定 truth** 的案例测量现有 `stream_agent`。
+业务基线为本地 `overhaul/tailor` 分支的 `a742100`（`chore: snapshot before tailor overhaul`）。
+本阶段仅添加评测工具与证据，不实施 PR1，不推送或部署。
+
+正式交付：[summary.md](runs/20261008-baseline/summary.md)、[12 个用例](cases/README.md)、[Claude 待审队列](runs/20261008-baseline/review-queue.json)。
+
+## 文件与证据
+
+- [用例索引](cases/README.md)：八类岗位与四个特殊场景；每例两个纯编辑指令。
+- `run_bench.py`：真实 graph 入口、隔离数据库、调用计量、逐版本捕获、独立评分。
+- `simulate_user.py`：确定性选择事实编号，逐字返回 truth 中的事实；不使用模型编造回答。
+- `judge.py`：数字/禁断言初筛、逐条语义核验、五维质量、覆盖率、编辑执行与双向盲评。
+- `report.py`：聚合指标、失败清单和 Claude 待复核队列。
+- [费率来源与区间口径](pricing.json)：已报告 token 的费用估计范围，不是实际账单。
+- `runs/<run>/<case>/case.json`：该次运行实际使用的冻结用例，之后修改 cases 不会改变历史输入。
+- `turns.json` / `transcript.md`：每轮输入、公开回复、阶段、耗时和调用用量。
+- `versions.json`：每次不同 `resume_data` 的完整快照、当时已披露材料与可见性。
+- `resume.json`：SQL 最终已提交稿件；聊天里给过正文不等于已写入此文件。
+- `scores.json`：每版评分、每条 edit 的执行判断及失败重评历史。
+- `edit-inputs.json`：每条 edit 的前后稿件和当时已披露材料。
+- `meta.json`：首稿事件、版本映射、图调用与评审调用分别计量。
+- `manifest.json`：业务源码文件 SHA-256、Git 快照、模型、运行配置、用例哈希及重评记录。
+
+## 运行
+
+在仓库根目录，使用已有 `.venv`；无需新增依赖。默认只验证用例，不调用模型：
+
+```sh
+.venv/bin/python evaluation/tailor-bench/run_bench.py
+.venv/bin/python -m unittest discover -s tests -p 'test_tailor_bench_*.py'
+```
+
+完整运行（会使用项目已配置模型产生费用）：
+
+```sh
+.venv/bin/python evaluation/tailor-bench/run_bench.py --live --concurrency 3
+```
+
+也可以先固定所有对话，再独立评分，避免评分重试影响被测对话：
+
+```sh
+.venv/bin/python evaluation/tailor-bench/run_bench.py --live --graph-only --concurrency 3 --output evaluation/tailor-bench/runs/NEW-RUN
+.venv/bin/python evaluation/tailor-bench/run_bench.py --live --rescore evaluation/tailor-bench/runs/NEW-RUN --concurrency 3
+```
+
+`--graph-only` 返回 `partial` 和非零退出码，因为语义评分尚未完成。
+`--rescore` 只重评 `error/not_run` 等未完成评分，保留旧尝试，不重复任何用户对话。
+`--case ai-pm-01` 可限定运行/重评用例；输出目录已有内容时拒绝覆盖。
+模型响应格式错误保留已解析的评分 JSON 与受控校验原因；不保存 provider 错误正文、凭证或推理内容。
+
+## 评测口径
+
+1. JD 独立一轮走当前 `task=decode_jd` 入口，候选材料和 edit 均走 `task=auto`。无 JD 用例直接发送方向。
+2. 完成 opening 后最多回答四轮真实追问；不主动注入生成指令。只有 agent 明确提出生成邀约时才接受。
+3. 模拟用户只返回匹配主题、尚未完整披露的 truth 原句，最多两条；不知道则明确没有更多信息。`opening_fact_indices` 仅用于去重，不送入被测应用。
+4. 固定 edit 不提供隐藏事实；只有岗位重排与精简要求。其字面文本仍作为当轮用户输入保留。
+5. 每轮读取持久 checkpoint 历史及 SQL 提交结果，按变化顺序记录，不做跨时间全局去重。撤回旧稿也会产生版本。
+6. 内部 checkpoint 不等于用户已看到的稿。`user_visible=true` 才表示提交成功。首个可见经历正文与进入 EVALUATING/DRAFTED/EXPORT 的成稿轮数分别报告；同稿仅变 stage 也记录事件。
+7. 每版评分只见候选人正文、JD、完整 truth 和截至该版的已披露材料；不见版本名、生成理由、图阶段。仅存于完整 truth、未披露的主张标记 `truth_only`。
+8. 词法命中、`unsupported/uncertain/truth_only` 都只是待复核疑点。`confirmed_fabrications=null` 不等于零；Claude 后续逐条复核。没有正文、模型失败或评分格式失败不能算安全通过。
+9. 本次只有基线，无新版对手，pairwise 胜率不适用；`pairwise()` 已实现固定 seed 的 A/B 随机与交换顺序评审，供后续对照使用。
+10. 全体 12 例是起步回归集，不是八类岗位能力证明；模拟用户也不代表真实使用研究。
+
+## 隔离与计量
+
+在导入任何 app 存储模块前覆盖数据库路径，使用临时 SQLite、随机临时加密密钥和生产同款 `SecureCheckpointSaver`。
+不会启动服务器、档案后台任务、邮件、联网工具、RAG 或外部 tracing；只向已配置模型服务发送合成文本。
+应用数据库与 checkpoint 在运行退出后清理，输出的合成证据保留。
+
+图模型使用现有主模型/结构化模型及当前参数，不修改旧链路构造行为。当前凭证的模型列表返回 `deepseek-flash` 与 `deepseek-v4-pro`：前者是旧链路模型，后者是唯一不同于旧链路且已验证可访问的评审候选。不能据此宣称它是所有模型中最强或与主模型完全独立。
+
+上下文 callback 覆盖图内重新创建的模型；报告的是 **logical_model_calls**。SDK 内部 HTTP 重试不可观测，失败调用未报告的 token 不算零。图与 judge 的 token 分别列出，费用仅对已报告 token 给当前公开费率范围。
+
+`20261008-pilot` 是评测器开发小样：追问上限为 1，旧编辑指令和初版评审校验存在问题，其结果不能并入正式基线。正式结果以 `20261008-baseline` 为准。业务源码是否改变由 manifest 的 SHA-256 检查及 `git diff a742100 -- backend web` 验证。
+
+正式基线已发现一条模拟协议限制：`direction-01` 的分工追问没有匹配词表中的同义词，误回无更多信息。该记录保持原样，报告已标注；修正模拟器或 truth 后应使用新 run 目录，不能覆盖本次基线或把其轮数当真实用户效果。

@@ -1,0 +1,80 @@
+{
+  "status": "error",
+  "deterministic": {
+    "status": "completed",
+    "candidate_unit_count": 2,
+    "flags": [
+      {
+        "unit_id": "u002",
+        "path": "projects[0].bullets[0]",
+        "quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+        "span": "一",
+        "kind": "number_not_in_truth",
+        "reason": "归一数字 1 未见于 truth；可能为quantity，须结合原句复核，不能确认编造。",
+        "review_status": "pending"
+      }
+    ],
+    "suspected_count": 1,
+    "confirmed_fabrications": null,
+    "safe": null,
+    "human_review_required": true
+  },
+  "factuality": {
+    "status": "not_run",
+    "safe": null,
+    "confirmed_fabrications": null,
+    "suspicions": [],
+    "human_review_required": true
+  },
+  "quality": null,
+  "coverage": null,
+  "usage": {},
+  "error_type": "JudgeSchemaError",
+  "validation_error": "unlocated suspicion",
+  "unvalidated_result": {
+    "audits": [
+      {
+        "unit_id": "u001",
+        "verdict": "uncertain",
+        "observed_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "该单元仅写“对话中描述的经历”，没有具体事实主张，无法判断其真实性和支持情况。"
+      },
+      {
+        "unit_id": "u002",
+        "verdict": "supported",
+        "observed_quotes": [
+          "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+        ],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "正文描述与用户已披露事实一致：个人参与旅游 Agent Demo，自己写问题测试，记录乱编地点和时间冲突，项目未上线，全部主张均有 observed 证据。"
+      }
+    ],
+    "quality": {
+      "jd_relevance": 2,
+      "personal_contribution": 2,
+      "results_impact": 1,
+      "professional_expression": 3,
+      "selection_length": 2
+    },
+    "coverage": [
+      {
+        "requirement": "r1 模型错误分析与评测意识",
+        "covered": true,
+        "evidence": [
+          {
+            "unit_id": "u002",
+            "quote": "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了"
+          }
+        ]
+      },
+      {
+        "requirement": "r2 围绕模型边界调整原型方案",
+        "covered": false,
+        "evidence": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,3130 @@
+{
+  "report_version": 1,
+  "status": "evaluated_pending_claude",
+  "run": {
+    "started_at": "2026-10-08T18:41:45.846549+08:00",
+    "finished_at": "2026-10-08T18:55:32.989915+08:00",
+    "git_commit": "a74210030bede74b76f693d5eaa3258e87dbabc6",
+    "git_branch": "overhaul/tailor",
+    "writer_model": "deepseek-flash",
+    "structured_model": "deepseek-flash",
+    "judge_model": "deepseek-v4-pro",
+    "status": "completed",
+    "backend_unchanged": true
+  },
+  "manifest_problems": [],
+  "truth_review_status": "pending_claude",
+  "limitations": [
+    "direction-01 第2–3轮存在规则模拟器漏答：Agent 问本人负责部分，但关键词表未匹配“负责/小组”，尽管 truth[6] 有分工事实却回答无更多信息。保留本次原始记录；此例轮数与覆盖受模拟协议影响，不能直接归因于产品。后续修模拟器应新开 run。",
+    "39条语义疑点包含“课程”“对话中描述的经历”、项目名和独立技能词等被判 uncertain 的条目；5条词法疑点含“做过一个”这类泛指数词。44条疑点不是44条编造，必须结合原句逐项复核。",
+    "旧链路用 deepseek-flash；当前凭证只列出两个模型，deepseek-v4-pro 是唯一不同于主模型和结构化模型的可用评审候选。本次未比较其他服务商，也未证明评审模型绝对最强。",
+    "12个用例均为一次运行的合成草案，truth尚待Claude审定，没有留出集或真人体验结果；PR0指标不构成跨岗位能力证明。",
+    "20261008-pilot 仅为评测器开发小样，包含旧编辑指令和初版校验错误，未并入这里的分母、token或费用。"
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator",
+    "win_rate": null
+  },
+  "totals": {
+    "cases": 12,
+    "versions": 31,
+    "visible_versions": 30,
+    "internal_only_versions": 1,
+    "version_score_statuses": {
+      "no_draft": 12,
+      "completed": 19
+    },
+    "graph_statuses": {
+      "completed": 12
+    },
+    "evaluation_statuses": {
+      "completed": 12
+    },
+    "facts": {
+      "confirmed_new_facts": null,
+      "safe": null,
+      "status": "pending_claude_review",
+      "lexical_flags": 5,
+      "lexical_statuses": {
+        "no_draft": 12,
+        "completed": 19
+      },
+      "semantic_suspicions": 39,
+      "semantic_completed_versions": 19,
+      "semantic_unscored_content_versions": 0,
+      "semantic_statuses": {
+        "not_run": 12,
+        "completed_pending_claude": 19
+      },
+      "semantic_verdicts": {
+        "uncertain": 39,
+        "supported": 30
+      },
+      "visible_lexical_flags": 5,
+      "visible_semantic_suspicions": 39,
+      "internal_lexical_flags": 0,
+      "internal_semantic_suspicions": 0
+    },
+    "coverage": {
+      "total": 24,
+      "covered": 14,
+      "known_uncovered": 10,
+      "unknown": 0,
+      "observed_lower_bound": 0.5833333333333334,
+      "possible_upper_bound": 0.5833333333333334,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null
+    },
+    "edits": {
+      "expected": 24,
+      "executed": 0,
+      "no_diff": 17,
+      "error": 0,
+      "not_run": 0,
+      "unscored": 0,
+      "no_draft": 6,
+      "not_followed": 1,
+      "uncertain": 0,
+      "observed_lower_bound": 0.0
+    },
+    "quality": {
+      "dimensions": [
+        "jd_relevance",
+        "personal_contribution",
+        "results_impact",
+        "professional_expression",
+        "selection_length"
+      ],
+      "first": {
+        "scored_cases": 9,
+        "missing_cases": 3,
+        "means": {
+          "jd_relevance": 2.778,
+          "personal_contribution": 2.444,
+          "results_impact": 1.444,
+          "professional_expression": 2.222,
+          "selection_length": 1.444
+        }
+      },
+      "final": {
+        "scored_cases": 9,
+        "missing_cases": 3,
+        "means": {
+          "jd_relevance": 3.667,
+          "personal_contribution": 3.333,
+          "results_impact": 2,
+          "professional_expression": 2.556,
+          "selection_length": 2.222
+        }
+      }
+    },
+    "first_draft": {
+      "drafted_cases": 1,
+      "missing_cases": 11,
+      "within_two_turns": 0,
+      "mean_turns_drafted_cases_only": 3
+    },
+    "first_visible_experience": {
+      "drafted_cases": 9,
+      "missing_cases": 3,
+      "within_two_turns": 8,
+      "mean_turns_drafted_cases_only": 2.111
+    },
+    "latency": {
+      "observed_turns": 59,
+      "mean_seconds": 9.782
+    },
+    "usage": {
+      "graph": {
+        "cases_with_usage": 12,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 347170,
+        "input_tokens_complete": true,
+        "output_tokens": 115520,
+        "output_tokens_complete": true,
+        "total_tokens": 462690,
+        "total_tokens_complete": true,
+        "logical_model_calls": 149,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 149,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.070354,
+          "upper_bound": 0.242775,
+          "priced_calls": 149,
+          "unpriced_calls": 0,
+          "cases_with_range": 12,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "judge": {
+        "cases_with_usage": 12,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 22618,
+        "input_tokens_complete": true,
+        "output_tokens": 84693,
+        "output_tokens_complete": true,
+        "total_tokens": 107311,
+        "total_tokens_complete": true,
+        "logical_model_calls": 20,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 20,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.16819,
+          "upper_bound": 0.365241,
+          "priced_calls": 20,
+          "unpriced_calls": 0,
+          "cases_with_range": 9,
+          "cases_without_range": 3,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      }
+    },
+    "guard": {
+      "fallbacks": null,
+      "false_positive_rate": null,
+      "status": "not_observed_in_old_chain"
+    }
+  },
+  "failures": [
+    {
+      "case_id": "ai-pm-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "source": "ai-pm-01/meta.json"
+    },
+    {
+      "case_id": "algorithm-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "source": "algorithm-01/meta.json"
+    },
+    {
+      "case_id": "backend-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "source": "backend-01/meta.json"
+    },
+    {
+      "case_id": "career-switch-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "career-switch-01/meta.json"
+    },
+    {
+      "case_id": "data-01",
+      "reasons": [
+        "no_visible_draft",
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "data-01/meta.json"
+    },
+    {
+      "case_id": "design-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "design-01/meta.json"
+    },
+    {
+      "case_id": "direction-01",
+      "reasons": [
+        "first_draft_over_2_turns",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "direction-01/meta.json"
+    },
+    {
+      "case_id": "frontend-01",
+      "reasons": [
+        "no_visible_draft",
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "frontend-01/meta.json"
+    },
+    {
+      "case_id": "import-01",
+      "reasons": [
+        "no_visible_draft",
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "import-01/meta.json"
+    },
+    {
+      "case_id": "minimal-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "source": "minimal-01/meta.json"
+    },
+    {
+      "case_id": "ops-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "ops-01/meta.json"
+    },
+    {
+      "case_id": "pm-01",
+      "reasons": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "source": "pm-01/meta.json"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "ai-pm-01",
+      "role_family": "ai_pm",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 3,
+        "results_impact": 2,
+        "professional_expression": 3,
+        "selection_length": 2
+      },
+      "first_score_status": "completed",
+      "final_version": "v003",
+      "final_quality": {
+        "jd_relevance": 4,
+        "personal_contribution": 4,
+        "results_impact": 2,
+        "professional_expression": 3,
+        "selection_length": 3
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 2,
+        "known_uncovered": 0,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 1.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“路线笔记”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“路线笔记”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 6,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 1,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 3,
+            "results_impact": 2,
+            "professional_expression": 3,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 模型错误分析与评测意识",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 1,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 4,
+            "results_impact": 2,
+            "professional_expression": 3,
+            "selection_length": 3
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 模型错误分析与评测意识",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 3,
+      "visible_version_count": 3,
+      "internal_only_version_count": 0,
+      "turn_count": 6,
+      "turn_latencies_seconds": [
+        17.513,
+        6.229,
+        7.0,
+        7.273,
+        10.303,
+        7.538
+      ],
+      "graph_usage": {
+        "input_tokens": 40351,
+        "output_tokens": 10969,
+        "total_tokens": 51320,
+        "logical_model_calls": 16,
+        "calls_with_usage": 16,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.006702,
+          "upper_bound": 0.025268,
+          "priced_calls": 16,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 2286,
+        "output_tokens": 6300,
+        "total_tokens": 8586,
+        "logical_model_calls": 2,
+        "calls_with_usage": 2,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.012524,
+          "upper_bound": 0.027966,
+          "priced_calls": 2,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "links": {
+        "case.json": "ai-pm-01/case.json",
+        "meta.json": "ai-pm-01/meta.json",
+        "scores.json": "ai-pm-01/scores.json",
+        "versions.json": "ai-pm-01/versions.json",
+        "turns.json": "ai-pm-01/turns.json",
+        "transcript.md": "ai-pm-01/transcript.md",
+        "resume.json": "ai-pm-01/resume.json"
+      }
+    },
+    {
+      "case_id": "algorithm-01",
+      "role_family": "algorithm",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 4,
+        "personal_contribution": 3,
+        "results_impact": 1,
+        "professional_expression": 2,
+        "selection_length": 2
+      },
+      "first_score_status": "completed",
+      "final_version": "v003",
+      "final_quality": {
+        "jd_relevance": 4,
+        "personal_contribution": 3,
+        "results_impact": 3,
+        "professional_expression": 4,
+        "selection_length": 3
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 2,
+        "known_uncovered": 0,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 1.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“叶影识别”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“叶影识别”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 3,
+            "results_impact": 1,
+            "professional_expression": 2,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 数据质量和数据集划分检查",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我检查了训练集和验证集的文件列表"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 错例分析与实验记录",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 2,
+          "semantic_verdicts": {
+            "uncertain": 2,
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 3,
+            "results_impact": 3,
+            "professional_expression": 4,
+            "selection_length": 3
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 数据质量和数据集划分检查",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我检查了训练集和验证集的文件列表"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 错例分析与实验记录",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "我整理预测错误的图片，发现模糊图片和背景复杂的图片更容易出错。我在小组已有脚本上统一了图片尺寸，并重新运行实验，记录了错例变化。"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 3,
+      "visible_version_count": 3,
+      "internal_only_version_count": 0,
+      "turn_count": 5,
+      "turn_latencies_seconds": [
+        11.319,
+        7.911,
+        19.957,
+        11.699,
+        6.766
+      ],
+      "graph_usage": {
+        "input_tokens": 31230,
+        "output_tokens": 11987,
+        "total_tokens": 43217,
+        "logical_model_calls": 13,
+        "calls_with_usage": 13,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.007286,
+          "upper_bound": 0.023753,
+          "priced_calls": 13,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 2323,
+        "output_tokens": 11358,
+        "total_tokens": 13681,
+        "logical_model_calls": 2,
+        "calls_with_usage": 2,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.02254,
+          "upper_bound": 0.048044,
+          "priced_calls": 2,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "links": {
+        "case.json": "algorithm-01/case.json",
+        "meta.json": "algorithm-01/meta.json",
+        "scores.json": "algorithm-01/scores.json",
+        "versions.json": "algorithm-01/versions.json",
+        "turns.json": "algorithm-01/turns.json",
+        "transcript.md": "algorithm-01/transcript.md",
+        "resume.json": "algorithm-01/resume.json"
+      }
+    },
+    {
+      "case_id": "backend-01",
+      "role_family": "backend",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 3,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 2,
+        "selection_length": 1
+      },
+      "first_score_status": "completed",
+      "final_version": "v004",
+      "final_quality": {
+        "jd_relevance": 4,
+        "personal_contribution": 4,
+        "results_impact": 2,
+        "professional_expression": 2,
+        "selection_length": 3
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 2,
+        "known_uncovered": 0,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 1.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“借还簿”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“借还簿”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "not_followed",
+          "substantive_diff": true,
+          "followed": false,
+          "executed": false,
+          "reason": "after 新增了一条关于“借还簿”的精简描述，但原有 u002 的长描述和 u004 的两条描述都原样保留，最终仍存在多条“借还簿”描述，没有做到“精简成一条”。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 1,
+        "not_followed": 1
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 2,
+            "results_impact": 1,
+            "professional_expression": 2,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 业务接口与关系型数据操作",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 输入边界与异常路径验证",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 4,
+          "semantic_verdicts": {
+            "uncertain": 4,
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 4,
+            "results_impact": 3,
+            "professional_expression": 4,
+            "selection_length": 3
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 业务接口与关系型数据操作",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 输入边界与异常路径验证",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v004",
+          "turn": 5,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 5,
+          "semantic_verdicts": {
+            "uncertain": 5,
+            "supported": 3
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 4,
+            "results_impact": 2,
+            "professional_expression": 2,
+            "selection_length": 3
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 业务接口与关系型数据操作",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 输入边界与异常路径验证",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 4,
+      "visible_version_count": 4,
+      "internal_only_version_count": 0,
+      "turn_count": 5,
+      "turn_latencies_seconds": [
+        10.007,
+        8.063,
+        10.058,
+        16.291,
+        8.166
+      ],
+      "graph_usage": {
+        "input_tokens": 31435,
+        "output_tokens": 10636,
+        "total_tokens": 42071,
+        "logical_model_calls": 13,
+        "calls_with_usage": 13,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.006476,
+          "upper_bound": 0.022194,
+          "priced_calls": 13,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 4909,
+        "output_tokens": 16667,
+        "total_tokens": 21576,
+        "logical_model_calls": 4,
+        "calls_with_usage": 4,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.033109,
+          "upper_bound": 0.072481,
+          "priced_calls": 4,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "links": {
+        "case.json": "backend-01/case.json",
+        "meta.json": "backend-01/meta.json",
+        "scores.json": "backend-01/scores.json",
+        "versions.json": "backend-01/versions.json",
+        "turns.json": "backend-01/turns.json",
+        "transcript.md": "backend-01/transcript.md",
+        "resume.json": "backend-01/resume.json"
+      }
+    },
+    {
+      "case_id": "career-switch-01",
+      "role_family": "ai_pm",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 2,
+        "selection_length": 1
+      },
+      "first_score_status": "completed",
+      "final_version": "v002",
+      "final_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 2,
+        "selection_length": 1
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 1,
+        "known_uncovered": 1,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 0.5
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 3,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“活动问答整理”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 2,
+            "results_impact": 1,
+            "professional_expression": 2,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 从用户问题形成需求材料",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "把群里反复问的问题放到表格里"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 2,
+      "visible_version_count": 2,
+      "internal_only_version_count": 0,
+      "turn_count": 4,
+      "turn_latencies_seconds": [
+        9.228,
+        14.61,
+        9.477,
+        8.972
+      ],
+      "graph_usage": {
+        "input_tokens": 23081,
+        "output_tokens": 8349,
+        "total_tokens": 31430,
+        "logical_model_calls": 10,
+        "calls_with_usage": 10,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.005079,
+          "upper_bound": 0.016943,
+          "priced_calls": 10,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 1106,
+        "output_tokens": 4359,
+        "total_tokens": 5465,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.008655,
+          "upper_bound": 0.018722,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "career-switch-01/case.json",
+        "meta.json": "career-switch-01/meta.json",
+        "scores.json": "career-switch-01/scores.json",
+        "versions.json": "career-switch-01/versions.json",
+        "turns.json": "career-switch-01/turns.json",
+        "transcript.md": "career-switch-01/transcript.md",
+        "resume.json": "career-switch-01/resume.json"
+      }
+    },
+    {
+      "case_id": "data-01",
+      "role_family": "data",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": null,
+      "first_visible_experience_turn": null,
+      "first_quality": null,
+      "first_score_status": "no_visible_experience",
+      "final_version": "v001",
+      "final_quality": null,
+      "final_score_status": "no_draft",
+      "has_visible_content": false,
+      "final_coverage": {
+        "total": 2,
+        "covered": 0,
+        "known_uncovered": 2,
+        "unknown": 0,
+        "status": "no_draft",
+        "ratio": 0.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“菜篮账”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 3,
+          "turn_status": "completed",
+          "score_status": "no_draft",
+          "category": "no_draft",
+          "substantive_diff": false,
+          "followed": null,
+          "executed": false,
+          "reason": null,
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“菜篮账”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "no_draft",
+          "category": "no_draft",
+          "substantive_diff": false,
+          "followed": null,
+          "executed": false,
+          "reason": null,
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_draft": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 1,
+      "visible_version_count": 1,
+      "internal_only_version_count": 0,
+      "turn_count": 4,
+      "turn_latencies_seconds": [
+        12.7,
+        13.144,
+        12.837,
+        7.814
+      ],
+      "graph_usage": {
+        "input_tokens": 22876,
+        "output_tokens": 9104,
+        "total_tokens": 31980,
+        "logical_model_calls": 10,
+        "calls_with_usage": 10,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.005531,
+          "upper_bound": 0.017788,
+          "priced_calls": 10,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "logical_model_calls": 0,
+        "calls_with_usage": 0,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "not_calculated",
+        "reported_token_cost_usd": null,
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_visible_draft",
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "data-01/case.json",
+        "meta.json": "data-01/meta.json",
+        "scores.json": "data-01/scores.json",
+        "versions.json": "data-01/versions.json",
+        "turns.json": "data-01/turns.json",
+        "transcript.md": "data-01/transcript.md",
+        "resume.json": "data-01/resume.json"
+      }
+    },
+    {
+      "case_id": "design-01",
+      "role_family": "design",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v003",
+      "first_visible_experience_turn": 3,
+      "first_quality": {
+        "jd_relevance": 5,
+        "personal_contribution": 4,
+        "results_impact": 3,
+        "professional_expression": 4,
+        "selection_length": 2
+      },
+      "first_score_status": "completed",
+      "final_version": "v003",
+      "final_quality": {
+        "jd_relevance": 5,
+        "personal_contribution": 4,
+        "results_impact": 3,
+        "professional_expression": 4,
+        "selection_length": 2
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 1,
+        "known_uncovered": 1,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 0.5
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“报修轻页”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“报修轻页”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": false,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 5,
+            "personal_contribution": 4,
+            "results_impact": 3,
+            "professional_expression": 4,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 任务流程与交互原型交付",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              },
+              {
+                "requirement": "r2 根据观察反馈调整信息表达",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "在“报修轻页”中，我观察同学点击原型，记录了找不到进度入口和不理解必填项的情况。\n在“报修轻页”中，我根据观察把进度入口移到更明显的位置，并在必填项旁增加说明文字。"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 3,
+      "visible_version_count": 2,
+      "internal_only_version_count": 1,
+      "turn_count": 5,
+      "turn_latencies_seconds": [
+        12.153,
+        10.953,
+        8.746,
+        10.146,
+        9.424
+      ],
+      "graph_usage": {
+        "input_tokens": 30353,
+        "output_tokens": 10386,
+        "total_tokens": 40739,
+        "logical_model_calls": 13,
+        "calls_with_usage": 13,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.006323,
+          "upper_bound": 0.021569,
+          "priced_calls": 13,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 1145,
+        "output_tokens": 4387,
+        "total_tokens": 5532,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.008711,
+          "upper_bound": 0.018884,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "design-01/case.json",
+        "meta.json": "design-01/meta.json",
+        "scores.json": "design-01/scores.json",
+        "versions.json": "design-01/versions.json",
+        "turns.json": "design-01/turns.json",
+        "transcript.md": "design-01/transcript.md",
+        "resume.json": "design-01/resume.json"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "role_family": "data",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": 3,
+      "first_draft_version": "v003",
+      "formal_first_quality": {
+        "jd_relevance": 3,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 1,
+        "selection_length": 1
+      },
+      "formal_first_score_status": "completed",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 3,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 2,
+        "selection_length": 2
+      },
+      "first_score_status": "completed",
+      "final_version": "v003",
+      "final_quality": {
+        "jd_relevance": 3,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 1,
+        "selection_length": 1
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 1,
+        "known_uncovered": 1,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 0.5
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按数据分析实习方向再改“晚餐账本”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“晚餐账本”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": false,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 1,
+            "results_impact": 1,
+            "professional_expression": 1,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              },
+              {
+                "requirement": "r2 解释口径与图表结论边界",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 2,
+          "semantic_verdicts": {
+            "uncertain": 2,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 2,
+            "results_impact": 1,
+            "professional_expression": 2,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 解释口径与图表结论边界",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "EVALUATING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 3,
+          "semantic_verdicts": {
+            "uncertain": 3,
+            "supported": 4
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 2,
+            "results_impact": 1,
+            "professional_expression": 1,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 解释口径与图表结论边界",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 3,
+      "visible_version_count": 3,
+      "internal_only_version_count": 0,
+      "turn_count": 5,
+      "turn_latencies_seconds": [
+        1.223,
+        9.17,
+        5.31,
+        2.743,
+        4.286
+      ],
+      "graph_usage": {
+        "input_tokens": 16613,
+        "output_tokens": 4352,
+        "total_tokens": 20965,
+        "logical_model_calls": 10,
+        "calls_with_usage": 10,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.002661,
+          "upper_bound": 0.010206,
+          "priced_calls": 10,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 3041,
+        "output_tokens": 7954,
+        "total_tokens": 10995,
+        "logical_model_calls": 3,
+        "calls_with_usage": 3,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.015816,
+          "upper_bound": 0.035512,
+          "priced_calls": 3,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "first_draft_over_2_turns",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "direction-01/case.json",
+        "meta.json": "direction-01/meta.json",
+        "scores.json": "direction-01/scores.json",
+        "versions.json": "direction-01/versions.json",
+        "turns.json": "direction-01/turns.json",
+        "transcript.md": "direction-01/transcript.md",
+        "resume.json": "direction-01/resume.json"
+      }
+    },
+    {
+      "case_id": "frontend-01",
+      "role_family": "frontend",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": null,
+      "first_visible_experience_turn": null,
+      "first_quality": null,
+      "first_score_status": "no_visible_experience",
+      "final_version": "v001",
+      "final_quality": null,
+      "final_score_status": "no_draft",
+      "has_visible_content": false,
+      "final_coverage": {
+        "total": 2,
+        "covered": 0,
+        "known_uncovered": 2,
+        "unknown": 0,
+        "status": "no_draft",
+        "ratio": 0.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“书架角”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 3,
+          "turn_status": "completed",
+          "score_status": "no_draft",
+          "category": "no_draft",
+          "substantive_diff": false,
+          "followed": null,
+          "executed": false,
+          "reason": null,
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“书架角”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "no_draft",
+          "category": "no_draft",
+          "substantive_diff": false,
+          "followed": null,
+          "executed": false,
+          "reason": null,
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_draft": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 1,
+      "visible_version_count": 1,
+      "internal_only_version_count": 0,
+      "turn_count": 4,
+      "turn_latencies_seconds": [
+        12.472,
+        7.033,
+        11.255,
+        5.804
+      ],
+      "graph_usage": {
+        "input_tokens": 22726,
+        "output_tokens": 6784,
+        "total_tokens": 29510,
+        "logical_model_calls": 10,
+        "calls_with_usage": 10,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.004139,
+          "upper_bound": 0.014959,
+          "priced_calls": 10,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "logical_model_calls": 0,
+        "calls_with_usage": 0,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "not_calculated",
+        "reported_token_cost_usd": null,
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_visible_draft",
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "frontend-01/case.json",
+        "meta.json": "frontend-01/meta.json",
+        "scores.json": "frontend-01/scores.json",
+        "versions.json": "frontend-01/versions.json",
+        "turns.json": "frontend-01/turns.json",
+        "transcript.md": "frontend-01/transcript.md",
+        "resume.json": "frontend-01/resume.json"
+      }
+    },
+    {
+      "case_id": "import-01",
+      "role_family": "backend",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": null,
+      "first_visible_experience_turn": null,
+      "first_quality": null,
+      "first_score_status": "no_visible_experience",
+      "final_version": "v001",
+      "final_quality": null,
+      "final_score_status": "no_draft",
+      "has_visible_content": false,
+      "final_coverage": {
+        "total": 2,
+        "covered": 0,
+        "known_uncovered": 2,
+        "unknown": 0,
+        "status": "no_draft",
+        "ratio": 0.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按这个后端 JD 重新调整整份简历，把已有材料中最相关的本人工作放到重点位置，求职意向改成 Python 后端开发实习，不补新经历。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "no_draft",
+          "category": "no_draft",
+          "substantive_diff": false,
+          "followed": null,
+          "executed": false,
+          "reason": null,
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“影像展招募页”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "no_draft",
+          "category": "no_draft",
+          "substantive_diff": false,
+          "followed": null,
+          "executed": false,
+          "reason": null,
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_draft": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 1,
+      "visible_version_count": 1,
+      "internal_only_version_count": 0,
+      "turn_count": 5,
+      "turn_latencies_seconds": [
+        13.498,
+        23.175,
+        8.339,
+        7.721,
+        7.022
+      ],
+      "graph_usage": {
+        "input_tokens": 28864,
+        "output_tokens": 11973,
+        "total_tokens": 40837,
+        "logical_model_calls": 12,
+        "calls_with_usage": 12,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.00727,
+          "upper_bound": 0.023027,
+          "priced_calls": 12,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "logical_model_calls": 0,
+        "calls_with_usage": 0,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "not_calculated",
+        "reported_token_cost_usd": null,
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_visible_draft",
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "import-01/case.json",
+        "meta.json": "import-01/meta.json",
+        "scores.json": "import-01/scores.json",
+        "versions.json": "import-01/versions.json",
+        "turns.json": "import-01/turns.json",
+        "transcript.md": "import-01/transcript.md",
+        "resume.json": "import-01/resume.json"
+      }
+    },
+    {
+      "case_id": "minimal-01",
+      "role_family": "frontend",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 1,
+        "personal_contribution": 1,
+        "results_impact": 1,
+        "professional_expression": 1,
+        "selection_length": 1
+      },
+      "first_score_status": "completed",
+      "final_version": "v004",
+      "final_quality": {
+        "jd_relevance": 4,
+        "personal_contribution": 5,
+        "results_impact": 2,
+        "professional_expression": 3,
+        "selection_length": 4
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 2,
+        "known_uncovered": 0,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 1.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“借物箱”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“借物箱”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 6,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 1,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 1,
+            "personal_contribution": 1,
+            "results_impact": 1,
+            "professional_expression": 1,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 本人页面及表单实现",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              },
+              {
+                "requirement": "r2 基础输入校验与验证",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 1,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 5,
+          "semantic_verdicts": {
+            "uncertain": 5,
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 3,
+            "results_impact": 1,
+            "professional_expression": 2,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 本人页面及表单实现",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "我用 JavaScript、WXML 和 WXSS 编写物品列表页面及借用登记表单"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 基础输入校验与验证",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v004",
+          "turn": 4,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 1,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 5,
+          "semantic_verdicts": {
+            "uncertain": 5,
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 5,
+            "results_impact": 2,
+            "professional_expression": 3,
+            "selection_length": 4
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 本人页面及表单实现",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "在“借物箱”中，我用 JavaScript、WXML 和 WXSS 编写物品列表页面及借用登记表单"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 基础输入校验与验证",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "在“借物箱”中，我为物品名称为空的情况添加了提示，不让空名称直接提交"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 4,
+      "visible_version_count": 4,
+      "internal_only_version_count": 0,
+      "turn_count": 6,
+      "turn_latencies_seconds": [
+        6.753,
+        8.969,
+        12.787,
+        6.581,
+        9.258,
+        5.844
+      ],
+      "graph_usage": {
+        "input_tokens": 37494,
+        "output_tokens": 9799,
+        "total_tokens": 47293,
+        "logical_model_calls": 16,
+        "calls_with_usage": 16,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.005992,
+          "upper_bound": 0.023007,
+          "priced_calls": 16,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 3204,
+        "output_tokens": 11688,
+        "total_tokens": 14892,
+        "logical_model_calls": 3,
+        "calls_with_usage": 3,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.023213,
+          "upper_bound": 0.050514,
+          "priced_calls": 3,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "links": {
+        "case.json": "minimal-01/case.json",
+        "meta.json": "minimal-01/meta.json",
+        "scores.json": "minimal-01/scores.json",
+        "versions.json": "minimal-01/versions.json",
+        "turns.json": "minimal-01/turns.json",
+        "transcript.md": "minimal-01/transcript.md",
+        "resume.json": "minimal-01/resume.json"
+      }
+    },
+    {
+      "case_id": "ops-01",
+      "role_family": "ops",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 3,
+        "personal_contribution": 3,
+        "results_impact": 2,
+        "professional_expression": 2,
+        "selection_length": 1
+      },
+      "first_score_status": "completed",
+      "final_version": "v002",
+      "final_quality": {
+        "jd_relevance": 3,
+        "personal_contribution": 3,
+        "results_impact": 2,
+        "professional_expression": 2,
+        "selection_length": 1
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 1,
+        "known_uncovered": 1,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 0.5
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“读书角”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 3,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“读书角”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 4,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 3,
+            "results_impact": 2,
+            "professional_expression": 2,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 活动内容与协作执行",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题"
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "报名和主持是别的同学做的"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 反馈分类与后续选题",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 2,
+      "visible_version_count": 2,
+      "internal_only_version_count": 0,
+      "turn_count": 4,
+      "turn_latencies_seconds": [
+        8.162,
+        8.581,
+        8.704,
+        11.33
+      ],
+      "graph_usage": {
+        "input_tokens": 22453,
+        "output_tokens": 7166,
+        "total_tokens": 29619,
+        "logical_model_calls": 10,
+        "calls_with_usage": 10,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.004367,
+          "upper_bound": 0.015335,
+          "priced_calls": 10,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 1042,
+        "output_tokens": 3662,
+        "total_tokens": 4704,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.007274,
+          "upper_bound": 0.015877,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "ops-01/case.json",
+        "meta.json": "ops-01/meta.json",
+        "scores.json": "ops-01/scores.json",
+        "versions.json": "ops-01/versions.json",
+        "turns.json": "ops-01/turns.json",
+        "transcript.md": "ops-01/transcript.md",
+        "resume.json": "ops-01/resume.json"
+      }
+    },
+    {
+      "case_id": "pm-01",
+      "role_family": "pm",
+      "truth_review_status": "draft_pending_claude",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": null,
+      "first_draft_version": null,
+      "formal_first_quality": null,
+      "formal_first_score_status": "no_draft",
+      "first_visible_experience_version": "v002",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 2,
+        "results_impact": 1,
+        "professional_expression": 2,
+        "selection_length": 1
+      },
+      "first_score_status": "completed",
+      "final_version": "v004",
+      "final_quality": {
+        "jd_relevance": 4,
+        "personal_contribution": 3,
+        "results_impact": 2,
+        "professional_expression": 2,
+        "selection_length": 2
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 2,
+        "known_uncovered": 0,
+        "unknown": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 1.0
+      },
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“拼单清单”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“拼单清单”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 6,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 2
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 1,
+          "semantic_verdicts": {
+            "uncertain": 1,
+            "supported": 1
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 2,
+            "results_impact": 1,
+            "professional_expression": 2,
+            "selection_length": 1
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              },
+              {
+                "requirement": "r2 交付核心流程与交互原型",
+                "covered": false,
+                "evidence": [],
+                "evidence_supported": false
+              }
+            ],
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 2,
+          "semantic_verdicts": {
+            "uncertain": 2,
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 4,
+            "results_impact": 3,
+            "professional_expression": 4,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我问了同学平时怎么记清单"
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "“拼单清单”的产出是需求清单、操作流程和交互原型"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 交付核心流程与交互原型",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "也画了提交和确认的流程"
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "我用 Axure 做了清单提交和确认状态的交互原型"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v004",
+          "turn": 4,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 2,
+          "semantic_verdicts": {
+            "uncertain": 2,
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 4,
+            "personal_contribution": 3,
+            "results_impact": 2,
+            "professional_expression": 2,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "在“拼单清单”中，我将收集到的问题整理成需求清单，把确认状态不清楚排在优先处理的位置。"
+                  }
+                ],
+                "evidence_supported": true
+              },
+              {
+                "requirement": "r2 交付核心流程与交互原型",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "也画了提交和确认的流程"
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "在“拼单清单”中，我用 Axure 做了清单提交和确认状态的交互原型。"
+                  }
+                ],
+                "evidence_supported": true
+              }
+            ],
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0
+          },
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 4,
+      "visible_version_count": 4,
+      "internal_only_version_count": 0,
+      "turn_count": 6,
+      "turn_latencies_seconds": [
+        9.074,
+        9.163,
+        8.39,
+        18.294,
+        11.302,
+        8.612
+      ],
+      "graph_usage": {
+        "input_tokens": 39694,
+        "output_tokens": 14015,
+        "total_tokens": 53709,
+        "logical_model_calls": 16,
+        "calls_with_usage": 16,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.008528,
+          "upper_bound": 0.028726,
+          "priced_calls": 16,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 3562,
+        "output_tokens": 18318,
+        "total_tokens": 21880,
+        "logical_model_calls": 3,
+        "calls_with_usage": 3,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.036348,
+          "upper_bound": 0.077241,
+          "priced_calls": 3,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "guard_fallbacks": null,
+      "guard_fallbacks_status": "not_instrumented_in_old_chain",
+      "failures": [
+        "no_completed_first_draft",
+        "edit_not_executed"
+      ],
+      "links": {
+        "case.json": "pm-01/case.json",
+        "meta.json": "pm-01/meta.json",
+        "scores.json": "pm-01/scores.json",
+        "versions.json": "pm-01/versions.json",
+        "turns.json": "pm-01/turns.json",
+        "transcript.md": "pm-01/transcript.md",
+        "resume.json": "pm-01/resume.json"
+      }
+    }
+  ],
+  "review_queue_count": 75
+}

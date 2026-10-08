@@ -1,0 +1,646 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "suspicions": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": null,
+        "usage": {}
+      }
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "课程"
+              ],
+              "reason": "泛标题，缺少具体事实，无法核对，判为不确定。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元每项主张均能在 observed_facts 原文中找到对应表述；技术与范围限制（本地演示、未部署）明确，没有夸大。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "课程"
+              ],
+              "reason": "泛标题，缺少具体事实，无法核对，判为不确定。",
+              "quote": "课程",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 2,
+          "results_impact": 1,
+          "professional_expression": 2,
+          "selection_length": 1
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 业务接口与关系型数据操作",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 输入边界与异常路径验证",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1062,
+          "output_tokens": 1921,
+          "total_tokens": 2983
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 6,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "课程"
+              ],
+              "reason": "该单元仅为标题“课程”，缺少具体事实，无法核对。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+                "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文全部主张均可在 observed_facts 中找到对应原文：项目、个人接口工作、SQLite 记录查询、校验。"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "该单元仅为标题，缺少具体事实，无法核对。"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文与 observed_facts 第二条完全一致。"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQLite"
+              ],
+              "reason": "该单元仅为工具关键词，缺少具体事实，无法核对。"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQL"
+              ],
+              "reason": "该单元仅为关键词，缺少具体事实，无法核对。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "课程"
+              ],
+              "reason": "该单元仅为标题“课程”，缺少具体事实，无法核对。",
+              "quote": "课程",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "该单元仅为标题，缺少具体事实，无法核对。",
+              "quote": "对话中描述的经历",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQLite"
+              ],
+              "reason": "该单元仅为工具关键词，缺少具体事实，无法核对。",
+              "quote": "SQLite",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQL"
+              ],
+              "reason": "该单元仅为关键词，缺少具体事实，无法核对。",
+              "quote": "SQL",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 3,
+          "professional_expression": 4,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 业务接口与关系型数据操作",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 输入边界与异常路径验证",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+                }
+              ],
+              "evidence_supported": true
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1252,
+          "output_tokens": 5784,
+          "total_tokens": 7036
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 6,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 8,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "课程"
+              ],
+              "reason": "泛标题，没有具体事实主张，无法核对。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+                "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "所有经历、动作、工具和限制均有对应 observed 原文支持，没有新增事实。"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "泛标题，没有具体事实主张，无法核对。"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "内容与 observed 原文一致，支持全部主张。"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "借还簿"
+              ],
+              "reason": "仅项目名称，无事实主张，无法核对。"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+                "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "合并改写但未新增事实，全部主张在 observed 中有证据。"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQLite"
+              ],
+              "reason": "仅技术名词，没有具体事实主张，无法核对。"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQL"
+              ],
+              "reason": "仅技术名词，没有具体事实主张，无法核对。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "课程"
+              ],
+              "reason": "泛标题，没有具体事实主张，无法核对。",
+              "quote": "课程",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "泛标题，没有具体事实主张，无法核对。",
+              "quote": "对话中描述的经历",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "借还簿"
+              ],
+              "reason": "仅项目名称，无事实主张，无法核对。",
+              "quote": "借还簿",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQLite"
+              ],
+              "reason": "仅技术名词，没有具体事实主张，无法核对。",
+              "quote": "SQLite",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "SQL"
+              ],
+              "reason": "仅技术名词，没有具体事实主张，无法核对。",
+              "quote": "SQL",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 业务接口与关系型数据操作",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 输入边界与异常路径验证",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+                }
+              ],
+              "evidence_supported": true
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1410,
+          "output_tokens": 5449,
+          "total_tokens": 6859
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 8,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按 JD 再改“借还簿”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    },
+    {
+      "turn": 5,
+      "instruction": "把“借还簿”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "after 新增了一条关于“借还簿”的精简描述，但原有 u002 的长描述和 u004 的两条描述都原样保留，最终仍存在多条“借还簿”描述，没有做到“精简成一条”。",
+        "evidence": [
+          {
+            "before_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。",
+            "after_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+          },
+          {
+            "before_quote": "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。",
+            "after_quote": "在“借还簿”中，我用 SQLite 保存借还记录，并编写查询借还记录的 SQL。\n在“借还簿”中，我为缺少图书编号和重复归还增加了校验，返回对应的错误提示。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1185,
+          "output_tokens": 3513,
+          "total_tokens": 4698
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "substantive_diff": true,
+          "followed": null,
+          "executed": null,
+          "reason": null,
+          "evidence": [],
+          "usage": {}
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

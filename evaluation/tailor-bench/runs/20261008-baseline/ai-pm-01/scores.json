@@ -1,0 +1,356 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "suspicions": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": null,
+        "usage": {}
+      }
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "flags": [
+            {
+              "unit_id": "u002",
+              "path": "projects[0].bullets[0]",
+              "quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "span": "一",
+              "kind": "number_not_in_truth",
+              "reason": "归一数字 1 未见于 truth；可能为quantity，须结合原句复核，不能确认编造。",
+              "review_status": "pending"
+            }
+          ],
+          "suspected_count": 1,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "该单元是泛标题，缺少具体事实主张，无法核对，判为 uncertain。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "全部主张与用户已披露的 observed_facts 一致，有直接连续原文支持。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "该单元是泛标题，缺少具体事实主张，无法核对，判为 uncertain。",
+              "quote": "对话中描述的经历",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 模型错误分析与评测意识",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1064,
+          "output_tokens": 2781,
+          "total_tokens": 3845
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "flags": [
+              {
+                "unit_id": "u002",
+                "path": "projects[0].bullets[0]",
+                "quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "span": "一",
+                "kind": "number_not_in_truth",
+                "reason": "归一数字 1 未见于 truth；可能为quantity，须结合原句复核，不能确认编造。",
+                "review_status": "pending"
+              }
+            ],
+            "suspected_count": 1,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "flags": [
+            {
+              "unit_id": "u002",
+              "path": "projects[0].bullets[0]",
+              "quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。\n在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+              "span": "一",
+              "kind": "number_not_in_truth",
+              "reason": "归一数字 1 未见于 truth；可能为quantity，须结合原句复核，不能确认编造。",
+              "review_status": "pending"
+            }
+          ],
+          "suspected_count": 1,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "单元为泛标题，缺少具体事实，无法核对。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "所有陈述均有 observed_facts 直接支持，未添加超出已披露事实的内容。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "对话中描述的经历"
+              ],
+              "reason": "单元为泛标题，缺少具体事实，无法核对。",
+              "quote": "对话中描述的经历",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 模型错误分析与评测意识",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+                },
+                {
+                  "unit_id": "u002",
+                  "quote": "在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+                }
+              ],
+              "evidence_supported": true
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1222,
+          "output_tokens": 3519,
+          "total_tokens": 4741
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "flags": [
+              {
+                "unit_id": "u002",
+                "path": "projects[0].bullets[0]",
+                "quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。\n在“路线笔记”中，我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n在“路线笔记”中，我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "span": "一",
+                "kind": "number_not_in_truth",
+                "reason": "归一数字 1 未见于 truth；可能为quantity，须结合原句复核，不能确认编造。",
+                "review_status": "pending"
+              }
+            ],
+            "suspected_count": 1,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 5,
+      "instruction": "按 JD 再改“路线笔记”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    },
+    {
+      "turn": 6,
+      "instruction": "把“路线笔记”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    }
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

@@ -1,0 +1,479 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "数据分析, 数据实习, SQL, 数据报表, 业务分析"
+              ],
+              "reason": "u001 为技能/方向关键词列表，缺少具体事实主张，无法依据 observed 或 truth 核对，因此判为 uncertain。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "数据分析, 数据实习, SQL, 数据报表, 业务分析"
+              ],
+              "reason": "u001 为技能/方向关键词列表，缺少具体事实主张，无法依据 observed 或 truth 核对，因此判为 uncertain。",
+              "quote": "数据分析, 数据实习, SQL, 数据报表, 业务分析",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 1,
+          "results_impact": 1,
+          "professional_expression": 1,
+          "selection_length": 1
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            },
+            {
+              "requirement": "r2 解释口径与图表结论边界",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            }
+          ],
+          "covered": 0,
+          "total": 2,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 909,
+          "output_tokens": 1770,
+          "total_tokens": 2679
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 1,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "数据分析, 数据实习, SQL, 数据报表, 业务分析"
+              ],
+              "reason": "技能标签列表，缺少具体事实主张，无法核对，判为不确定。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "的"
+              ],
+              "reason": "单个虚词，无事实主张，无法核对。"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该经历描述的所有主张均可在 observed_facts 中找到相同原文，且与 truth_facts 一致，故支持。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "数据分析, 数据实习, SQL, 数据报表, 业务分析"
+              ],
+              "reason": "技能标签列表，缺少具体事实主张，无法核对，判为不确定。",
+              "quote": "数据分析, 数据实习, SQL, 数据报表, 业务分析",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "的"
+              ],
+              "reason": "单个虚词，无事实主张，无法核对。",
+              "quote": "的",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 2,
+          "results_impact": 1,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 解释口径与图表结论边界",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1013,
+          "output_tokens": 2962,
+          "total_tokens": 3975
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 3,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 7,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "数据分析, 数据实习, SQL, 数据报表, 业务分析"
+              ],
+              "reason": "该单元为技能标签列表，缺少具体可核对的事实主张，无法判断真伪。"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "的"
+              ],
+              "reason": "该单元为孤立助词，无实质内容，无法核对。"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元描述与 observed_facts 中的相关表述一致，有用户已披露证据支持。"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "作业是小组做的，我没测业务效果。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元描述与 observed_facts 中的相关表述一致，有用户已披露证据支持。"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "晚餐账本"
+              ],
+              "reason": "该单元仅为项目名称，缺少具体事实主张，无法核对。"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元描述与 observed_facts 中的相关表述一致，有用户已披露证据支持。"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "作业是小组做的，我没测业务效果。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元描述与 observed_facts 中的相关表述一致，有用户已披露证据支持。"
+            }
+          ],
+          "suspicions": [
+            {
+              "unit_id": "u001",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "数据分析, 数据实习, SQL, 数据报表, 业务分析"
+              ],
+              "reason": "该单元为技能标签列表，缺少具体可核对的事实主张，无法判断真伪。",
+              "quote": "数据分析, 数据实习, SQL, 数据报表, 业务分析",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "的"
+              ],
+              "reason": "该单元为孤立助词，无实质内容，无法核对。",
+              "quote": "的",
+              "review_status": "pending"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "uncertain",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "晚餐账本"
+              ],
+              "reason": "该单元仅为项目名称，缺少具体事实主张，无法核对。",
+              "quote": "晚餐账本",
+              "review_status": "pending"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 2,
+          "results_impact": 1,
+          "professional_expression": 1,
+          "selection_length": 1
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。"
+                }
+              ],
+              "evidence_supported": true
+            },
+            {
+              "requirement": "r2 解释口径与图表结论边界",
+              "covered": false,
+              "evidence": [],
+              "evidence_supported": false
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1119,
+          "output_tokens": 3222,
+          "total_tokens": 4341
+        }
+      },
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 7,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "suspicions": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": null,
+          "usage": {}
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按数据分析实习方向再改“晚餐账本”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    },
+    {
+      "turn": 5,
+      "instruction": "把“晚餐账本”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      }
+    }
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

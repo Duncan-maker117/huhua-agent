@@ -2,8 +2,8 @@
 +++ b/backend/app/services/resume_limits.py
 @@ -32,6 +32,49 @@
  _SUBJECT_END = re.compile(r"(?:模块|功能|接口|系统|项目|页面|版本|环境|方案|服务|数据|统计|测试|流程|评估|工作)$")
- 
- 
+
+
 +_QUOTE_PAIRS = {"「": "」", "『": "』", "“": "”", '"': '"'}
 +_QUOTED_CLAIM = re.compile(r'「[^「」]+」|『[^『』]+』|“[^“”]+”|"[^"]+"')
 +_DESIGN_DECLARATION = re.compile(
@@ -49,7 +49,7 @@
 +
  def _limit_clauses(fact: dict) -> list[str]:
      """Extract intact source clauses, never a limitation invented by fact.text.
- 
+
 @@ -45,8 +88,8 @@
      if not source or not _STATUS_LIMIT.search(_experience_negation_text(source)):
          return []
@@ -62,13 +62,13 @@
              # Do not detach a plan from prerequisites, including a condition
              # inside a clause or after the action. Approval/acceptance/waiting
 @@ -85,10 +128,23 @@
- 
+
  def _limit_key(text: str) -> str:
      # Only a narrow grammatical equivalence, preserving the action and object.
 -    return re.sub(r"尚未|并未|还未|没有", "未", normalize_text(text)).strip("。；;.,，")
 +    return re.sub(r"尚未|并未|还未|没有|没(?=部署)", "未", normalize_text(text)).strip("。；;.,，")
- 
- 
+
+
  def _already_visible(clause: str, texts: Sequence[str]) -> bool:
 +    declaration = _design_declaration_key(clause)
 +    if declaration:

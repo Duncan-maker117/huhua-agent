@@ -346,11 +346,22 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
 
 def _guess_project_name(text: str) -> str:
     """启发式从用户原话抽项目名（"做X时 / X项目 / 在X做 / 负责X"）。抽不到返回空串。"""
-    m = _re.search(
-        r"(?:做过|做|在|参与|负责|搞)\s*([A-Za-z\u4e00-\u9fa5][\w\u4e00-\u9fa5\-]{0,30}?)(?:\s*项目|\s*这个|\s*时|\s*的|[，,。\s]|$)",
+    quoted = _re.search(
+        r'''(?:“([^”\n]{1,31})”|‘([^’\n]{1,31})’|"([^"\n]{1,31})"|'([^'\n]{1,31})')\s*(?:项目|活动)''',
         text,
     )
-    return _re.sub(r"^(?:一些|一个|一套|几个|一款)", "", m.group(1)) if m else ""
+    if quoted:
+        name = next(value for value in quoted.groups() if value is not None).strip()
+        if name:
+            return name
+    for match in _re.finditer(
+        r"(?:做过|做|在|参与|负责|搞)\s*([A-Za-z\u4e00-\u9fa5][\w\u4e00-\u9fa5\-]{0,30}?)(?:\s*项目|\s*这个|\s*时|\s*的|[，,。\s]|$)",
+        text,
+    ):
+        name = _re.sub(r"^(?:一些|一个|一套|几个|一款)", "", match.group(1))
+        if name and name not in {"的", "了", "过", "着"}:
+            return name
+    return ""
 
 
 def _snippet_matches_experience(snippet: str, experience: dict) -> bool:
@@ -602,11 +613,33 @@ def _apply_explicit_project_removals(collected: dict, text: str) -> dict:
     return updated
 
 
+def _new_raw_note_owner(collected: dict, previous: dict, text: str) -> dict | None:
+    """Use an extractor's unique, current-turn note attachment as ownership evidence."""
+    added_notes = []
+    for section in ("projects", "work_experience", "internship"):
+        for item in collected.get(section, []):
+            if text not in item.get("raw_notes", []):
+                continue
+            item_id = item.get("item_id")
+            prior_items = [
+                prior for prior in previous.get(section, [])
+                if item_id and prior.get("item_id") == item_id
+            ]
+            if len(prior_items) == 1 and text in prior_items[0].get("raw_notes", []):
+                continue
+            added_notes.append((item, len(prior_items) == 1))
+    # A new item, an old note, or a note attached to several items does not
+    # establish which existing experience owns this unnamed follow-up.
+    if len(added_notes) == 1 and added_notes[0][1]:
+        return added_notes[0][0]
+    return None
+
+
 def _keep_unextracted_experience(collected: dict, previous: dict, message: HumanMessage) -> dict:
     """Keep a grounded action when an extractor fails, without saving AI wording."""
     from app.services.resume_facts import new_fact, normalize_fact_store
 
-    if not _candidate_source_allowed(message) or not isinstance(message.content, str):
+    if not isinstance(message, HumanMessage) or not _candidate_source_allowed(message) or not isinstance(message.content, str):
         return collected
     text = message.content.strip()
     if not text or looks_like_existing_resume(text):
@@ -643,6 +676,24 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
         for clause in _re.split(r"[，,。；;\n]", text)
         for match in _re.finditer(_EXPERIENCE_ACTIONS, clause)
     )
+    # A model's note attachment cannot override a name supplied by the user,
+    # or silently fold a newly introduced experience into an older item.
+    explicit_subject = _re.search(
+        r"(?:新(?:的)?(?:一(?:个|项|段))?|另(?:外)?(?:一(?:个|项|段|次)|的)?|别的|其他(?:的)?)\s*(?:项目|活动|经历)"
+        r"|(?:项目|活动|小程序|应用|工具)[^。；;\n]{0,12}(?:叫(?:作|做)?|名为|名称(?:为|是)|名字(?:为|是))"
+        r'''|(?:叫(?:作|做)?|名为|命名为)\s*[“‘"']|[”’"']\s*(?:项目|活动)''',
+        text,
+    )
+    guessed_name = _guess_project_name(text)
+    named_subject = bool(guessed_name and _re.search(
+        rf"{_re.escape(guessed_name)}\s*(?:项目|活动)", text))
+    note_owner = (
+        _new_raw_note_owner(collected, previous, text)
+        if action and not matches and not explicit_subject and not named_subject
+        else None
+    )
+    if note_owner is not None:
+        matches = [note_owner]
     fallback = _harvest_projects_from_messages([message])
     if not fallback and not (len(matches) == 1 and action):
         return collected

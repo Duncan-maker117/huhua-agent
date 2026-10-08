@@ -361,6 +361,58 @@ class JudgeTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(out["validation_error"], "ungrounded evidence quote")
         self.assertEqual(out["unvalidated_result"], model.answer)
 
+    async def test_edit_payload_uses_only_disclosed_material_not_hidden_truth(self):
+        case = copy.deepcopy(self.case)
+        hidden = "HIDDEN_ONLY_TEAM_CHARTS_731：队友制作可视化图表，本人不负责图表。"
+        case["truth_facts"].append(hidden)
+        case["jd_text"] = "DISCLOSED_JD_947：数据分析实习，使用 SQL，关注数据质量。"
+        case["requirements"] = [{"hidden_pool": "HIDDEN_REQUIREMENT_583"}]
+        before = resume("用 SQL 汇总采购流水。核对疑似重复并标记，未删除原始数据。")
+        after = resume("用 SQL 汇总采购流水并核对标记疑似重复，未删除原始数据。")
+        instruction = "精简成一条，保留已有材料中的本人工作、团队分工和状态限制。"
+        observed = ["我用 SQL 汇总采购流水，核对疑似重复并标记，没有删除原始数据。"]
+        for supplied in (observed, None):
+            with self.subTest(explicit_observed=supplied is not None):
+                model = FakeLLM({"followed": True, "reason": "合并了已披露的本人工作和限制。",
+                                 "evidence": [{"before_quote": before["projects"][0]["polished_bullets"][0],
+                                               "after_quote": after["projects"][0]["polished_bullets"][0]}]})
+                out = await judge.judge_edit(case, before, after, instruction, model, supplied)
+                self.assertTrue(out["executed"])
+                messages = model.calls[0][0]
+                payload = json.loads(messages[1].content)
+                self.assertEqual(set(payload), {"instruction", "before", "after", "job_context", "observed_facts"})
+                self.assertEqual(payload["instruction"], instruction)
+                self.assertEqual(payload["job_context"], case["jd_text"])
+                self.assertNotIn(case["jd_text"], payload["observed_facts"])
+                self.assertEqual(payload["before"], judge._public_units(before))
+                self.assertEqual(payload["after"], judge._public_units(after))
+                self.assertEqual(payload["observed_facts"], observed if supplied is not None else case["opening_turns"])
+                transmitted = "\n".join(message.content for message in messages)
+                for marker in (hidden, "HIDDEN_REQUIREMENT_583"):
+                    self.assertNotIn(marker, transmitted)
+
+    async def test_edit_direction_context_stays_separate_from_candidate_facts(self):
+        for key in ("role_direction", "direction"):
+            with self.subTest(direction_key=key):
+                case = {key: "数据分析实习", "truth_facts": ["未披露的九千人增长指标"]}
+                observed = ["我用 SQL 整理采购数据。"]
+                model = FakeLLM({"followed": None, "reason": "只有 SQL 使用，尚不能确定更具体的职责。", "evidence": []})
+                await judge.judge_edit(case, resume("整理采购数据。"), resume("用 SQL 整理采购数据。"),
+                                      "按已给定方向突出本人工作", model, observed)
+                payload = json.loads(model.calls[0][0][1].content)
+                self.assertEqual(payload["job_context"], "数据分析实习")
+                self.assertEqual(payload["observed_facts"], observed)
+                self.assertNotIn("未披露的九千人增长指标", json.dumps(payload, ensure_ascii=False))
+
+    async def test_edit_missing_necessary_evidence_remains_unknown(self):
+        model = FakeLLM({"followed": None, "reason": "未披露责任边界，无法确定本轮是否保留完整分工。", "evidence": []})
+        out = await judge.judge_edit(self.case, resume("整理反馈并做原型。"),
+                                     resume("整理反馈，制作原型。"), "突出完整分工", model, ["我整理反馈。"])
+        self.assertEqual(out["status"], "completed")
+        self.assertTrue(out["substantive_diff"])
+        self.assertIsNone(out["followed"])
+        self.assertIsNone(out["executed"])
+
     async def test_whitespace_or_punctuation_edit_is_not_substantive(self):
         out = await judge.judge_edit(self.case, resume("整理反馈。"), resume("整理 反馈！"), "更突出经验", None)
         self.assertFalse(out["substantive_diff"])

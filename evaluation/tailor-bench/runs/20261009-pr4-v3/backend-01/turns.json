@@ -1,0 +1,1322 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：Python 后端开发实习生\n岗位职责：参与业务接口开发和数据存储，补充输入校验与异常处理，协助定位接口问题。\n任职要求：了解 Python、HTTP 和关系型数据库；能说明接口边界条件及验证方法。加分项：有高并发系统、服务上线或自动化测试经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T01:22:57.966253+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {},
+      "active_facts": [],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已解析「Python 后端开发实习生」，岗位要求和原文依据已放到右侧「读岗位」。\n\n接下来先补一段相关经历：你做的是什么项目、本人具体负责哪一步？",
+    "elapsed_seconds": 13.33,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-253b-79f3-acfb-828ef46fc5db",
+        "started_at": "2026-10-09T01:22:57.981130+08:00",
+        "usage": {
+          "input_tokens": 2022,
+          "output_tokens": 3134,
+          "total_tokens": 5156
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 2022,
+      "output_tokens": 3134,
+      "total_tokens": 5156,
+      "logical_model_calls": 1,
+      "calls_with_usage": 1,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001886,
+        "upper_bound": 0.004367,
+        "priced_calls": 1,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1
+    ],
+    "started_at": "2026-10-09T01:23:11.301811+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+            "name": "借还簿",
+            "facts": [
+              {
+                "id": "f_9e9848b59c46470b92f955323d40d426",
+                "kind": "context",
+                "text": "课程项目“借还簿”，主题为图书借还",
+                "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_16212cf72e10489aa40f752f10411b42",
+                "kind": "team",
+                "text": "与同学一起合作",
+                "source_quote": "跟同学一起做图书借还",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "跟同学一起做图书借还",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f617c4bdbb54fd69305249eb55e5284",
+                "kind": "role",
+                "text": "负责编写 Python 接口中登记借出和归还的部分",
+                "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9105b75bec9b4a838e044b19ca9ca69e",
+                "kind": "method_tool",
+                "text": "使用 FastAPI 和 SQLite",
+                "source_quote": "用 FastAPI 和 SQLite",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 FastAPI 和 SQLite",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1fc0b3ec09664fa6a7a1bb76ff0edf55",
+                "kind": "status_limit",
+                "text": "本地演示过，未部署",
+                "source_quote": "本地演示过，没部署",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "本地演示过，没部署",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+              "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+              "跟同学一起做图书借还",
+              "我写的是 Python 接口里登记借出和归还那块",
+              "用 FastAPI 和 SQLite",
+              "本地演示过，没部署"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_9e9848b59c46470b92f955323d40d426",
+          "kind": "context",
+          "text": "课程项目“借还簿”，主题为图书借还",
+          "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_16212cf72e10489aa40f752f10411b42",
+          "kind": "team",
+          "text": "与同学一起合作",
+          "source_quote": "跟同学一起做图书借还",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "跟同学一起做图书借还",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_1f617c4bdbb54fd69305249eb55e5284",
+          "kind": "role",
+          "text": "负责编写 Python 接口中登记借出和归还的部分",
+          "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_9105b75bec9b4a838e044b19ca9ca69e",
+          "kind": "method_tool",
+          "text": "使用 FastAPI 和 SQLite",
+          "source_quote": "用 FastAPI 和 SQLite",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 FastAPI 和 SQLite",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_1fc0b3ec09664fa6a7a1bb76ff0edf55",
+          "kind": "status_limit",
+          "text": "本地演示过，未部署",
+          "source_quote": "本地演示过，没部署",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "本地演示过，没部署",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别本轮资料，正在同步草稿；保存尚未完成。\n\n**我的建议**：写成接口级动作，如「在借出、归还接口中处理借还记录写入」，注明用 FastAPI + SQLite，并保留「本地演示、未部署」的表述。",
+    "elapsed_seconds": 9.297,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-5960-7190-bbcd-8b8243e3ea32",
+        "started_at": "2026-10-09T01:23:11.328246+08:00",
+        "usage": {
+          "input_tokens": 1583,
+          "output_tokens": 165,
+          "total_tokens": 1748
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-5dae-7903-ab6b-32839103138d",
+        "started_at": "2026-10-09T01:23:12.430571+08:00",
+        "usage": {
+          "input_tokens": 350,
+          "output_tokens": 866,
+          "total_tokens": 1216
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-6a82-7a53-a467-c48b6d257619",
+        "started_at": "2026-10-09T01:23:15.714959+08:00",
+        "usage": {
+          "input_tokens": 2162,
+          "output_tokens": 411,
+          "total_tokens": 2573
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-703c-7000-9747-796462c2a1ae",
+        "started_at": "2026-10-09T01:23:17.180525+08:00",
+        "usage": {
+          "input_tokens": 4866,
+          "output_tokens": 541,
+          "total_tokens": 5407
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 8961,
+      "output_tokens": 1983,
+      "total_tokens": 10944,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001217,
+        "upper_bound": 0.005068,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v002"
+    ]
+  },
+  {
+    "turn": 3,
+    "phase": "edit",
+    "user": "按 JD 再改“借还簿”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1
+    ],
+    "started_at": "2026-10-09T01:23:20.610029+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+            "name": "借还簿",
+            "facts": [
+              {
+                "id": "f_9e9848b59c46470b92f955323d40d426",
+                "kind": "context",
+                "text": "课程项目“借还簿”，主题为图书借还",
+                "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_16212cf72e10489aa40f752f10411b42",
+                "kind": "team",
+                "text": "与同学一起合作",
+                "source_quote": "跟同学一起做图书借还",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "跟同学一起做图书借还",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f617c4bdbb54fd69305249eb55e5284",
+                "kind": "role",
+                "text": "负责编写 Python 接口中登记借出和归还的部分",
+                "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9105b75bec9b4a838e044b19ca9ca69e",
+                "kind": "method_tool",
+                "text": "使用 FastAPI 和 SQLite",
+                "source_quote": "用 FastAPI 和 SQLite",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 FastAPI 和 SQLite",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1fc0b3ec09664fa6a7a1bb76ff0edf55",
+                "kind": "status_limit",
+                "text": "本地演示过，未部署",
+                "source_quote": "本地演示过，没部署",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "本地演示过，没部署",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+              "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+              "跟同学一起做图书借还",
+              "我写的是 Python 接口里登记借出和归还那块",
+              "用 FastAPI 和 SQLite",
+              "本地演示过，没部署"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_9e9848b59c46470b92f955323d40d426",
+          "kind": "context",
+          "text": "课程项目“借还簿”，主题为图书借还",
+          "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_16212cf72e10489aa40f752f10411b42",
+          "kind": "team",
+          "text": "与同学一起合作",
+          "source_quote": "跟同学一起做图书借还",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "跟同学一起做图书借还",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_1f617c4bdbb54fd69305249eb55e5284",
+          "kind": "role",
+          "text": "负责编写 Python 接口中登记借出和归还的部分",
+          "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_9105b75bec9b4a838e044b19ca9ca69e",
+          "kind": "method_tool",
+          "text": "使用 FastAPI 和 SQLite",
+          "source_quote": "用 FastAPI 和 SQLite",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 FastAPI 和 SQLite",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_1fc0b3ec09664fa6a7a1bb76ff0edf55",
+          "kind": "status_limit",
+          "text": "本地演示过，未部署",
+          "source_quote": "本地演示过，没部署",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "本地演示过，没部署",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "本轮没有形成可保存的正文修改，当前草稿保留。\n\n本轮文字改写未完成，已保留上一版仍有效的正文；已收到的资料仍保留。\n\n当前草稿包含：1 段项目。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 14.234,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-7db4-7f42-b133-7a68758133dd",
+        "started_at": "2026-10-09T01:23:20.629130+08:00",
+        "usage": {
+          "input_tokens": 5339,
+          "output_tokens": 1605,
+          "total_tokens": 6944
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-9971-7a20-af35-b506e7017bf5",
+        "started_at": "2026-10-09T01:23:27.729387+08:00",
+        "usage": {
+          "input_tokens": 5417,
+          "output_tokens": 1618,
+          "total_tokens": 7035
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 10756,
+      "output_tokens": 3223,
+      "total_tokens": 13979,
+      "logical_model_calls": 2,
+      "calls_with_usage": 2,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001966,
+        "upper_bound": 0.007094,
+        "priced_calls": 2,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {},
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "4e1d1d9d621cd059009b92c24fb81c1dd5e8b44db08899360ab63af211806119",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_fallback",
+          "mode": "one_pass",
+          "schema_retry_count": 1,
+          "validation_error_count": 1,
+          "validation_errors": [
+            {
+              "loc": [
+                "writer",
+                "items",
+                0,
+                "summary"
+              ],
+              "type": "extra_forbidden"
+            }
+          ],
+          "stage": "one_pass",
+          "error_type": "ValidationError",
+          "fallback_action": "preserved_existing_draft",
+          "deterministic_updates_applied": false
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [],
+        "change_summary": []
+      },
+      "resume_versions": [],
+      "match_plan": {},
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v003"
+    ]
+  },
+  {
+    "turn": 4,
+    "phase": "edit",
+    "user": "把“借还簿”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1
+    ],
+    "started_at": "2026-10-09T01:23:34.850843+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+            "name": "借还簿",
+            "facts": [
+              {
+                "id": "f_9e9848b59c46470b92f955323d40d426",
+                "kind": "context",
+                "text": "课程项目“借还簿”，主题为图书借还",
+                "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_16212cf72e10489aa40f752f10411b42",
+                "kind": "team",
+                "text": "与同学一起合作",
+                "source_quote": "跟同学一起做图书借还",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "跟同学一起做图书借还",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1f617c4bdbb54fd69305249eb55e5284",
+                "kind": "role",
+                "text": "负责编写 Python 接口中登记借出和归还的部分",
+                "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_9105b75bec9b4a838e044b19ca9ca69e",
+                "kind": "method_tool",
+                "text": "使用 FastAPI 和 SQLite",
+                "source_quote": "用 FastAPI 和 SQLite",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 FastAPI 和 SQLite",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1fc0b3ec09664fa6a7a1bb76ff0edf55",
+                "kind": "status_limit",
+                "text": "本地演示过，未部署",
+                "source_quote": "本地演示过，没部署",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "本地演示过，没部署",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+              "我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。",
+              "跟同学一起做图书借还",
+              "我写的是 Python 接口里登记借出和归还那块",
+              "用 FastAPI 和 SQLite",
+              "本地演示过，没部署"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_9e9848b59c46470b92f955323d40d426",
+          "kind": "context",
+          "text": "课程项目“借还簿”，主题为图书借还",
+          "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程项目“借还簿”，跟同学一起做图书借还。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_16212cf72e10489aa40f752f10411b42",
+          "kind": "team",
+          "text": "与同学一起合作",
+          "source_quote": "跟同学一起做图书借还",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "跟同学一起做图书借还",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_1f617c4bdbb54fd69305249eb55e5284",
+          "kind": "role",
+          "text": "负责编写 Python 接口中登记借出和归还的部分",
+          "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我写的是 Python 接口里登记借出和归还那块",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_9105b75bec9b4a838e044b19ca9ca69e",
+          "kind": "method_tool",
+          "text": "使用 FastAPI 和 SQLite",
+          "source_quote": "用 FastAPI 和 SQLite",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 FastAPI 和 SQLite",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        },
+        {
+          "id": "f_1fc0b3ec09664fa6a7a1bb76ff0edf55",
+          "kind": "status_limit",
+          "text": "本地演示过，未部署",
+          "source_quote": "本地演示过，没部署",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "本地演示过，没部署",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 12.359,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-b54c-7671-9c4b-ac612af7545f",
+        "started_at": "2026-10-09T01:23:34.860524+08:00",
+        "usage": {
+          "input_tokens": 5336,
+          "output_tokens": 1350,
+          "total_tokens": 6686
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-cbbd-7412-bce0-089286fefb46",
+        "started_at": "2026-10-09T01:23:40.605723+08:00",
+        "usage": {
+          "input_tokens": 5412,
+          "output_tokens": 1383,
+          "total_tokens": 6795
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-e19a-77e0-a75c-c2c3c4305d50",
+        "started_at": "2026-10-09T01:23:46.202141+08:00",
+        "usage": {
+          "input_tokens": 2367,
+          "output_tokens": 92,
+          "total_tokens": 2459
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 13115,
+      "output_tokens": 2825,
+      "total_tokens": 15940,
+      "logical_model_calls": 3,
+      "calls_with_usage": 3,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001734,
+        "upper_bound": 0.007325,
+        "priced_calls": 3,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "e04dbd3d-608d-4ae5-a0ec-16173796428f": [
+            {
+              "fact_ids": [
+                "f_9e9848b59c46470b92f955323d40d426",
+                "f_16212cf72e10489aa40f752f10411b42",
+                "f_1f617c4bdbb54fd69305249eb55e5284",
+                "f_9105b75bec9b4a838e044b19ca9ca69e",
+                "f_1fc0b3ec09664fa6a7a1bb76ff0edf55"
+              ],
+              "req_ids": [
+                "r1",
+                "r2",
+                "r3"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "59191ea9ffe53ca97e90eee62d838c8ee8da223fcfe9529298169a17b38e4545"
+            }
+          ]
+        },
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "97235faccb7b9e767a24b01d3d6562b39dbbf6175ff2d05da3774c25a7b40fc3",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 1,
+          "validation_error_count": 1,
+          "validation_errors": [
+            {
+              "loc": [
+                "match_plan",
+                "summary_fact_ids"
+              ],
+              "type": "extra_forbidden"
+            }
+          ]
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ],
+        "version_id": "4519a6f3-f36f-4c50-bccf-f36c9c62d71a",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "direct",
+              "fact_ids": [
+                "f_1f617c4bdbb54fd69305249eb55e5284",
+                "f_9105b75bec9b4a838e044b19ca9ca69e"
+              ],
+              "angle": "用 Python（FastAPI）编写借出/归还接口"
+            },
+            {
+              "req_id": "r2",
+              "status": "transferable",
+              "fact_ids": [
+                "f_1f617c4bdbb54fd69305249eb55e5284",
+                "f_9105b75bec9b4a838e044b19ca9ca69e"
+              ],
+              "angle": "以 FastAPI 提供 HTTP 接口承载借出/归还请求，体现对 HTTP 接口的基本使用"
+            },
+            {
+              "req_id": "r3",
+              "status": "direct",
+              "fact_ids": [
+                "f_9105b75bec9b4a838e044b19ca9ca69e"
+              ],
+              "angle": "使用 SQLite 存储借还数据"
+            },
+            {
+              "req_id": "r4",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r5",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": "明确未部署、无并发与自动化测试材料，保持限制不写成加分项"
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+              "treatment": "lead",
+              "reason": "唯一项目，直接对应 r1/r3，按用户要求压成一条，合并本人分工、技术栈与未部署限制",
+              "target_bullets": 1
+            }
+          ],
+          "section_order": [
+            "projects",
+            "skills",
+            "education",
+            "work_experience",
+            "certificates"
+          ],
+          "summary_angle": "",
+          "questions": [
+            {
+              "q": "借出/归还接口里，你处理了哪些异常或校验（比如书已借出、书号不存在、重复归还）？",
+              "why": "JD 明确要求“补充输入校验与异常处理”“能说明接口边界条件及验证方法”，这是当前材料最大的缺口",
+              "improves": {
+                "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+                "req_id": "r4"
+              },
+              "options": [
+                "对借出/归还参数做了非空与格式校验",
+                "对“书已被借出/已归还”等状态做了判断并返回错误提示",
+                "没有专门做校验，只做了基本流程"
+              ],
+              "value": 5
+            },
+            {
+              "q": "借还数据在 SQLite 里是怎么存的？你设计或改过哪张表、哪些字段？",
+              "why": "把“用 SQLite”升级为可核对的数据存储证据，直接支撑 r3",
+              "improves": {
+                "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+                "req_id": "r3"
+              },
+              "options": [
+                "设计了借阅记录表（书号、借出时间、归还时间等字段）",
+                "沿用同学建好的表，我写读写逻辑",
+                "只写了接口调用，表结构由同学负责"
+              ],
+              "value": 4
+            },
+            {
+              "q": "调试借出/归还接口时，有没有遇到过报错或数据不对的情况，你是怎么定位的？",
+              "why": "对应 JD“协助定位接口问题”，有具体排查过程可写成一条 bullet",
+              "improves": {
+                "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+                "req_id": "r4"
+              },
+              "options": [
+                "看服务端报错日志定位到具体参数或分支",
+                "用接口调试工具复现请求逐步排查",
+                "和同学一起对代码找问题"
+              ],
+              "value": 3
+            }
+          ]
+        },
+        "omitted": []
+      },
+      "resume_versions": [
+        {
+          "version_id": "17f37fff-14c5-4c55-8f36-cbc1e61d9cd7",
+          "label": "修改前",
+          "created_at": "2026-10-08T17:23:47.204542+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+                "name": "借还簿",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程项目“借还簿”，主题为图书借还\n与同学一起合作\n负责编写 Python 接口中登记借出和归还的部分\n使用 FastAPI 和 SQLite\n本地演示过，未部署"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "Python 后端开发实习生",
+              "recruiter_priorities": [
+                "自己写过哪些接口、存过哪些数据（对应“参与业务接口开发和数据存储”）",
+                "在校验与异常处理上做过什么（对应“补充输入校验与异常处理”）",
+                "能否讲清接口的边界条件与验证方法（对应“能说明接口边界条件及验证方法”）",
+                "Python、HTTP、关系型数据库三者的真实使用场景",
+                "如有高并发、服务上线或自动化测试经历，作为加分点单列",
+                "Python"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {
+            "bullets": {},
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "4e1d1d9d621cd059009b92c24fb81c1dd5e8b44db08899360ab63af211806119",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_fallback",
+              "mode": "one_pass",
+              "schema_retry_count": 1,
+              "validation_error_count": 1,
+              "validation_errors": [
+                {
+                  "loc": [
+                    "writer",
+                    "items",
+                    0,
+                    "summary"
+                  ],
+                  "type": "extra_forbidden"
+                }
+              ],
+              "stage": "one_pass",
+              "error_type": "ValidationError",
+              "fallback_action": "preserved_existing_draft",
+              "deterministic_updates_applied": false
+            },
+            "compression_writer_diagnostics": [],
+            "guard_fallbacks": [],
+            "change_summary": []
+          }
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "direct",
+            "fact_ids": [
+              "f_1f617c4bdbb54fd69305249eb55e5284",
+              "f_9105b75bec9b4a838e044b19ca9ca69e"
+            ],
+            "angle": "用 Python（FastAPI）编写借出/归还接口"
+          },
+          {
+            "req_id": "r2",
+            "status": "transferable",
+            "fact_ids": [
+              "f_1f617c4bdbb54fd69305249eb55e5284",
+              "f_9105b75bec9b4a838e044b19ca9ca69e"
+            ],
+            "angle": "以 FastAPI 提供 HTTP 接口承载借出/归还请求，体现对 HTTP 接口的基本使用"
+          },
+          {
+            "req_id": "r3",
+            "status": "direct",
+            "fact_ids": [
+              "f_9105b75bec9b4a838e044b19ca9ca69e"
+            ],
+            "angle": "使用 SQLite 存储借还数据"
+          },
+          {
+            "req_id": "r4",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r5",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": "明确未部署、无并发与自动化测试材料，保持限制不写成加分项"
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+            "treatment": "lead",
+            "reason": "唯一项目，直接对应 r1/r3，按用户要求压成一条，合并本人分工、技术栈与未部署限制",
+            "target_bullets": 1
+          }
+        ],
+        "section_order": [
+          "projects",
+          "skills",
+          "education",
+          "work_experience",
+          "certificates"
+        ],
+        "summary_angle": "",
+        "questions": [
+          {
+            "q": "借出/归还接口里，你处理了哪些异常或校验（比如书已借出、书号不存在、重复归还）？",
+            "why": "JD 明确要求“补充输入校验与异常处理”“能说明接口边界条件及验证方法”，这是当前材料最大的缺口",
+            "improves": {
+              "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+              "req_id": "r4"
+            },
+            "options": [
+              "对借出/归还参数做了非空与格式校验",
+              "对“书已被借出/已归还”等状态做了判断并返回错误提示",
+              "没有专门做校验，只做了基本流程"
+            ],
+            "value": 5
+          },
+          {
+            "q": "借还数据在 SQLite 里是怎么存的？你设计或改过哪张表、哪些字段？",
+            "why": "把“用 SQLite”升级为可核对的数据存储证据，直接支撑 r3",
+            "improves": {
+              "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+              "req_id": "r3"
+            },
+            "options": [
+              "设计了借阅记录表（书号、借出时间、归还时间等字段）",
+              "沿用同学建好的表，我写读写逻辑",
+              "只写了接口调用，表结构由同学负责"
+            ],
+            "value": 4
+          },
+          {
+            "q": "调试借出/归还接口时，有没有遇到过报错或数据不对的情况，你是怎么定位的？",
+            "why": "对应 JD“协助定位接口问题”，有具体排查过程可写成一条 bullet",
+            "improves": {
+              "item_id": "e04dbd3d-608d-4ae5-a0ec-16173796428f",
+              "req_id": "r4"
+            },
+            "options": [
+              "看服务端报错日志定位到具体参数或分支",
+              "用接口调试工具复现请求逐步排查",
+              "和同学一起对代码找问题"
+            ],
+            "value": 3
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v004"
+    ]
+  }
+]

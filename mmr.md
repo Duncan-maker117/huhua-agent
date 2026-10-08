@@ -27,7 +27,7 @@
 
 ## 当前状态
 
-2026-10-09 Tailor PR4：v3候选已合入主工作区，784/784与Ruff/diff通过，尚未真实模型验收。v1编辑0/24；v2编辑11/24（2无diff、3未遵循、6评分错误、2未运行），65版本53已评分/11无稿/1错误；语义疑点9，确认新增事实待Claude。v2末段与补评分遭API失败；独立官方Flash检查HTTP402，官方余额API曾返回is_available=false；Banz随后充值，只读复查is_available=true，准备恢复v3测试。v3修复结构错误一次有界重试、失败保留有效旧稿但执行明确更正/删除、原始引文与主体/动作/负面事实守卫。私有real-01-v2最终1页且无SQL误删，但writer回退导致稿质差，6/8目标满足，不能验收。交付 `evaluation/tailor-bench/pr4/summary.md`、`verification.json`、`fact-review-v2.md`。旧218基线文件哈希不变；所有已跑run保留，v3无run。PR5组件仍未接graph，未push/部署/迁移真实库。
+2026-10-09 Tailor PR4：v3候选本地提交 `78aceab`（未push），Banz充值后官方余额复查可用。新公开 `runs/20261009-pr4-v3` 已完整跑完并补评一次，70版本59已评分/11无稿；编辑17/24（1无diff、5未遵循、1评分错误），首稿12/12≤2轮，事实模型疑点5；源码hash未变，未达PR4门槛。私有 `runs-private/20261009-pr4-real-01-v3` 两轮44facts保持一致、SQL/PDF绑定正确，无writer回退，但仍2页且出现无源“未上线”/重复正文，Codex私有复核已保存。最终v3 Guard统一8例通过，不能替代全套。正在独立tmp修v4：限制原文与去重/条件保留、负面上线与频率/因果边界、追问raw_note归属和项目名、repair需接语义失败与原指令、编辑评分排除隐藏truth且独立带已知JD。v4十个文件已合入MAIN，837/837无跳过、Ruff/diff通过；准备提交后新开公开/私有v4，PR5独立文件未接graph。工具明确以安全限制拒绝访问Ghostty，Claude交接只能先备文件，未发送；确认新增事实仍未知。旧run不覆盖，未部署/迁移真实库。
 
 2026-10-08 两份本人历史资料真实生成实测完成：Banz 明确授权 DeepSeek V4.1 Flash（API ID `deepseek-flash`）。在独立临时加密库走真实网页上传 PDF + Markdown、生成、纠错及 PDF/Word 下载；主工作区业务仍为 `a742100`，PR1 未合并。四个真实项目均保留，但联系栏「深圳」误成第五项目；一页要求未执行，默认模板 PDF 为 3 页；mtagent 冲突虽列入核对，正文仍含冲突日期/职责；第二轮明确删改等待约 47.6 秒，data/revision/PDF 完全不变。已只读定位联系栏解析过宽、旧 editor 强制原句保留且未接收篇幅指令、信息提取完整回显与对象数组校验矛盾等原因，未改业务代码或上线。含个人资料的原始 PDF/Word、两轮记录及报告仅保存在 Git 忽略目录 `data/output/tailor-real-materials-20261008/summary.md`；两份原件哈希未变。该结果证明当前应用不能直接产出可投递稿，不代表已单独评估模型写作能力。
 

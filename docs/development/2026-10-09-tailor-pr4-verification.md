@@ -47,3 +47,7 @@ v3合入：①仅明确结构错误共享一次重试和60秒主写作预算；�
 接口交接见 `2026-10-08-tailor-api-handoff.md`。PR4 的硬门槛仍是逐版本确认新增经历事实为 0、编辑执行率至少 90%；当前未通过。Claude 复核前，“确认新增事实”保持未知。
 
 PR5 router/edit_plan/interviewer/advisor 的独立候选已准备，未接入生产 graph。PR6 按规格由 Cursor 负责，PR7 参数实验尚未开始。
+
+## v4 候选（02:00）
+
+已修复限制整段追加、无源未上线/频率/因果、raw_note既有经历归属及项目名称、repair上下文缺失。编辑Judge移除隐藏truth并单列已知job_context；旧run不改。主工作区837/837无跳过、Ruff/diff通过；合成Guard16/16符合预期。证据见 `evaluation/tailor-bench/pr4/verification-v4.json`。v4真实全套尚未开始，仍不可宣称PR4通过。

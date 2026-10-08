@@ -84,6 +84,29 @@ _SKILL_PREDICATE = r"(?:会|懂|熟悉|掌握|擅长|具备|使用|用过|用|�
 _SKILL_DENIAL = rf"(?:(?:尚未|从未|并未|没有|未曾|不曾|不能|不会|不|未|没)\s*(?:实际|真正|曾经|系统|深入|正式)?\s*{_SKILL_PREDICATE}|不会|不懂|零经验)"
 _SKILL_PLAN = r"(?:计划|准备|打算|未来|将来|待学习|待掌握|想学|希望学习|拟使用|拟学习|将(?:学习|使用|采用))"
 _EN_SKILL_LIMIT = r"\b(?:not|never|no|without|cannot|can't|don't|doesn't|haven't|hasn't|plan(?:ned|ning)?|intend(?:ed)?|want\s+to|will|yet\s+to)\b"
+_UNRELEASED_CLAIM = re.compile(
+    r"(?:尚未|仍未|从未|并未|没有|未曾|不曾|未|没)(?:被|实际|正式|完成|进行|对外|公开)?"
+    r"(?:上线|发布|部署|投入(?:生产|使用)|对外开放)|"
+    r"\b(?:not|never|haven't|hasn't|wasn't|isn't)\s+(?:(?:been|yet|currently|publicly|officially)\s+){0,3}"
+    r"(?:deployed|released|launched|published)\b", re.I)
+_RELEASE_PLAN = re.compile(
+    r"(?:计划|准备|打算|拟|将|待|后续|未来)(?:正式|对外|公开)?(?:上线|发布|部署)|"
+    r"\b(?:plan(?:ned|ning)?|intend(?:ed)?|yet|ready)\s+to\s+"
+    r"(?:deploy|release|launch|publish)\b", re.I)
+_LOW_FREQUENCY = re.compile(r"有时(?:候)?|偶尔|偶然")
+_HIGH_FREQUENCY = re.compile(r"经常|频繁|常常|总是|(?<![异正非日恒平])常(?!用|规|识|量|数|态|年)")
+
+
+def _explicit_frequency_upgrade(text: str, source: str) -> bool:
+    # Hard-reject only an otherwise identical clause whose frequency changed.
+    # Reworded/different actions require semantic review, not a global word ban.
+    source_clauses = {normalize_text(_LOW_FREQUENCY.sub('', clause)).strip('。.!！ ')
+                      for clause in re.split(r'[，,；;。.!！?？\n]', source)
+                      if _LOW_FREQUENCY.search(clause) and not _HIGH_FREQUENCY.search(clause)}
+    return any(len(body) >= 6 and body in source_clauses
+               for clause in re.split(r'[，,；;。.!！?？\n]', text)
+               if _HIGH_FREQUENCY.search(clause)
+               for body in [normalize_text(_HIGH_FREQUENCY.sub('', clause)).strip('。.!！ ')])
 _SKILL_CLAUSE = re.compile(
     r"[，,。；;！!？?\n]|但是|不过|但|而|\bbut\b|"
     r"(?:与|和|以及|并且|同时|且)(?=(?:我)?(?:已|会|熟悉|掌握|擅长|用过|使用过))|"
@@ -135,6 +158,14 @@ def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
     extra = extract_numbers(text) - extract_numbers(source_quote)
     if extra:
         errors.append("unsupported_numbers:" + ",".join(sorted(extra)))
+    # A prototype can already be public. Its stage alone never establishes
+    # that it has not launched; negative status claims need explicit evidence.
+    # Future release wording remains subject to the semantic stage below.
+    if (_UNRELEASED_CLAIM.search(text) and not _UNRELEASED_CLAIM.search(source_quote)
+            and not _RELEASE_PLAN.search(source_quote)):
+        errors.append("unsupported_negative_release_status")
+    if _explicit_frequency_upgrade(text, source_quote):
+        errors.append("unsupported_frequency_upgrade")
     for term in RESPONSIBILITY_TERMS:
         if not _affirmed(text, term):
             continue
@@ -172,6 +203,9 @@ SEMANTIC_CONTRACT = """核验每条候选表述是否被其 source_quotes 完整
 对长句按逗号、分号及并列动作逐子句核对：每段分别确认动作主体是谁、做了什么、做到何种程度。项目/团队做过某事，不自动等于本人做过；“用了某工具”不自动等于“本人完成训练、评估或全流程”。只有每个有事实含义的子句都获原始来源支持，才可给整句 pass；不能用一条事实的工具名填补另一条事实缺失的动作或主体。
 否定断言也必须逐项有原文支持。“没有提供指标/数字”“只描述了观察结果”不等于“本人未做量化统计”；“没有部署”不等于“未测试”或“未统计”。来源明确说“没有做量化统计”时可以同义写成“未做量化统计”，但只提到另一项未完成工作，不能推出其他工作也未做。
 观察和诊断也要分开核对：查看请求返回、核对字段或检查列表，可合并为“查看并核对”；但不能据此写成发现字段不一致、定位问题、排查故障或修复。异常是否存在、异常对象是什么、本人是否做过排查或修复，须分别有原始来源明示；原文明确说本人排查某个不一致问题时，允许同义改写。“问题”一词本身不是禁词，只核对具体主张是否获支持。
+原因判断需要单独的来源：观察到“两个类别有时混在一起”，随后改写分类说明，只能支持观察和后续动作，不能自动支持“因为原分类说明不清楚/分类不合理”等成因。先后关系、处置动作不证明根因；“有时/偶尔”也不能升级成“常/经常/总是”。原文明确说“说明不清楚导致混淆”才可保留该因果。
+产物用途、使用者和采用状态也必须有来源。“把问题清单交给小组讨论”不等于“整理汇总供小组后续核对使用”；不能把本人做过的核对变成小组的后续使用，或把提交讨论变成已被采用。来源明确交付对象和用途时可以同义改写。
+上线/部署等否定状态必须属于同一个对象、版本和范围。原文“后端未部署，前端已上线”不能支持“前端未上线”；“当前版本已上线，计划上线下一版本”不能支持“项目未上线”；“原型”本身不能证明是否已公开上线。只要有相似的否定词或计划词不等于支持本条断言。
 允许：同义改写、口语转书面、换序、合并多条事实、用 JD 词称呼同一动作、省略非必要细节。
 禁止：新增动作/对象/范围/成果/程度，升级责任，遗漏否定或原型/计划限制。可迁移表述也不能增加事实。JD和手册不是事实来源。
 正例：

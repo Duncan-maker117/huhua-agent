@@ -1,0 +1,5292 @@
+[
+  {
+    "turn": 1,
+    "phase": "opening",
+    "user": "我想找数据分析实习，手里还没有具体 JD。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0
+    ],
+    "started_at": "2026-10-09T01:32:54.755440+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {},
+      "active_facts": [],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "好，先按「数据分析」做能力展示型简历。\n\n我会优先证明：数据分析。\n\n先说一段最能代表你能力的经历：项目、实习、课程作品、比赛都可以。",
+    "elapsed_seconds": 0.008,
+    "model_calls": [],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 0,
+      "calls_with_usage": 0,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "started_at": "2026-10-09T01:32:54.766403+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "name": "晚餐账本",
+            "facts": [
+              {
+                "id": "f_259e3dd7a0634571892907b0288faa16",
+                "kind": "context",
+                "text": "课程作业“晚餐账本”",
+                "source_quote": "我做过课程作业“晚餐账本”",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程作业“晚餐账本”",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+                "kind": "context",
+                "text": "使用老师提供的模拟点餐记录",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "拿老师给的模拟点餐记录",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "kind": "method_tool",
+                "text": "使用 SQL",
+                "source_quote": "用 SQL",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 SQL",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_634cd9e362d44bfb975de59290e873d3",
+                "kind": "action",
+                "text": "按菜品分类汇总",
+                "source_quote": "按菜品分类汇总",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "按菜品分类汇总",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "kind": "action",
+                "text": "用表格画图",
+                "source_quote": "再用表格画图",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "再用表格画图",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_533e570f8ba640a686911bf5126a8c2e",
+                "kind": "team",
+                "text": "作业由小组完成",
+                "source_quote": "作业是小组做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "作业是小组做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "kind": "status_limit",
+                "text": "未测试业务效果",
+                "source_quote": "我没测业务效果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我没测业务效果",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+              "我做过课程作业“晚餐账本”",
+              "拿老师给的模拟点餐记录",
+              "用 SQL",
+              "按菜品分类汇总",
+              "再用表格画图",
+              "作业是小组做的",
+              "我没测业务效果"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_259e3dd7a0634571892907b0288faa16",
+          "kind": "context",
+          "text": "课程作业“晚餐账本”",
+          "source_quote": "我做过课程作业“晚餐账本”",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程作业“晚餐账本”",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+          "kind": "context",
+          "text": "使用老师提供的模拟点餐记录",
+          "source_quote": "拿老师给的模拟点餐记录",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "拿老师给的模拟点餐记录",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+          "kind": "method_tool",
+          "text": "使用 SQL",
+          "source_quote": "用 SQL",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 SQL",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_634cd9e362d44bfb975de59290e873d3",
+          "kind": "action",
+          "text": "按菜品分类汇总",
+          "source_quote": "按菜品分类汇总",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "按菜品分类汇总",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+          "kind": "action",
+          "text": "用表格画图",
+          "source_quote": "再用表格画图",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "再用表格画图",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_533e570f8ba640a686911bf5126a8c2e",
+          "kind": "team",
+          "text": "作业由小组完成",
+          "source_quote": "作业是小组做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "作业是小组做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+          "kind": "status_limit",
+          "text": "未测试业务效果",
+          "source_quote": "我没测业务效果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我没测业务效果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别「晚餐账本」这段信息，正在同步草稿；保存尚未完成。\n\n**需要你补充**：这个小组作业里，SQL 汇总和表格画图具体是你自己做的，还是小组分工中你只负责了一部分？",
+    "elapsed_seconds": 15.045,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-4071-7fd3-a5b8-536a421cd9c7",
+        "started_at": "2026-10-09T01:32:54.769732+08:00",
+        "usage": {
+          "input_tokens": 314,
+          "output_tokens": 408,
+          "total_tokens": 722
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-4a53-7472-a02c-f1f9cd79d65c",
+        "started_at": "2026-10-09T01:32:57.299778+08:00",
+        "usage": {
+          "input_tokens": 1576,
+          "output_tokens": 164,
+          "total_tokens": 1740
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-4d53-7b31-b4a2-6d4f23cd6a5d",
+        "started_at": "2026-10-09T01:32:58.067254+08:00",
+        "usage": {
+          "input_tokens": 343,
+          "output_tokens": 1913,
+          "total_tokens": 2256
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-6d39-7fe1-81da-8f333b262a3e",
+        "started_at": "2026-10-09T01:33:06.233651+08:00",
+        "usage": {
+          "input_tokens": 2175,
+          "output_tokens": 493,
+          "total_tokens": 2668
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-74c8-7560-a79f-5ff6b3ae8a75",
+        "started_at": "2026-10-09T01:33:08.168553+08:00",
+        "usage": {
+          "input_tokens": 3243,
+          "output_tokens": 236,
+          "total_tokens": 3479
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7651,
+      "output_tokens": 3214,
+      "total_tokens": 10865,
+      "logical_model_calls": 5,
+      "calls_with_usage": 5,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001951,
+        "upper_bound": 0.006152,
+        "priced_calls": 5,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v002"
+    ]
+  },
+  {
+    "turn": 3,
+    "phase": "followup",
+    "user": "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+    "task": "auto",
+    "simulation": {
+      "text": "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+      "fact_indices": [
+        6
+      ],
+      "reason": "model_selected_truth",
+      "selector_status": "completed",
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11c93-7b3c-7da1-9d63-0529fe13c390",
+          "started_at": "2026-10-09T01:33:09.820418+08:00",
+          "usage": {
+            "input_tokens": 330,
+            "output_tokens": 7,
+            "total_tokens": 337
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 330,
+        "output_tokens": 7,
+        "total_tokens": 337,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 5e-06,
+          "upper_bound": 0.000107,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3,
+      6
+    ],
+    "started_at": "2026-10-09T01:33:10.638468+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "name": "晚餐账本",
+            "facts": [
+              {
+                "id": "f_259e3dd7a0634571892907b0288faa16",
+                "kind": "context",
+                "text": "课程作业“晚餐账本”",
+                "source_quote": "我做过课程作业“晚餐账本”",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程作业“晚餐账本”",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+                "kind": "context",
+                "text": "使用老师提供的模拟点餐记录",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "拿老师给的模拟点餐记录",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "kind": "method_tool",
+                "text": "使用 SQL",
+                "source_quote": "用 SQL",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 SQL",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_634cd9e362d44bfb975de59290e873d3",
+                "kind": "action",
+                "text": "按菜品分类汇总",
+                "source_quote": "按菜品分类汇总",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "按菜品分类汇总",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "kind": "action",
+                "text": "用表格画图",
+                "source_quote": "再用表格画图",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "再用表格画图",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_533e570f8ba640a686911bf5126a8c2e",
+                "kind": "team",
+                "text": "作业由小组完成",
+                "source_quote": "作业是小组做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "作业是小组做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "kind": "status_limit",
+                "text": "未测试业务效果",
+                "source_quote": "我没测业务效果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我没测业务效果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+                "kind": "team",
+                "text": "队友负责演示文稿排版和汇报",
+                "source_quote": "队友负责演示文稿排版和汇报",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友负责演示文稿排版和汇报",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_111dc15038624b7c92571a106d63dd81",
+                "kind": "action",
+                "text": "我完成 SQL 汇总、图表和口径说明",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+              "我做过课程作业“晚餐账本”",
+              "拿老师给的模拟点餐记录",
+              "用 SQL",
+              "按菜品分类汇总",
+              "再用表格画图",
+              "作业是小组做的",
+              "我没测业务效果",
+              "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+              "队友负责演示文稿排版和汇报",
+              "SQL 汇总、图表和口径说明是我做的"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_259e3dd7a0634571892907b0288faa16",
+          "kind": "context",
+          "text": "课程作业“晚餐账本”",
+          "source_quote": "我做过课程作业“晚餐账本”",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程作业“晚餐账本”",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+          "kind": "context",
+          "text": "使用老师提供的模拟点餐记录",
+          "source_quote": "拿老师给的模拟点餐记录",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "拿老师给的模拟点餐记录",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+          "kind": "method_tool",
+          "text": "使用 SQL",
+          "source_quote": "用 SQL",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 SQL",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_634cd9e362d44bfb975de59290e873d3",
+          "kind": "action",
+          "text": "按菜品分类汇总",
+          "source_quote": "按菜品分类汇总",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "按菜品分类汇总",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+          "kind": "action",
+          "text": "用表格画图",
+          "source_quote": "再用表格画图",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "再用表格画图",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_533e570f8ba640a686911bf5126a8c2e",
+          "kind": "team",
+          "text": "作业由小组完成",
+          "source_quote": "作业是小组做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "作业是小组做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+          "kind": "status_limit",
+          "text": "未测试业务效果",
+          "source_quote": "我没测业务效果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我没测业务效果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+          "kind": "team",
+          "text": "队友负责演示文稿排版和汇报",
+          "source_quote": "队友负责演示文稿排版和汇报",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友负责演示文稿排版和汇报",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_111dc15038624b7c92571a106d63dd81",
+          "kind": "action",
+          "text": "我完成 SQL 汇总、图表和口径说明",
+          "source_quote": "SQL 汇总、图表和口径说明是我做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "SQL 汇总、图表和口径说明是我做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别你的分工：SQL 汇总、图表和口径说明由你完成，正在同步草稿；保存尚未完成。\n\n**需要你补充**：按菜品分类汇总后，你有没有看出某个具体现象或结论？",
+    "elapsed_seconds": 11.187,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-7e7b-7d72-b960-b94bd46af634",
+        "started_at": "2026-10-09T01:33:10.651689+08:00",
+        "usage": {
+          "input_tokens": 1556,
+          "output_tokens": 131,
+          "total_tokens": 1687
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-83a7-7580-b95c-635d1299354f",
+        "started_at": "2026-10-09T01:33:11.975903+08:00",
+        "usage": {
+          "input_tokens": 624,
+          "output_tokens": 1158,
+          "total_tokens": 1782
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-98de-7a03-8f52-5018c788399a",
+        "started_at": "2026-10-09T01:33:17.407140+08:00",
+        "usage": {
+          "input_tokens": 1932,
+          "output_tokens": 108,
+          "total_tokens": 2040
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-9c27-77a1-8a8b-ea59644295fc",
+        "started_at": "2026-10-09T01:33:18.248214+08:00",
+        "usage": {
+          "input_tokens": 3579,
+          "output_tokens": 554,
+          "total_tokens": 4133
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7691,
+      "output_tokens": 1951,
+      "total_tokens": 9642,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001194,
+        "upper_bound": 0.004648,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v003"
+    ]
+  },
+  {
+    "turn": 4,
+    "phase": "followup",
+    "user": "我发现取消订单是否计入会改变结果，分别记录了包含和排除取消订单时的统计口径。\n我撰写图表说明，指出数据只能用于课程练习，不能推断真实餐厅销量。",
+    "task": "auto",
+    "simulation": {
+      "text": "我发现取消订单是否计入会改变结果，分别记录了包含和排除取消订单时的统计口径。\n我撰写图表说明，指出数据只能用于课程练习，不能推断真实餐厅销量。",
+      "fact_indices": [
+        4,
+        5
+      ],
+      "reason": "model_selected_truth",
+      "selector_status": "completed",
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11c93-aa2a-7602-b5f0-96a869767005",
+          "started_at": "2026-10-09T01:33:21.834152+08:00",
+          "usage": {
+            "input_tokens": 285,
+            "output_tokens": 9,
+            "total_tokens": 294
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 285,
+        "output_tokens": 9,
+        "total_tokens": 294,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 6e-06,
+          "upper_bound": 9.6e-05,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:33:22.672110+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "name": "晚餐账本",
+            "facts": [
+              {
+                "id": "f_259e3dd7a0634571892907b0288faa16",
+                "kind": "context",
+                "text": "课程作业“晚餐账本”",
+                "source_quote": "我做过课程作业“晚餐账本”",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程作业“晚餐账本”",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+                "kind": "context",
+                "text": "使用老师提供的模拟点餐记录",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "拿老师给的模拟点餐记录",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "kind": "method_tool",
+                "text": "使用 SQL",
+                "source_quote": "用 SQL",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 SQL",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_634cd9e362d44bfb975de59290e873d3",
+                "kind": "action",
+                "text": "按菜品分类汇总",
+                "source_quote": "按菜品分类汇总",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "按菜品分类汇总",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "kind": "action",
+                "text": "用表格画图",
+                "source_quote": "再用表格画图",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "再用表格画图",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_533e570f8ba640a686911bf5126a8c2e",
+                "kind": "team",
+                "text": "作业由小组完成",
+                "source_quote": "作业是小组做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "作业是小组做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "kind": "status_limit",
+                "text": "未测试业务效果",
+                "source_quote": "我没测业务效果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我没测业务效果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+                "kind": "team",
+                "text": "队友负责演示文稿排版和汇报",
+                "source_quote": "队友负责演示文稿排版和汇报",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友负责演示文稿排版和汇报",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_111dc15038624b7c92571a106d63dd81",
+                "kind": "action",
+                "text": "我完成 SQL 汇总、图表和口径说明",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "kind": "result_qualitative",
+                "text": "发现取消订单是否计入会改变结果",
+                "source_quote": "我发现取消订单是否计入会改变结果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我发现取消订单是否计入会改变结果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_6ccf07b5457e4034a77facf03e923f86",
+                "kind": "action",
+                "text": "分别记录包含和排除取消订单时的统计口径",
+                "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "kind": "action",
+                "text": "撰写图表说明",
+                "source_quote": "我撰写图表说明",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我撰写图表说明",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+                "kind": "status_limit",
+                "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+                "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+              "我做过课程作业“晚餐账本”",
+              "拿老师给的模拟点餐记录",
+              "用 SQL",
+              "按菜品分类汇总",
+              "再用表格画图",
+              "作业是小组做的",
+              "我没测业务效果",
+              "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+              "队友负责演示文稿排版和汇报",
+              "SQL 汇总、图表和口径说明是我做的",
+              "我发现取消订单是否计入会改变结果，分别记录了包含和排除取消订单时的统计口径。",
+              "我撰写图表说明，指出数据只能用于课程练习，不能推断真实餐厅销量。",
+              "我发现取消订单是否计入会改变结果",
+              "分别记录了包含和排除取消订单时的统计口径",
+              "我撰写图表说明",
+              "指出数据只能用于课程练习，不能推断真实餐厅销量"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_259e3dd7a0634571892907b0288faa16",
+          "kind": "context",
+          "text": "课程作业“晚餐账本”",
+          "source_quote": "我做过课程作业“晚餐账本”",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程作业“晚餐账本”",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+          "kind": "context",
+          "text": "使用老师提供的模拟点餐记录",
+          "source_quote": "拿老师给的模拟点餐记录",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "拿老师给的模拟点餐记录",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+          "kind": "method_tool",
+          "text": "使用 SQL",
+          "source_quote": "用 SQL",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 SQL",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_634cd9e362d44bfb975de59290e873d3",
+          "kind": "action",
+          "text": "按菜品分类汇总",
+          "source_quote": "按菜品分类汇总",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "按菜品分类汇总",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+          "kind": "action",
+          "text": "用表格画图",
+          "source_quote": "再用表格画图",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "再用表格画图",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_533e570f8ba640a686911bf5126a8c2e",
+          "kind": "team",
+          "text": "作业由小组完成",
+          "source_quote": "作业是小组做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "作业是小组做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+          "kind": "status_limit",
+          "text": "未测试业务效果",
+          "source_quote": "我没测业务效果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我没测业务效果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+          "kind": "team",
+          "text": "队友负责演示文稿排版和汇报",
+          "source_quote": "队友负责演示文稿排版和汇报",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友负责演示文稿排版和汇报",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_111dc15038624b7c92571a106d63dd81",
+          "kind": "action",
+          "text": "我完成 SQL 汇总、图表和口径说明",
+          "source_quote": "SQL 汇总、图表和口径说明是我做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "SQL 汇总、图表和口径说明是我做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+          "kind": "result_qualitative",
+          "text": "发现取消订单是否计入会改变结果",
+          "source_quote": "我发现取消订单是否计入会改变结果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我发现取消订单是否计入会改变结果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_6ccf07b5457e4034a77facf03e923f86",
+          "kind": "action",
+          "text": "分别记录包含和排除取消订单时的统计口径",
+          "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+          "kind": "action",
+          "text": "撰写图表说明",
+          "source_quote": "我撰写图表说明",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我撰写图表说明",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+          "kind": "status_limit",
+          "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+          "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别口径对比与图表说明的内容，正在同步草稿；保存尚未完成。\n\n**需要你补充**：这份口径说明最后落在什么交付物里，比如作业报告、表格文件，还是只在课堂展示中说明？",
+    "elapsed_seconds": 12.811,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-ad7f-7ae3-b557-349e1c600817",
+        "started_at": "2026-10-09T01:33:22.687353+08:00",
+        "usage": {
+          "input_tokens": 1575,
+          "output_tokens": 131,
+          "total_tokens": 1706
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-b1aa-76f2-b62d-ce14191c7822",
+        "started_at": "2026-10-09T01:33:23.754709+08:00",
+        "usage": {
+          "input_tokens": 720,
+          "output_tokens": 1648,
+          "total_tokens": 2368
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-cebe-76f1-8076-29d5fab4bec2",
+        "started_at": "2026-10-09T01:33:31.199037+08:00",
+        "usage": {
+          "input_tokens": 2105,
+          "output_tokens": 343,
+          "total_tokens": 2448
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-d3fe-7722-bb01-b696c4460a59",
+        "started_at": "2026-10-09T01:33:32.542546+08:00",
+        "usage": {
+          "input_tokens": 4203,
+          "output_tokens": 385,
+          "total_tokens": 4588
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 8603,
+      "output_tokens": 2507,
+      "total_tokens": 11110,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.00153,
+        "upper_bound": 0.005589,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v004"
+    ]
+  },
+  {
+    "turn": 5,
+    "phase": "followup",
+    "user": "这方面我没有更多可以确认的信息，请只使用我已经提供的内容。",
+    "task": "auto",
+    "simulation": {
+      "text": "这方面我没有更多可以确认的信息，请只使用我已经提供的内容。",
+      "fact_indices": [],
+      "reason": "no_matching_truth",
+      "selector_status": "completed",
+      "model_fact_indices": [],
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11c93-df8a-76f0-8a0b-6c73447968c6",
+          "started_at": "2026-10-09T01:33:35.499100+08:00",
+          "usage": {
+            "input_tokens": 231,
+            "output_tokens": 7,
+            "total_tokens": 238
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 231,
+        "output_tokens": 7,
+        "total_tokens": 238,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 5e-06,
+          "upper_bound": 7.8e-05,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:33:36.062675+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "name": "晚餐账本",
+            "facts": [
+              {
+                "id": "f_259e3dd7a0634571892907b0288faa16",
+                "kind": "context",
+                "text": "课程作业“晚餐账本”",
+                "source_quote": "我做过课程作业“晚餐账本”",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程作业“晚餐账本”",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+                "kind": "context",
+                "text": "使用老师提供的模拟点餐记录",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "拿老师给的模拟点餐记录",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "kind": "method_tool",
+                "text": "使用 SQL",
+                "source_quote": "用 SQL",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 SQL",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_634cd9e362d44bfb975de59290e873d3",
+                "kind": "action",
+                "text": "按菜品分类汇总",
+                "source_quote": "按菜品分类汇总",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "按菜品分类汇总",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "kind": "action",
+                "text": "用表格画图",
+                "source_quote": "再用表格画图",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "再用表格画图",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_533e570f8ba640a686911bf5126a8c2e",
+                "kind": "team",
+                "text": "作业由小组完成",
+                "source_quote": "作业是小组做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "作业是小组做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "kind": "status_limit",
+                "text": "未测试业务效果",
+                "source_quote": "我没测业务效果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我没测业务效果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+                "kind": "team",
+                "text": "队友负责演示文稿排版和汇报",
+                "source_quote": "队友负责演示文稿排版和汇报",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友负责演示文稿排版和汇报",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_111dc15038624b7c92571a106d63dd81",
+                "kind": "action",
+                "text": "我完成 SQL 汇总、图表和口径说明",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "kind": "result_qualitative",
+                "text": "发现取消订单是否计入会改变结果",
+                "source_quote": "我发现取消订单是否计入会改变结果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我发现取消订单是否计入会改变结果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_6ccf07b5457e4034a77facf03e923f86",
+                "kind": "action",
+                "text": "分别记录包含和排除取消订单时的统计口径",
+                "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "kind": "action",
+                "text": "撰写图表说明",
+                "source_quote": "我撰写图表说明",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我撰写图表说明",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+                "kind": "status_limit",
+                "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+                "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+              "我做过课程作业“晚餐账本”",
+              "拿老师给的模拟点餐记录",
+              "用 SQL",
+              "按菜品分类汇总",
+              "再用表格画图",
+              "作业是小组做的",
+              "我没测业务效果",
+              "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+              "队友负责演示文稿排版和汇报",
+              "SQL 汇总、图表和口径说明是我做的",
+              "我发现取消订单是否计入会改变结果，分别记录了包含和排除取消订单时的统计口径。",
+              "我撰写图表说明，指出数据只能用于课程练习，不能推断真实餐厅销量。",
+              "我发现取消订单是否计入会改变结果",
+              "分别记录了包含和排除取消订单时的统计口径",
+              "我撰写图表说明",
+              "指出数据只能用于课程练习，不能推断真实餐厅销量"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_259e3dd7a0634571892907b0288faa16",
+          "kind": "context",
+          "text": "课程作业“晚餐账本”",
+          "source_quote": "我做过课程作业“晚餐账本”",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程作业“晚餐账本”",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+          "kind": "context",
+          "text": "使用老师提供的模拟点餐记录",
+          "source_quote": "拿老师给的模拟点餐记录",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "拿老师给的模拟点餐记录",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+          "kind": "method_tool",
+          "text": "使用 SQL",
+          "source_quote": "用 SQL",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 SQL",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_634cd9e362d44bfb975de59290e873d3",
+          "kind": "action",
+          "text": "按菜品分类汇总",
+          "source_quote": "按菜品分类汇总",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "按菜品分类汇总",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+          "kind": "action",
+          "text": "用表格画图",
+          "source_quote": "再用表格画图",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "再用表格画图",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_533e570f8ba640a686911bf5126a8c2e",
+          "kind": "team",
+          "text": "作业由小组完成",
+          "source_quote": "作业是小组做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "作业是小组做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+          "kind": "status_limit",
+          "text": "未测试业务效果",
+          "source_quote": "我没测业务效果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我没测业务效果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+          "kind": "team",
+          "text": "队友负责演示文稿排版和汇报",
+          "source_quote": "队友负责演示文稿排版和汇报",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友负责演示文稿排版和汇报",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_111dc15038624b7c92571a106d63dd81",
+          "kind": "action",
+          "text": "我完成 SQL 汇总、图表和口径说明",
+          "source_quote": "SQL 汇总、图表和口径说明是我做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "SQL 汇总、图表和口径说明是我做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+          "kind": "result_qualitative",
+          "text": "发现取消订单是否计入会改变结果",
+          "source_quote": "我发现取消订单是否计入会改变结果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我发现取消订单是否计入会改变结果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_6ccf07b5457e4034a77facf03e923f86",
+          "kind": "action",
+          "text": "分别记录包含和排除取消订单时的统计口径",
+          "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+          "kind": "action",
+          "text": "撰写图表说明",
+          "source_quote": "我撰写图表说明",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我撰写图表说明",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+          "kind": "status_limit",
+          "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+          "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 13.124,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-e1cd-75e0-92aa-ca0f033c139a",
+        "started_at": "2026-10-09T01:33:36.077129+08:00",
+        "usage": {
+          "input_tokens": 1551,
+          "output_tokens": 93,
+          "total_tokens": 1644
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-e6e0-7ee0-8725-b84a37c530c2",
+        "started_at": "2026-10-09T01:33:37.376975+08:00",
+        "usage": {
+          "input_tokens": 854,
+          "output_tokens": 74,
+          "total_tokens": 928
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c93-eaba-7000-a7e4-103dca09de0c",
+        "started_at": "2026-10-09T01:33:38.363118+08:00",
+        "usage": {
+          "input_tokens": 5938,
+          "output_tokens": 2137,
+          "total_tokens": 8075
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-0d50-7b80-83be-24b95be86d14",
+        "started_at": "2026-10-09T01:33:47.216533+08:00",
+        "usage": {
+          "input_tokens": 2650,
+          "output_tokens": 149,
+          "total_tokens": 2799
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-10de-7d80-9328-f884ad10e567",
+        "started_at": "2026-10-09T01:33:48.126771+08:00",
+        "usage": {
+          "input_tokens": 3513,
+          "output_tokens": 180,
+          "total_tokens": 3693
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 14506,
+      "output_tokens": 2633,
+      "total_tokens": 17139,
+      "logical_model_calls": 5,
+      "calls_with_usage": 5,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001623,
+        "upper_bound": 0.007511,
+        "priced_calls": 5,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "3a9af074-8a6c-4440-823c-aa6b3424f39d": [
+            {
+              "fact_ids": [
+                "f_259e3dd7a0634571892907b0288faa16",
+                "f_3fda58e16936434fa9dde0516b2e4b67",
+                "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_0b31658d69e7418d8da60d7c2cc71d31"
+              ],
+              "req_ids": [
+                "r2",
+                "r3"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "5693c1c462972bf7beba0d5f6d690bd713aea2bb317bcdf70dba76ba9c762a42"
+            },
+            {
+              "fact_ids": [
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86",
+                "f_111dc15038624b7c92571a106d63dd81",
+                "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "f_8977488e7f1d4a2a9277204f09661c3d"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "959d2031c7b5ad87e62dc8206407078ca674d4df46369069059f6595a2ba28e5"
+            },
+            {
+              "fact_ids": [
+                "f_8977488e7f1d4a2a9277204f09661c3d",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "f_60bd1fa4551b40cfb19d3063055350d8",
+                "f_533e570f8ba640a686911bf5126a8c2e"
+              ],
+              "req_ids": [
+                "r1",
+                "r5"
+              ],
+              "flags": [],
+              "needs_metric": true,
+              "metric_question": "这份模拟点餐记录大概有多少条订单、涉及几张表？（回答方向：几十条课程演示数据 / 几百到几千条 / 上万条且分多张表）",
+              "text_hash": "312694d7447c08b9173ce126419c68fb6a30a8c129b2115ba27f04ae14b12174"
+            }
+          ]
+        },
+        "version_id": "66a68f69-6147-4def-8e9c-289f8fdf7dbc",
+        "label": "定制简历",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "transferable",
+              "fact_ids": [
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86",
+                "f_8977488e7f1d4a2a9277204f09661c3d",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432"
+              ],
+              "angle": "没有推动业务决策的事实，但有\"发现口径问题→分别记录两种口径→说明结论边界\"的分析结论产出，按\"分析结论与口径判断\"角度迁移表达，不写被采纳或业务影响。"
+            },
+            {
+              "req_id": "r2",
+              "status": "direct",
+              "fact_ids": [
+                "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_0b31658d69e7418d8da60d7c2cc71d31"
+              ],
+              "angle": "SQL 汇总 + 表格图表，是岗位手册点名的硬技能，直接写。"
+            },
+            {
+              "req_id": "r3",
+              "status": "transferable",
+              "fact_ids": [
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86"
+              ],
+              "angle": "按菜品分类汇总 + 取消订单是否计入的统计口径判断，体现分类维度与指标口径意识，按\"指标口径\"角度迁移，不写漏斗/归因等未做过的方法。"
+            },
+            {
+              "req_id": "r4",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": "数据为老师提供的模拟点餐记录，规模与复杂度未知，不硬写数据量、表数、自动化。"
+            },
+            {
+              "req_id": "r5",
+              "status": "transferable",
+              "fact_ids": [
+                "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "f_111dc15038624b7c92571a106d63dd81",
+                "f_60bd1fa4551b40cfb19d3063055350d8",
+                "f_533e570f8ba640a686911bf5126a8c2e"
+              ],
+              "angle": "本人撰写图表说明与口径说明，汇报由队友负责，按\"输出可读的图表与口径文档\"角度迁移，不写汇报对象与层级。"
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "treatment": "lead",
+              "reason": "唯一一段经历，且直接覆盖 SQL 工具与口径判断两项核心信号；按用户要求只使用已提供内容，全部写出、不设候补。",
+              "target_bullets": 3
+            }
+          ],
+          "section_order": [
+            "projects",
+            "skills",
+            "education",
+            "work_experience",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：单段课程作业经历，无转行或复合背景需要一句话概括。",
+          "questions": [
+            {
+              "q": "这份模拟点餐记录大概有多少行/多少条订单、涉及几张表？",
+              "why": "数据规模与复杂度是筛选信号之一，目前完全空白，有数字就能补上一条可核对的事实。",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r4"
+              },
+              "options": [
+                "几十条（课程演示级别）",
+                "几百到几千条",
+                "上万条以上，且分多张表"
+              ],
+              "value": 4
+            },
+            {
+              "q": "按菜品分类汇总后，你实际得出的结论是什么（哪类菜品订单最多/取消率最高等）？",
+              "why": "岗位最看重\"分析得出什么结论\"，目前只有口径发现，没有业务结论。",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r1"
+              },
+              "options": [
+                "某类菜品订单量明显最高",
+                "某类菜品取消订单占比偏高",
+                "结论只是描述性汇总，没有明显发现"
+              ],
+              "value": 5
+            },
+            {
+              "q": "图表和口径说明最终交给了谁、用在哪里（课堂展示/老师评分/小组内部）？",
+              "why": "决定沟通这条能否写成\"输出给谁\"，避免升级汇报层级。",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r5"
+              },
+              "options": [
+                "课堂展示给老师和同学",
+                "仅小组内部使用",
+                "作为作业文档提交评分"
+              ],
+              "value": 3
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "1cdc48b610fe886889079ef750cd86fdf4491aca19a0f860018aecd425da8942",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 0
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "bullet_id": "b1",
+            "reason": "guard_repair_failed",
+            "rejected_text_hash": "58b4a1a01f21fbc383c3f37377de5d55ea7343eed66b6f5c7bc7ea204c849b71"
+          }
+        ],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "e4a5e94c-7780-4b17-a63d-d92a60da4bbb",
+          "label": "修改前",
+          "created_at": "2026-10-08T17:33:49.182206+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "我想找数据分析实习，手里还没有具体 JD。",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "name": "晚餐账本",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程作业“晚餐账本”\n使用老师提供的模拟点餐记录\n使用 SQL\n按菜品分类汇总\n用表格画图\n作业由小组完成\n未测试业务效果\n队友负责演示文稿排版和汇报\n我完成 SQL 汇总、图表和口径说明\n发现取消订单是否计入会改变结果\n分别记录包含和排除取消订单时的统计口径\n撰写图表说明\n数据只能用于课程练习，不能推断真实餐厅销量"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "我想找数据分析实习，手里还没有具体 JD。",
+              "recruiter_priorities": [
+                "我想找数据分析实习，手里还没有具体 JD。"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "transferable",
+            "fact_ids": [
+              "f_fddacba3828840a2b3d6a5bc6542c2fa",
+              "f_6ccf07b5457e4034a77facf03e923f86",
+              "f_8977488e7f1d4a2a9277204f09661c3d",
+              "f_62ccccfeeb0b4d858b3e0fc284c19432"
+            ],
+            "angle": "没有推动业务决策的事实，但有\"发现口径问题→分别记录两种口径→说明结论边界\"的分析结论产出，按\"分析结论与口径判断\"角度迁移表达，不写被采纳或业务影响。"
+          },
+          {
+            "req_id": "r2",
+            "status": "direct",
+            "fact_ids": [
+              "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+              "f_634cd9e362d44bfb975de59290e873d3",
+              "f_0b31658d69e7418d8da60d7c2cc71d31"
+            ],
+            "angle": "SQL 汇总 + 表格图表，是岗位手册点名的硬技能，直接写。"
+          },
+          {
+            "req_id": "r3",
+            "status": "transferable",
+            "fact_ids": [
+              "f_634cd9e362d44bfb975de59290e873d3",
+              "f_fddacba3828840a2b3d6a5bc6542c2fa",
+              "f_6ccf07b5457e4034a77facf03e923f86"
+            ],
+            "angle": "按菜品分类汇总 + 取消订单是否计入的统计口径判断，体现分类维度与指标口径意识，按\"指标口径\"角度迁移，不写漏斗/归因等未做过的方法。"
+          },
+          {
+            "req_id": "r4",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": "数据为老师提供的模拟点餐记录，规模与复杂度未知，不硬写数据量、表数、自动化。"
+          },
+          {
+            "req_id": "r5",
+            "status": "transferable",
+            "fact_ids": [
+              "f_823bd5a81cd14aebbd1c4d61a81936c7",
+              "f_111dc15038624b7c92571a106d63dd81",
+              "f_60bd1fa4551b40cfb19d3063055350d8",
+              "f_533e570f8ba640a686911bf5126a8c2e"
+            ],
+            "angle": "本人撰写图表说明与口径说明，汇报由队友负责，按\"输出可读的图表与口径文档\"角度迁移，不写汇报对象与层级。"
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "treatment": "lead",
+            "reason": "唯一一段经历，且直接覆盖 SQL 工具与口径判断两项核心信号；按用户要求只使用已提供内容，全部写出、不设候补。",
+            "target_bullets": 3
+          }
+        ],
+        "section_order": [
+          "projects",
+          "skills",
+          "education",
+          "work_experience",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：单段课程作业经历，无转行或复合背景需要一句话概括。",
+        "questions": [
+          {
+            "q": "这份模拟点餐记录大概有多少行/多少条订单、涉及几张表？",
+            "why": "数据规模与复杂度是筛选信号之一，目前完全空白，有数字就能补上一条可核对的事实。",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r4"
+            },
+            "options": [
+              "几十条（课程演示级别）",
+              "几百到几千条",
+              "上万条以上，且分多张表"
+            ],
+            "value": 4
+          },
+          {
+            "q": "按菜品分类汇总后，你实际得出的结论是什么（哪类菜品订单最多/取消率最高等）？",
+            "why": "岗位最看重\"分析得出什么结论\"，目前只有口径发现，没有业务结论。",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r1"
+            },
+            "options": [
+              "某类菜品订单量明显最高",
+              "某类菜品取消订单占比偏高",
+              "结论只是描述性汇总，没有明显发现"
+            ],
+            "value": 5
+          },
+          {
+            "q": "图表和口径说明最终交给了谁、用在哪里（课堂展示/老师评分/小组内部）？",
+            "why": "决定沟通这条能否写成\"输出给谁\"，避免升级汇报层级。",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r5"
+            },
+            "options": [
+              "课堂展示给老师和同学",
+              "仅小组内部使用",
+              "作为作业文档提交评分"
+            ],
+            "value": 3
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": [
+        {
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+          "bullet_id": "b1",
+          "reason": "guard_repair_failed",
+          "rejected_text_hash": "58b4a1a01f21fbc383c3f37377de5d55ea7343eed66b6f5c7bc7ea204c849b71"
+        }
+      ]
+    },
+    "new_versions": [
+      "v005"
+    ]
+  },
+  {
+    "turn": 6,
+    "phase": "edit",
+    "user": "按数据分析实习方向再改“晚餐账本”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:33:49.198538+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "name": "晚餐账本",
+            "facts": [
+              {
+                "id": "f_259e3dd7a0634571892907b0288faa16",
+                "kind": "context",
+                "text": "课程作业“晚餐账本”",
+                "source_quote": "我做过课程作业“晚餐账本”",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程作业“晚餐账本”",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+                "kind": "context",
+                "text": "使用老师提供的模拟点餐记录",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "拿老师给的模拟点餐记录",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "kind": "method_tool",
+                "text": "使用 SQL",
+                "source_quote": "用 SQL",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 SQL",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_634cd9e362d44bfb975de59290e873d3",
+                "kind": "action",
+                "text": "按菜品分类汇总",
+                "source_quote": "按菜品分类汇总",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "按菜品分类汇总",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "kind": "action",
+                "text": "用表格画图",
+                "source_quote": "再用表格画图",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "再用表格画图",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_533e570f8ba640a686911bf5126a8c2e",
+                "kind": "team",
+                "text": "作业由小组完成",
+                "source_quote": "作业是小组做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "作业是小组做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "kind": "status_limit",
+                "text": "未测试业务效果",
+                "source_quote": "我没测业务效果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我没测业务效果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+                "kind": "team",
+                "text": "队友负责演示文稿排版和汇报",
+                "source_quote": "队友负责演示文稿排版和汇报",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友负责演示文稿排版和汇报",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_111dc15038624b7c92571a106d63dd81",
+                "kind": "action",
+                "text": "我完成 SQL 汇总、图表和口径说明",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "kind": "result_qualitative",
+                "text": "发现取消订单是否计入会改变结果",
+                "source_quote": "我发现取消订单是否计入会改变结果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我发现取消订单是否计入会改变结果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_6ccf07b5457e4034a77facf03e923f86",
+                "kind": "action",
+                "text": "分别记录包含和排除取消订单时的统计口径",
+                "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "kind": "action",
+                "text": "撰写图表说明",
+                "source_quote": "我撰写图表说明",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我撰写图表说明",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+                "kind": "status_limit",
+                "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+                "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+              "我做过课程作业“晚餐账本”",
+              "拿老师给的模拟点餐记录",
+              "用 SQL",
+              "按菜品分类汇总",
+              "再用表格画图",
+              "作业是小组做的",
+              "我没测业务效果",
+              "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+              "队友负责演示文稿排版和汇报",
+              "SQL 汇总、图表和口径说明是我做的",
+              "我发现取消订单是否计入会改变结果，分别记录了包含和排除取消订单时的统计口径。",
+              "我撰写图表说明，指出数据只能用于课程练习，不能推断真实餐厅销量。",
+              "我发现取消订单是否计入会改变结果",
+              "分别记录了包含和排除取消订单时的统计口径",
+              "我撰写图表说明",
+              "指出数据只能用于课程练习，不能推断真实餐厅销量"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_259e3dd7a0634571892907b0288faa16",
+          "kind": "context",
+          "text": "课程作业“晚餐账本”",
+          "source_quote": "我做过课程作业“晚餐账本”",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程作业“晚餐账本”",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+          "kind": "context",
+          "text": "使用老师提供的模拟点餐记录",
+          "source_quote": "拿老师给的模拟点餐记录",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "拿老师给的模拟点餐记录",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+          "kind": "method_tool",
+          "text": "使用 SQL",
+          "source_quote": "用 SQL",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 SQL",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_634cd9e362d44bfb975de59290e873d3",
+          "kind": "action",
+          "text": "按菜品分类汇总",
+          "source_quote": "按菜品分类汇总",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "按菜品分类汇总",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+          "kind": "action",
+          "text": "用表格画图",
+          "source_quote": "再用表格画图",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "再用表格画图",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_533e570f8ba640a686911bf5126a8c2e",
+          "kind": "team",
+          "text": "作业由小组完成",
+          "source_quote": "作业是小组做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "作业是小组做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+          "kind": "status_limit",
+          "text": "未测试业务效果",
+          "source_quote": "我没测业务效果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我没测业务效果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+          "kind": "team",
+          "text": "队友负责演示文稿排版和汇报",
+          "source_quote": "队友负责演示文稿排版和汇报",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友负责演示文稿排版和汇报",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_111dc15038624b7c92571a106d63dd81",
+          "kind": "action",
+          "text": "我完成 SQL 汇总、图表和口径说明",
+          "source_quote": "SQL 汇总、图表和口径说明是我做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "SQL 汇总、图表和口径说明是我做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+          "kind": "result_qualitative",
+          "text": "发现取消订单是否计入会改变结果",
+          "source_quote": "我发现取消订单是否计入会改变结果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我发现取消订单是否计入会改变结果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_6ccf07b5457e4034a77facf03e923f86",
+          "kind": "action",
+          "text": "分别记录包含和排除取消订单时的统计口径",
+          "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+          "kind": "action",
+          "text": "撰写图表说明",
+          "source_quote": "我撰写图表说明",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我撰写图表说明",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+          "kind": "status_limit",
+          "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+          "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 17.651,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-151a-7090-a834-7f4b836ebf3e",
+        "started_at": "2026-10-09T01:33:49.210220+08:00",
+        "usage": {
+          "input_tokens": 6112,
+          "output_tokens": 2061,
+          "total_tokens": 8173
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-35dc-7462-8f24-6b3c5c441b82",
+        "started_at": "2026-10-09T01:33:57.596658+08:00",
+        "usage": {
+          "input_tokens": 6159,
+          "output_tokens": 1849,
+          "total_tokens": 8008
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-5284-7192-afc7-880b45ea156e",
+        "started_at": "2026-10-09T01:34:04.932750+08:00",
+        "usage": {
+          "input_tokens": 2574,
+          "output_tokens": 149,
+          "total_tokens": 2723
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-5626-7312-bbc2-42dbd4b5577a",
+        "started_at": "2026-10-09T01:34:05.862662+08:00",
+        "usage": {
+          "input_tokens": 3484,
+          "output_tokens": 148,
+          "total_tokens": 3632
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 18329,
+      "output_tokens": 4207,
+      "total_tokens": 22536,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.002579,
+        "upper_bound": 0.010547,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "3a9af074-8a6c-4440-823c-aa6b3424f39d": [
+            {
+              "fact_ids": [
+                "f_3fda58e16936434fa9dde0516b2e4b67",
+                "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_0b31658d69e7418d8da60d7c2cc71d31"
+              ],
+              "req_ids": [
+                "r2",
+                "r3"
+              ],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "5693c1c462972bf7beba0d5f6d690bd713aea2bb317bcdf70dba76ba9c762a42"
+            },
+            {
+              "fact_ids": [
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86",
+                "f_111dc15038624b7c92571a106d63dd81",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "f_8977488e7f1d4a2a9277204f09661c3d"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "f116e0eb0644f70294b5b070fcc8cc4e0808404c0a59ea1186e9007879264b72"
+            },
+            {
+              "fact_ids": [
+                "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "f_8977488e7f1d4a2a9277204f09661c3d",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "f_60bd1fa4551b40cfb19d3063055350d8"
+              ],
+              "req_ids": [
+                "r5"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "a69219377b126d3273ea399622a246f3347071ca6507cac4dbd3f6a741061a99"
+            }
+          ]
+        },
+        "version_id": "34eba043-5b1c-4032-bb8a-fe1b951f7491",
+        "label": "定制简历",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "transferable",
+              "fact_ids": [
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86",
+                "f_111dc15038624b7c92571a106d63dd81",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432"
+              ],
+              "angle": "课程作业中通过口径对比发现结论会变，属于分析结论意识；但未测试业务效果、无决策采纳，只能迁移表达，不能写成推动决策"
+            },
+            {
+              "req_id": "r2",
+              "status": "direct",
+              "fact_ids": [
+                "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_0b31658d69e7418d8da60d7c2cc71d31"
+              ],
+              "angle": "SQL 汇总 + 表格图表，是岗位硬技能中 SQL/Excel 的直接事实"
+            },
+            {
+              "req_id": "r3",
+              "status": "transferable",
+              "fact_ids": [
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86"
+              ],
+              "angle": "按菜品分类汇总、取消订单口径，体现指标口径与分类维度意识，可迁移到指标体系/口径定义"
+            },
+            {
+              "req_id": "r4",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r5",
+              "status": "transferable",
+              "fact_ids": [
+                "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "f_111dc15038624b7c92571a106d63dd81",
+                "f_60bd1fa4551b40cfb19d3063055350d8",
+                "f_8977488e7f1d4a2a9277204f09661c3d"
+              ],
+              "angle": "撰写图表说明与口径说明属于分析文档输出；汇报由队友负责，不得写成个人汇报"
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "treatment": "lead",
+              "reason": "唯一经历，且 SQL 汇总、口径对比、图表说明均为本人工作，直接对应 SQL 硬技能与口径/结论意识，需重点展开",
+              "target_bullets": 3
+            }
+          ],
+          "section_order": [
+            "projects",
+            "skills",
+            "education",
+            "work_experience",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：单一课程作业，无复合背景或一句话强匹配证据",
+          "questions": [
+            {
+              "q": "这份模拟点餐记录大概多少行订单、涉及几张表或几个字段？",
+              "why": "岗位看重数据规模与复杂度，材料中没有",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r4"
+              },
+              "options": [
+                "几百行以内",
+                "几千行",
+                "上万行及以上"
+              ],
+              "value": 4
+            },
+            {
+              "q": "按菜品分类汇总后，你得出过什么具体结论或建议（例如哪类菜品订单最多/取消率最高）？",
+              "why": "岗位最看重分析结论，目前只有口径发现，没有业务结论",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r1"
+              },
+              "options": [
+                "某类菜品订单占比最高",
+                "取消订单集中在某类菜品/某时段",
+                "没有形成结论，只做了汇总"
+              ],
+              "value": 5
+            },
+            {
+              "q": "这份图表说明和口径说明交给了谁、用在哪里（课堂展示、老师评阅、小组内部）？",
+              "why": "可判断沟通对象与产出被使用程度",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r5"
+              },
+              "options": [
+                "提交老师评阅",
+                "课堂小组展示",
+                "仅小组内部使用"
+              ],
+              "value": 3
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "f399dd9412e36a3905147f4e1ee3653b55da13826fac7a7549f3b09b0bcb3d90",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 1,
+          "schema_retry_reason_code": "object_missing"
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "bullet_id": "b1",
+            "reason": "guard_repair_failed",
+            "rejected_text_hash": "e4b43bc4bceb28fae90c718475fb3ab6d45496d53cb5b5b1de061d2baa0b8dad"
+          }
+        ],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "e4a5e94c-7780-4b17-a63d-d92a60da4bbb",
+          "label": "修改前",
+          "created_at": "2026-10-08T17:33:49.182206+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "我想找数据分析实习，手里还没有具体 JD。",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "name": "晚餐账本",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程作业“晚餐账本”\n使用老师提供的模拟点餐记录\n使用 SQL\n按菜品分类汇总\n用表格画图\n作业由小组完成\n未测试业务效果\n队友负责演示文稿排版和汇报\n我完成 SQL 汇总、图表和口径说明\n发现取消订单是否计入会改变结果\n分别记录包含和排除取消订单时的统计口径\n撰写图表说明\n数据只能用于课程练习，不能推断真实餐厅销量"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "我想找数据分析实习，手里还没有具体 JD。",
+              "recruiter_priorities": [
+                "我想找数据分析实习，手里还没有具体 JD。"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        },
+        {
+          "version_id": "66a68f69-6147-4def-8e9c-289f8fdf7dbc",
+          "label": "定制简历",
+          "created_at": "2026-10-08T17:34:06.844266+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "我想找数据分析实习，手里还没有具体 JD。",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "name": "晚餐账本",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程作业“晚餐账本”\n使用老师提供的模拟点餐记录\n使用 SQL\n按菜品分类汇总\n用表格画图\n作业由小组完成\n未测试业务效果\n队友负责演示文稿排版和汇报\n我完成 SQL 汇总、图表和口径说明\n发现取消订单是否计入会改变结果\n分别记录包含和排除取消订单时的统计口径\n撰写图表说明\n数据只能用于课程练习，不能推断真实餐厅销量",
+                "polished_bullets": [
+                  "基于老师提供的模拟点餐记录，使用 SQL 按菜品分类汇总订单数据，并用表格绘制图表呈现分类结果。",
+                  "发现取消订单是否计入会改变结果；分别记录包含和排除取消订单时的统计口径；我完成 SQL 汇总、图表和口径说明；撰写图表说明；未测试业务效果；数据只能用于课程练习，不能推断真实餐厅销量",
+                  "在说明中标注数据仅用于课程练习，不能据此推断真实餐厅销量；作业未测试业务效果，演示文稿排版与汇报由队友负责。"
+                ],
+                "hidden": false
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "我想找数据分析实习，手里还没有具体 JD。",
+              "recruiter_priorities": [
+                "我想找数据分析实习，手里还没有具体 JD。"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": [],
+            "sections": [
+              {
+                "id": "projects",
+                "kind": "projects",
+                "title": "项目经历",
+                "content": ""
+              },
+              {
+                "id": "skills",
+                "kind": "skills",
+                "title": "技能证书",
+                "content": ""
+              },
+              {
+                "id": "education",
+                "kind": "education",
+                "title": "教育背景",
+                "content": ""
+              },
+              {
+                "id": "work_experience",
+                "kind": "work_experience",
+                "title": "实习经历",
+                "content": ""
+              },
+              {
+                "id": "certificates",
+                "kind": "certificates",
+                "title": "证书",
+                "content": ""
+              },
+              {
+                "id": "self_evaluation",
+                "kind": "self_evaluation",
+                "title": "自我评价",
+                "content": ""
+              }
+            ],
+            "skill_groups": {
+              "其他": [
+                "SQL",
+                "分类汇总"
+              ]
+            }
+          },
+          "resume_meta": {
+            "bullets": {
+              "3a9af074-8a6c-4440-823c-aa6b3424f39d": [
+                {
+                  "fact_ids": [
+                    "f_259e3dd7a0634571892907b0288faa16",
+                    "f_3fda58e16936434fa9dde0516b2e4b67",
+                    "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_0b31658d69e7418d8da60d7c2cc71d31"
+                  ],
+                  "req_ids": [
+                    "r2",
+                    "r3"
+                  ],
+                  "flags": [
+                    "transferable"
+                  ],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "5693c1c462972bf7beba0d5f6d690bd713aea2bb317bcdf70dba76ba9c762a42"
+                },
+                {
+                  "fact_ids": [
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                    "f_8977488e7f1d4a2a9277204f09661c3d"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "959d2031c7b5ad87e62dc8206407078ca674d4df46369069059f6595a2ba28e5"
+                },
+                {
+                  "fact_ids": [
+                    "f_8977488e7f1d4a2a9277204f09661c3d",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                    "f_60bd1fa4551b40cfb19d3063055350d8",
+                    "f_533e570f8ba640a686911bf5126a8c2e"
+                  ],
+                  "req_ids": [
+                    "r1",
+                    "r5"
+                  ],
+                  "flags": [],
+                  "needs_metric": true,
+                  "metric_question": "这份模拟点餐记录大概有多少条订单、涉及几张表？（回答方向：几十条课程演示数据 / 几百到几千条 / 上万条且分多张表）",
+                  "text_hash": "312694d7447c08b9173ce126419c68fb6a30a8c129b2115ba27f04ae14b12174"
+                }
+              ]
+            },
+            "version_id": "66a68f69-6147-4def-8e9c-289f8fdf7dbc",
+            "label": "定制简历",
+            "match_plan": {
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86",
+                    "f_8977488e7f1d4a2a9277204f09661c3d",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432"
+                  ],
+                  "angle": "没有推动业务决策的事实，但有\"发现口径问题→分别记录两种口径→说明结论边界\"的分析结论产出，按\"分析结论与口径判断\"角度迁移表达，不写被采纳或业务影响。"
+                },
+                {
+                  "req_id": "r2",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_0b31658d69e7418d8da60d7c2cc71d31"
+                  ],
+                  "angle": "SQL 汇总 + 表格图表，是岗位手册点名的硬技能，直接写。"
+                },
+                {
+                  "req_id": "r3",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86"
+                  ],
+                  "angle": "按菜品分类汇总 + 取消订单是否计入的统计口径判断，体现分类维度与指标口径意识，按\"指标口径\"角度迁移，不写漏斗/归因等未做过的方法。"
+                },
+                {
+                  "req_id": "r4",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": "数据为老师提供的模拟点餐记录，规模与复杂度未知，不硬写数据量、表数、自动化。"
+                },
+                {
+                  "req_id": "r5",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_60bd1fa4551b40cfb19d3063055350d8",
+                    "f_533e570f8ba640a686911bf5126a8c2e"
+                  ],
+                  "angle": "本人撰写图表说明与口径说明，汇报由队友负责，按\"输出可读的图表与口径文档\"角度迁移，不写汇报对象与层级。"
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                  "treatment": "lead",
+                  "reason": "唯一一段经历，且直接覆盖 SQL 工具与口径判断两项核心信号；按用户要求只使用已提供内容，全部写出、不设候补。",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "skills",
+                "education",
+                "work_experience",
+                "certificates"
+              ],
+              "summary_angle": "不写个人总结：单段课程作业经历，无转行或复合背景需要一句话概括。",
+              "questions": [
+                {
+                  "q": "这份模拟点餐记录大概有多少行/多少条订单、涉及几张表？",
+                  "why": "数据规模与复杂度是筛选信号之一，目前完全空白，有数字就能补上一条可核对的事实。",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "几十条（课程演示级别）",
+                    "几百到几千条",
+                    "上万条以上，且分多张表"
+                  ],
+                  "value": 4
+                },
+                {
+                  "q": "按菜品分类汇总后，你实际得出的结论是什么（哪类菜品订单最多/取消率最高等）？",
+                  "why": "岗位最看重\"分析得出什么结论\"，目前只有口径发现，没有业务结论。",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r1"
+                  },
+                  "options": [
+                    "某类菜品订单量明显最高",
+                    "某类菜品取消订单占比偏高",
+                    "结论只是描述性汇总，没有明显发现"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "图表和口径说明最终交给了谁、用在哪里（课堂展示/老师评分/小组内部）？",
+                  "why": "决定沟通这条能否写成\"输出给谁\"，避免升级汇报层级。",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r5"
+                  },
+                  "options": [
+                    "课堂展示给老师和同学",
+                    "仅小组内部使用",
+                    "作为作业文档提交评分"
+                  ],
+                  "value": 3
+                }
+              ]
+            },
+            "omitted": [],
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "1cdc48b610fe886889079ef750cd86fdf4491aca19a0f860018aecd425da8942",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass",
+              "schema_retry_count": 0
+            },
+            "compression_writer_diagnostics": [],
+            "guard_fallbacks": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "bullet_id": "b1",
+                "reason": "guard_repair_failed",
+                "rejected_text_hash": "58b4a1a01f21fbc383c3f37377de5d55ea7343eed66b6f5c7bc7ea204c849b71"
+              }
+            ],
+            "change_summary": [
+              "调整了 1 段经历的表述或顺序。"
+            ]
+          }
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "transferable",
+            "fact_ids": [
+              "f_fddacba3828840a2b3d6a5bc6542c2fa",
+              "f_6ccf07b5457e4034a77facf03e923f86",
+              "f_111dc15038624b7c92571a106d63dd81",
+              "f_62ccccfeeb0b4d858b3e0fc284c19432"
+            ],
+            "angle": "课程作业中通过口径对比发现结论会变，属于分析结论意识；但未测试业务效果、无决策采纳，只能迁移表达，不能写成推动决策"
+          },
+          {
+            "req_id": "r2",
+            "status": "direct",
+            "fact_ids": [
+              "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+              "f_634cd9e362d44bfb975de59290e873d3",
+              "f_0b31658d69e7418d8da60d7c2cc71d31"
+            ],
+            "angle": "SQL 汇总 + 表格图表，是岗位硬技能中 SQL/Excel 的直接事实"
+          },
+          {
+            "req_id": "r3",
+            "status": "transferable",
+            "fact_ids": [
+              "f_634cd9e362d44bfb975de59290e873d3",
+              "f_fddacba3828840a2b3d6a5bc6542c2fa",
+              "f_6ccf07b5457e4034a77facf03e923f86"
+            ],
+            "angle": "按菜品分类汇总、取消订单口径，体现指标口径与分类维度意识，可迁移到指标体系/口径定义"
+          },
+          {
+            "req_id": "r4",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r5",
+            "status": "transferable",
+            "fact_ids": [
+              "f_823bd5a81cd14aebbd1c4d61a81936c7",
+              "f_111dc15038624b7c92571a106d63dd81",
+              "f_60bd1fa4551b40cfb19d3063055350d8",
+              "f_8977488e7f1d4a2a9277204f09661c3d"
+            ],
+            "angle": "撰写图表说明与口径说明属于分析文档输出；汇报由队友负责，不得写成个人汇报"
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "treatment": "lead",
+            "reason": "唯一经历，且 SQL 汇总、口径对比、图表说明均为本人工作，直接对应 SQL 硬技能与口径/结论意识，需重点展开",
+            "target_bullets": 3
+          }
+        ],
+        "section_order": [
+          "projects",
+          "skills",
+          "education",
+          "work_experience",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：单一课程作业，无复合背景或一句话强匹配证据",
+        "questions": [
+          {
+            "q": "这份模拟点餐记录大概多少行订单、涉及几张表或几个字段？",
+            "why": "岗位看重数据规模与复杂度，材料中没有",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r4"
+            },
+            "options": [
+              "几百行以内",
+              "几千行",
+              "上万行及以上"
+            ],
+            "value": 4
+          },
+          {
+            "q": "按菜品分类汇总后，你得出过什么具体结论或建议（例如哪类菜品订单最多/取消率最高）？",
+            "why": "岗位最看重分析结论，目前只有口径发现，没有业务结论",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r1"
+            },
+            "options": [
+              "某类菜品订单占比最高",
+              "取消订单集中在某类菜品/某时段",
+              "没有形成结论，只做了汇总"
+            ],
+            "value": 5
+          },
+          {
+            "q": "这份图表说明和口径说明交给了谁、用在哪里（课堂展示、老师评阅、小组内部）？",
+            "why": "可判断沟通对象与产出被使用程度",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r5"
+            },
+            "options": [
+              "提交老师评阅",
+              "课堂小组展示",
+              "仅小组内部使用"
+            ],
+            "value": 3
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": [
+        {
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+          "bullet_id": "b1",
+          "reason": "guard_repair_failed",
+          "rejected_text_hash": "e4b43bc4bceb28fae90c718475fb3ab6d45496d53cb5b5b1de061d2baa0b8dad"
+        }
+      ]
+    },
+    "new_versions": [
+      "v006"
+    ]
+  },
+  {
+    "turn": 7,
+    "phase": "edit",
+    "user": "把“晚餐账本”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:34:06.864967+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "name": "晚餐账本",
+            "facts": [
+              {
+                "id": "f_259e3dd7a0634571892907b0288faa16",
+                "kind": "context",
+                "text": "课程作业“晚餐账本”",
+                "source_quote": "我做过课程作业“晚餐账本”",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过课程作业“晚餐账本”",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+                "kind": "context",
+                "text": "使用老师提供的模拟点餐记录",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "拿老师给的模拟点餐记录",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "kind": "method_tool",
+                "text": "使用 SQL",
+                "source_quote": "用 SQL",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "用 SQL",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_634cd9e362d44bfb975de59290e873d3",
+                "kind": "action",
+                "text": "按菜品分类汇总",
+                "source_quote": "按菜品分类汇总",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "按菜品分类汇总",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "kind": "action",
+                "text": "用表格画图",
+                "source_quote": "再用表格画图",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "再用表格画图",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_533e570f8ba640a686911bf5126a8c2e",
+                "kind": "team",
+                "text": "作业由小组完成",
+                "source_quote": "作业是小组做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "作业是小组做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "kind": "status_limit",
+                "text": "未测试业务效果",
+                "source_quote": "我没测业务效果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我没测业务效果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+                "kind": "team",
+                "text": "队友负责演示文稿排版和汇报",
+                "source_quote": "队友负责演示文稿排版和汇报",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友负责演示文稿排版和汇报",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_111dc15038624b7c92571a106d63dd81",
+                "kind": "action",
+                "text": "我完成 SQL 汇总、图表和口径说明",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "SQL 汇总、图表和口径说明是我做的",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "kind": "result_qualitative",
+                "text": "发现取消订单是否计入会改变结果",
+                "source_quote": "我发现取消订单是否计入会改变结果",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我发现取消订单是否计入会改变结果",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_6ccf07b5457e4034a77facf03e923f86",
+                "kind": "action",
+                "text": "分别记录包含和排除取消订单时的统计口径",
+                "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "kind": "action",
+                "text": "撰写图表说明",
+                "source_quote": "我撰写图表说明",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我撰写图表说明",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+                "kind": "status_limit",
+                "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+                "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+              "我做过课程作业“晚餐账本”",
+              "拿老师给的模拟点餐记录",
+              "用 SQL",
+              "按菜品分类汇总",
+              "再用表格画图",
+              "作业是小组做的",
+              "我没测业务效果",
+              "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+              "队友负责演示文稿排版和汇报",
+              "SQL 汇总、图表和口径说明是我做的",
+              "我发现取消订单是否计入会改变结果，分别记录了包含和排除取消订单时的统计口径。",
+              "我撰写图表说明，指出数据只能用于课程练习，不能推断真实餐厅销量。",
+              "我发现取消订单是否计入会改变结果",
+              "分别记录了包含和排除取消订单时的统计口径",
+              "我撰写图表说明",
+              "指出数据只能用于课程练习，不能推断真实餐厅销量"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_259e3dd7a0634571892907b0288faa16",
+          "kind": "context",
+          "text": "课程作业“晚餐账本”",
+          "source_quote": "我做过课程作业“晚餐账本”",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过课程作业“晚餐账本”",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_3fda58e16936434fa9dde0516b2e4b67",
+          "kind": "context",
+          "text": "使用老师提供的模拟点餐记录",
+          "source_quote": "拿老师给的模拟点餐记录",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "拿老师给的模拟点餐记录",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+          "kind": "method_tool",
+          "text": "使用 SQL",
+          "source_quote": "用 SQL",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "用 SQL",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_634cd9e362d44bfb975de59290e873d3",
+          "kind": "action",
+          "text": "按菜品分类汇总",
+          "source_quote": "按菜品分类汇总",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "按菜品分类汇总",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_0b31658d69e7418d8da60d7c2cc71d31",
+          "kind": "action",
+          "text": "用表格画图",
+          "source_quote": "再用表格画图",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "再用表格画图",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_533e570f8ba640a686911bf5126a8c2e",
+          "kind": "team",
+          "text": "作业由小组完成",
+          "source_quote": "作业是小组做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "作业是小组做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_62ccccfeeb0b4d858b3e0fc284c19432",
+          "kind": "status_limit",
+          "text": "未测试业务效果",
+          "source_quote": "我没测业务效果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我没测业务效果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_60bd1fa4551b40cfb19d3063055350d8",
+          "kind": "team",
+          "text": "队友负责演示文稿排版和汇报",
+          "source_quote": "队友负责演示文稿排版和汇报",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友负责演示文稿排版和汇报",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_111dc15038624b7c92571a106d63dd81",
+          "kind": "action",
+          "text": "我完成 SQL 汇总、图表和口径说明",
+          "source_quote": "SQL 汇总、图表和口径说明是我做的",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "SQL 汇总、图表和口径说明是我做的",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_fddacba3828840a2b3d6a5bc6542c2fa",
+          "kind": "result_qualitative",
+          "text": "发现取消订单是否计入会改变结果",
+          "source_quote": "我发现取消订单是否计入会改变结果",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我发现取消订单是否计入会改变结果",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_6ccf07b5457e4034a77facf03e923f86",
+          "kind": "action",
+          "text": "分别记录包含和排除取消订单时的统计口径",
+          "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "分别记录了包含和排除取消订单时的统计口径",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_823bd5a81cd14aebbd1c4d61a81936c7",
+          "kind": "action",
+          "text": "撰写图表说明",
+          "source_quote": "我撰写图表说明",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我撰写图表说明",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        },
+        {
+          "id": "f_8977488e7f1d4a2a9277204f09661c3d",
+          "kind": "status_limit",
+          "text": "数据只能用于课程练习，不能推断真实餐厅销量",
+          "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "指出数据只能用于课程练习，不能推断真实餐厅销量",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 9.298,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-5a1b-75c3-91ec-f655bf4c6cae",
+        "started_at": "2026-10-09T01:34:06.875402+08:00",
+        "usage": {
+          "input_tokens": 6132,
+          "output_tokens": 1826,
+          "total_tokens": 7958
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c94-775a-7711-aa15-45b1ea719b62",
+        "started_at": "2026-10-09T01:34:14.362758+08:00",
+        "usage": {
+          "input_tokens": 3773,
+          "output_tokens": 437,
+          "total_tokens": 4210
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 9905,
+      "output_tokens": 2263,
+      "total_tokens": 12168,
+      "logical_model_calls": 2,
+      "calls_with_usage": 2,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001388,
+        "upper_bound": 0.005687,
+        "priced_calls": 2,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "3a9af074-8a6c-4440-823c-aa6b3424f39d": [
+            {
+              "fact_ids": [
+                "f_259e3dd7a0634571892907b0288faa16",
+                "f_3fda58e16936434fa9dde0516b2e4b67",
+                "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_0b31658d69e7418d8da60d7c2cc71d31",
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86",
+                "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "f_111dc15038624b7c92571a106d63dd81",
+                "f_60bd1fa4551b40cfb19d3063055350d8",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                "f_8977488e7f1d4a2a9277204f09661c3d",
+                "f_533e570f8ba640a686911bf5126a8c2e"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "70c1e0a1c4d23b9df0d093dcf4a6be8e5bbcef2e9e117d483b09f216ed4dbbdf"
+            }
+          ]
+        },
+        "version_id": "c3af75f8-66cf-41cc-be0d-b6804236038d",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "transferable",
+              "fact_ids": [
+                "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                "f_6ccf07b5457e4034a77facf03e923f86",
+                "f_62ccccfeeb0b4d858b3e0fc284c19432"
+              ],
+              "angle": "无业务决策落地，但有“发现口径问题并分别记录两种口径”的分析结论动作，按“口径敏感性发现”角度表达，不写成推动决策"
+            },
+            {
+              "req_id": "r2",
+              "status": "direct",
+              "fact_ids": [
+                "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_0b31658d69e7418d8da60d7c2cc71d31"
+              ],
+              "angle": "SQL 分组汇总 + 表格图表，是 JD 要求的硬技能直接证据"
+            },
+            {
+              "req_id": "r3",
+              "status": "transferable",
+              "fact_ids": [
+                "f_634cd9e362d44bfb975de59290e873d3",
+                "f_fddacba3828840a2b3d6a5bc6542c2fa"
+              ],
+              "angle": "按菜品分类汇总属维度拆解；取消订单口径属指标定义意识，可迁移到指标体系理解，不写漏斗/归因等未做过的方法"
+            },
+            {
+              "req_id": "r4",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r5",
+              "status": "transferable",
+              "fact_ids": [
+                "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                "f_8977488e7f1d4a2a9277204f09661c3d",
+                "f_60bd1fa4551b40cfb19d3063055350d8"
+              ],
+              "angle": "撰写图表说明并标注数据使用边界属报告沟通；汇报由队友负责，如实保留分工"
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "treatment": "lead",
+              "reason": "用户明确要求精简为一条；该经历是唯一可用经历，且直接覆盖 SQL 硬技能与口径发现，压成一条合并本人动作、团队分工与状态限制",
+              "target_bullets": 1
+            }
+          ],
+          "section_order": [
+            "projects",
+            "education",
+            "work_experience",
+            "skills",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：仅一段课程作业，无足够事实支撑概括性判断",
+          "questions": [
+            {
+              "q": "这份模拟点餐记录大概有多少行订单、涉及几张表？",
+              "why": "岗位手册把数据规模与复杂度列为筛选信号，目前完全空白",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r4"
+              },
+              "options": [
+                "几十行、单表",
+                "几百到几千行、单表",
+                "多张表需要关联"
+              ],
+              "value": 4
+            },
+            {
+              "q": "按菜品分类汇总后，你得出过什么具体结论（比如哪类菜品订单最多/取消率最高）？",
+              "why": "把“做了汇总”升级为“有结论”，直接命中最重要的筛选信号",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r1"
+              },
+              "options": [
+                "某类菜品订单量明显最高",
+                "某类菜品取消订单占比异常",
+                "只是完成分类汇总，没有进一步结论"
+              ],
+              "value": 5
+            },
+            {
+              "q": "图表说明和口径说明交给了谁、用在哪（课堂汇报/提交给老师）？",
+              "why": "补充沟通对象，强化“沟通”信号",
+              "improves": {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "req_id": "r5"
+              },
+              "options": [
+                "课堂小组汇报使用",
+                "提交给老师评分",
+                "仅组内使用"
+              ],
+              "value": 3
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "0e4dc098daeab2af3ee8f09459715815e5fc7ffab43a80da9e281e42666367b3",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 0
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "bullet_id": "b0",
+            "reason": "guard_repair_failed",
+            "rejected_text_hash": "0cc80e41a30b378448fb488dcaed4c490b23dfc8bbfa86fc9d25c8d79c4a238f"
+          }
+        ],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "e4a5e94c-7780-4b17-a63d-d92a60da4bbb",
+          "label": "修改前",
+          "created_at": "2026-10-08T17:33:49.182206+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "我想找数据分析实习，手里还没有具体 JD。",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "name": "晚餐账本",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程作业“晚餐账本”\n使用老师提供的模拟点餐记录\n使用 SQL\n按菜品分类汇总\n用表格画图\n作业由小组完成\n未测试业务效果\n队友负责演示文稿排版和汇报\n我完成 SQL 汇总、图表和口径说明\n发现取消订单是否计入会改变结果\n分别记录包含和排除取消订单时的统计口径\n撰写图表说明\n数据只能用于课程练习，不能推断真实餐厅销量"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "我想找数据分析实习，手里还没有具体 JD。",
+              "recruiter_priorities": [
+                "我想找数据分析实习，手里还没有具体 JD。"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        },
+        {
+          "version_id": "66a68f69-6147-4def-8e9c-289f8fdf7dbc",
+          "label": "定制简历",
+          "created_at": "2026-10-08T17:34:06.844266+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "我想找数据分析实习，手里还没有具体 JD。",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "name": "晚餐账本",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程作业“晚餐账本”\n使用老师提供的模拟点餐记录\n使用 SQL\n按菜品分类汇总\n用表格画图\n作业由小组完成\n未测试业务效果\n队友负责演示文稿排版和汇报\n我完成 SQL 汇总、图表和口径说明\n发现取消订单是否计入会改变结果\n分别记录包含和排除取消订单时的统计口径\n撰写图表说明\n数据只能用于课程练习，不能推断真实餐厅销量",
+                "polished_bullets": [
+                  "基于老师提供的模拟点餐记录，使用 SQL 按菜品分类汇总订单数据，并用表格绘制图表呈现分类结果。",
+                  "发现取消订单是否计入会改变结果；分别记录包含和排除取消订单时的统计口径；我完成 SQL 汇总、图表和口径说明；撰写图表说明；未测试业务效果；数据只能用于课程练习，不能推断真实餐厅销量",
+                  "在说明中标注数据仅用于课程练习，不能据此推断真实餐厅销量；作业未测试业务效果，演示文稿排版与汇报由队友负责。"
+                ],
+                "hidden": false
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "我想找数据分析实习，手里还没有具体 JD。",
+              "recruiter_priorities": [
+                "我想找数据分析实习，手里还没有具体 JD。"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": [],
+            "sections": [
+              {
+                "id": "projects",
+                "kind": "projects",
+                "title": "项目经历",
+                "content": ""
+              },
+              {
+                "id": "skills",
+                "kind": "skills",
+                "title": "技能证书",
+                "content": ""
+              },
+              {
+                "id": "education",
+                "kind": "education",
+                "title": "教育背景",
+                "content": ""
+              },
+              {
+                "id": "work_experience",
+                "kind": "work_experience",
+                "title": "实习经历",
+                "content": ""
+              },
+              {
+                "id": "certificates",
+                "kind": "certificates",
+                "title": "证书",
+                "content": ""
+              },
+              {
+                "id": "self_evaluation",
+                "kind": "self_evaluation",
+                "title": "自我评价",
+                "content": ""
+              }
+            ],
+            "skill_groups": {
+              "其他": [
+                "SQL",
+                "分类汇总"
+              ]
+            }
+          },
+          "resume_meta": {
+            "bullets": {
+              "3a9af074-8a6c-4440-823c-aa6b3424f39d": [
+                {
+                  "fact_ids": [
+                    "f_259e3dd7a0634571892907b0288faa16",
+                    "f_3fda58e16936434fa9dde0516b2e4b67",
+                    "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_0b31658d69e7418d8da60d7c2cc71d31"
+                  ],
+                  "req_ids": [
+                    "r2",
+                    "r3"
+                  ],
+                  "flags": [
+                    "transferable"
+                  ],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "5693c1c462972bf7beba0d5f6d690bd713aea2bb317bcdf70dba76ba9c762a42"
+                },
+                {
+                  "fact_ids": [
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                    "f_8977488e7f1d4a2a9277204f09661c3d"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "959d2031c7b5ad87e62dc8206407078ca674d4df46369069059f6595a2ba28e5"
+                },
+                {
+                  "fact_ids": [
+                    "f_8977488e7f1d4a2a9277204f09661c3d",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                    "f_60bd1fa4551b40cfb19d3063055350d8",
+                    "f_533e570f8ba640a686911bf5126a8c2e"
+                  ],
+                  "req_ids": [
+                    "r1",
+                    "r5"
+                  ],
+                  "flags": [],
+                  "needs_metric": true,
+                  "metric_question": "这份模拟点餐记录大概有多少条订单、涉及几张表？（回答方向：几十条课程演示数据 / 几百到几千条 / 上万条且分多张表）",
+                  "text_hash": "312694d7447c08b9173ce126419c68fb6a30a8c129b2115ba27f04ae14b12174"
+                }
+              ]
+            },
+            "version_id": "66a68f69-6147-4def-8e9c-289f8fdf7dbc",
+            "label": "定制简历",
+            "match_plan": {
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86",
+                    "f_8977488e7f1d4a2a9277204f09661c3d",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432"
+                  ],
+                  "angle": "没有推动业务决策的事实，但有\"发现口径问题→分别记录两种口径→说明结论边界\"的分析结论产出，按\"分析结论与口径判断\"角度迁移表达，不写被采纳或业务影响。"
+                },
+                {
+                  "req_id": "r2",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_0b31658d69e7418d8da60d7c2cc71d31"
+                  ],
+                  "angle": "SQL 汇总 + 表格图表，是岗位手册点名的硬技能，直接写。"
+                },
+                {
+                  "req_id": "r3",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86"
+                  ],
+                  "angle": "按菜品分类汇总 + 取消订单是否计入的统计口径判断，体现分类维度与指标口径意识，按\"指标口径\"角度迁移，不写漏斗/归因等未做过的方法。"
+                },
+                {
+                  "req_id": "r4",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": "数据为老师提供的模拟点餐记录，规模与复杂度未知，不硬写数据量、表数、自动化。"
+                },
+                {
+                  "req_id": "r5",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_60bd1fa4551b40cfb19d3063055350d8",
+                    "f_533e570f8ba640a686911bf5126a8c2e"
+                  ],
+                  "angle": "本人撰写图表说明与口径说明，汇报由队友负责，按\"输出可读的图表与口径文档\"角度迁移，不写汇报对象与层级。"
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                  "treatment": "lead",
+                  "reason": "唯一一段经历，且直接覆盖 SQL 工具与口径判断两项核心信号；按用户要求只使用已提供内容，全部写出、不设候补。",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "skills",
+                "education",
+                "work_experience",
+                "certificates"
+              ],
+              "summary_angle": "不写个人总结：单段课程作业经历，无转行或复合背景需要一句话概括。",
+              "questions": [
+                {
+                  "q": "这份模拟点餐记录大概有多少行/多少条订单、涉及几张表？",
+                  "why": "数据规模与复杂度是筛选信号之一，目前完全空白，有数字就能补上一条可核对的事实。",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "几十条（课程演示级别）",
+                    "几百到几千条",
+                    "上万条以上，且分多张表"
+                  ],
+                  "value": 4
+                },
+                {
+                  "q": "按菜品分类汇总后，你实际得出的结论是什么（哪类菜品订单最多/取消率最高等）？",
+                  "why": "岗位最看重\"分析得出什么结论\"，目前只有口径发现，没有业务结论。",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r1"
+                  },
+                  "options": [
+                    "某类菜品订单量明显最高",
+                    "某类菜品取消订单占比偏高",
+                    "结论只是描述性汇总，没有明显发现"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "图表和口径说明最终交给了谁、用在哪里（课堂展示/老师评分/小组内部）？",
+                  "why": "决定沟通这条能否写成\"输出给谁\"，避免升级汇报层级。",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r5"
+                  },
+                  "options": [
+                    "课堂展示给老师和同学",
+                    "仅小组内部使用",
+                    "作为作业文档提交评分"
+                  ],
+                  "value": 3
+                }
+              ]
+            },
+            "omitted": [],
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "1cdc48b610fe886889079ef750cd86fdf4491aca19a0f860018aecd425da8942",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass",
+              "schema_retry_count": 0
+            },
+            "compression_writer_diagnostics": [],
+            "guard_fallbacks": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "bullet_id": "b1",
+                "reason": "guard_repair_failed",
+                "rejected_text_hash": "58b4a1a01f21fbc383c3f37377de5d55ea7343eed66b6f5c7bc7ea204c849b71"
+              }
+            ],
+            "change_summary": [
+              "调整了 1 段经历的表述或顺序。"
+            ]
+          }
+        },
+        {
+          "version_id": "34eba043-5b1c-4032-bb8a-fe1b951f7491",
+          "label": "定制简历",
+          "created_at": "2026-10-08T17:34:16.156435+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "我想找数据分析实习，手里还没有具体 JD。",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "name": "晚餐账本",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "课程作业“晚餐账本”\n使用老师提供的模拟点餐记录\n使用 SQL\n按菜品分类汇总\n用表格画图\n作业由小组完成\n未测试业务效果\n队友负责演示文稿排版和汇报\n我完成 SQL 汇总、图表和口径说明\n发现取消订单是否计入会改变结果\n分别记录包含和排除取消订单时的统计口径\n撰写图表说明\n数据只能用于课程练习，不能推断真实餐厅销量",
+                "hidden": false,
+                "polished_bullets": [
+                  "基于老师提供的模拟点餐记录，使用 SQL 按菜品分类汇总订单数据，并用表格绘制图表呈现分类结果。",
+                  "发现取消订单是否计入会改变结果；分别记录包含和排除取消订单时的统计口径；我完成 SQL 汇总、图表和口径说明；未测试业务效果；数据只能用于课程练习，不能推断真实餐厅销量",
+                  "撰写图表说明，并标注数据仅用于课程练习、不能据此推断真实餐厅销量；作业未测试业务效果，演示文稿排版与汇报由队友负责。"
+                ]
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "capability",
+              "industry": "",
+              "target_role": "按数据分析实习方向再改“晚餐账本”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+              "recruiter_priorities": [
+                "按数据分析实习方向再改“晚餐账本”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": [],
+            "sections": [
+              {
+                "id": "projects",
+                "kind": "projects",
+                "title": "项目经历",
+                "content": ""
+              },
+              {
+                "id": "skills",
+                "kind": "skills",
+                "title": "技能证书",
+                "content": ""
+              },
+              {
+                "id": "education",
+                "kind": "education",
+                "title": "教育背景",
+                "content": ""
+              },
+              {
+                "id": "work_experience",
+                "kind": "work_experience",
+                "title": "实习经历",
+                "content": ""
+              },
+              {
+                "id": "certificates",
+                "kind": "certificates",
+                "title": "证书",
+                "content": ""
+              },
+              {
+                "id": "self_evaluation",
+                "kind": "self_evaluation",
+                "title": "自我评价",
+                "content": ""
+              }
+            ],
+            "skill_groups": {
+              "其他": [
+                "SQL",
+                "图表说明"
+              ]
+            }
+          },
+          "resume_meta": {
+            "bullets": {
+              "3a9af074-8a6c-4440-823c-aa6b3424f39d": [
+                {
+                  "fact_ids": [
+                    "f_3fda58e16936434fa9dde0516b2e4b67",
+                    "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_0b31658d69e7418d8da60d7c2cc71d31"
+                  ],
+                  "req_ids": [
+                    "r2",
+                    "r3"
+                  ],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "5693c1c462972bf7beba0d5f6d690bd713aea2bb317bcdf70dba76ba9c762a42"
+                },
+                {
+                  "fact_ids": [
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                    "f_8977488e7f1d4a2a9277204f09661c3d"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "f116e0eb0644f70294b5b070fcc8cc4e0808404c0a59ea1186e9007879264b72"
+                },
+                {
+                  "fact_ids": [
+                    "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                    "f_8977488e7f1d4a2a9277204f09661c3d",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432",
+                    "f_60bd1fa4551b40cfb19d3063055350d8"
+                  ],
+                  "req_ids": [
+                    "r5"
+                  ],
+                  "flags": [
+                    "transferable"
+                  ],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "a69219377b126d3273ea399622a246f3347071ca6507cac4dbd3f6a741061a99"
+                }
+              ]
+            },
+            "version_id": "34eba043-5b1c-4032-bb8a-fe1b951f7491",
+            "label": "定制简历",
+            "match_plan": {
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_62ccccfeeb0b4d858b3e0fc284c19432"
+                  ],
+                  "angle": "课程作业中通过口径对比发现结论会变，属于分析结论意识；但未测试业务效果、无决策采纳，只能迁移表达，不能写成推动决策"
+                },
+                {
+                  "req_id": "r2",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_0b31658d69e7418d8da60d7c2cc71d31"
+                  ],
+                  "angle": "SQL 汇总 + 表格图表，是岗位硬技能中 SQL/Excel 的直接事实"
+                },
+                {
+                  "req_id": "r3",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_634cd9e362d44bfb975de59290e873d3",
+                    "f_fddacba3828840a2b3d6a5bc6542c2fa",
+                    "f_6ccf07b5457e4034a77facf03e923f86"
+                  ],
+                  "angle": "按菜品分类汇总、取消订单口径，体现指标口径与分类维度意识，可迁移到指标体系/口径定义"
+                },
+                {
+                  "req_id": "r4",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r5",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_823bd5a81cd14aebbd1c4d61a81936c7",
+                    "f_111dc15038624b7c92571a106d63dd81",
+                    "f_60bd1fa4551b40cfb19d3063055350d8",
+                    "f_8977488e7f1d4a2a9277204f09661c3d"
+                  ],
+                  "angle": "撰写图表说明与口径说明属于分析文档输出；汇报由队友负责，不得写成个人汇报"
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                  "treatment": "lead",
+                  "reason": "唯一经历，且 SQL 汇总、口径对比、图表说明均为本人工作，直接对应 SQL 硬技能与口径/结论意识，需重点展开",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "skills",
+                "education",
+                "work_experience",
+                "certificates"
+              ],
+              "summary_angle": "不写个人总结：单一课程作业，无复合背景或一句话强匹配证据",
+              "questions": [
+                {
+                  "q": "这份模拟点餐记录大概多少行订单、涉及几张表或几个字段？",
+                  "why": "岗位看重数据规模与复杂度，材料中没有",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "几百行以内",
+                    "几千行",
+                    "上万行及以上"
+                  ],
+                  "value": 4
+                },
+                {
+                  "q": "按菜品分类汇总后，你得出过什么具体结论或建议（例如哪类菜品订单最多/取消率最高）？",
+                  "why": "岗位最看重分析结论，目前只有口径发现，没有业务结论",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r1"
+                  },
+                  "options": [
+                    "某类菜品订单占比最高",
+                    "取消订单集中在某类菜品/某时段",
+                    "没有形成结论，只做了汇总"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "这份图表说明和口径说明交给了谁、用在哪里（课堂展示、老师评阅、小组内部）？",
+                  "why": "可判断沟通对象与产出被使用程度",
+                  "improves": {
+                    "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                    "req_id": "r5"
+                  },
+                  "options": [
+                    "提交老师评阅",
+                    "课堂小组展示",
+                    "仅小组内部使用"
+                  ],
+                  "value": 3
+                }
+              ]
+            },
+            "omitted": [],
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "f399dd9412e36a3905147f4e1ee3653b55da13826fac7a7549f3b09b0bcb3d90",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass",
+              "schema_retry_count": 1,
+              "schema_retry_reason_code": "object_missing"
+            },
+            "compression_writer_diagnostics": [],
+            "guard_fallbacks": [
+              {
+                "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+                "bullet_id": "b1",
+                "reason": "guard_repair_failed",
+                "rejected_text_hash": "e4b43bc4bceb28fae90c718475fb3ab6d45496d53cb5b5b1de061d2baa0b8dad"
+              }
+            ],
+            "change_summary": [
+              "调整了 1 段经历的表述或顺序。"
+            ]
+          }
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "transferable",
+            "fact_ids": [
+              "f_fddacba3828840a2b3d6a5bc6542c2fa",
+              "f_6ccf07b5457e4034a77facf03e923f86",
+              "f_62ccccfeeb0b4d858b3e0fc284c19432"
+            ],
+            "angle": "无业务决策落地，但有“发现口径问题并分别记录两种口径”的分析结论动作，按“口径敏感性发现”角度表达，不写成推动决策"
+          },
+          {
+            "req_id": "r2",
+            "status": "direct",
+            "fact_ids": [
+              "f_ee1510e2144c4e06a6c7e6fb415d10d4",
+              "f_634cd9e362d44bfb975de59290e873d3",
+              "f_0b31658d69e7418d8da60d7c2cc71d31"
+            ],
+            "angle": "SQL 分组汇总 + 表格图表，是 JD 要求的硬技能直接证据"
+          },
+          {
+            "req_id": "r3",
+            "status": "transferable",
+            "fact_ids": [
+              "f_634cd9e362d44bfb975de59290e873d3",
+              "f_fddacba3828840a2b3d6a5bc6542c2fa"
+            ],
+            "angle": "按菜品分类汇总属维度拆解；取消订单口径属指标定义意识，可迁移到指标体系理解，不写漏斗/归因等未做过的方法"
+          },
+          {
+            "req_id": "r4",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r5",
+            "status": "transferable",
+            "fact_ids": [
+              "f_823bd5a81cd14aebbd1c4d61a81936c7",
+              "f_8977488e7f1d4a2a9277204f09661c3d",
+              "f_60bd1fa4551b40cfb19d3063055350d8"
+            ],
+            "angle": "撰写图表说明并标注数据使用边界属报告沟通；汇报由队友负责，如实保留分工"
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+            "treatment": "lead",
+            "reason": "用户明确要求精简为一条；该经历是唯一可用经历，且直接覆盖 SQL 硬技能与口径发现，压成一条合并本人动作、团队分工与状态限制",
+            "target_bullets": 1
+          }
+        ],
+        "section_order": [
+          "projects",
+          "education",
+          "work_experience",
+          "skills",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：仅一段课程作业，无足够事实支撑概括性判断",
+        "questions": [
+          {
+            "q": "这份模拟点餐记录大概有多少行订单、涉及几张表？",
+            "why": "岗位手册把数据规模与复杂度列为筛选信号，目前完全空白",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r4"
+            },
+            "options": [
+              "几十行、单表",
+              "几百到几千行、单表",
+              "多张表需要关联"
+            ],
+            "value": 4
+          },
+          {
+            "q": "按菜品分类汇总后，你得出过什么具体结论（比如哪类菜品订单最多/取消率最高）？",
+            "why": "把“做了汇总”升级为“有结论”，直接命中最重要的筛选信号",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r1"
+            },
+            "options": [
+              "某类菜品订单量明显最高",
+              "某类菜品取消订单占比异常",
+              "只是完成分类汇总，没有进一步结论"
+            ],
+            "value": 5
+          },
+          {
+            "q": "图表说明和口径说明交给了谁、用在哪（课堂汇报/提交给老师）？",
+            "why": "补充沟通对象，强化“沟通”信号",
+            "improves": {
+              "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+              "req_id": "r5"
+            },
+            "options": [
+              "课堂小组汇报使用",
+              "提交给老师评分",
+              "仅组内使用"
+            ],
+            "value": 3
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": [
+        {
+          "item_id": "3a9af074-8a6c-4440-823c-aa6b3424f39d",
+          "bullet_id": "b0",
+          "reason": "guard_repair_failed",
+          "rejected_text_hash": "0cc80e41a30b378448fb488dcaed4c490b23dfc8bbfa86fc9d25c8d79c4a238f"
+        }
+      ]
+    },
+    "new_versions": [
+      "v007"
+    ]
+  }
+]

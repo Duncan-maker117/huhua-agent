@@ -29,6 +29,61 @@ def fact(text, identifier='f1', **extra):
 
 
 class FactGuardTests(unittest.IsolatedAsyncioTestCase):
+    async def test_prototype_does_not_prove_unreleased_status(self):
+        model = FakeModel([decision()])
+        checked = await guard_bullets(
+            [{'id': 'b1', 'text': '实现页面原型，尚未上线', 'fact_ids': ['f1']}],
+            [fact('实现页面原型')], llm=model)
+        self.assertIn('unsupported_negative_release_status', checked[0]['lexical_errors'])
+        self.assertEqual(checked[0]['verdict'], 'fail')
+        self.assertEqual(model.structured.ainvoke.await_count, 0)
+
+    def test_unreleased_status_requires_source_even_with_other_limits(self):
+        for quote, text in [
+            ('实现页面原型，未做量化统计', '实现页面原型，未上线且未做量化统计'),
+            ('Built a prototype', 'Built a prototype, not deployed'),
+            ('做了内部演示', '完成内部演示，未发布'),
+        ]:
+            with self.subTest(quote=quote):
+                self.assertIn('unsupported_negative_release_status', lexical_fact_errors(text, quote))
+
+    def test_explicit_unreleased_synonyms_remain_reviewable(self):
+        for quote, text in [
+            ('这是尚未上线的原型', '这是未上线原型'),
+            ('原型还没有部署', '原型尚未上线'),
+            ('Built a prototype, not yet deployed', 'Prototype has not been deployed'),
+            ('The prototype has not yet been deployed', 'The prototype is not deployed'),
+            ('The prototype has not yet been deployed', 'The prototype has not been deployed yet'),
+            ('原型没有被部署', '原型尚未部署'),
+            ('原型计划上线', '原型尚未上线'),
+        ]:
+            with self.subTest(quote=quote):
+                self.assertNotIn('unsupported_negative_release_status', lexical_fact_errors(text, quote))
+
+    def test_occasional_observation_cannot_become_frequent(self):
+        self.assertIn('unsupported_frequency_upgrade', lexical_fact_errors(
+            '报名条件与安排常混在一起，于是改写说明', '报名条件与安排有时混在一起，于是改写说明'))
+        for text in ['偶尔发现条件与安排混在一起', '有时发现条件与安排混在一起',
+                     '有时发现异常，随后检查正常页面']:
+            self.assertNotIn('unsupported_frequency_upgrade', lexical_fact_errors(text, '有时发现问题'))
+        self.assertNotIn('unsupported_frequency_upgrade', lexical_fact_errors(
+            '经常核对报名条件', '经常核对报名条件'))
+        self.assertNotIn('unsupported_frequency_upgrade', lexical_fact_errors(
+            '我有时检查平常的运行记录', '我有时检查日常运行记录'))
+        self.assertNotIn('unsupported_frequency_upgrade', lexical_fact_errors(
+            '有时观察到故障，服务一直在线', '有时观察到故障，服务长期在线'))
+
+    async def test_release_markers_do_not_skip_object_and_version_review(self):
+        for source, target in [
+            ('后端未部署，前端已上线', '前端未上线'),
+            ('项目已经上线，计划上线下一版本', '项目尚未上线'),
+        ]:
+            model = FakeModel([decision(passed=False, objects_supported=False)])
+            checked = await guard_bullets([{'id': 'b1', 'text': target, 'fact_ids': ['f1']}],
+                                          [fact(source)], llm=model)
+            self.assertEqual(checked[0]['verdict'], 'fail')
+            self.assertEqual(model.structured.ainvoke.await_count, 1)
+
     def test_numeric_equivalence_and_non_numeric_one(self):
         for source, target in [('十秒', '10秒'), ('两万条', '20000条'), ('百分之五十', '50%'), ('3千条', '3000条')]:
             with self.subTest(source=source):

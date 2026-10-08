@@ -1,0 +1,2623 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：AI 产品实习生\n岗位职责：参与旅游规划助手的需求梳理，设计原型及评测用例，分析模型回答错误并跟进迭代。\n任职要求：能区分模型能力与产品承诺；能清楚描述本人完成的原型和评测工作；了解大模型应用，重视事实准确性。加分项：有真实用户验证或上线经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T01:22:57.963422+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {},
+      "active_facts": [],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已解析「AI 产品实习生」，岗位要求和原文依据已放到右侧「读岗位」。\n\n接下来先补一段相关经历：你做的是什么项目、本人具体负责哪一步？",
+    "elapsed_seconds": 19.764,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-2534-7d60-9eb0-a282f2eb5d19",
+        "started_at": "2026-10-09T01:22:57.972659+08:00",
+        "usage": {
+          "input_tokens": 2091,
+          "output_tokens": 4876,
+          "total_tokens": 6967
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 2091,
+      "output_tokens": 4876,
+      "total_tokens": 6967,
+      "logical_model_calls": 1,
+      "calls_with_usage": 1,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.002932,
+        "upper_bound": 0.006478,
+        "priced_calls": 1,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1
+    ],
+    "started_at": "2026-10-09T01:23:17.735615+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+                "kind": "action",
+                "text": "做过一个叫“路线笔记”的旅游 Agent",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+                "kind": "context",
+                "text": "该项目是课程小组的 Demo",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_7ffaac0745e043878743bd9fe055b60f",
+                "kind": "method_tool",
+                "text": "用自己写的出行问题测试该 Agent",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5a2812f3068743c9be401f7d65e86764",
+                "kind": "result_qualitative",
+                "text": "记录了回答中乱编地点和时间冲突的情况",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+                "kind": "status_limit",
+                "text": "项目还没上线",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+          "kind": "action",
+          "text": "做过一个叫“路线笔记”的旅游 Agent",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+          "kind": "context",
+          "text": "该项目是课程小组的 Demo",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_7ffaac0745e043878743bd9fe055b60f",
+          "kind": "method_tool",
+          "text": "用自己写的出行问题测试该 Agent",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_5a2812f3068743c9be401f7d65e86764",
+          "kind": "result_qualitative",
+          "text": "记录了回答中乱编地点和时间冲突的情况",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+          "kind": "status_limit",
+          "text": "项目还没上线",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已收到「路线笔记」的补充，正在同步进草稿；保存尚未完成。\n\n**需要你补充**：这个课程小组里，你本人负责的是哪部分——只做了评测问题与错误记录，还是也包括原型设计？",
+    "elapsed_seconds": 10.557,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-726f-7361-9ad5-0e4cb6366424",
+        "started_at": "2026-10-09T01:23:17.743969+08:00",
+        "usage": {
+          "input_tokens": 1580,
+          "output_tokens": 144,
+          "total_tokens": 1724
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-7673-7d90-bbfd-afa0a418aa3b",
+        "started_at": "2026-10-09T01:23:18.771151+08:00",
+        "usage": {
+          "input_tokens": 347,
+          "output_tokens": 1374,
+          "total_tokens": 1721
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-8dd2-7c03-aaf4-f26738292e26",
+        "started_at": "2026-10-09T01:23:24.754738+08:00",
+        "usage": {
+          "input_tokens": 2101,
+          "output_tokens": 337,
+          "total_tokens": 2438
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-9467-77e2-bcca-6e216805648b",
+        "started_at": "2026-10-09T01:23:26.439326+08:00",
+        "usage": {
+          "input_tokens": 5268,
+          "output_tokens": 280,
+          "total_tokens": 5548
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 9296,
+      "output_tokens": 2135,
+      "total_tokens": 11431,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001309,
+        "upper_bound": 0.005351,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v002"
+    ]
+  },
+  {
+    "turn": 3,
+    "phase": "followup",
+    "user": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。\n我使用 GPT 和表格完成手动测试及错误记录。",
+    "task": "auto",
+    "simulation": {
+      "text": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。\n我使用 GPT 和表格完成手动测试及错误记录。",
+      "fact_indices": [
+        5,
+        6
+      ],
+      "reason": "model_selected_truth",
+      "selector_status": "completed",
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11c8a-9bad-7472-8e29-dcb6e69d6409",
+          "started_at": "2026-10-09T01:23:28.301596+08:00",
+          "usage": {
+            "input_tokens": 381,
+            "output_tokens": 9,
+            "total_tokens": 390
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 381,
+        "output_tokens": 9,
+        "total_tokens": 390,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 7e-06,
+          "upper_bound": 0.000125,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      0,
+      1,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:23:29.179216+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+                "kind": "action",
+                "text": "做过一个叫“路线笔记”的旅游 Agent",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+                "kind": "context",
+                "text": "该项目是课程小组的 Demo",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_7ffaac0745e043878743bd9fe055b60f",
+                "kind": "method_tool",
+                "text": "用自己写的出行问题测试该 Agent",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5a2812f3068743c9be401f7d65e86764",
+                "kind": "result_qualitative",
+                "text": "记录了回答中乱编地点和时间冲突的情况",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+                "kind": "status_limit",
+                "text": "项目还没上线",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1737be135ede403f9f07a95c291f5350",
+                "kind": "status_limit",
+                "text": "未承担页面和接口开发",
+                "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+                "kind": "role",
+                "text": "未担任组长",
+                "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_75d3949c0f164583b076f7baed013242",
+                "kind": "method_tool",
+                "text": "使用 GPT 和表格完成手动测试及错误记录",
+                "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线",
+              "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "我使用 GPT 和表格完成手动测试及错误记录。"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+          "kind": "action",
+          "text": "做过一个叫“路线笔记”的旅游 Agent",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+          "kind": "context",
+          "text": "该项目是课程小组的 Demo",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_7ffaac0745e043878743bd9fe055b60f",
+          "kind": "method_tool",
+          "text": "用自己写的出行问题测试该 Agent",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_5a2812f3068743c9be401f7d65e86764",
+          "kind": "result_qualitative",
+          "text": "记录了回答中乱编地点和时间冲突的情况",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+          "kind": "status_limit",
+          "text": "项目还没上线",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_1737be135ede403f9f07a95c291f5350",
+          "kind": "status_limit",
+          "text": "未承担页面和接口开发",
+          "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+          "kind": "role",
+          "text": "未担任组长",
+          "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_75d3949c0f164583b076f7baed013242",
+          "kind": "method_tool",
+          "text": "使用 GPT 和表格完成手动测试及错误记录",
+          "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别本轮资料，正在同步草稿；保存尚未完成。\n\n**我的建议**：该经历就落在「自拟出行问题做手动测试 + 用表格按乱编地点、时间冲突分类记录错误」，并如实保留课程小组 Demo、未上线、本人未参与页面与接口开发。",
+    "elapsed_seconds": 14.732,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-9f28-71f0-8d60-1dc4b56f4fed",
+        "started_at": "2026-10-09T01:23:29.192492+08:00",
+        "usage": {
+          "input_tokens": 1566,
+          "output_tokens": 154,
+          "total_tokens": 1720
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-a3d7-7d81-9fef-53599c1c7fbd",
+        "started_at": "2026-10-09T01:23:30.391281+08:00",
+        "usage": {
+          "input_tokens": 572,
+          "output_tokens": 1939,
+          "total_tokens": 2511
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-c622-72e1-ad75-657077f768f2",
+        "started_at": "2026-10-09T01:23:39.170397+08:00",
+        "usage": {
+          "input_tokens": 2058,
+          "output_tokens": 261,
+          "total_tokens": 2319
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-caf0-7763-828f-634f23c28894",
+        "started_at": "2026-10-09T01:23:40.400223+08:00",
+        "usage": {
+          "input_tokens": 5753,
+          "output_tokens": 609,
+          "total_tokens": 6362
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 9949,
+      "output_tokens": 2963,
+      "total_tokens": 12912,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001808,
+        "upper_bound": 0.00654,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v003"
+    ]
+  },
+  {
+    "turn": 4,
+    "phase": "edit",
+    "user": "按 JD 再改“路线笔记”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:23:43.925987+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+                "kind": "action",
+                "text": "做过一个叫“路线笔记”的旅游 Agent",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+                "kind": "context",
+                "text": "该项目是课程小组的 Demo",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_7ffaac0745e043878743bd9fe055b60f",
+                "kind": "method_tool",
+                "text": "用自己写的出行问题测试该 Agent",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5a2812f3068743c9be401f7d65e86764",
+                "kind": "result_qualitative",
+                "text": "记录了回答中乱编地点和时间冲突的情况",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+                "kind": "status_limit",
+                "text": "项目还没上线",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1737be135ede403f9f07a95c291f5350",
+                "kind": "status_limit",
+                "text": "未承担页面和接口开发",
+                "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+                "kind": "role",
+                "text": "未担任组长",
+                "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_75d3949c0f164583b076f7baed013242",
+                "kind": "method_tool",
+                "text": "使用 GPT 和表格完成手动测试及错误记录",
+                "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线",
+              "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "我使用 GPT 和表格完成手动测试及错误记录。"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+          "kind": "action",
+          "text": "做过一个叫“路线笔记”的旅游 Agent",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+          "kind": "context",
+          "text": "该项目是课程小组的 Demo",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_7ffaac0745e043878743bd9fe055b60f",
+          "kind": "method_tool",
+          "text": "用自己写的出行问题测试该 Agent",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_5a2812f3068743c9be401f7d65e86764",
+          "kind": "result_qualitative",
+          "text": "记录了回答中乱编地点和时间冲突的情况",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+          "kind": "status_limit",
+          "text": "项目还没上线",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_1737be135ede403f9f07a95c291f5350",
+          "kind": "status_limit",
+          "text": "未承担页面和接口开发",
+          "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+          "kind": "role",
+          "text": "未担任组长",
+          "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_75d3949c0f164583b076f7baed013242",
+          "kind": "method_tool",
+          "text": "使用 GPT 和表格完成手动测试及错误记录",
+          "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 19.621,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-d8c5-7a60-b9ba-5aba42d51798",
+        "started_at": "2026-10-09T01:23:43.941560+08:00",
+        "usage": {
+          "input_tokens": 6346,
+          "output_tokens": 2035,
+          "total_tokens": 8381
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8a-fa1d-7002-989b-15d3781c367e",
+        "started_at": "2026-10-09T01:23:52.478201+08:00",
+        "usage": {
+          "input_tokens": 6431,
+          "output_tokens": 1797,
+          "total_tokens": 8228
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8b-1922-7e33-92cd-5ceb5a96606d",
+        "started_at": "2026-10-09T01:24:00.418107+08:00",
+        "usage": {
+          "input_tokens": 2562,
+          "output_tokens": 149,
+          "total_tokens": 2711
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8b-1d03-7133-95ac-d3632bb2653b",
+        "started_at": "2026-10-09T01:24:01.411540+08:00",
+        "usage": {
+          "input_tokens": 3645,
+          "output_tokens": 147,
+          "total_tokens": 3792
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8b-2206-7920-bacc-fc08ad92c70e",
+        "started_at": "2026-10-09T01:24:02.694709+08:00",
+        "usage": {
+          "input_tokens": 2191,
+          "output_tokens": 92,
+          "total_tokens": 2283
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 21175,
+      "output_tokens": 4220,
+      "total_tokens": 25395,
+      "logical_model_calls": 5,
+      "calls_with_usage": 5,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.002596,
+        "upper_bound": 0.011416,
+        "priced_calls": 5,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "1b8e20fb-fd1a-4364-850f-c559503c64a5": [
+            {
+              "fact_ids": [
+                "f_383ca8edc59742d6b226ed56fa6b364e",
+                "f_8ef20452028e4c53a26d0611b9b804f0",
+                "f_2acc83dd38a247e787934cbe5d7af27c",
+                "f_1737be135ede403f9f07a95c291f5350",
+                "f_bf0c6292cbf24d65bb1f31aef30d1ea4"
+              ],
+              "req_ids": [
+                "r6"
+              ],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "2bfcdb6a4843465e0db029b804f6b70fb89f6d4469f8bd20d10796ea04bc70dc"
+            },
+            {
+              "fact_ids": [
+                "f_7ffaac0745e043878743bd9fe055b60f",
+                "f_75d3949c0f164583b076f7baed013242"
+              ],
+              "req_ids": [
+                "r3",
+                "r7"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": true,
+              "metric_question": "一共写了多少个出行问题？表格里记录了多少条错误？",
+              "text_hash": "3e058309449737fac6804f1d16ca8cce96fc6fb932547bcb2beb4603f2feb325"
+            },
+            {
+              "fact_ids": [
+                "f_7ffaac0745e043878743bd9fe055b60f",
+                "f_5a2812f3068743c9be401f7d65e86764",
+                "f_75d3949c0f164583b076f7baed013242"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "0c41f1354b2ae1f76af9147551436cdc42c09e856d520128e1becf70a43e031d"
+            }
+          ]
+        },
+        "version_id": "105a7d80-f501-4632-a9e0-02f74c70d0c5",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r2",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r3",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r4",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r5",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r6",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r7",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r8",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r9",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "treatment": "lead",
+              "reason": "唯一经历，且是旅游规划 Agent，与岗位场景直接对应；本人可指认的工作集中在测试与错误记录，正好命中评测意识与事实准确性两个核心信号。",
+              "target_bullets": 3
+            }
+          ],
+          "section_order": [
+            "projects",
+            "education",
+            "work_experience",
+            "skills",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：仅一段课程小组 Demo 经历，无复合背景或转行需要概括。",
+          "questions": [
+            {
+              "q": "你一共写了多少个出行问题去测它？测试记录里大概记了多少条错误？",
+              "why": "把「自己写的出行问题」升级为可量化的评测规模，是 AI PM 最强信号。",
+              "improves": {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "req_id": "r3"
+              },
+              "options": [
+                "约 10 个问题、20 条错误",
+                "约 30 个问题、50 条错误",
+                "没数过，只是随手试了几轮"
+              ],
+              "value": 5
+            },
+            {
+              "q": "记下这些错误之后，你有没有把问题反馈给队友或改过提示词/加过限制？改完再测过吗？",
+              "why": "决定能否从「记录错误」升级为「分析错误并跟进迭代」，直接对应 JD 职责。",
+              "improves": {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "req_id": "r4"
+              },
+              "options": [
+                "反馈给队友并改了提示词，改后重测过",
+                "只在小组里口头提过，没有改动",
+                "自己改了提示词但没再测"
+              ],
+              "value": 5
+            },
+            {
+              "q": "乱编地点和时间冲突这两类错误，大概各占多少？有没有哪类反复出现？",
+              "why": "把「记录了错误」升级为「按类型归因」，体现错误分析而非单纯记录。",
+              "improves": {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "req_id": "r4"
+              },
+              "options": [
+                "乱编地点最多，约占一半",
+                "时间冲突更集中",
+                "两类差不多，没有统计过比例"
+              ],
+              "value": 4
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "431d241858a1eaf7190817dd419ee86d039b9a76046acd2fb8af9f9e5d84f516",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 1,
+          "validation_error_count": 1,
+          "validation_errors": [
+            {
+              "loc": [
+                "writer",
+                "items",
+                0,
+                "bullets",
+                0,
+                "<extra>"
+              ],
+              "type": "extra_forbidden"
+            }
+          ]
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "23604474-e8e9-4120-b848-097d984a8d02",
+          "label": "修改前",
+          "created_at": "2026-10-08T17:24:03.542062+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "name": "路线笔记",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "做过一个叫“路线笔记”的旅游 Agent\n该项目是课程小组的 Demo\n用自己写的出行问题测试该 Agent\n记录了回答中乱编地点和时间冲突的情况\n项目还没上线\n未承担页面和接口开发\n未担任组长\n使用 GPT 和表格完成手动测试及错误记录"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "AI 产品实习生",
+              "recruiter_priorities": [
+                "本人设计并落地的原型产出（可指认到个人的部分）",
+                "评测用例 / 测试集的设计与执行过程",
+                "模型回答错误的分类、归因与迭代跟进",
+                "一次涉及「模型能力边界 → 调整产品或方案」的取舍过程",
+                "大模型应用相关的具体做法",
+                "事实准确性方面的具体动作（核查、来源、错误类型统计等）"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r2",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r3",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r4",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r5",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r6",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r7",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r8",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r9",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+            "treatment": "lead",
+            "reason": "唯一经历，且是旅游规划 Agent，与岗位场景直接对应；本人可指认的工作集中在测试与错误记录，正好命中评测意识与事实准确性两个核心信号。",
+            "target_bullets": 3
+          }
+        ],
+        "section_order": [
+          "projects",
+          "education",
+          "work_experience",
+          "skills",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：仅一段课程小组 Demo 经历，无复合背景或转行需要概括。",
+        "questions": [
+          {
+            "q": "你一共写了多少个出行问题去测它？测试记录里大概记了多少条错误？",
+            "why": "把「自己写的出行问题」升级为可量化的评测规模，是 AI PM 最强信号。",
+            "improves": {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "req_id": "r3"
+            },
+            "options": [
+              "约 10 个问题、20 条错误",
+              "约 30 个问题、50 条错误",
+              "没数过，只是随手试了几轮"
+            ],
+            "value": 5
+          },
+          {
+            "q": "记下这些错误之后，你有没有把问题反馈给队友或改过提示词/加过限制？改完再测过吗？",
+            "why": "决定能否从「记录错误」升级为「分析错误并跟进迭代」，直接对应 JD 职责。",
+            "improves": {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "req_id": "r4"
+            },
+            "options": [
+              "反馈给队友并改了提示词，改后重测过",
+              "只在小组里口头提过，没有改动",
+              "自己改了提示词但没再测"
+            ],
+            "value": 5
+          },
+          {
+            "q": "乱编地点和时间冲突这两类错误，大概各占多少？有没有哪类反复出现？",
+            "why": "把「记录了错误」升级为「按类型归因」，体现错误分析而非单纯记录。",
+            "improves": {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "req_id": "r4"
+            },
+            "options": [
+              "乱编地点最多，约占一半",
+              "时间冲突更集中",
+              "两类差不多，没有统计过比例"
+            ],
+            "value": 4
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v004"
+    ]
+  },
+  {
+    "turn": 5,
+    "phase": "edit",
+    "user": "把“路线笔记”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      5,
+      6
+    ],
+    "started_at": "2026-10-09T01:24:03.557521+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+                "kind": "action",
+                "text": "做过一个叫“路线笔记”的旅游 Agent",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+                "kind": "context",
+                "text": "该项目是课程小组的 Demo",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_7ffaac0745e043878743bd9fe055b60f",
+                "kind": "method_tool",
+                "text": "用自己写的出行问题测试该 Agent",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5a2812f3068743c9be401f7d65e86764",
+                "kind": "result_qualitative",
+                "text": "记录了回答中乱编地点和时间冲突的情况",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+                "kind": "status_limit",
+                "text": "项目还没上线",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_1737be135ede403f9f07a95c291f5350",
+                "kind": "status_limit",
+                "text": "未承担页面和接口开发",
+                "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+                "kind": "role",
+                "text": "未担任组长",
+                "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_75d3949c0f164583b076f7baed013242",
+                "kind": "method_tool",
+                "text": "使用 GPT 和表格完成手动测试及错误记录",
+                "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线",
+              "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "我使用 GPT 和表格完成手动测试及错误记录。"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_383ca8edc59742d6b226ed56fa6b364e",
+          "kind": "action",
+          "text": "做过一个叫“路线笔记”的旅游 Agent",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_8ef20452028e4c53a26d0611b9b804f0",
+          "kind": "context",
+          "text": "该项目是课程小组的 Demo",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_7ffaac0745e043878743bd9fe055b60f",
+          "kind": "method_tool",
+          "text": "用自己写的出行问题测试该 Agent",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_5a2812f3068743c9be401f7d65e86764",
+          "kind": "result_qualitative",
+          "text": "记录了回答中乱编地点和时间冲突的情况",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_2acc83dd38a247e787934cbe5d7af27c",
+          "kind": "status_limit",
+          "text": "项目还没上线",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_1737be135ede403f9f07a95c291f5350",
+          "kind": "status_limit",
+          "text": "未承担页面和接口开发",
+          "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+          "kind": "role",
+          "text": "未担任组长",
+          "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "队友编写了页面和接口；我没有承担这部分开发，也没有担任组长。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        },
+        {
+          "id": "f_75d3949c0f164583b076f7baed013242",
+          "kind": "method_tool",
+          "text": "使用 GPT 和表格完成手动测试及错误记录",
+          "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我使用 GPT 和表格完成手动测试及错误记录。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 7.633,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8b-2570-7202-bb2a-eb929a4391b7",
+        "started_at": "2026-10-09T01:24:03.568116+08:00",
+        "usage": {
+          "input_tokens": 6454,
+          "output_tokens": 1550,
+          "total_tokens": 8004
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c8b-3e85-7bb0-9cb2-07b32c01ec4e",
+        "started_at": "2026-10-09T01:24:09.989907+08:00",
+        "usage": {
+          "input_tokens": 2618,
+          "output_tokens": 92,
+          "total_tokens": 2710
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 9072,
+      "output_tokens": 1642,
+      "total_tokens": 10714,
+      "logical_model_calls": 2,
+      "calls_with_usage": 2,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001012,
+        "upper_bound": 0.004692,
+        "priced_calls": 2,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "1b8e20fb-fd1a-4364-850f-c559503c64a5": [
+            {
+              "fact_ids": [
+                "f_383ca8edc59742d6b226ed56fa6b364e",
+                "f_8ef20452028e4c53a26d0611b9b804f0",
+                "f_2acc83dd38a247e787934cbe5d7af27c",
+                "f_1737be135ede403f9f07a95c291f5350",
+                "f_bf0c6292cbf24d65bb1f31aef30d1ea4",
+                "f_7ffaac0745e043878743bd9fe055b60f",
+                "f_75d3949c0f164583b076f7baed013242",
+                "f_5a2812f3068743c9be401f7d65e86764"
+              ],
+              "req_ids": [
+                "r3",
+                "r4",
+                "r6",
+                "r7",
+                "r8"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": true,
+              "metric_question": "你一共测了多少个出行问题、记录了多少条错误？错误是否反馈给队友并跟进修改？",
+              "text_hash": "cbc817719aa4027b79cbaa01c2c659a760e1e136287cef050c9013c740030504"
+            }
+          ]
+        },
+        "version_id": "2e440a93-5998-4480-aab2-a653235899ce",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r2",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r3",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r4",
+              "status": "direct",
+              "fact_ids": [
+                "f_7ffaac0745e043878743bd9fe055b60f",
+                "f_5a2812f3068743c9be401f7d65e86764",
+                "f_75d3949c0f164583b076f7baed013242"
+              ],
+              "angle": "记录回答中乱编地点、时间冲突两类错误，对应错误分析与记录环节"
+            },
+            {
+              "req_id": "r5",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r6",
+              "status": "direct",
+              "fact_ids": [
+                "f_1737be135ede403f9f07a95c291f5350",
+                "f_bf0c6292cbf24d65bb1f31aef30d1ea4"
+              ],
+              "angle": "明确本人负责测试与错误记录，页面接口由队友开发、未担任组长"
+            },
+            {
+              "req_id": "r7",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r8",
+              "status": "direct",
+              "fact_ids": [
+                "f_5a2812f3068743c9be401f7d65e86764"
+              ],
+              "angle": "记录乱编地点类事实性错误，对应事实准确性关注"
+            },
+            {
+              "req_id": "r9",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "treatment": "brief",
+              "reason": "用户要求精简为一条；该经历与岗位相关但为课程小组 Demo、本人仅承担测试与错误记录，压成一条保留本人工作、团队分工与未上线状态",
+              "target_bullets": 1
+            }
+          ],
+          "section_order": [
+            "projects",
+            "education",
+            "work_experience",
+            "skills",
+            "certificates"
+          ],
+          "summary_angle": "",
+          "questions": [
+            {
+              "q": "你记录的错误一共多少条？测试问题大概多少个？",
+              "why": "把「记录错误」升级为可量化的评测规模，是 AI PM 最强信号",
+              "improves": {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "req_id": "r3"
+              },
+              "options": [
+                "约 10 条以内，随手记的",
+                "20–50 条，按表格分类整理",
+                "50 条以上，有固定表格模板"
+              ],
+              "value": 3
+            },
+            {
+              "q": "发现这些错误后，你有没有把问题反馈给队友或提出修改建议？",
+              "why": "决定能否写「跟进迭代」这一 JD 明确职责",
+              "improves": {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "req_id": "r4"
+              },
+              "options": [
+                "只在记录里写了，没有反馈",
+                "口头跟队友说过",
+                "整理成问题清单同步给队友，并跟进了修改"
+              ],
+              "value": 3
+            },
+            {
+              "q": "除了乱编地点和时间冲突，还有没有其他类型的错误？测试结果有没有给组外的人看过？",
+              "why": "错误类型数量和外部反馈决定这条 bullet 的信息密度",
+              "improves": {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "req_id": "r9"
+              },
+              "options": [
+                "只有这两类，只在小组成员内部看过",
+                "还有答非所问/信息过时等类型",
+                "给其他同学试过并收集了反馈"
+              ],
+              "value": 2
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "c4f494f04cd002c1c5268b6562bccb1de76a5f138d238946773c148e353a015d",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass",
+          "schema_retry_count": 0
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "23604474-e8e9-4120-b848-097d984a8d02",
+          "label": "修改前",
+          "created_at": "2026-10-08T17:24:03.542062+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "name": "路线笔记",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "做过一个叫“路线笔记”的旅游 Agent\n该项目是课程小组的 Demo\n用自己写的出行问题测试该 Agent\n记录了回答中乱编地点和时间冲突的情况\n项目还没上线\n未承担页面和接口开发\n未担任组长\n使用 GPT 和表格完成手动测试及错误记录"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "AI 产品实习生",
+              "recruiter_priorities": [
+                "本人设计并落地的原型产出（可指认到个人的部分）",
+                "评测用例 / 测试集的设计与执行过程",
+                "模型回答错误的分类、归因与迭代跟进",
+                "一次涉及「模型能力边界 → 调整产品或方案」的取舍过程",
+                "大模型应用相关的具体做法",
+                "事实准确性方面的具体动作（核查、来源、错误类型统计等）"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        },
+        {
+          "version_id": "105a7d80-f501-4632-a9e0-02f74c70d0c5",
+          "label": "局部修改",
+          "created_at": "2026-10-08T17:24:11.184565+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                "name": "路线笔记",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "做过一个叫“路线笔记”的旅游 Agent\n该项目是课程小组的 Demo\n用自己写的出行问题测试该 Agent\n记录了回答中乱编地点和时间冲突的情况\n项目还没上线\n未承担页面和接口开发\n未担任组长\n使用 GPT 和表格完成手动测试及错误记录",
+                "polished_bullets": [
+                  "课程小组旅游规划 Agent 项目（Demo，未上线），本人负责测试与错误记录，页面与接口由队友开发。",
+                  "自拟出行问题作为测试用例，使用 GPT 辅助手动测试，并用表格逐条记录回答中的错误。",
+                  "用自己写的出行问题手动测试该 Agent，用 GPT 和表格记录回答中乱编地点、时间冲突两类错误。"
+                ],
+                "hidden": false
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "AI 产品实习生",
+              "recruiter_priorities": [
+                "本人设计并落地的原型产出（可指认到个人的部分）",
+                "评测用例 / 测试集的设计与执行过程",
+                "模型回答错误的分类、归因与迭代跟进",
+                "一次涉及「模型能力边界 → 调整产品或方案」的取舍过程",
+                "大模型应用相关的具体做法",
+                "事实准确性方面的具体动作（核查、来源、错误类型统计等）"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {
+            "bullets": {
+              "1b8e20fb-fd1a-4364-850f-c559503c64a5": [
+                {
+                  "fact_ids": [
+                    "f_383ca8edc59742d6b226ed56fa6b364e",
+                    "f_8ef20452028e4c53a26d0611b9b804f0",
+                    "f_2acc83dd38a247e787934cbe5d7af27c",
+                    "f_1737be135ede403f9f07a95c291f5350",
+                    "f_bf0c6292cbf24d65bb1f31aef30d1ea4"
+                  ],
+                  "req_ids": [
+                    "r6"
+                  ],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "2bfcdb6a4843465e0db029b804f6b70fb89f6d4469f8bd20d10796ea04bc70dc"
+                },
+                {
+                  "fact_ids": [
+                    "f_7ffaac0745e043878743bd9fe055b60f",
+                    "f_75d3949c0f164583b076f7baed013242"
+                  ],
+                  "req_ids": [
+                    "r3",
+                    "r7"
+                  ],
+                  "flags": [
+                    "transferable"
+                  ],
+                  "needs_metric": true,
+                  "metric_question": "一共写了多少个出行问题？表格里记录了多少条错误？",
+                  "text_hash": "3e058309449737fac6804f1d16ca8cce96fc6fb932547bcb2beb4603f2feb325"
+                },
+                {
+                  "fact_ids": [
+                    "f_7ffaac0745e043878743bd9fe055b60f",
+                    "f_5a2812f3068743c9be401f7d65e86764",
+                    "f_75d3949c0f164583b076f7baed013242"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "0c41f1354b2ae1f76af9147551436cdc42c09e856d520128e1becf70a43e031d"
+                }
+              ]
+            },
+            "version_id": "105a7d80-f501-4632-a9e0-02f74c70d0c5",
+            "label": "局部修改",
+            "match_plan": {
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r2",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r3",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r4",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r5",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r6",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r7",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r8",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r9",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                  "treatment": "lead",
+                  "reason": "唯一经历，且是旅游规划 Agent，与岗位场景直接对应；本人可指认的工作集中在测试与错误记录，正好命中评测意识与事实准确性两个核心信号。",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "education",
+                "work_experience",
+                "skills",
+                "certificates"
+              ],
+              "summary_angle": "不写个人总结：仅一段课程小组 Demo 经历，无复合背景或转行需要概括。",
+              "questions": [
+                {
+                  "q": "你一共写了多少个出行问题去测它？测试记录里大概记了多少条错误？",
+                  "why": "把「自己写的出行问题」升级为可量化的评测规模，是 AI PM 最强信号。",
+                  "improves": {
+                    "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                    "req_id": "r3"
+                  },
+                  "options": [
+                    "约 10 个问题、20 条错误",
+                    "约 30 个问题、50 条错误",
+                    "没数过，只是随手试了几轮"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "记下这些错误之后，你有没有把问题反馈给队友或改过提示词/加过限制？改完再测过吗？",
+                  "why": "决定能否从「记录错误」升级为「分析错误并跟进迭代」，直接对应 JD 职责。",
+                  "improves": {
+                    "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "反馈给队友并改了提示词，改后重测过",
+                    "只在小组里口头提过，没有改动",
+                    "自己改了提示词但没再测"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "乱编地点和时间冲突这两类错误，大概各占多少？有没有哪类反复出现？",
+                  "why": "把「记录了错误」升级为「按类型归因」，体现错误分析而非单纯记录。",
+                  "improves": {
+                    "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "乱编地点最多，约占一半",
+                    "时间冲突更集中",
+                    "两类差不多，没有统计过比例"
+                  ],
+                  "value": 4
+                }
+              ]
+            },
+            "omitted": [],
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "431d241858a1eaf7190817dd419ee86d039b9a76046acd2fb8af9f9e5d84f516",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass",
+              "schema_retry_count": 1,
+              "validation_error_count": 1,
+              "validation_errors": [
+                {
+                  "loc": [
+                    "writer",
+                    "items",
+                    0,
+                    "bullets",
+                    0,
+                    "<extra>"
+                  ],
+                  "type": "extra_forbidden"
+                }
+              ]
+            },
+            "compression_writer_diagnostics": [],
+            "guard_fallbacks": [],
+            "change_summary": [
+              "调整了 1 段经历的表述或顺序。"
+            ]
+          }
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r2",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r3",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r4",
+            "status": "direct",
+            "fact_ids": [
+              "f_7ffaac0745e043878743bd9fe055b60f",
+              "f_5a2812f3068743c9be401f7d65e86764",
+              "f_75d3949c0f164583b076f7baed013242"
+            ],
+            "angle": "记录回答中乱编地点、时间冲突两类错误，对应错误分析与记录环节"
+          },
+          {
+            "req_id": "r5",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r6",
+            "status": "direct",
+            "fact_ids": [
+              "f_1737be135ede403f9f07a95c291f5350",
+              "f_bf0c6292cbf24d65bb1f31aef30d1ea4"
+            ],
+            "angle": "明确本人负责测试与错误记录，页面接口由队友开发、未担任组长"
+          },
+          {
+            "req_id": "r7",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r8",
+            "status": "direct",
+            "fact_ids": [
+              "f_5a2812f3068743c9be401f7d65e86764"
+            ],
+            "angle": "记录乱编地点类事实性错误，对应事实准确性关注"
+          },
+          {
+            "req_id": "r9",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+            "treatment": "brief",
+            "reason": "用户要求精简为一条；该经历与岗位相关但为课程小组 Demo、本人仅承担测试与错误记录，压成一条保留本人工作、团队分工与未上线状态",
+            "target_bullets": 1
+          }
+        ],
+        "section_order": [
+          "projects",
+          "education",
+          "work_experience",
+          "skills",
+          "certificates"
+        ],
+        "summary_angle": "",
+        "questions": [
+          {
+            "q": "你记录的错误一共多少条？测试问题大概多少个？",
+            "why": "把「记录错误」升级为可量化的评测规模，是 AI PM 最强信号",
+            "improves": {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "req_id": "r3"
+            },
+            "options": [
+              "约 10 条以内，随手记的",
+              "20–50 条，按表格分类整理",
+              "50 条以上，有固定表格模板"
+            ],
+            "value": 3
+          },
+          {
+            "q": "发现这些错误后，你有没有把问题反馈给队友或提出修改建议？",
+            "why": "决定能否写「跟进迭代」这一 JD 明确职责",
+            "improves": {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "req_id": "r4"
+            },
+            "options": [
+              "只在记录里写了，没有反馈",
+              "口头跟队友说过",
+              "整理成问题清单同步给队友，并跟进了修改"
+            ],
+            "value": 3
+          },
+          {
+            "q": "除了乱编地点和时间冲突，还有没有其他类型的错误？测试结果有没有给组外的人看过？",
+            "why": "错误类型数量和外部反馈决定这条 bullet 的信息密度",
+            "improves": {
+              "item_id": "1b8e20fb-fd1a-4364-850f-c559503c64a5",
+              "req_id": "r9"
+            },
+            "options": [
+              "只有这两类，只在小组成员内部看过",
+              "还有答非所问/信息过时等类型",
+              "给其他同学试过并收集了反馈"
+            ],
+            "value": 2
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v005"
+    ]
+  }
+]

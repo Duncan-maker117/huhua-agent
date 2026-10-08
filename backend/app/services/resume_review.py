@@ -54,6 +54,16 @@ def resume_to_text(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _contains_skill(text: str, skill: str) -> bool:
+    """Keep ASCII skill names distinct while allowing adjacent Chinese prose."""
+    if skill.isascii():
+        return re.search(
+            rf"(?<![a-z0-9_]){re.escape(skill.casefold())}(?![a-z0-9_])",
+            text.casefold(),
+        ) is not None
+    return skill.casefold() in text.casefold()
+
+
 def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
     """Return checks, never a hiring probability or pretend ATS score."""
     jd_info = jd_info or {}
@@ -72,7 +82,7 @@ def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
     if re.search(r"\d+(?:[.,]\d+)?%?\*", text):
         checks.append("核实并替换带 * 的估算数字。")
     required = [s for s in jd_info.get("required_skills", []) if isinstance(s, str)]
-    missing = [s for s in required if s.casefold() not in text.casefold()]
+    missing = [s for s in required if not _contains_skill(text, s)]
     if missing:
         checks.append("JD 中这些技能在简历文字里尚未出现，请核对是否有真实经历可补：" + "、".join(missing[:5]) + "。")
     if not checks:

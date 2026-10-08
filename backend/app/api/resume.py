@@ -73,7 +73,8 @@ def _llm_for_graph() -> ChatOpenAI:
         # Constructing the graph for database reads/writes makes no model call.
         api_key=s.LLM_API_KEY or "database-only",
         base_url=s.LLM_BASE_URL,
-        temperature=0.7,
+        temperature=s.LLM_CHAT_TEMPERATURE,
+        max_tokens=s.LLM_MAX_TOKENS,
         streaming=True,
     )
 

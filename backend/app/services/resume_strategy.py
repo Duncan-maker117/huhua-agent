@@ -44,14 +44,3 @@ def build_resume_strategy(
         "recruiter_priorities": priorities,
         "section_order": ["基本信息", "工作与实习经历", "项目经历", "教育经历", "技能"],
     }
-
-
-def format_strategy_for_prompt(strategy: dict | None) -> str:
-    strategy = strategy or {}
-    mode = "岗位匹配" if strategy.get("mode") == "jd_match" else "能力展示"
-    role = strategy.get("target_role") or "未指定"
-    priorities = "、".join(_strings(strategy.get("recruiter_priorities"))) or "具体行动与真实成果"
-    return (
-        f"模式：{mode}；目标岗位：{role}；优先呈现：{priorities}。"
-        "只选用候选人真实提供的经历和数字，缺少证据时追问或留空。"
-    )

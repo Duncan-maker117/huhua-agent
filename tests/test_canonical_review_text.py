@@ -37,6 +37,18 @@ class CanonicalReviewTextTests(unittest.TestCase):
         text = resume_to_text({'skill_groups': {'技术': ['Python']}})
         self.assertIn('技术：Python', text)
 
+    def test_ascii_skills_do_not_match_inside_other_names(self):
+        for required, actual in (("Java", "JavaScript"), ("Go", "Google"),
+                                 ("SQL", "MySQL"), ("R", "React")):
+            with self.subTest(required=required, actual=actual):
+                checks = review_resume({"skills": [actual]}, {"required_skills": [required]})
+                self.assertTrue(any("JD 中这些技能" in check and required in check for check in checks))
+
+    def test_ascii_boundaries_allow_chinese_prose_and_literal_punctuation(self):
+        data = {"projects": [{"name": "课程实践", "description": "使用java、Go、C++与C#开发，用Node.js编写接口。做过需求分析。"}]}
+        checks = review_resume(data, {"required_skills": ["Java", "Go", "C++", "C#", "Node.js", "需求分析"]})
+        self.assertFalse(any("JD 中这些技能" in check for check in checks))
+
     def test_jd_alone_is_not_personal_data_but_editor_custom_draft_is(self):
         self.assertFalse(resume_data_has_content({'basic_info': {'objective': 'AI 产品实习'}}))
         self.assertTrue(resume_data_has_content({'basic_info': {'objective': 'AI 产品实习'}, 'sections': []}))

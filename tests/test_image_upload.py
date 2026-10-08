@@ -53,6 +53,7 @@ class ImageUploadTest(unittest.TestCase):
             LLM_BASE_URL="https://api.deepseek.com",
             LLM_PROVIDER="deepseek",
             LLM_VISION_MODEL="",
+            LLM_MAX_TOKENS=None,
         )
         requests = []
 
@@ -68,11 +69,16 @@ class ImageUploadTest(unittest.TestCase):
         def fake_client(**kwargs):
             return real_client(transport=httpx.MockTransport(handle), **kwargs)
 
-        with patch("app.services.image_ocr.get_settings", return_value=settings):
-            with patch("app.services.image_ocr.httpx.AsyncClient", side_effect=fake_client):
-                result = asyncio.run(recognize_jd_image("jd.jpg", sample_image()))
-        self.assertEqual(result, "岗位职责：开发 API")
-        self.assertEqual(len(requests), 1)
+        for cap in (None, 4321):
+            settings.LLM_MAX_TOKENS = cap
+            with self.subTest(max_tokens=cap):
+                with patch("app.services.image_ocr.get_settings", return_value=settings):
+                    with patch("app.services.image_ocr.httpx.AsyncClient", side_effect=fake_client):
+                        result = asyncio.run(recognize_jd_image("jd.jpg", sample_image()))
+                self.assertEqual(result, "岗位职责：开发 API")
+        self.assertEqual(len(requests), 2)
+        self.assertNotIn("max_tokens", json.loads(requests[0].content))
+        self.assertEqual(json.loads(requests[1].content)["max_tokens"], 4321)
         self.assertEqual(requests[0].url.path, "/chat/completions")
         self.assertEqual(requests[0].headers["Authorization"], "Bearer test-key")
 

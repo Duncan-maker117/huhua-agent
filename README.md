@@ -49,7 +49,11 @@ AI 简历对话工作台：聊天收集真实经历 → 针对岗位整理 → �
 
 当前业务由 `resume_graph` 编排。可选 RAG 仅为 JD 解码提供 `jargon_dict` 参考，默认 `ENABLE_RAG=false`。候选改写由 `resume_suggestions` 生成、核验，再经用户采用写入当前稿。
 
-**双模型策略**：`LLM_MODEL` 用于主对话，`LLM_STRUCTURED_MODEL` 用于 Triage / editor 等结构化调用。示例配置分别使用 `qwen3.6-plus` 和 `qwen-plus`。
+**模型配置**：代码默认值与 `.env.example` 一致：`LLM_MODEL=gpt-4o`，`LLM_STRUCTURED_MODEL` 留空时沿用主模型，未设置 `LLM_BASE_URL` 时使用 OpenAI SDK 默认端点。内部提取、JD 解码与编辑可通过 `LLM_STRUCTURED_MODEL` 单独选模型；DashScope 和 DeepSeek 的显式配置见 `.env.example`，模型名应使用对应服务实际支持的值。
+
+`LLM_CHAT_TEMPERATURE` 默认 `0.7`；原 `LLM_TEMPERATURE` 仍兼容，新键优先。提取、Triage 和 editor 保持原有温度 `0`，JD 解码沿用主模型温度，简历审查保持 `0`，现有候选改写和档案整理沿用其传入模型温度。`LLM_WRITER_TEMPERATURE` 默认 `0.4`，仅为后续写作节点预留，当前流程未使用它。
+
+`LLM_MAX_TOKENS` 默认为未设置，保留服务商原有输出上限；显式填写正整数后，主对话、内部调用和图片转写均使用该上限。它不限制输入上下文，也不代表整次对话的 token 或费用预算。
 
 图片使用 `LLM_VISION_MODEL`。留空时按 API 地址选择：DeepSeek 使用 `deepseek-flash`，DashScope 使用 `qwen-vl-plus`，OpenAI 默认地址使用 `gpt-4o-mini`。图片会发送到配置的视觉模型服务；没有配置 `LLM_API_KEY` 时返回明确错误。图片上传仍受 10MB 限制，并有单独并发与请求频率限制。
 

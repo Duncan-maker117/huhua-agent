@@ -86,6 +86,8 @@ async def recognize_jd_image(filename: str, raw: bytes) -> str:
         ],
         "temperature": 0,
     }
+    if settings.LLM_MAX_TOKENS is not None:
+        payload["max_tokens"] = settings.LLM_MAX_TOKENS
     try:
         async with httpx.AsyncClient(timeout=IMAGE_OCR_TIMEOUT_SECONDS) as client:
             response = await client.post(

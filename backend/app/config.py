@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
-from pydantic import Field
+from pydantic import AliasChoices, Field
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -49,13 +49,20 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "openai"  # openai / deepseek
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gpt-4o"
-    # 结构化输出（Triage / editor / decoder / info-extractor）专用模型；
-    # qwen3.6-plus 的 with_structured_output 太慢（~12s），这里切到更快的 qwen3-max
+    # 内部提取、JD 解码与编辑模型；未指定时沿用主模型。
     LLM_STRUCTURED_MODEL: str = ""  # 空则回退到 LLM_MODEL
     # 空值按 API 地址选择 DeepSeek Flash / Qwen VL / OpenAI 视觉模型。
     LLM_VISION_MODEL: str = ""
     LLM_BASE_URL: str | None = None  # DeepSeek 等自定义 base_url
-    LLM_TEMPERATURE: float = 0.7
+    # Keep LLM_TEMPERATURE as a legacy input alias for existing deployments.
+    LLM_CHAT_TEMPERATURE: float = Field(
+        default=0.7, ge=0, le=2,
+        validation_alias=AliasChoices("LLM_CHAT_TEMPERATURE", "LLM_TEMPERATURE"),
+    )
+    # Reserved for the later writer node; the current editor keeps its settings.
+    LLM_WRITER_TEMPERATURE: float = Field(default=0.4, ge=0, le=2)
+    # None preserves the provider default; opt in to an explicit output limit.
+    LLM_MAX_TOKENS: int | None = Field(default=None, gt=0)
     # 简历审查需要读完整份材料；此值覆盖整段公开输出流。
     LLM_REVIEW_TIMEOUT_SECONDS: float = 90.0
 
@@ -70,6 +77,11 @@ class Settings(BaseSettings):
     CHROMA_DIR: str = str(PROJECT_DIR / "data" / "chroma_db")
     RAG_TOP_K: int = 5
     ENABLE_RAG: bool = False
+
+    @property
+    def LLM_TEMPERATURE(self) -> float:
+        """Compatibility accessor for existing evaluation scripts."""
+        return self.LLM_CHAT_TEMPERATURE
 
     def validate_runtime(self):
         if self.APP_ENV == "production":

@@ -941,7 +941,6 @@ STAGE_PROMPTS = {
 - 如果用户给了JD文字（超过50字的大段文字），回复「收到，正在解读...」然后停止，系统会自动切换到解读阶段
 - 如果用户只说了岗位方向没给JD（如「产品经理」），不要卡住用户；进入能力展示型简历，围绕该方向挖经历
 - 回复简短，一次只问一件事""",
-    "COLLECTING": """你是「胡话简历」AI助手，当前阶段：收集用户经历（已废弃，请用 COLLECTING_* 子 prompt）。""",
     # ── Triage 分支后的子 prompt ───────────────────────────────────
     "COLLECTING_WRAP": """当前任务：就刚补充的经历给一个很短的下一步引导。
 应用已先完成事实提取。独立资料中的 candidate_facts 是当前事实，resume_updated 表示本轮是否实际更新右侧草稿。
@@ -1013,72 +1012,11 @@ STAGE_PROMPTS = {
 > 一句话就够，我帮你定位关键能力。
 
 不要问多余问题，等用户一句话回复。""",
-    "SKIP_JD_OK": """你是「胡话简历」AI助手，当前阶段：确认跳过 JD。
 
-用户已选择不提供 JD 原文，进入通用模式。
-
-简短回复：
-> 好，不用 JD 我也能帮你做。先告诉我你心仪的岗位方向（一句话就行），然后我们开始聊你的经历。
-
-然后停止。""",
-    "BUILDING": """你是「胡话简历」AI助手，当前阶段：包装简历。
-
-你已收集了用户的经历信息。现在要把它们包装成高质量的简历内容。
-
-包装规范（必须严格遵守）：
-- 只包装用户实际告知的经历，绝对不得凭空添加用户未提及的项目
-- 每个项目最多3条bullet（核心动作 + 量化结果 + 复用价值）
-- 最相关的项目3条，次相关2条，只有1条则1条，有几条写几条
-- 自我评价不超过3行
-- 整体控制在1页以内
-- 语言：具体行动与已知产出，数字有来源才写；不强制 STAR 或量化
-
-严禁捏造规则（违反即为严重错误）：
-- 姓名、联系方式等基本信息如用户未提供，一律用[待填写]占位，绝对不能编名字
-- 所有数字和量化指标必须来自用户原话，不得自行推算或虚构
-- 不得添加用户未提及的经历、项目、公司、技能
-
-展示格式：
-直接输出简历内容，之后问用户「这个版本你觉得怎么样？要调整什么吗？」""",
-    "EVALUATING": """你是「胡话简历」的投递前核对助手。
-
-你已经有了简历草稿和目标JD。只检查当前简历中可核查的事实和缺项。
-
-检查展示格式：
-✅ 已有证据
-⚠️ 待补信息或待核实事实
-📄 导出与解析风险
-
-之后问用户：「要继续优化还是直接导出？」""",
-    "EXPORT": """你是「胡话简历」AI助手，当前阶段：导出简历。
-
-简历已完成。询问用户导出格式：
-「你的简历已准备好，选择导出格式：
-  1. PDF（推荐，投递用）
-  2. Word（还需要自己编辑）」
-
-根据用户选择触发对应导出流程。""",
 }
 
 
 # ── 节点实现 ──────────────────────────────────────────────────────────────────
-
-
-def _jd_requirements_summary(state: ResumeState) -> str:
-    """返回可塞进 prompt 的 JD 关键要求摘要（有 JD 时用 must_highlight，轻量模式用关键词，都没有时兜底）。"""
-    strategy = state.get("resume_strategy") or {}
-    if state.get("jd_info"):
-        reqs = state["jd_info"].get("resume_strategy", {}).get("must_highlight", [])
-        if reqs:
-            return "、".join(reqs)
-        if strategy.get("recruiter_priorities"):
-            return "、".join(strategy["recruiter_priorities"][:5])
-        return "见已解读JD"
-    if state.get("jd_keywords"):
-        return "（轻量模式）岗位关键词：" + "、".join(state["jd_keywords"])
-    if strategy.get("recruiter_priorities"):
-        return "（能力展示模式）" + "、".join(strategy["recruiter_priorities"][:5])
-    return "（暂无 JD，走通用简历规则）"
 
 
 def _get_stage_system(
@@ -1173,8 +1111,8 @@ def _make_non_streaming_llm(
 ) -> ChatOpenAI:
     """
     基于主 LLM 配置生成一个非流式实例，用于内部决策调用（triage / extract / decoder / editor）。
-    如果 settings.LLM_STRUCTURED_MODEL 非空，会切到该模型（通常是结构化输出更快的型号），
-    解决 qwen3.6-plus 等模型 with_structured_output 慢的问题。
+    如果 settings.LLM_STRUCTURED_MODEL 非空，会切到该模型。
+    调用方显式设置温度时沿用该值，否则保留主模型温度；输出上限由配置决定。
     """
     from app.config import get_settings
 
@@ -1185,6 +1123,7 @@ def _make_non_streaming_llm(
         api_key=llm.openai_api_key,
         base_url=llm.openai_api_base,
         temperature=llm.temperature if temperature is None else temperature,
+        max_tokens=s.LLM_MAX_TOKENS,
         streaming=False,
     )
 

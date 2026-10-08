@@ -1,0 +1,1904 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 数据质量和数据集划分检查",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 错例分析与实验记录",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 独立模型设计或线上推理经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 3,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 独立模型设计或线上推理经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {}
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "project_title_mismatch",
+            "path": "projects[0].name",
+            "quote": "的叶片图片分类",
+            "expected_project_names": [
+              "叶影识别"
+            ],
+            "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元的全部主张均能在 observed_facts 中找到逐字对应的原文证据，包括课程小组项目性质、检查训练集和验证集文件列表、挑出预测错误图片、使用老师提供的 PyTorch 代码以及未部署。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 数据质量和数据集划分检查",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 错例分析与实验记录",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 独立模型设计或线上推理经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 3,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 独立模型设计或线上推理经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {
+          "input_tokens": 1865,
+          "output_tokens": 2041,
+          "total_tokens": 3906
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11b8e-e48a-7690-a632-22d9a2e72928",
+          "started_at": "2026-10-08T20:48:31.883897+08:00",
+          "usage": {
+            "input_tokens": 1865,
+            "output_tokens": 2041,
+            "total_tokens": 3906
+          }
+        }
+      ],
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "statement_unit_count": 1,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[0].name",
+              "quote": "的叶片图片分类",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            }
+          ],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              }
+            ],
+            "statement_unit_count": 1,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 0,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 0,
+              "fact_ratio": null,
+              "requirements": []
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 3,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 错例分析与实验记录",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 0,
+            "ratio": null
+          },
+          "usage": {}
+        },
+        {
+          "status": "error",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "statement_unit_count": 1,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[0].name",
+              "quote": "的叶片图片分类",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            }
+          ],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              }
+            ],
+            "statement_unit_count": 1,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 0,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 0,
+              "fact_ratio": null,
+              "requirements": []
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 3,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 错例分析与实验记录",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 0,
+            "ratio": null
+          },
+          "usage": {},
+          "error_type": "JudgeSchemaError",
+          "validation_error": "coverage missing allowed fact evidence",
+          "unvalidated_result": {
+            "audits": [
+              {
+                "unit_id": "u002",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "断言与已披露原话完全一致，所有主张均有观察原文支持；未新增未观察到的细节或结果。"
+              }
+            ],
+            "quality": {
+              "jd_relevance": 4,
+              "personal_contribution": 3,
+              "results_impact": 2,
+              "professional_expression": 3,
+              "selection_length": 2
+            },
+            "coverage": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "我检查了训练集和验证集的文件列表",
+                    "fact_indices": []
+                  }
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": []
+              }
+            ]
+          }
+        },
+        {
+          "status": "error",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "statement_unit_count": 1,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[0].name",
+              "quote": "的叶片图片分类",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            }
+          ],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              }
+            ],
+            "statement_unit_count": 1,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 0,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 0,
+              "fact_ratio": null,
+              "requirements": []
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 3,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 错例分析与实验记录",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 0,
+            "ratio": null
+          },
+          "usage": {},
+          "error_type": "OpenAIConnectionError",
+          "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+        }
+      ],
+      "previous_review_calls": [
+        [
+          {
+            "model": "deepseek-v4-pro",
+            "status": "completed",
+            "run_id": "01a11b82-b133-74e3-8bdc-3b5fc8484c37",
+            "started_at": "2026-10-08T20:35:12.308842+08:00",
+            "usage": {
+              "input_tokens": 1708,
+              "output_tokens": 6744,
+              "total_tokens": 8452
+            }
+          }
+        ],
+        [
+          {
+            "model": "deepseek-v4-pro",
+            "status": "error",
+            "run_id": "01a11b89-b4b9-76c3-8c72-2e3eeca4b98b",
+            "started_at": "2026-10-08T20:42:51.963349+08:00",
+            "error_type": "OpenAIConnectionError"
+          }
+        ]
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "project_title_mismatch",
+            "path": "projects[0].name",
+            "quote": "的叶片图片分类",
+            "expected_project_names": [
+              "叶影识别"
+            ],
+            "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+          },
+          {
+            "kind": "project_title_mismatch",
+            "path": "projects[1].name",
+            "quote": "两边",
+            "expected_project_names": [
+              "叶影识别"
+            ],
+            "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+          },
+          {
+            "kind": "duplicate_project",
+            "path": "projects",
+            "quote": "叶影识别",
+            "project_indices": [
+              0,
+              1
+            ],
+            "reason": "同一已知项目或完全相同正文出现在多个项目条目。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元全部主张均有 observed_facts 中的原话直接支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元全部主张均有 observed_facts 中的原话直接支持。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 数据质量和数据集划分检查",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 错例分析与实验记录",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 独立模型设计或线上推理经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 3,
+            "fact_ratio": 0.3333333333333333,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 独立模型设计或线上推理经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1966,
+          "output_tokens": 3715,
+          "total_tokens": 5681
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11b89-b543-7292-885a-469f49ef3ab8",
+          "started_at": "2026-10-08T20:42:52.099476+08:00",
+          "usage": {
+            "input_tokens": 1966,
+            "output_tokens": 3715,
+            "total_tokens": 5681
+          }
+        }
+      ],
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 4,
+            "statement_unit_count": 2,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[0].name",
+              "quote": "的叶片图片分类",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            },
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[1].name",
+              "quote": "两边",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            },
+            {
+              "kind": "duplicate_project",
+              "path": "projects",
+              "quote": "叶影识别",
+              "project_indices": [
+                0,
+                1
+              ],
+              "reason": "同一已知项目或完全相同正文出现在多个项目条目。"
+            }
+          ],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              },
+              {
+                "unit_id": "u003",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              }
+            ],
+            "statement_unit_count": 2,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 1,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 1,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    2
+                  ],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 3,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    2
+                  ],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 错例分析与实验记录",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 1,
+            "ratio": null
+          },
+          "usage": {}
+        },
+        {
+          "status": "completed",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 4,
+            "statement_unit_count": 2,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[0].name",
+              "quote": "的叶片图片分类",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            },
+            {
+              "kind": "project_title_mismatch",
+              "path": "projects[1].name",
+              "quote": "两边",
+              "expected_project_names": [
+                "叶影识别"
+              ],
+              "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+            },
+            {
+              "kind": "duplicate_project",
+              "path": "projects",
+              "quote": "叶影识别",
+              "project_indices": [
+                0,
+                1
+              ],
+              "reason": "同一已知项目或完全相同正文出现在多个项目条目。"
+            }
+          ],
+          "factuality": {
+            "status": "pending_human_review",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              },
+              {
+                "unit_id": "u002",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
+                ],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "该句所有主张均有 observed_facts 原文支持：项目背景、检查文件列表、错例查看、使用老师提供的 PyTorch 代码且未部署。",
+                "audit_method": "llm"
+              },
+              {
+                "unit_id": "u003",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              },
+              {
+                "unit_id": "u004",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。"
+                ],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "该句与 observed_facts 中披露原文完全一致，直接支持。",
+                "audit_method": "llm"
+              }
+            ],
+            "statement_unit_count": 2,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 3,
+            "results_impact": 2,
+            "professional_expression": 2,
+            "selection_length": 3
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 数据质量和数据集划分检查",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 错例分析与实验记录",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 1,
+              "total": 1,
+              "ratio": 1.0,
+              "fact_covered": 1,
+              "fact_total": 1,
+              "fact_ratio": 1.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u004",
+                      "quote": "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。",
+                      "fact_indices": [
+                        2
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    2
+                  ],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    2
+                  ],
+                  "covered_truth_fact_indices": [
+                    2
+                  ]
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 1,
+              "total": 2,
+              "ratio": 0.5,
+              "fact_covered": 1,
+              "fact_total": 3,
+              "fact_ratio": 0.3333333333333333,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u004",
+                      "quote": "我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。",
+                      "fact_indices": [
+                        2
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 数据质量和数据集划分检查",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    2
+                  ],
+                  "truth_fact_indices": [
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    2
+                  ],
+                  "covered_truth_fact_indices": [
+                    2
+                  ]
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 错例分析与实验记录",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 独立模型设计或线上推理经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0
+          },
+          "usage": {
+            "input_tokens": 1809,
+            "output_tokens": 5842,
+            "total_tokens": 7651
+          }
+        }
+      ],
+      "previous_review_calls": [
+        [
+          {
+            "model": "deepseek-v4-pro",
+            "status": "completed",
+            "run_id": "01a11b84-1508-7252-a109-9a6c86d6bc78",
+            "started_at": "2026-10-08T20:36:43.401055+08:00",
+            "usage": {
+              "input_tokens": 1809,
+              "output_tokens": 5842,
+              "total_tokens": 7651
+            }
+          }
+        ]
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按 JD 再改“叶影识别”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      },
+      "review_calls": []
+    },
+    {
+      "turn": 5,
+      "instruction": "把“叶影识别”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      },
+      "review_calls": []
+    }
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

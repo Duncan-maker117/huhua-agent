@@ -1,0 +1,1045 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {}
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "education_missing",
+            "path": "education",
+            "quote": "",
+            "fact_index": 1,
+            "missing_fields": {
+              "school": "澄川学院",
+              "major": "计算机科学与技术",
+              "degree": "本科",
+              "status": "在读"
+            },
+            "reason": "已披露教育事实没有进入可见教育栏。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 1,
+          "results_impact": 1,
+          "professional_expression": 2,
+          "selection_length": 1
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 查询接口和关系型数据库操作",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 异常输入处理与本地验证",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                5,
+                6
+              ],
+              "truth_fact_indices": [
+                5,
+                6
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 部署维护或性能测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 2,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 2183,
+          "output_tokens": 2815,
+          "total_tokens": 4998
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11b8b-7148-7cf2-b7af-284232c83d7d",
+          "started_at": "2026-10-08T20:44:45.769275+08:00",
+          "usage": {
+            "input_tokens": 2183,
+            "output_tokens": 2815,
+            "total_tokens": 4998
+          }
+        }
+      ],
+      "previous_attempts": [
+        {
+          "status": "not_run",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "statement_unit_count": 0,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "education_missing",
+              "path": "education",
+              "quote": "",
+              "fact_index": 1,
+              "missing_fields": {
+                "school": "澄川学院",
+                "major": "计算机科学与技术",
+                "degree": "本科",
+                "status": "在读"
+              },
+              "reason": "已披露教育事实没有进入可见教育栏。"
+            }
+          ],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "skill"
+              },
+              {
+                "unit_id": "u002",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "skill"
+              }
+            ],
+            "statement_unit_count": 0,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 部署维护或性能测试经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 4,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 查询接口和关系型数据库操作",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 异常输入处理与本地验证",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "truth_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 4,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 查询接口和关系型数据库操作",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 异常输入处理与本地验证",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "truth_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 部署维护或性能测试经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 2,
+            "ratio": null
+          },
+          "usage": {}
+        },
+        {
+          "status": "error",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "statement_unit_count": 0,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [
+            {
+              "kind": "education_missing",
+              "path": "education",
+              "quote": "",
+              "fact_index": 1,
+              "missing_fields": {
+                "school": "澄川学院",
+                "major": "计算机科学与技术",
+                "degree": "本科",
+                "status": "在读"
+              },
+              "reason": "已披露教育事实没有进入可见教育栏。"
+            }
+          ],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "skill"
+              },
+              {
+                "unit_id": "u002",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "skill"
+              }
+            ],
+            "statement_unit_count": 0,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 查询接口和关系型数据库操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 异常输入处理与本地验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  5,
+                  6
+                ],
+                "truth_fact_indices": [
+                  5,
+                  6
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 部署维护或性能测试经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 4,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 查询接口和关系型数据库操作",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 异常输入处理与本地验证",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "truth_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 4,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 查询接口和关系型数据库操作",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 异常输入处理与本地验证",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "truth_fact_indices": [
+                    5,
+                    6
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 部署维护或性能测试经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 2,
+            "ratio": null
+          },
+          "usage": {},
+          "error_type": "JudgeSchemaError",
+          "validation_error": "coverage requires assertion unit",
+          "unvalidated_result": {
+            "audits": [],
+            "quality": {
+              "jd_relevance": 2,
+              "personal_contribution": 2,
+              "results_impact": 1,
+              "professional_expression": 3,
+              "selection_length": 1
+            },
+            "coverage": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u001",
+                    "quote": "用 SQLite 保存笔记标题和正文",
+                    "fact_indices": [
+                      4
+                    ]
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "使用基础 SQL 查询笔记",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": []
+              }
+            ]
+          }
+        }
+      ],
+      "previous_review_calls": [
+        [
+          {
+            "model": "deepseek-v4-pro",
+            "status": "completed",
+            "run_id": "01a11b84-b91f-7f90-8c2b-7d481f90f4f4",
+            "started_at": "2026-10-08T20:37:25.408181+08:00",
+            "usage": {
+              "input_tokens": 2026,
+              "output_tokens": 3966,
+              "total_tokens": 5992
+            }
+          }
+        ]
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按这个后端 JD 重新调整整份简历，把已有材料中最相关的本人工作放到重点位置，求职意向改成 Python 后端开发实习，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      },
+      "review_calls": []
+    },
+    {
+      "turn": 5,
+      "instruction": "把“影像展招募页”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {}
+      },
+      "review_calls": []
+    }
+  ],
+  "pairwise": {
+    "status": "not_applicable_baseline_has_no_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

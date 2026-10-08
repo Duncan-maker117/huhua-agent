@@ -3,7 +3,7 @@
   "title": "运营转 AI PM：人工反馈分类的可迁移证据",
   "scenario": "career_switch",
   "role_family": "ai_pm",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：AI 产品实习生\n岗位职责：整理用户需求，使用大模型原型验证想法，设计评测样例并分析回答错误，与研发协作推进迭代。\n任职要求：重视用户问题和模型能力边界；能够给出清楚的需求与验证记录。加分项：有 RAG、工作流工具或线上 AI 产品经验。",
   "opening_turns": [
     "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
@@ -49,7 +49,8 @@
         "问题",
         "整理",
         "表格"
-      ]
+      ],
+      "expected_status": "transferable"
     },
     {
       "id": "r2",
@@ -63,7 +64,19 @@
         "分类",
         "人工",
         "备注"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "RAG、工作流工具或线上 AI 产品经验",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "RAG",
+        "工作流",
+        "线上 AI 产品"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -166,5 +179,19 @@
     [
       2
     ]
+  ],
+  "expected_project_names": [
+    "活动问答整理"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 9,
+      "fields": {
+        "major": "社会学",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

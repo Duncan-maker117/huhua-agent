@@ -3,7 +3,7 @@
   "title": "叶影识别：数据划分与错误样本分析",
   "scenario": "role_family",
   "role_family": "algorithm",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：机器学习算法实习生\n岗位职责：参与图像分类实验，检查数据质量和数据集划分，分析错误样本并记录实验现象。\n任职要求：了解机器学习基本流程，能使用 Python 和 PyTorch，能够区分观察现象与严格量化结论。加分项：有独立模型设计或线上推理经验。",
   "opening_turns": [
     "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。"
@@ -48,7 +48,8 @@
         "划分",
         "重复",
         "训练集"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
@@ -61,7 +62,18 @@
         "错例",
         "图片",
         "记录"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "独立模型设计或线上推理经验",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "独立模型设计",
+        "线上推理"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -148,5 +160,19 @@
     [
       0
     ]
+  ],
+  "expected_project_names": [
+    "叶影识别"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 8,
+      "fields": {
+        "major": "计算机科学与技术",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

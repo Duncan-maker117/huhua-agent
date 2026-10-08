@@ -135,11 +135,12 @@ class ReportTest(unittest.TestCase):
         result = report.build_report(self.output)
         case = result["cases"][0]
         self.assertEqual(case["first_visible_experience_turn"], 2)
-        self.assertEqual(case["first_draft_turn"], 5)
+        self.assertEqual(case["first_draft_turn"], 2)
+        self.assertEqual(case["diagnostic_stage_first_draft_turn"], 5)
         self.assertEqual(case["formal_first_quality"]["jd_relevance"], 3)
         self.assertEqual(case["first_quality"]["jd_relevance"], 3)
         self.assertEqual(result["totals"]["first_visible_experience"]["within_two_turns"], 1)
-        self.assertEqual(result["totals"]["first_draft"]["within_two_turns"], 0)
+        self.assertEqual(result["totals"]["first_draft"]["within_two_turns"], 1)
 
     def test_visible_quality_ignores_name_only_and_invisible_body_versions(self):
         self.manifest()
@@ -236,6 +237,153 @@ class ReportTest(unittest.TestCase):
         result = report.build_report(self.output)
         self.assertEqual(result["totals"]["coverage"]["unknown"], 2)
         self.assertEqual(result["cases"][0]["versions"][0]["score_status"], "invalid_no_draft")
+
+    def dual_coverage_fixture(self, *, pending=False):
+        self.manifest()
+        self.fixture()
+        folder = self.output / "case-01"
+        case = json.loads((folder / "case.json").read_text())
+        case.update(truth_review_status="approved_by_claude", requirements=[
+            {"id": "r1", "text": "要求1", "expected_status": "direct", "evidence_fact_indices": [0, 1]},
+            {"id": "r2", "text": "要求2", "expected_status": "transferable", "evidence_fact_indices": [2]},
+            {"id": "r3", "text": "上线", "expected_status": "gap", "evidence_fact_indices": []},
+        ])
+        dump(folder / "case.json", case)
+        meta = json.loads((folder / "meta.json").read_text())
+        meta.update(truth_review_status="approved_by_claude", stage_first_draft_turn=None, stage_first_draft_version=None)
+        dump(folder / "meta.json", meta)
+        versions = json.loads((folder / "versions.json").read_text())
+        versions[0]["disclosed_fact_indices"] = [0]
+        dump(folder / "versions.json", versions)
+        value = score()
+        for row in value["coverage"]["requirements"]:
+            row["expected_status"] = "direct"
+        value["coverage"]["requirements"].append({"requirement": "r3 上线", "expected_status": "gap"})
+        value["coverage"].update(
+            coverage_of_disclosed={"total": 1, "covered": None if pending else 1, "fact_total": 1, "fact_covered": None if pending else 1},
+            coverage_of_truth={"total": 2, "covered": None if pending else 1, "fact_total": 3, "fact_covered": None if pending else 1},
+            gap_requirements=[{"requirement": "r3 上线", "leaked_into_resume": False}],
+        )
+        if pending:
+            value["status"] = "not_run"
+        scores = json.loads((folder / "scores.json").read_text())
+        scores["versions"][0]["score"] = value
+        dump(folder / "scores.json", scores)
+
+    def test_gap_is_excluded_and_unrevealed_requirement_is_na_only_for_disclosed(self):
+        self.dual_coverage_fixture()
+        result = report.build_report(self.output)
+        truth = result["totals"]["coverage_of_truth"]
+        disclosed = result["totals"]["coverage_of_disclosed"]
+        self.assertEqual((truth["covered"], truth["total"], truth["fact_total"]), (1, 2, 3))
+        self.assertEqual((disclosed["covered"], disclosed["total"], disclosed["not_applicable"]), (1, 1, 1))
+        self.assertEqual(disclosed["fact_total"], 1)
+        self.assertEqual(result["totals"]["gap_requirements"], 1)
+        self.assertIsNone(result["cases"][0]["diagnostic_stage_first_draft_turn"])
+        self.assertEqual(result["cases"][0]["first_draft_turn"], 2)
+        queue = json.loads((self.output / "review-queue.json").read_text())["items"]
+        self.assertNotIn("truth_review", {row["kind"] for row in queue})
+        self.assertEqual(result["truth_review_status"], "approved_by_claude")
+
+    def test_dual_coverage_plans_survive_pending_reviews_without_becoming_zero_scores(self):
+        self.dual_coverage_fixture(pending=True)
+        result = report.build_report(self.output)
+        self.assertEqual(result["totals"]["coverage_of_truth"]["unknown"], 2)
+        self.assertEqual(result["totals"]["coverage_of_disclosed"]["unknown"], 1)
+        self.assertEqual(result["totals"]["coverage_of_disclosed"]["not_applicable"], 1)
+        self.assertEqual(result["totals"]["coverage_of_truth"]["fact_unknown"], 3)
+        self.assertEqual(result["status"], "incomplete")
+
+    def test_incomplete_v2_coverage_cannot_fall_back_to_legacy_completed_score(self):
+        self.dual_coverage_fixture()
+        path = self.output / "case-01/scores.json"
+        scores = json.loads(path.read_text())
+        scores["versions"][0]["score"]["coverage"].pop("coverage_of_truth")
+        dump(path, scores)
+        result = report.build_report(self.output)
+        self.assertEqual(result["cases"][0]["versions"][0]["score_status"], "invalid_completed_score")
+        self.assertEqual(result["totals"]["coverage_of_truth"]["unknown"], 2)
+        self.assertEqual(result["status"], "incomplete")
+
+    def test_self_evaluation_fact_coverage_does_not_count_as_experience_first_draft(self):
+        self.dual_coverage_fixture()
+        path = self.output / "case-01/versions.json"
+        versions = json.loads(path.read_text())
+        versions[0]["resume_data"] = {"self_evaluation": "我核对记录，没有删除原数据。"}
+        versions[0]["observed_facts"] = ["我核对记录，没有删除原数据。"]
+        dump(path, versions)
+        result = report.build_report(self.output)
+        case = result["cases"][0]
+        self.assertIsNone(case["first_draft_turn"])
+        self.assertIsNone(case["first_quality"])
+        self.assertEqual(result["totals"]["first_draft"]["drafted_cases"], 0)
+        self.assertEqual(case["final_coverage_of_truth"]["covered"], 1)
+        self.assertEqual(case["final_coverage_of_disclosed"]["covered"], 1)
+        self.assertTrue(case["product_observations"]["self_evaluation_assertions"])
+        text = (self.output / "summary.md").read_text()
+        self.assertIn("覆盖不限经历栏，不能替代首稿指标", text)
+        self.assertIn("case-01 的已披露行动事实被放入 self_evaluation（自评栏）", text)
+        self.assertIn("终稿已有事实覆盖 1/2，但首稿仍为无稿", text)
+
+    def test_historical_zero_is_not_transferred_and_quality_findings_use_current_artifacts(self):
+        self.manifest()
+        self.fixture()
+        folder = self.output / "case-01"
+        versions = json.loads((folder / "versions.json").read_text())
+        versions[0]["observed_facts"] = ["我核对记录，没有删除原数据。"]
+        dump(folder / "versions.json", versions)
+        scores = json.loads((folder / "scores.json").read_text())
+        scores["versions"][0]["score"]["quality_checks"] = [{"kind": "project_title_mismatch", "path": "projects[0].name", "quote": "课程"}]
+        scores["versions"][0]["score"]["factuality"]["unverifiable_units"] = [{"unit_id": "u001", "verdict": "uncertain"}]
+        dump(folder / "scores.json", scores)
+        result = report.build_report(self.output)
+        self.assertEqual(result["historical_review"]["confirmed_new_experience_facts"], 0)
+        self.assertIsNone(result["totals"]["facts"]["confirmed_new_facts"])
+        self.assertEqual(result["totals"]["facts"]["semantic_suspicions"], 0)
+        self.assertEqual(result["totals"]["facts"]["unverifiable_units"], 1)
+        findings = result["totals"]["product_findings"]
+        self.assertEqual(findings["title_error_cases"], ["case-01"])
+        self.assertEqual(findings["verbatim_body_cases"], ["case-01"])
+        self.assertEqual(findings["first_person_cases"], ["case-01"])
+        text = (self.output / "detailed-summary.md").read_text()
+        for code in ("E1", "E2", "E3", "E4", "E5"):
+            self.assertIn(code, text)
+        self.assertIn("这个 0 只属于 v1", text)
+        self.assertNotIn("首稿 ≤ 2 个用户轮（进入成稿 stage）", text)
+
+    def test_simulator_usage_is_separate_and_included_in_total_cost(self):
+        self.manifest()
+        def usage(tokens, cost):
+            return {"input_tokens": tokens, "output_tokens": 0, "total_tokens": tokens,
+                    "reported_token_cost_usd": {"lower_bound": cost, "upper_bound": cost,
+                                                "priced_calls": 1, "unpriced_calls": 0}}
+        self.fixture(meta={"graph_usage": usage(10, 0.01), "judge_usage": usage(20, 0.02), "simulator_usage": usage(5, 0.005)})
+        result = report.build_report(self.output)
+        values = result["totals"]["usage"]
+        self.assertEqual(values["graph"]["total_tokens"], 10)
+        self.assertEqual(values["simulator"]["total_tokens"], 5)
+        self.assertEqual(values["all_models"]["total_tokens"], 35)
+        self.assertEqual(values["all_models"]["reported_token_cost_usd"]["lower_bound"], 0.035)
+
+    def test_r1_case_annotations_are_approved_and_keep_gap_out_of_positive_pool(self):
+        cases = {p.stem: json.loads(p.read_text()) for p in (ROOT / "evaluation/tailor-bench/cases").glob("*.json")}
+        self.assertEqual(len(cases), 12)
+        self.assertEqual(sum(len(x["must_cover"]) for x in cases.values()), 24)
+        self.assertEqual(sum(len(x["requirements"]) for x in cases.values()), 35)
+        self.assertEqual(cases["ai-pm-01"]["requirements"][1]["evidence_fact_indices"], [3])
+        self.assertEqual(cases["direction-01"]["requirements"][1]["evidence_fact_indices"], [4, 5])
+        self.assertEqual(cases["direction-01"]["opening_fact_indices"][1], [1, 2, 3])
+        self.assertEqual(cases["frontend-01"]["opening_fact_indices"][0], [0, 2])
+        self.assertEqual(cases["career-switch-01"]["requirements"][0]["expected_status"], "transferable")
+        for case in cases.values():
+            self.assertEqual(case["truth_review_status"], "approved_by_claude")
+            self.assertTrue(case["expected_project_names"])
+            for row in case["requirements"]:
+                if row["expected_status"] == "gap":
+                    self.assertFalse(row["evidence_fact_indices"])
+                    self.assertNotIn(row["id"] + " " + row["text"], case["must_cover"])
+            for education in case["disclosed_education"]:
+                self.assertTrue(all(value in case["truth_facts"][education["fact_index"]] for value in education["fields"].values()))
 
 
 if __name__ == "__main__":

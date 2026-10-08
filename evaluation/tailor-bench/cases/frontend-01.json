@@ -3,7 +3,7 @@
   "title": "书架角：搜索状态与键盘操作",
   "scenario": "role_family",
   "role_family": "frontend",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：前端开发实习生\n岗位职责：开发列表和搜索交互，处理加载、空结果和错误状态，与后端协作联调。\n任职要求：熟悉 JavaScript 或 TypeScript，了解组件化开发，注重交互完整性和可访问性。加分项：有前端性能优化或线上监测经验。",
   "opening_turns": [
     "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。"
@@ -49,7 +49,8 @@
         "搜索",
         "状态",
         "组件"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
@@ -62,7 +63,18 @@
         "键盘",
         "Enter",
         "字段"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "前端性能优化或线上监测经验",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "性能优化",
+        "线上监测"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -146,7 +158,22 @@
   ],
   "opening_fact_indices": [
     [
-      0
+      0,
+      2
     ]
+  ],
+  "expected_project_names": [
+    "书架角"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 8,
+      "fields": {
+        "major": "计算机科学与技术",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

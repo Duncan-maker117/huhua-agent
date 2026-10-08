@@ -3,7 +3,7 @@
   "title": "读书角：活动反馈与内容迭代",
   "scenario": "role_family",
   "role_family": "ops",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：内容运营实习生\n岗位职责：参与社群内容和活动执行，整理参与者反馈，复盘内容效果并提出后续选题。\n任职要求：能写清活动信息，能从用户反馈中发现内容问题；有协作执行意识。加分项：有社群规模增长或内容转化数据。",
   "opening_turns": [
     "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
@@ -49,7 +49,8 @@
         "介绍",
         "答疑",
         "活动"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
@@ -62,7 +63,18 @@
         "反馈",
         "分类",
         "选题"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "社群规模增长或内容转化数据",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "社群增长",
+        "转化"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -156,5 +168,19 @@
     [
       0
     ]
+  ],
+  "expected_project_names": [
+    "读书角"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 8,
+      "fields": {
+        "major": "汉语言文学",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

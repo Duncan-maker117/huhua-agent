@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-10-08T20:29:29.765967+08:00",
+  "model": "deepseek-flash",
+  "temperature": 0,
+  "scope": "selector_preflight_only_not_baseline",
+  "logical_calls": 2,
+  "results": [
+    {
+      "case": "direction-01",
+      "question": "这个小组作业里你具体负责哪一部分？",
+      "disclosed_fact_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expected_index": 6,
+      "result": {
+        "text": "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。",
+        "fact_indices": [
+          6
+        ],
+        "reason": "model_selected_truth",
+        "selector_status": "completed"
+      },
+      "passed": true
+    },
+    {
+      "case": "ai-pm-01",
+      "question": "改完提示词后，你重新跑过那批问题吗？",
+      "disclosed_fact_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expected_index": 4,
+      "result": {
+        "text": "修改后我重测了之前出错的问题，观察到部分回答不再出现原来的问题，但没有保存准确率或改善比例。",
+        "fact_indices": [
+          4
+        ],
+        "reason": "model_selected_truth",
+        "selector_status": "completed"
+      },
+      "passed": true
+    }
+  ]
+}

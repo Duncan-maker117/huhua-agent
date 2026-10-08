@@ -6,7 +6,7 @@
 
 ## 当前决策
 
-- **2026-10-08 Banz 按修订后的 tailor overhaul 规格仅授权前置快照与 PR0。已建立 `overhaul/tailor`，现状快照为 `a742100`；本轮交付 benchmark、12 个合成用例草稿及旧代码基线。先交 Claude 审 truth 与逐版本疑点，停止在 PR0，不开始 PR1，不 push、不部署。**
+- **2026-10-08 Banz 要求按 `evaluation/tailor-bench/claude-review-response.txt` 的 R1–R5 修订并新跑 `20261008-baseline-v2`，旧 run 不动；同意在隔离工作区并行 PR1。`overhaul/tailor` 的业务代码仍与 `a742100` 一致。PR1 已在 `codex/tailor-pr1` 独立提交 `65b06cd`，全套 556/556 通过，未合并入基线。v2 的 12 例对话及全部逐版本评分已完成；交回 summary 与用例后等待 Claude 差异复核，不自动开始 PR2。不 push、不部署。**
 
 - **2026-10-08 Banz 根据「制作个人简历网站」实测反馈授权优化核心流程。已完成本地完整资料直接成稿、生成指令/新事实不丢失、保存后确认及失败历史提示、自动分条不漏原句、模板偏好恢复和真实 PDF 下载。当前优先验收/发布这条流程；专业能力研究仍未另行接入。**
 
@@ -27,7 +27,9 @@
 
 ## 当前状态
 
-2026-10-08 Tailor PR0 已完成：`evaluation/tailor-bench/runs/20261008-baseline/summary.md` 为正式报告，`evaluation/tailor-bench/cases/README.md` 为 12 例索引。真实旧 `stream_agent` 在独立临时加密库跑完 59 轮、149 次图模型逻辑调用；捕获 31 次数据变化（30 可见、1 仅内部），19 个有正文版本由不同模型 `deepseek-v4-pro` 评分，其余 12 个空正文版本明确标 no_draft。24 条编辑执行 0/24，终稿要求证据覆盖 14/24（58.3%，模型评审口径）；9 例出现可见经历正文、3 例最终无正文，不能把聊天建议算作已改稿。45 项 benchmark 离线测试、Ruff 与业务源码差异检查通过；业务代码与 `a742100` 一致。44 条词法/语义疑点含泛标题和泛指数词噪音，全部待 Claude 复核，确认新增事实仍未知；75 项复核任务见 `review-queue.json`。`direction-01` 有一次规则模拟器漏答，已在报告标注，交互指标不可直接归因于产品。小样 `20261008-pilot` 不进入正式统计。未启动 PR1、未推送、未部署、未访问真实用户数据库或发送邮件。
+2026-10-08 Tailor PR0 R1–R5 修订完成：交付 `evaluation/tailor-bench/runs/20261008-baseline-v2/summary.md`、`cases/README.md` 和 `claude-review-followup-v2.txt`。12 例 approved truth，24 正向要求 + 11 gap；75 项 benchmark 测试、Ruff/diff检查通过。旧代码完整跑 58 轮，32 变化版本（31 可见、1内部）：20 个非空版本统一最终checker评分、12 no_draft；评分0错误/缺失。首稿10/12、两轮内8/12；编辑0/24；要求覆盖 disclosed10/14（71.4%）、truth11/24（45.8%），证据位覆盖12/18及13/46。自动词法/语义疑点0，但7个不可判定字段单列，确认新增经历事实仍待Claude复核，不能借用v1的0。150图调用、10模拟器调用（无回退）、45评分调用含全部旧尝试；首次失败与重评证据保留。旧v1全部103文件逐字哈希一致；业务源码与a742100/v1一致。导入标签未识别和data行动事实落入自评栏已只读定位，留待PR4。PR1独立分支commit `65b06cd`、全套556/556通过，位置 `/Users/yikuaibanz1/.codex/worktrees/tailor-pr1/huhua agent`，未合并到基线、未push、未部署。详见该工作区 `docs/development/2026-10-08-tailor-pr1-verification.md`。
+
+2026-10-08 Tailor PR0 首次交付（v1历史状态，后续修订见上）：`evaluation/tailor-bench/runs/20261008-baseline/summary.md` 为正式报告，`evaluation/tailor-bench/cases/README.md` 为 12 例索引。真实旧 `stream_agent` 在独立临时加密库跑完 59 轮、149 次图模型逻辑调用；捕获 31 次数据变化（30 可见、1 仅内部），19 个有正文版本由不同模型 `deepseek-v4-pro` 评分，其余 12 个空正文版本明确标 no_draft。24 条编辑执行 0/24，终稿要求证据覆盖 14/24（58.3%，模型评审口径）；9 例出现可见经历正文、3 例最终无正文，不能把聊天建议算作已改稿。45 项 benchmark 离线测试、Ruff 与业务源码差异检查通过；业务代码与 `a742100` 一致。当时44条词法/语义疑点待Claude复核；现Claude已确认v1新增经历事实0，原始report/75项review-queue保持历史原样。`direction-01` 有一次规则模拟器漏答，已在报告标注，交互指标不可直接归因于产品。小样 `20261008-pilot` 不进入正式统计。当时未启动 PR1、未推送、未部署、未访问真实用户数据库或发送邮件。
 
 2026-10-08 Banz 要求打开查看。已将本机 8765 服务从 10 月 4 日旧进程正常重启到当前源码，使用现有配置并加载已有 Pango 库路径；应用启动成功，Codex 内置浏览器已打开真实本地页面，可继续操作。未提交对话、未发邮件，生产站点未变。
 
@@ -71,7 +73,7 @@
 
 ## 下一步
 
-本轮先交接 Tailor PR0 的 summary、cases、review-queue 给 Claude；审定 truth 与疑点、确认评测口径后再由 Banz 决定下一阶段。不要因旧的开发清单自动继续 PR1。复跑与隔离说明见 `evaluation/tailor-bench/README.md`。
+本轮交接修订后的 Tailor PR0 baseline-v2 summary、cases、review-queue 给 Claude 做差异复核。PR1 在独立分支已完成但未合并；不要自动开始 PR2。旧 v1 的 Claude 复核新增经历事实为 0 只属于历史运行，不移植为 v2 安全结论。复跑、重评与隔离说明见 `evaluation/tailor-bench/README.md`。
 
 先承接 2026-10-08 的核心流程修复：发布需重新构建带 Pango/中文字体的镜像，再用线上独立测试会话核验完整资料、模板恢复及 PDF/Word 下载；本轮没有发布授权或线上验收结果，不把本地浏览器通过写成线上已解决。
 

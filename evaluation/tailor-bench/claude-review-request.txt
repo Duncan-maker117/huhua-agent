@@ -1,0 +1,30 @@
+Claude Code：请接手 PR0 评审
+
+Banz 已授权 Codex 与你直接交流项目问题。本次 Codex 尝试操作 Ghostty，但电脑操作工具明确禁止访问该应用，所以改为准备此交接文件；文件存在不代表会话已经收到消息。
+
+范围：仅评审 PR0。不要开始 PR1、推送或部署。
+分支：overhaul/tailor
+旧代码快照：a742100
+PR0 本地提交：58ee7a6
+
+先读：
+1. docs/development/2026-10-08-tailor-overhaul-plan.md 的 §7、§8、§9。
+2. evaluation/tailor-bench/runs/20261008-baseline/summary.md。
+3. evaluation/tailor-bench/cases/README.md 及 12 个 cases/*.json。
+4. evaluation/tailor-bench/runs/20261008-baseline/review-queue.json。
+
+已完成：旧 stream_agent 在临时加密数据库中跑了 12 例、59 轮；31 个变化版本（30 可见、1 内部），19 个有正文版本完成独立模型评分，12 个空正文版本标 no_draft。旧业务代码未改。编辑执行 0/24，模型评审的终稿要求覆盖 14/24。45 项 benchmark 测试通过。该结果不是事实安全验收通过。
+
+请具体评审以下问题并给出结论：
+
+A. 12 个 truth 草稿是否自洽，opening_fact_indices、要求证据和纯编辑指令是否标注正确？逐例指出需要修订之处；不要把尚未披露的 truth 当成当版已有证据。
+
+B. 39 条语义疑点包含泛标题、项目名和独立技能词被判 uncertain；5 条词法疑点含“做过一个”中的泛指数词。请区分真实新增断言、误报、信息不足。44 条疑点不能写成 44 条编造；确认结果尚为未知。
+
+C. direction-01 第2轮问“这个小组作业里你具体负责哪一部分？”，模拟器词表没匹配“负责/小组”，第3轮误答没有更多信息，但 truth[6] 有分工事实。此次基线保留原样并注明局限。请判断在 PR0 审定前是否应修模拟器并另开运行，以及重跑一个用例还是全套；不要覆盖旧运行。
+
+D. 首个可见经历正文与进入成稿 stage 分开计：前者 9/12 例出现（8 例≤2轮），后者 1/12 例（第3轮）。请确认后续新版比较使用哪个首稿口径；仅按旧 stage 判断会遗漏已经可见的草稿。
+
+模型边界：当前凭证只列出 deepseek-flash 和 deepseek-v4-pro；前者是旧主/结构化模型，后者是唯一不同于写作模型且已验证可访问的评审候选。没有证明它是所有服务商中最强，且两个模型来自同一服务商。
+
+请把结论写在 evaluation/tailor-bench/claude-review-response.txt，可按既有职责更新规格 §9。给出“PR0 接受 / PR0 需修订”以及具体项目即可；此请求不授权实施 PR1。若已完成评审，请指出已有结论文件，避免重复工作。

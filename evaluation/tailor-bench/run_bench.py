@@ -17,6 +17,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from pathlib import Path
 import statistics
 import subprocess
@@ -28,7 +29,7 @@ from zoneinfo import ZoneInfo
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
-from simulate_user import answer_question, validate_case  # noqa: E402
+from simulate_user import answer_question, select_answer, validate_case  # noqa: E402
 
 
 def timestamp() -> str:
@@ -80,7 +81,8 @@ class VersionRecorder:
         self.seen_checkpoints: set[str] = set()
 
     def record(self, resume: dict, *, turn: int, stage: str, kind: str,
-               observed: list[str], checkpoint_id: str | None = None) -> dict | None:
+               observed: list[str], checkpoint_id: str | None = None,
+               disclosed_fact_indices: list[int] | None = None) -> dict | None:
         current_hash = digest(resume)
         if kind == "committed":
             # A stage change is a generation event even if wording is identical.
@@ -102,9 +104,21 @@ class VersionRecorder:
         version = {"version_id": f"v{len(self.versions) + 1:03d}", "turn": turn,
                    "kind": kind, "stage": stage, "hash": current_hash,
                    "user_visible": kind == "committed", "checkpoint_id": checkpoint_id,
-                   "observed_facts": list(observed), "resume_data": copy.deepcopy(resume)}
+                   "observed_facts": list(observed),
+                   "disclosed_fact_indices": list(disclosed_fact_indices or []),
+                   "resume_data": copy.deepcopy(resume)}
         self.versions.append(version)
         return version
+
+
+def has_experience_body(resume: dict) -> bool:
+    from judge import candidate_units
+    return any(re.match(r"^(projects|work_experience|internship)\[\d+\]\.bullets\[", unit["path"])
+               for unit in candidate_units(resume))
+
+
+def first_draft_version(versions: list[dict]) -> dict | None:
+    return next((v for v in versions if v["user_visible"] and has_experience_body(v["resume_data"])), None)
 
 
 def usage_total(records: list[dict]) -> dict:
@@ -133,7 +147,7 @@ def usage_total(records: list[dict]) -> dict:
 
 
 def transcript_text(case: dict, turns: list[dict]) -> str:
-    lines = [f"# {case['id']} — 合成资料基线", "", "Truth 为草案，待 Claude 审定。", ""]
+    lines = [f"# {case['id']} — 合成资料基线", "", f"Truth 审定状态：{case.get('truth_review_status', 'unknown')}；本次输出仍待 Claude 差异复核。", ""]
     for turn in turns:
         lines.extend([f"## 第 {turn['turn']} 轮 · {turn['phase']}", "", "### 用户", "", turn["user"],
                       "", "### Agent", "", turn.get("assistant") or "（没有公开回复）", "",
@@ -172,7 +186,9 @@ async def rescore_case(case, judge_llm, counter_type, counter_context, args, out
     calls = []
     for kind, inputs, records in (("version", versions, scores["versions"]), ("edit", edits, scores["edits"])):
         for data, record in zip(inputs, records, strict=True):
-            if record["score"]["status"] in {"completed", "no_draft"}:
+            if record["score"]["status"] == "no_draft":
+                continue
+            if record["score"]["status"] == "completed" and not (kind == "version" and args.rejudge_versions):
                 continue
             record.setdefault("previous_attempts", []).append(record["score"])
             if record.get("review_calls"):
@@ -182,7 +198,8 @@ async def rescore_case(case, judge_llm, counter_type, counter_context, args, out
             try:
                 async with asyncio.timeout(args.judge_timeout + 5):
                     if kind == "version":
-                        score = await judge_version(case, data["resume_data"], judge_llm, observed_facts=data["observed_facts"])
+                        score = await judge_version(case, data["resume_data"], judge_llm, observed_facts=data["observed_facts"],
+                                                    disclosed_fact_indices=data.get("disclosed_fact_indices"))
                     else:
                         score = await judge_edit(case, data["before"], data["after"], data["instruction"], judge_llm,
                                                  observed_facts=data["observed_facts"])
@@ -190,6 +207,7 @@ async def rescore_case(case, judge_llm, counter_type, counter_context, args, out
                 score = {"status": "error", "error_type": type(exc).__name__}
             finally:
                 counter_context.reset(token)
+            score["judge_code_sha256"] = hashlib.sha256((HERE / "judge.py").read_bytes()).hexdigest()
             record["score"] = score
             record["review_calls"] = counter.calls
             calls.extend(counter.calls)
@@ -207,7 +225,7 @@ async def rescore_case(case, judge_llm, counter_type, counter_context, args, out
     return meta
 
 
-async def run_case(case, llm, judge_llm, counter_type, counter_context, args, output):
+async def run_case(case, llm, judge_llm, counter_type, counter_context, args, output, selector_llm=None):
     from app.agents.resume_graph import get_graph, stream_agent
     from app.services.conversation_store import create_conversation
     from app.services.session_store import load_resume_session, session_lock
@@ -227,6 +245,7 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     edit_inputs = []
     model_calls = []
     review_calls = []
+    simulator_calls = []
     failed = False
 
     async def turn(text: str, phase: str, *, task="auto", simulation=None):
@@ -237,7 +256,8 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             observed.append(text)
             disclosed.update(index for index, fact in enumerate(case["truth_facts"]) if fact in text)
         record = {"turn": number, "phase": phase, "user": text, "task": task,
-                  "simulation": simulation, "started_at": timestamp(), "status": "running"}
+                  "simulation": simulation, "disclosed_fact_indices": sorted(disclosed),
+                  "started_at": timestamp(), "status": "running"}
         counter = counter_type()
         token = counter_context.set(counter)
         started = time.monotonic()
@@ -269,11 +289,13 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
                 if isinstance(snap.values.get("resume_data"), dict):
                     recorder.record(snap.values["resume_data"], turn=number,
                                     stage=snap.values.get("stage", ""), kind="internal",
-                                    observed=observed, checkpoint_id=checkpoint_id)
+                                    observed=observed, checkpoint_id=checkpoint_id,
+                                    disclosed_fact_indices=sorted(disclosed))
             stored = load_resume_session(sid)
             committed = (stored or {}).get("resume_data") or {}
             stage = (stored or {}).get("stage", "")
-            recorder.record(committed, turn=number, stage=stage, kind="committed", observed=observed)
+            recorder.record(committed, turn=number, stage=stage, kind="committed", observed=observed,
+                            disclosed_fact_indices=sorted(disclosed))
             record["stage"] = stage
         except Exception as exc:
             record.update(status="error", state_error_type=type(exc).__name__)
@@ -297,7 +319,21 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     for _ in range(args.max_followups):
         if failed or not turns:
             break
-        answer = answer_question(case, turns[-1]["assistant"], disclosed)
+        counter = counter_type()
+        token = counter_context.set(counter)
+        try:
+            async with asyncio.timeout(args.selector_timeout + 5):
+                answer = await select_answer(case, turns[-1]["assistant"], disclosed, selector_llm)
+        except TimeoutError:
+            answer = answer_question(case, turns[-1]["assistant"], disclosed)
+            if answer:
+                answer.update(selector_status="fallback", selector_error_type="TimeoutError")
+        finally:
+            counter_context.reset(token)
+        simulator_calls.extend(counter.calls)
+        if answer is not None:
+            answer["model_calls"] = counter.calls
+            answer["usage"] = usage_total(counter.calls)
         if answer is None:
             break
         disclosed.update(answer["fact_indices"])
@@ -321,15 +357,17 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
         try:
             async with asyncio.timeout(args.judge_timeout + 5):
                 score = await judge_version(case, version["resume_data"], judge_llm,
-                                            observed_facts=version["observed_facts"])
+                                            observed_facts=version["observed_facts"],
+                                            disclosed_fact_indices=version["disclosed_fact_indices"])
         except Exception as exc:
             score = {"status": "error", "error_type": type(exc).__name__,
                      "deterministic": deterministic_score(case, version["resume_data"], version["observed_facts"])}
         finally:
             counter_context.reset(token)
+        score["judge_code_sha256"] = hashlib.sha256((HERE / "judge.py").read_bytes()).hexdigest()
         review_calls.extend(counter.calls)
         scores["versions"].append({"version_id": version["version_id"], "turn": version["turn"],
-                                   "user_visible": version["user_visible"], "score": score})
+                                   "user_visible": version["user_visible"], "score": score, "review_calls": counter.calls})
         write_json(folder / "scores.json", scores)
         print(json.dumps({"case": case["id"], "judged_version": version["version_id"], "status": score["status"]}), flush=True)
     for edit in edit_inputs:
@@ -343,15 +381,15 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             score = {"status": "error", "error_type": type(exc).__name__}
         finally:
             counter_context.reset(token)
+        score["judge_code_sha256"] = hashlib.sha256((HERE / "judge.py").read_bytes()).hexdigest()
         review_calls.extend(counter.calls)
         scores["edits"].append({"turn": edit["turn"], "instruction": edit["instruction"],
-                                "turn_status": edit["turn_status"], "score": score})
+                                "turn_status": edit["turn_status"], "score": score, "review_calls": counter.calls})
         write_json(folder / "scores.json", scores)
     write_json(folder / "edit-inputs.json", edit_inputs)
     draft_commits = [c for c in recorder.commits if c["stage"] in {"EVALUATING", "DRAFTED", "EXPORT"} and c["has_experience"]]
-    first_draft = draft_commits[0] if draft_commits else None
-    first_version = next((v["version_id"] for v in reversed(recorder.versions)
-                          if first_draft and v["hash"] == first_draft["hash"] and v["turn"] <= first_draft["turn"]), None)
+    first_draft = first_draft_version(recorder.versions)
+    first_version = first_draft["version_id"] if first_draft else None
     score_results = [v["score"] for v in scores["versions"]] + [e["score"] for e in scores["edits"]]
     evaluation_complete = all(s["status"] in {"completed", "no_draft"} for s in score_results)
     meta = {"case_id": case["id"], "status": "graph_error" if failed else "completed",
@@ -362,10 +400,16 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             "version_count": len(recorder.versions), "visible_version_count": sum(v["user_visible"] for v in recorder.versions),
             "first_draft_turn": first_draft["turn"] if first_draft else None,
             "first_draft_version": first_version, "commits": recorder.commits,
+            "stage_first_draft_turn": draft_commits[0]["turn"] if draft_commits else None,
+            "stage_first_draft_version": next((v["version_id"] for v in recorder.versions if draft_commits and v["hash"] == draft_commits[0]["hash"]), None),
+            "final_has_body": has_experience_body(committed),
+            "content_outcome": "has_experience_body" if has_experience_body(committed) else "empty_experience_body",
             "final_version": next((v["version_id"] for v in reversed(recorder.versions) if v["user_visible"]), None),
             "mean_turn_latency_seconds": round(statistics.mean(t["elapsed_seconds"] for t in turns), 3) if turns else None,
             "graph_usage": usage_total(model_calls), "judge_usage": usage_total(review_calls),
             "model_calls": model_calls, "judge_calls": review_calls,
+            "simulator_calls": simulator_calls, "simulator_usage": usage_total(simulator_calls),
+            "simulator_fallbacks": sum((t.get("simulation") or {}).get("selector_status") == "fallback" for t in turns),
             "guard_fallbacks": None, "guard_fallbacks_status": "not_instrumented_in_old_chain",
             "safety_gate": "pending_claude_review", "session_id": sid}
     if not failed and not evaluation_complete:
@@ -434,18 +478,28 @@ async def run_live(cases, args, output, manifest):
                            base_url=settings.LLM_BASE_URL, temperature=0, timeout=args.judge_timeout,
                            max_retries=0, max_tokens=12000,
                            extra_body={"thinking": {"type": "enabled"}}, reasoning_effort="high")
+    selector_llm = ChatOpenAI(model=settings.LLM_STRUCTURED_MODEL or settings.LLM_MODEL,
+                              api_key=settings.LLM_API_KEY, base_url=settings.LLM_BASE_URL,
+                              temperature=0, streaming=False, timeout=args.selector_timeout,
+                              max_retries=0, max_tokens=1024,
+                              extra_body={"thinking": {"type": "disabled"}})
     if args.graph_only:
         judge_llm = None
     if args.rescore:
         manifest.setdefault("review_configs", []).append({"model": args.judge_model, "temperature": 0,
                                                           "reasoning_effort": "high", "concurrency": args.concurrency,
-                                                          "timeout_seconds": args.judge_timeout})
+                                                          "timeout_seconds": args.judge_timeout,
+                                                          "rejudge_versions": args.rejudge_versions})
     else:
         manifest.update(writer_model=settings.LLM_MODEL, structured_model=settings.LLM_STRUCTURED_MODEL,
                     judge_model=args.judge_model, judge_temperature=0, judge_reasoning_effort="high",
                     graph_temperature=0.7, concurrency=args.concurrency,
                     max_followups=args.max_followups, turn_timeout_seconds=args.turn_timeout,
                     judge_timeout_seconds=args.judge_timeout,
+                    simulator={"policy": "model_indices_deterministic_text_v2",
+                               "model": settings.LLM_STRUCTURED_MODEL or settings.LLM_MODEL,
+                               "temperature": 0, "max_tokens": 1024, "max_facts": 2,
+                               "timeout_seconds": args.selector_timeout, "fallback": "keyword_then_negative_truth"},
                     logical_calls_not_http_retries=True,
                     isolation={"temporary_encrypted_application_db": True, "temporary_encrypted_checkpoints": True,
                                "real_user_database_accessed": False, "emails_sent": False, "rag_enabled": False,
@@ -458,7 +512,7 @@ async def run_live(cases, args, output, manifest):
             try:
                 if args.rescore:
                     return await rescore_case(case, judge_llm, Counter, context, args, output)
-                return await run_case(case, llm, judge_llm, Counter, context, args, output)
+                return await run_case(case, llm, judge_llm, Counter, context, args, output, selector_llm)
             except Exception as exc:
                 meta_path = output / case["id"] / "meta.json"
                 result = json.loads(meta_path.read_text()) if args.rescore and meta_path.exists() else {"case_id": case["id"]}
@@ -477,25 +531,6 @@ async def run_live(cases, args, output, manifest):
 
 
 def summarize(output: Path, results: list[dict], manifest: dict) -> None:
-    lines = ["# Tailor PR0 · 旧链路基线", "", f"运行时间：{manifest['started_at']}。",
-             f"业务源码快照：`{manifest['git_commit']}`；分支 `{manifest['git_branch']}`。", "",
-             "用例全部为虚构草案，truth 与模型疑点均待 Claude 复核。没有宣称事实安全门槛通过。",
-             "每次内部 checkpoint 文稿变化与每次 SQL 提交变化均保留；只有 user_visible=true 表示已提交给用户。", "",
-             "| 用例 | 运行 | 用户轮数 | 内部及可见版本 | 可见版本 | 首稿轮数 | 平均轮延迟/秒 |", "|---|---|---:|---:|---:|---:|---:|"]
-    for result in results:
-        lines.append(f"| {result['case_id']} | {result['status']} | {result.get('turn_count', '—')} | "
-                     f"{result.get('version_count', '—')} | {result.get('visible_version_count', '—')} | "
-                     f"{result.get('first_draft_turn') or '未成稿'} | {result.get('mean_turn_latency_seconds', '—')} |")
-    lines.extend(["", "## 评分与验收边界", "",
-                  "- `scores.json` 逐版本保留确定性疑点、语义事实核验、五维质量与覆盖率；首稿和终稿 ID 见 `meta.json`。",
-                  "- 数字、词表命中和模型指控均是待复核疑点；确认新增事实数量暂为 null，不能写成零。",
-                  "- 编辑指令逐条保留 before/after 与指令遵循判断；无实质 diff 不计执行成功。",
-                  "- 本次是基线，没有新版对手，pairwise 胜率为不适用；双向盲评能力在 judge.py 中提供。",
-                  "- 逻辑模型调用与实际报告的 token 已记录；SDK 内部重试次数未知。费用无核实费率表时为 null。",
-                  "- 旧链路没有新 guard，guard_fallbacks/误杀率为未观测，不伪记为零。",
-                  "- 独立临时加密库和随机临时密钥随运行清理，合成 transcript 与稿件作为本地评测证据保留。", "",
-                  "## 交接", "", "逐例检查 `transcript.md`、`versions.json`、`scores.json`；先审 truth 再确认疑点。PR1 尚未开始。", ""])
-    (output / "summary.md").write_text("\n".join(lines), encoding="utf-8")
     write_json(output / "summary.json", {"cases": results, "human_review_status": "pending_claude", "phase": "PR0"})
     from report import build_report
     build_report(output)
@@ -510,10 +545,15 @@ def main() -> int:
     parser.add_argument("--max-followups", type=int, choices=range(5), default=4)
     parser.add_argument("--turn-timeout", type=float, default=150)
     parser.add_argument("--judge-timeout", type=float, default=120)
+    parser.add_argument("--selector-timeout", type=float, default=60)
     parser.add_argument("--judge-model", default="deepseek-v4-pro")
     parser.add_argument("--graph-only", action="store_true", help="Capture chats first, leave semantic reviews explicitly incomplete")
+    parser.add_argument("--rejudge-versions", action="store_true",
+                        help="With --rescore, rejudge completed nonempty versions and retain every prior attempt")
     parser.add_argument("--rescore", type=Path, help="Review incomplete scores in frozen run artifacts, never rerun chats")
     args = parser.parse_args()
+    if args.rejudge_versions and not args.rescore:
+        parser.error("--rejudge-versions requires --rescore; never repeats graph conversations")
     if args.rescore and args.graph_only:
         parser.error("--rescore cannot be combined with --graph-only")
     paths = sorted(args.rescore.glob("*/case.json")) if args.rescore else sorted((HERE / "cases").glob("*.json"))
@@ -541,7 +581,8 @@ def main() -> int:
                  "phase": "PR0", "scope": "synthetic_old_stream_agent_baseline"})
     if args.rescore:
         manifest.pop("status", None)
-        manifest.setdefault("rescore_attempts", []).append({"started_at": timestamp(), "cases": [c["id"] for c in cases]})
+        manifest.setdefault("rescore_attempts", []).append({"started_at": timestamp(), "cases": [c["id"] for c in cases],
+                                                        "rejudge_versions": args.rejudge_versions})
     manifest.setdefault("harness_runs", []).append({"started_at": timestamp(), "phase": "rescore" if args.rescore else "graph",
                                                      "files": {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
                                                                for p in HERE.glob("*.py")}})

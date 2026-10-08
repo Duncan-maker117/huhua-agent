@@ -3,7 +3,7 @@
   "title": "拼单清单：需求与流程原型",
   "scenario": "role_family",
   "role_family": "pm",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：产品经理实习生\n岗位职责：收集使用问题，整理需求优先级，绘制核心操作流程，与设计和开发沟通需求。\n任职要求：能把模糊反馈转成具体问题；有原型或需求文档产出；表达清晰，能说明个人贡献。加分项：有线上转化漏斗或 A/B 测试经验。",
   "opening_turns": [
     "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
@@ -48,7 +48,8 @@
         "反馈",
         "需求",
         "问题"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
@@ -61,7 +62,18 @@
         "流程",
         "原型",
         "确认"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "线上转化漏斗或 A/B 测试经验",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "转化漏斗",
+        "A/B"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -146,5 +158,19 @@
     [
       3
     ]
+  ],
+  "expected_project_names": [
+    "拼单清单"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 8,
+      "fields": {
+        "major": "工商管理",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

@@ -3,7 +3,7 @@
   "title": "无 JD：晚餐账本的数据分析方向",
   "scenario": "role_direction_only",
   "role_family": "data",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "",
   "opening_turns": [
     "我想找数据分析实习，手里还没有具体 JD。",
@@ -48,13 +48,13 @@
         "SQL",
         "分类",
         "汇总"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
       "text": "解释口径与图表结论边界",
       "evidence_fact_indices": [
-        3,
         4,
         5
       ],
@@ -62,7 +62,8 @@
         "口径",
         "图表",
         "取消"
-      ]
+      ],
+      "expected_status": "direct"
     }
   ],
   "edit_instructions": [
@@ -158,7 +159,23 @@
       0
     ],
     [
-      2
+      1,
+      2,
+      3
     ]
+  ],
+  "expected_project_names": [
+    "晚餐账本"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 8,
+      "fields": {
+        "major": "信息管理",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

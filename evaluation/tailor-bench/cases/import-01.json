@@ -3,7 +3,7 @@
   "title": "本人旧简历全文：按后端 JD 重新取舍",
   "scenario": "full_resume_import",
   "role_family": "backend",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：Python 后端开发实习生\n岗位职责：参与接口和数据查询开发，处理输入异常，记录排查过程。\n任职要求：了解 Python、关系型数据库和 HTTP 接口，能说明个人实现与团队分工。加分项：有部署维护或性能测试经验。请突出相关开发证据，非技术活动经历简要保留即可。",
   "opening_turns": [
     "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。"
@@ -52,7 +52,8 @@
         "接口",
         "SQLite",
         "SQL"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
@@ -65,7 +66,18 @@
         "空关键词",
         "提示",
         "检查"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "部署维护或性能测试经验",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "部署维护",
+        "性能测试"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -189,5 +201,23 @@
       9,
       11
     ]
+  ],
+  "expected_project_names": [
+    "知页索引",
+    "影像展招募页"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 1,
+      "fields": {
+        "school": "澄川学院",
+        "major": "计算机科学与技术",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": [
+        0
+      ]
+    }
   ]
 }

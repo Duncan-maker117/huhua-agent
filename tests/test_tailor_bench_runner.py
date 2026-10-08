@@ -1,15 +1,19 @@
 """Regression checks for benchmark evidence, not for the legacy writing policy."""
 import importlib.util
+import json
+from types import SimpleNamespace
 from pathlib import Path
 import sys
 import unittest
+import tempfile
+from unittest.mock import AsyncMock, patch
 
 HERE = Path(__file__).resolve().parents[1] / "evaluation" / "tailor-bench"
 sys.path.insert(0, str(HERE))
 spec = importlib.util.spec_from_file_location("tailor_bench_runner", HERE / "run_bench.py")
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
-from simulate_user import answer_question, validate_case  # noqa: E402
+from simulate_user import answer_question, select_answer, render_fact, validate_case  # noqa: E402
 
 
 class VersionEvidenceTests(unittest.TestCase):
@@ -65,6 +69,25 @@ class VersionEvidenceTests(unittest.TestCase):
         self.assertEqual(runner.review_call_ledger({}, scores), [call])
         self.assertEqual(runner.review_call_ledger({"judge_calls": [call]}, scores), [call])
 
+    def test_version_freezes_disclosed_indices(self):
+        indices = [0, 2]
+        record = self.recorder.record(self.data, turn=1, stage="COLLECTING", kind="committed",
+                                      observed=[], disclosed_fact_indices=indices)
+        indices.append(3)
+        self.assertEqual(record["disclosed_fact_indices"], [0, 2])
+
+    def test_first_draft_requires_visible_body_regardless_of_stage(self):
+        versions = [
+            {"version_id": "internal", "user_visible": False, "resume_data": self.data},
+            {"version_id": "title-only", "user_visible": True, "resume_data": {"projects": [{"name": "名称"}]}},
+            {"version_id": "draft", "user_visible": True, "stage": "COLLECTING", "resume_data": self.data},
+        ]
+        self.assertEqual(runner.first_draft_version(versions)["version_id"], "draft")
+
+    def test_hidden_body_does_not_count_as_first_draft(self):
+        resume = {"projects": [{"name": "项目", "description": "有文字", "hidden": True}]}
+        self.assertFalse(runner.has_experience_body(resume))
+
 
 class SimulatorEvidenceTests(unittest.TestCase):
     def setUp(self):
@@ -105,7 +128,109 @@ class SimulatorEvidenceTests(unittest.TestCase):
         for case in cases:
             validate_case(case)
             self.assertGreaterEqual(len(set(case["traps"])), 2)
-            self.assertEqual(case["truth_review_status"], "draft_pending_claude")
+            self.assertEqual(case["truth_review_status"], "approved_by_claude")
+
+
+class RejudgeEvidenceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_rejudge_preserves_prior_score_calls_and_frozen_dialogue(self):
+        import judge
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "case"
+            folder.mkdir()
+            case = {"id": "case"}
+            frozen = [{"version_id": "v001", "turn": 1, "resume_data": {},
+                       "observed_facts": ["已披露"], "disclosed_fact_indices": [2]}]
+            first_call = {"run_id": "first"}
+            runner.write_json(folder / "versions.json", frozen)
+            runner.write_json(folder / "edit-inputs.json", [])
+            runner.write_json(folder / "scores.json", {"versions": [{"version_id": "v001", "score": {
+                "status": "completed", "marker": "first"}, "review_calls": [first_call]}], "edits": []})
+            runner.write_json(folder / "meta.json", {"graph_status": "completed", "judge_calls": [first_call]})
+            transcript = folder / "transcript.md"
+            transcript.write_text("frozen conversation")
+
+            class Counter:
+                def __init__(self):
+                    self.calls = [{"run_id": "second"}]
+
+            context = runner.ContextVar("test_counter", default=None)
+            args = SimpleNamespace(rejudge_versions=True, judge_timeout=1)
+            fake = AsyncMock(return_value={"status": "completed", "marker": "second"})
+            with patch.object(judge, "judge_version", fake):
+                meta = await runner.rescore_case(case, object(), Counter, context, args, root)
+            score = json.loads((folder / "scores.json").read_text())["versions"][0]
+            self.assertEqual(score["score"]["marker"], "second")
+            self.assertEqual(score["previous_attempts"][0]["marker"], "first")
+            self.assertEqual({call["run_id"] for call in meta["judge_calls"]}, {"first", "second"})
+            self.assertEqual(fake.call_args.kwargs["disclosed_fact_indices"], [2])
+            self.assertEqual(len(score["score"]["judge_code_sha256"]), 64)
+            self.assertEqual(json.loads((folder / "versions.json").read_text()), frozen)
+            self.assertEqual(transcript.read_text(), "frozen conversation")
+
+
+class SelectorTests(unittest.IsolatedAsyncioTestCase):
+    class FakeSelector:
+        def __init__(self, payload):
+            self.payload = payload
+            self.messages = None
+
+        async def ainvoke(self, messages, **kwargs):
+            self.messages = messages
+            return SimpleNamespace(content=json.dumps(self.payload, ensure_ascii=False))
+
+    def load_case(self, name):
+        return json.loads((HERE / "cases" / f"{name}.json").read_text())
+
+    async def test_direction_original_question_selects_personal_responsibility(self):
+        case = self.load_case("direction-01")
+        model = self.FakeSelector({"fact_indices": [6]})
+        result = await select_answer(case, "这个小组作业里你具体负责哪一部分？", {0, 1, 2, 3}, model)
+        self.assertEqual(result["fact_indices"], [6])
+        self.assertEqual(result["text"], render_fact(case["truth_facts"][6]))
+        self.assertNotIn('在“晚餐账本”中', result["text"])
+        supplied = json.loads(model.messages[1]["content"])["undisclosed_facts"]
+        self.assertNotIn("2", supplied)
+
+    async def test_ai_pm_original_question_selects_retest(self):
+        case = self.load_case("ai-pm-01")
+        model = self.FakeSelector({"fact_indices": [4]})
+        result = await select_answer(case, "改完提示词后，你重新跑过那批问题吗？", {0, 1, 2, 3}, model)
+        self.assertEqual(result["fact_indices"], [4])
+        self.assertIn("重测", result["text"])
+        self.assertIn("没有保存准确率或改善比例", result["text"])
+
+    async def test_empty_selection_uses_relevant_negative_even_if_disclosed(self):
+        case = self.load_case("import-01")
+        model = self.FakeSelector({"fact_indices": []})
+        result = await select_answer(case, "有没有留下排查记录？", set(case["opening_fact_indices"][0]), model)
+        self.assertEqual(result["fact_indices"], [6])
+        self.assertEqual(result["text"], render_fact(case["truth_facts"][6]))
+        self.assertNotIn("没有排查记录", result["text"])
+
+    async def test_generated_prose_is_rejected_and_never_sent(self):
+        case = self.load_case("ai-pm-01")
+        model = self.FakeSelector({"fact_indices": [4], "text": "用户增长100%"})
+        result = await select_answer(case, "效果如何？", {0, 1, 2, 3}, model)
+        self.assertEqual(result["selector_status"], "fallback")
+        self.assertNotIn("用户增长100%", result["text"])
+
+    async def test_out_of_range_and_disclosed_indices_fail_closed(self):
+        case = {"truth_facts": ["已披露", "未披露"], "simulator_topics": []}
+        for indices in ([99], [-1], [0], [True], [1, 1]):
+            result = await select_answer(case, "怎么做的？", {0}, self.FakeSelector({"fact_indices": indices}))
+            self.assertEqual(result["selector_status"], "fallback")
+            self.assertEqual(result["fact_indices"], [])
+
+    async def test_empty_unrelated_selection_does_not_dump_hidden_truth(self):
+        case = self.load_case("ai-pm-01")
+        result = await select_answer(case, "你在哪里住？", {0}, self.FakeSelector({"fact_indices": []}))
+        self.assertEqual(result["fact_indices"], [])
+
+    def test_render_removes_only_wrapper_keeps_negation_and_every_clause(self):
+        fact = '在“项目”中，我重测了问题，但没有保存比例；队友做页面。'
+        self.assertEqual(render_fact(fact), "我重测了问题，但没有保存比例；队友做页面。")
+        self.assertEqual(render_fact('“项目”没有上线。'), '“项目”没有上线。')
 
 
 if __name__ == "__main__":

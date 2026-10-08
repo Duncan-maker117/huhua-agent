@@ -38,15 +38,16 @@ class JudgeTest(unittest.IsolatedAsyncioTestCase):
                      "opening_turns": ["我整理反馈，做了原型但未上线。"],
                      "truth_facts": ["我整理反馈，做了原型但未上线。", "团队3人，测试30个例子。"],
                      "forbidden": {"numbers": [], "claims": ["上线", "主导", "Java"]},
-                     "must_cover": ["r1 整理反馈"]}
+                     "must_cover": ["r1 整理反馈"],
+                     "requirements": [{"id": "r1", "text": "整理反馈", "expected_status": "direct", "evidence_fact_indices": [0]}]}
 
     def answer(self):
         return {"audits": [{"unit_id": "u001", "verdict": "supported",
                              "observed_quotes": ["我整理反馈"], "truth_quotes": ["我整理反馈"],
                              "unsupported_spans": [], "reason": "对应本人动作。"}],
                 "quality": {key: 3 for key in judge.QUALITY_DIMENSIONS},
-                "coverage": [{"requirement": "r1 整理反馈", "covered": True,
-                              "evidence": [{"unit_id": "u001", "quote": "整理反馈"}]}]}
+                "coverage": [{"requirement_id": "r1", "covered": True,
+                              "evidence": [{"unit_id": "u001", "quote": "整理反馈", "fact_indices": [0]}]}]}
 
     def test_negated_and_planned_claims_are_not_affirmative_matches(self):
         for text in ("做了原型但未上线。", "我没有主导，项目尚未正式上线。", "计划上线，用户量未知。"):
@@ -85,6 +86,14 @@ class JudgeTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(judge._normal_number("1.5"), judge._normal_number("150%"))
         self.assertEqual(judge._normal_number("一百零五"), judge._normal_number("105"))
         self.assertEqual(judge._normal_number("三点五"), judge._normal_number("3.5"))
+
+    def test_indefinite_one_quantifiers_are_excluded_but_award_rank_is_checked(self):
+        case = {"truth_facts": [], "opening_turns": []}
+        for classifier in "个次些种项份名位段条":
+            self.assertFalse(judge.deterministic_score(case, resume(f"整理一{classifier}材料。"))["flags"])
+        out = judge.deterministic_score(case, resume("获得一等奖。"))
+        self.assertEqual(out["flags"][0]["span"], "一")
+        self.assertEqual(out["flags"][0]["kind"], "number_not_in_truth")
 
     def test_matching_number_in_wrong_context_is_suspicious(self):
         out = judge.deterministic_score(self.case, resume("团队30人。"), self.case["truth_facts"])
@@ -149,39 +158,171 @@ class JudgeTest(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(out["validation_error"])
                 self.assertEqual(out["unvalidated_result"], value)
                 self.assertIsNone(out["factuality"]["safe"])
-                self.assertIsNone(out["coverage"])
+                self.assertIsNone(out["coverage"]["covered"])
+                self.assertEqual(out["coverage"]["coverage_of_truth"]["status"], "not_run")
 
     async def test_truth_only_remains_suspicion_and_is_not_coverage(self):
         answer = self.answer()
         answer["audits"][0].update(verdict="truth_only", observed_quotes=[],
                                   truth_quotes=["团队3人"], reason="仅完整truth出现，尚未披露。")
-        answer["coverage"][0]["evidence"][0]["quote"] = "团队3人"
+        answer["coverage"][0]["evidence"][0].update(quote="团队3人", fact_indices=[1])
+        self.case["requirements"][0]["evidence_fact_indices"] = [1]
         out = await judge.judge_version(self.case, resume("团队3人。"), FakeLLM(answer))
         self.assertEqual(out["status"], "completed")
-        self.assertEqual(out["coverage"]["ratio"], 0)
+        self.assertIsNone(out["coverage"]["ratio"])
+        self.assertEqual(out["coverage"]["coverage_of_truth"]["ratio"], 1)
         self.assertEqual(out["factuality"]["suspicions"][0]["quote"], "团队3人。")
         self.assertEqual(out["factuality"]["suspicions"][0]["verdict"], "truth_only")
 
-    async def test_uncertain_generic_title_uses_known_unit_as_location_without_passing_safety(self):
+    async def test_generic_title_routes_to_quality_without_llm_factual_suspicion(self):
         answer = self.answer()
-        answer["audits"].insert(0, {"unit_id": "u000", "verdict": "uncertain",
-                                    "observed_quotes": [], "truth_quotes": [], "unsupported_spans": [],
-                                    "reason": "泛标题缺少具体事实，需人工核对。"})
-        answer["audits"][0]["unit_id"] = "u001"
-        answer["audits"][1]["unit_id"] = "u002"
+        answer["audits"][0]["unit_id"] = "u002"
         answer["coverage"][0]["evidence"][0]["unit_id"] = "u002"
         data = resume("整理反馈。")
         data["projects"][0]["name"] = "对话中描述的经历"
-        out = await judge.judge_version(self.case, data, FakeLLM(answer))
+        model = FakeLLM(answer)
+        out = await judge.judge_version(self.case, data, model)
         self.assertEqual(out["status"], "completed")
         self.assertEqual(out["quality"], answer["quality"])
         self.assertEqual(out["coverage"]["ratio"], 1)
-        suspicion = out["factuality"]["suspicions"][0]
-        self.assertEqual(suspicion["verdict"], "uncertain")
-        self.assertEqual(suspicion["unsupported_spans"], ["对话中描述的经历"])
-        self.assertEqual(suspicion["location_fallback"], "whole_unit_for_uncertain")
+        self.assertFalse(out["factuality"]["suspicions"])
+        self.assertEqual(out["factuality"]["unverifiable_units"][0]["quote"], "对话中描述的经历")
+        payload = json.loads(model.calls[0][0][1].content)
+        self.assertEqual(payload["assertion_unit_ids"], ["u002"])
+        self.assertEqual(len(out["factuality"]["audits"]), 2)
         self.assertIsNone(out["factuality"]["safe"])
-        self.assertIsNone(out["factuality"]["confirmed_fabrications"])
+
+    async def test_uncertain_assertion_is_unverifiable_not_suspicion(self):
+        answer = self.answer()
+        answer["audits"][0].update(verdict="uncertain", observed_quotes=[], unsupported_spans=[])
+        answer["coverage"][0].update(covered=False, evidence=[])
+        out = await judge.judge_version(self.case, resume("整理反馈。"), FakeLLM(answer))
+        self.assertEqual(out["status"], "completed")
+        self.assertFalse(out["factuality"]["suspicions"])
+        unit = out["factuality"]["unverifiable_units"][0]
+        self.assertEqual(unit["verdict"], "uncertain")
+        self.assertEqual(unit["unsupported_spans"], ["整理反馈。"])
+        self.assertEqual(unit["location_fallback"], "whole_unit_for_uncertain")
+
+    async def test_disclosed_and_truth_coverage_have_distinct_requirements_and_fact_denominators(self):
+        case = copy.deepcopy(self.case)
+        case["requirements"] = [
+            {"id": "r1", "text": "整理反馈", "expected_status": "direct", "evidence_fact_indices": [0, 1]},
+            {"id": "r2", "text": "团队测试", "expected_status": "direct", "evidence_fact_indices": [1]},
+            {"id": "r3", "text": "生产上线", "expected_status": "gap", "evidence_fact_indices": []},
+        ]
+        answer = self.answer()
+        answer["coverage"] += [{"requirement_id": "r2", "covered": False, "evidence": []},
+                               {"requirement_id": "r3", "covered": False, "evidence": []}]
+        out = await judge.judge_version(case, resume("整理反馈。"), FakeLLM(answer), disclosed_fact_indices=[0])
+        self.assertEqual(out["status"], "completed")
+        disclosed = out["coverage"]["coverage_of_disclosed"]
+        truth = out["coverage"]["coverage_of_truth"]
+        self.assertEqual((disclosed["covered"], disclosed["total"], disclosed["fact_covered"], disclosed["fact_total"]), (1, 1, 1, 1))
+        self.assertEqual((truth["covered"], truth["total"], truth["fact_covered"], truth["fact_total"]), (1, 2, 1, 3))
+        self.assertIsNone(out["coverage"]["requirements"][1]["disclosed_covered"])
+        self.assertFalse(out["coverage"]["gap_requirements"][0]["leaked_into_resume"])
+
+    async def test_wrong_requirement_fact_cannot_receive_coverage(self):
+        answer = self.answer()
+        # A numerically valid truth index is still invalid for this requirement.
+        answer["coverage"][0]["evidence"][0]["fact_indices"] = [1]
+        out = await judge.judge_version(self.case, resume("整理反馈。"), FakeLLM(answer), disclosed_fact_indices=[0, 1])
+        self.assertEqual(out["status"], "error")
+        self.assertEqual(out["validation_error"], "evidence facts outside requirement pool")
+        self.assertIsNone(out["coverage"]["covered"])
+
+    async def test_partial_fact_without_allowed_index_cannot_receive_coverage(self):
+        answer = self.answer()
+        answer["coverage"][0]["evidence"][0]["fact_indices"] = []
+        out = await judge.judge_version(self.case, resume("整理反馈。"), FakeLLM(answer), disclosed_fact_indices=[0])
+        self.assertEqual(out["status"], "error")
+        self.assertEqual(out["validation_error"], "coverage missing allowed fact evidence")
+        self.assertEqual(out["unvalidated_result"]["coverage"][0]["evidence"][0]["fact_indices"], [])
+        self.assertIsNone(out["coverage"]["covered"])
+        # The safe model response for an incomplete fact preserves a quality
+        # score but gives no requirement/fact coverage.
+        answer["coverage"][0].update(covered=False, evidence=[])
+        out = await judge.judge_version(self.case, resume("整理反馈。"), FakeLLM(answer), disclosed_fact_indices=[0])
+        self.assertEqual(out["status"], "completed")
+        self.assertEqual(out["coverage"]["covered"], 0)
+
+    async def test_skill_only_draft_receives_quality_but_no_experience_coverage(self):
+        answer = self.answer()
+        answer["audits"] = []
+        answer["coverage"][0].update(covered=False, evidence=[])
+        model = FakeLLM(answer)
+        out = await judge.judge_version(self.case, {"skills": ["SQL"]}, model, ["我使用过 SQL。"], [0])
+        self.assertEqual(out["status"], "completed")
+        self.assertEqual(out["quality"], answer["quality"])
+        self.assertEqual(out["coverage"]["coverage_of_truth"]["covered"], 0)
+        self.assertEqual(json.loads(model.calls[0][0][1].content)["assertion_unit_ids"], [])
+        answer["coverage"][0].update(covered=True, evidence=[{"unit_id": "u001", "quote": "SQL", "fact_indices": [0]}])
+        bad = await judge.judge_version(self.case, {"skills": ["SQL"]}, FakeLLM(answer), ["我使用过 SQL。"], [0])
+        self.assertEqual(bad["status"], "error")
+        self.assertEqual(bad["validation_error"], "coverage requires assertion unit")
+
+    async def test_gap_claim_is_separate_and_not_positive_coverage(self):
+        case = copy.deepcopy(self.case)
+        case["requirements"] = [{"id": "r3", "text": "上线", "expected_status": "gap", "evidence_fact_indices": []}]
+        answer = self.answer()
+        answer["audits"][0].update(verdict="unsupported", observed_quotes=[], truth_quotes=[], unsupported_spans=["已经上线"], reason="原始事实未上线。")
+        answer["coverage"] = [{"requirement_id": "r3", "covered": True,
+                                "evidence": [{"unit_id": "u001", "quote": "已经上线", "fact_indices": []}]}]
+        out = await judge.judge_version(case, resume("已经上线。"), FakeLLM(answer), disclosed_fact_indices=[0])
+        self.assertEqual(out["status"], "completed")
+        self.assertEqual(out["coverage"]["coverage_of_truth"]["total"], 0)
+        self.assertTrue(out["coverage"]["gap_requirements"][0]["leaked_into_resume"])
+        self.assertEqual(len(out["factuality"]["suspicions"]), 1)
+
+    async def test_no_draft_has_zero_coverage_and_not_run_keeps_unknown_numerator(self):
+        empty = await judge.judge_version(self.case, {}, None, disclosed_fact_indices=[0])
+        pending = await judge.judge_version(self.case, resume("整理反馈。"), None, disclosed_fact_indices=[0])
+        self.assertEqual(empty["coverage"]["coverage_of_disclosed"]["ratio"], 0)
+        self.assertEqual(empty["coverage"]["coverage_of_truth"]["ratio"], 0)
+        self.assertIsNone(pending["coverage"]["coverage_of_disclosed"]["covered"])
+        self.assertEqual(pending["coverage"]["coverage_of_disclosed"]["total"], 1)
+
+    async def test_project_titles_and_duplicates_are_quality_checks(self):
+        case = {"truth_facts": ["我做过项目“借物箱”。"], "expected_project_names": ["借物箱"], "requirements": []}
+        observed = ["我做过项目“借物箱”。"]
+        data = {"projects": [{"name": "课程", "description": "实现借物箱页面。"},
+                             {"name": "的", "description": "补了加载提示。"}]}
+        out = await judge.judge_version(case, data, None, observed, [0])
+        kinds = [row["kind"] for row in out["quality_checks"]]
+        self.assertEqual(kinds.count("project_title_mismatch"), 2)
+        self.assertEqual(kinds.count("duplicate_project"), 1)
+        self.assertFalse(out["deterministic"]["flags"])
+        valid = await judge.judge_version(case, {"projects": [{"name": "借物箱", "description": "补了加载提示。"}]}, None, observed, [0])
+        self.assertFalse(valid["quality_checks"])
+
+    async def test_skill_fields_use_disclosed_text_with_ascii_boundaries(self):
+        data = {"skills": ["SQLite", "SQL", "Java"]}
+        out = await judge.judge_version({"requirements": []}, data, None, ["我使用 SQLite、SQL 和 JavaScript。"], [])
+        issues = out["quality_checks"]
+        self.assertEqual([row["quote"] for row in issues], ["Java"])
+        self.assertEqual(out["factuality"]["statement_unit_count"], 0)
+        self.assertFalse(out["factuality"]["suspicions"])
+
+    async def test_objective_must_come_from_direction_or_jd_title_not_jd_skills(self):
+        case = {"role_direction": "数据分析实习", "jd_text": "岗位：数据分析实习生\n技能：SQL；职责：数据报表和业务分析。", "requirements": []}
+        out = await judge.judge_version(case, {"basic_info": {"objective": "数据分析, SQL, 数据报表, 业务分析"}}, None, ["我想找数据分析实习。"], [])
+        issue = next(row for row in out["quality_checks"] if row["kind"] == "objective_unsupported")
+        self.assertEqual(issue["unsupported_terms"], ["SQL", "数据报表", "业务分析"])
+        self.assertFalse(out["deterministic"]["flags"])
+
+    async def test_only_disclosed_education_is_required_in_visible_education(self):
+        case = {"truth_facts": ["我是计算机专业本科在读。"], "requirements": [],
+                "disclosed_education": [{"fact_index": 0, "fields": {"major": "计算机", "degree": "本科", "status": "在读"}, "opening_turn_indices": [0]}]}
+        undisclosed = await judge.judge_version(case, {}, None, [], [])
+        missing = await judge.judge_version(case, {}, None, [case["truth_facts"][0]], [0])
+        self.assertFalse(undisclosed["quality_checks"])
+        self.assertEqual(missing["quality_checks"][0]["kind"], "education_missing")
+        partial = await judge.judge_version(case, {"education": [{"major": "计算机", "degree": "本科"}]}, None, [case["truth_facts"][0]], [0])
+        issue = next(row for row in partial["quality_checks"] if row["kind"] == "education_field_missing")
+        self.assertEqual(issue["missing_fields"], {"status": "在读"})
+        complete = await judge.judge_version(case, {"education": [{"major": "计算机", "degree": "本科在读"}]}, None, [case["truth_facts"][0]], [0])
+        self.assertFalse(complete["quality_checks"])
 
     async def test_provider_error_text_is_never_persisted(self):
         out = await judge.judge_version(self.case, resume("整理反馈。"), FakeLLM(RuntimeError("Authorization Bearer secret-value")))

@@ -3,7 +3,7 @@
   "title": "旅游 Agent 原型：错误归因不等于上线效果",
   "scenario": "role_family",
   "role_family": "ai_pm",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：AI 产品实习生\n岗位职责：参与旅游规划助手的需求梳理，设计原型及评测用例，分析模型回答错误并跟进迭代。\n任职要求：能区分模型能力与产品承诺；能清楚描述本人完成的原型和评测工作；了解大模型应用，重视事实准确性。加分项：有真实用户验证或上线经验。",
   "opening_turns": [
     "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
@@ -50,20 +50,31 @@
         "测试",
         "错误",
         "评测"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
       "text": "围绕模型边界调整原型方案",
       "evidence_fact_indices": [
-        0,
         3
       ],
       "keywords": [
         "清单",
         "提示词",
         "地点"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "真实用户验证或上线经验",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "真实用户",
+        "上线"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -151,5 +162,19 @@
       0,
       1
     ]
+  ],
+  "expected_project_names": [
+    "路线笔记"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 8,
+      "fields": {
+        "major": "信息管理",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

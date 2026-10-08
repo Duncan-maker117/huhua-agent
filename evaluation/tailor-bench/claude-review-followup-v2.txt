@@ -1,0 +1,20 @@
+Codex → Claude：R1–R5 修订交接（baseline-v2）
+
+请先读 runs/20261008-baseline-v2/summary.md，再看同目录 review-queue.json 与 verification.json。最终状态和数字以这些文件为准。
+
+R1 已完成：A1–A3 索引修正；12 例 approved_by_claude；24 正向要求 + 11 gap；career-switch 保留 transferable/direct/gap；direction 无JD不造gap。
+R2 已完成：一+量词排除；字段分流、unverifiable_units；objective、项目名/重复项目、已披露教育检查；disclosed/truth 双覆盖及完整证据位覆盖。gap 不进正向分母；模型证据必须引用正确要求的事实编号和实际正文。
+R3 已完成：模型仅选未披露 fact_indices，温度0；答案由事实池确定性渲染并只去掉“在X中”前缀；失败和否定事实回退有日志。两条原始漏答追问的真实模型预检通过；v2完整对话没有selector失败回退。
+R4 已完成：首稿统一按首个用户可见经历正文（bullet/description非空），轮数与五维质量同版计算；stage只作诊断。
+R5 已完成运行及修订：新目录 20261008-baseline-v2，12例全套旧业务图；旧103文件原封不动。summary含E1–E5，具体评分最终完成状态见verification。
+
+三个口径说明：
+1. 您对v1的确认新增经历事实0只保存在历史归属说明中；旧run不改，新run仍待您差异复核。
+2. C 对import-01 T6的描述有偏差：T6只有“本地手测、没有性能测试或用户数据”，并没有说“没有排查记录”。实现只返回原事实，不擅自补出该否定。原问题回退路径已单测；本次实际import追问问SQL，选择了T4。
+3. data-01把完整已披露行动句放进了self_evaluation。A5可计事实覆盖，但D要求经历栏正文，因此不算首稿；已在E3单列，不能把事实覆盖当成合格成稿。
+
+评分修复：首轮出现连接/引用结构失败和部分事实计满覆盖的尺度问题。validator没有放宽；澄清prompt后全部20个非空版本统一重评，旧评分与调用全部保留。最终每条score的judge_code_sha256可核对一致性；no_draft版本不调用模型。个别语义尺度仍应由您复核，见checker-v2-review.md。
+
+E3已只读定位：import开场的简写教育/项目标签未被旧parser识别；同事实换成支持标签即可解析2项目+1教育。此前自动成稿测试有支持标签和显式生成指令，不能广义证明任意完整资料都能成稿；未证明只是先发JD导致。诊断见import-intake-diagnosis-v2.json，业务修复留PR4。
+
+Banz允许的PR1已在独立worktree完成，分支codex/tailor-pr1，commit 65b06cd，556/556离线测试通过；尚未合入基线分支。基线业务源码与a742100一致。没有push或部署，没有开始PR2。

@@ -3,7 +3,7 @@
   "title": "极简输入：借物箱小程序",
   "scenario": "minimal_input",
   "role_family": "frontend",
-  "truth_review_status": "draft_pending_claude",
+  "truth_review_status": "approved_by_claude",
   "jd_text": "岗位：小程序前端开发实习生\n岗位职责：参与列表展示和表单交互开发，补充输入提示，与团队协作完成原型验证。\n任职要求：了解 JavaScript 和小程序基础，能说明本人实现的页面。加分项：有真实发布或使用数据。",
   "opening_turns": [
     "我做过一个小程序，叫“借物箱”。"
@@ -45,7 +45,8 @@
         "列表",
         "表单",
         "JavaScript"
-      ]
+      ],
+      "expected_status": "direct"
     },
     {
       "id": "r2",
@@ -58,7 +59,18 @@
         "提示",
         "模拟",
         "检查"
-      ]
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "真实发布或使用数据",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "真实发布",
+        "使用数据"
+      ],
+      "expected_status": "gap"
     }
   ],
   "edit_instructions": [
@@ -145,5 +157,19 @@
   ],
   "opening_fact_indices": [
     []
+  ],
+  "expected_project_names": [
+    "借物箱"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 6,
+      "fields": {
+        "major": "软件工程",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": []
+    }
   ]
 }

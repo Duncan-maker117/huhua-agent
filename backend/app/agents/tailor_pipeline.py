@@ -10,9 +10,10 @@ from app.services.resume_capacity import (
     MAX_COMPRESSION_ROUNDS, apply_deterministic_compression, measure_rendered_pages,
     normalize_session_constraints, plan_compression, resume_data_hash,
 )
-from app.services.resume_versions import prepare_version, valid_bullet_metadata
+from app.services.resume_versions import prepare_version, text_hash, valid_bullet_metadata
 from app.services.resume_limits import preserve_item_limits
 from app.services.resume_facts import active_facts_for_writer
+from app.services.fact_guard import verify_semantics
 
 
 def turn_instruction(message: str) -> str:
@@ -166,6 +167,108 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
     return preserved
 
 
+def _compression_item(data: dict, action: dict) -> tuple[str, dict] | None:
+    parts = str(action.get('target', '')).split('/')
+    if len(parts) < 3 or parts[1] not in {'projects', 'work_experience'} or not parts[2].isdigit():
+        return None
+    rows = data.get(parts[1]) or []
+    index = int(parts[2])
+    if index >= len(rows) or not isinstance(rows[index], dict):
+        return None
+    item = rows[index]
+    if action.get('item_id') and item.get('item_id') != action['item_id']:
+        return None
+    return parts[1], item
+
+
+def _supported_compression_body(item: dict, section: str, meta: dict, collected: dict,
+                                indices: list[int] | None = None) -> list[str] | None:
+    field = 'polished_bullets' if section == 'projects' else 'bullets'
+    body = item.get(field) or []
+    selected = list(range(len(body))) if indices is None else indices
+    if (not body or not selected or any(index < 0 or index >= len(body) for index in selected)
+            or any(not isinstance(body[index], str) or not body[index].strip() for index in selected)):
+        return None
+    source = active_facts_for_writer(collected)
+    sections = ('projects',) if section == 'projects' else ('work_experience', 'internship')
+    facts = {fact['id'] for key in sections for row in source.get(key) or []
+             if row.get('item_id') == item.get('item_id') for fact in row.get('facts') or [] if fact.get('id')}
+    records = (meta.get('bullets') or {}).get(item.get('item_id')) or []
+    if ((indices is None and len(records) != len(body))
+            or any(index >= len(records) for index in selected)):
+        return None
+    for index in selected:
+        text, record = body[index], records[index]
+        if not isinstance(record, dict):
+            return None
+        refs = record.get('fact_ids') or []
+        if (not isinstance(refs, list) or not refs or any(not isinstance(ref, str) for ref in refs)
+                or not set(refs) <= facts or record.get('text_hash') != text_hash(text)):
+            return None
+    return body
+
+
+def _compression_indices(action: dict, section: str) -> list[int] | None:
+    if action.get('op') == 'merge_bullets':
+        return None
+    parts = str(action.get('target', '')).split('/')
+    field = 'polished_bullets' if section == 'projects' else 'bullets'
+    if action.get('op') != 'shorten_bullet' or len(parts) != 5 or parts[3] != field or not parts[4].isdigit():
+        return []
+    return [int(parts[4])]
+
+
+async def _retain_compressed_body(before: dict, meta: dict, revised: dict, action: dict,
+                                  collected: dict, llm) -> tuple[dict, dict, str]:
+    target = _compression_item(before, action)
+    if target is None:
+        return before, meta, 'invalid_target'
+    section, original_item = target
+    indices = _compression_indices(action, section)
+    prior = _supported_compression_body(original_item, section, meta, collected, indices)
+    if prior is None:
+        return before, meta, 'unverified_current_bullets'
+    if (revised.get('writer_diagnostic') or {}).get('status') != 'model_completed':
+        return before, meta, 'writer_not_completed'
+    rows = (revised.get('resume_data') or {}).get(section) or []
+    proposed_items = [item for item in rows if isinstance(item, dict)
+                      and item.get('item_id') == original_item.get('item_id')]
+    if len(proposed_items) != 1 or proposed_items[0].get('hidden'):
+        return before, meta, 'invalid_compressed_item'
+    proposed_meta = revised.get('resume_meta') or {}
+    proposed = _supported_compression_body(proposed_items[0], section, proposed_meta, collected, indices)
+    if proposed is None or (indices is None and len(proposed) != 1) or (indices is not None and len(proposed) != len(prior)):
+        return before, meta, 'invalid_or_unverified_compressed_bullet'
+    old_texts = prior if indices is None else [prior[index] for index in indices]
+    new_texts = proposed if indices is None else [proposed[index] for index in indices]
+    # Reverse entailment checks retention, independently from the writer's
+    # forward fact guard. Matching citation IDs alone never proves retention.
+    pairs = [{'id': f'retain_{index}', 'text': text, 'source_quotes': new_texts}
+             for index, text in enumerate(old_texts)]
+    try:
+        decisions = await verify_semantics(pairs, llm, timeout=30)
+        passed = all((decisions.get(row['id']) or {}).get('verdict') == 'pass' for row in pairs)
+    except Exception:
+        passed = False
+    if not passed:
+        return before, meta, 'semantic_retention_failed'
+    # Only the selected body and its provenance may cross this boundary. Even
+    # a malformed local writer cannot change a header or a sibling experience.
+    data, metadata = deepcopy(before), deepcopy(meta)
+    selected = _compression_item(data, action)[1]
+    field = 'polished_bullets' if section == 'projects' else 'bullets'
+    if indices is None:
+        selected[field] = deepcopy(proposed)
+        metadata.setdefault('bullets', {})[selected['item_id']] = deepcopy(
+            proposed_meta['bullets'][selected['item_id']])
+    else:
+        for index in indices:
+            selected[field][index] = proposed[index]
+            metadata['bullets'][selected['item_id']][index] = deepcopy(
+                proposed_meta['bullets'][selected['item_id']][index])
+    return data, metadata, 'accepted'
+
+
 async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_llm=None,
                               instruction: str = '', mode: str = 'one_pass',
                               scope: str = 'whole', targets=()) -> dict:
@@ -214,17 +317,20 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
     compressed = []
     compression_diagnostics = []
+    retention_checks = []
+    attempted_without_progress = set()
+    rejected_compression_items = set()
     for round_number in range(1, MAX_COMPRESSION_ROUNDS + 1):
         if measurement.get('within_page_limit') is not False:
             break
         actions = plan_compression(data, written.get('match_plan'), round_number=round_number, constraints=constraints)
         if scope != 'whole':
             def is_target(action):
-                if action.get('op') != 'shorten_bullet':
+                if action.get('op') not in {'shorten_bullet', 'merge_bullets'}:
                     return False
                 path = action.get('target', '')
                 if scope == 'bullet':
-                    return path in targets
+                    return action.get('op') == 'shorten_bullet' and path in targets
                 parts = path.split('/')
                 if len(parts) < 3 or not parts[2].isdigit():
                     return False
@@ -237,17 +343,50 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         if not actions:
             break
         changed = False
+        writer_used = False
         for action in actions:
+            key = (action.get('op'), action.get('target'), action.get('item_id'))
+            target = _compression_item(data, action)
+            if key in attempted_without_progress or (target and target[1].get('item_id') in rejected_compression_items):
+                continue
             before = deepcopy(data)
             if action.get('writer_required'):
+                if writer_used:
+                    continue
+                is_merge = action['op'] == 'merge_bullets'
+                if target is None or _supported_compression_body(
+                        target[1], target[0], meta, state.get('collected_info') or {},
+                        _compression_indices(action, target[0])) is None:
+                    retention_checks.append({'item_id': action.get('item_id') or (target[1].get('item_id') if target else None),
+                                             'op': action['op'], 'target': action['target'], 'status': 'rejected',
+                                             'reason': 'unverified_current_bullets'})
+                    if target:
+                        rejected_compression_items.add(target[1].get('item_id'))
+                    continue
+                writer_used = True
+                request = ('将目标经历当前全部已核验的句子合并成恰好一条；保留每条的本人行动、产物、成果、'
+                           'PR 编号、团队分工和状态限制，不能只保留第一条。不能新增信息。' if is_merge else
+                           f"在保留事实、否定和原型限制的前提下缩短目标句，约{action['target_max_chars_estimate']}字以内。不能新增信息。")
+                compression_instruction = f"本轮原始编辑要求：\n{turn_instruction(instruction)}\n\n本次容量压缩：{request}"
                 revised = await run_resume_writer(state.get('collected_info') or {}, profile, llm,
                     current_data=data, resume_meta=meta,
-                    instruction=f"在保留事实、否定和原型限制的前提下缩短目标句，约{action['target_max_chars_estimate']}字以内。不能新增信息。",
-                    scope='bullet', targets=[action['target']], **kwargs)
-                data, meta = revised['resume_data'], revised['resume_meta']
+                    instruction=compression_instruction,
+                    scope='item' if is_merge else 'bullet',
+                    targets=[action['item_id'] if is_merge else action['target']], **kwargs)
                 if revised.get('writer_diagnostic'):
                     compression_diagnostics.append(revised['writer_diagnostic'])
-                written.setdefault('guard_fallbacks', []).extend(revised.get('guard_fallbacks') or [])
+                data, meta, reason = await _retain_compressed_body(before, meta, revised, action,
+                    state.get('collected_info') or {}, structured_llm or llm)
+                retention_checks.append({'item_id': target[1].get('item_id'),
+                                         'op': action['op'], 'target': action['target'],
+                                         'status': 'accepted' if reason == 'accepted' else 'rejected',
+                                         'reason': reason})
+                if reason != 'accepted':
+                    rejected_compression_items.add(target[1].get('item_id'))
+                if data != before:
+                    written.setdefault('guard_fallbacks', []).extend(revised.get('guard_fallbacks') or [])
+                else:
+                    attempted_without_progress.add(key)
             else:
                 data = apply_deterministic_compression(data, [action])
                 meta = valid_bullet_metadata(data, meta)
@@ -262,7 +401,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                 measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
             if measurement.get('within_page_limit') is not False:
                 break
-        if not changed:
+        if not changed and not writer_used:
             break
     version = prepare_version(state.get('resume_data') or {}, state.get('resume_meta') or {},
                                state.get('resume_versions') or [], data, meta,
@@ -272,6 +411,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                                   page_check=measurement,
                                   writer_diagnostic=written.get('writer_diagnostic') or {},
                                   compression_writer_diagnostics=compression_diagnostics,
+                                  compression_retention_checks=retention_checks,
                                   guard_fallbacks=written.get('guard_fallbacks') or [])
     changes = written.get('change_summary') or []
     if not version['changed']:
@@ -281,6 +421,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
             'session_constraints': constraints, 'page_check': measurement,
             'writer_diagnostic': written.get('writer_diagnostic') or {},
             'compression_writer_diagnostics': compression_diagnostics,
+            'compression_retention_checks': retention_checks,
             'guard_fallbacks': written.get('guard_fallbacks') or [],
             'change_summary': changes[:5], 'compression_actions': compressed,
             'omitted': written.get('omitted') or []}

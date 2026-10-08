@@ -1,0 +1,1577 @@
+{
+  "case_id": "direction-01",
+  "status": "completed",
+  "graph_status": "completed",
+  "evaluation_status": "completed",
+  "truth_review_status": "approved_by_claude",
+  "turn_count": 5,
+  "followup_count": 1,
+  "version_count": 5,
+  "visible_version_count": 5,
+  "first_draft_turn": 2,
+  "first_draft_version": "v002",
+  "commits": [
+    {
+      "turn": 1,
+      "stage": "COLLECTING",
+      "hash": "ba8b79509ba1185f39eb226804d73cd7acc7cef3e4c7d2c535cbc7d74285c75c",
+      "has_experience": false,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {},
+        "active_facts": [],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 2,
+      "stage": "COLLECTING",
+      "hash": "1213d3f483ffafba3314623fff3b7b4df85c15c0e0b5c5bd1567f3a0117c6ced",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb",
+              "name": "晚餐账本",
+              "facts": [
+                {
+                  "id": "f_628ab3cf85bf434cb852630346dc0371",
+                  "kind": "context",
+                  "text": "该项目为课程作业“晚餐账本”。",
+                  "source_quote": "课程作业“晚餐账本”",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程作业“晚餐账本”",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+                  "kind": "context",
+                  "text": "使用老师提供的模拟点餐记录。",
+                  "source_quote": "拿老师给的模拟点餐记录",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "拿老师给的模拟点餐记录",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_765df89548fa4c62902337ae4410b660",
+                  "kind": "method_tool",
+                  "text": "使用 SQL。",
+                  "source_quote": "用 SQL",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQL",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_520a920274ee40f996555cd057d23173",
+                  "kind": "method_tool",
+                  "text": "使用表格绘制图表。",
+                  "source_quote": "再用表格画图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "再用表格画图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+                  "kind": "team",
+                  "text": "作业由小组完成。",
+                  "source_quote": "作业是小组做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "作业是小组做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_17848c114e814de0adf998030d417dcf",
+                  "kind": "status_limit",
+                  "text": "未测试业务效果。",
+                  "source_quote": "我没测业务效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没测业务效果",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图",
+                "作业是小组做的",
+                "我没测业务效果",
+                "课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录",
+                "用 SQL",
+                "再用表格画图"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_628ab3cf85bf434cb852630346dc0371",
+            "kind": "context",
+            "text": "该项目为课程作业“晚餐账本”。",
+            "source_quote": "课程作业“晚餐账本”",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程作业“晚餐账本”",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+            "kind": "context",
+            "text": "使用老师提供的模拟点餐记录。",
+            "source_quote": "拿老师给的模拟点餐记录",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_765df89548fa4c62902337ae4410b660",
+            "kind": "method_tool",
+            "text": "使用 SQL。",
+            "source_quote": "用 SQL",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQL",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_520a920274ee40f996555cd057d23173",
+            "kind": "method_tool",
+            "text": "使用表格绘制图表。",
+            "source_quote": "再用表格画图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "再用表格画图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+            "kind": "team",
+            "text": "作业由小组完成。",
+            "source_quote": "作业是小组做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "作业是小组做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_17848c114e814de0adf998030d417dcf",
+            "kind": "status_limit",
+            "text": "未测试业务效果。",
+            "source_quote": "我没测业务效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没测业务效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 3,
+      "stage": "COLLECTING",
+      "hash": "61775ee39fbfc7df8dbee4bba874c8f96626a04df3a5dc84e4a8c8cccde155d9",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb",
+              "name": "晚餐账本",
+              "facts": [
+                {
+                  "id": "f_628ab3cf85bf434cb852630346dc0371",
+                  "kind": "context",
+                  "text": "该项目为课程作业“晚餐账本”。",
+                  "source_quote": "课程作业“晚餐账本”",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程作业“晚餐账本”",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+                  "kind": "context",
+                  "text": "使用老师提供的模拟点餐记录。",
+                  "source_quote": "拿老师给的模拟点餐记录",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "拿老师给的模拟点餐记录",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_765df89548fa4c62902337ae4410b660",
+                  "kind": "method_tool",
+                  "text": "使用 SQL。",
+                  "source_quote": "用 SQL",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQL",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_520a920274ee40f996555cd057d23173",
+                  "kind": "method_tool",
+                  "text": "使用表格绘制图表。",
+                  "source_quote": "再用表格画图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "再用表格画图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+                  "kind": "team",
+                  "text": "作业由小组完成。",
+                  "source_quote": "作业是小组做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "作业是小组做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_17848c114e814de0adf998030d417dcf",
+                  "kind": "status_limit",
+                  "text": "未测试业务效果。",
+                  "source_quote": "我没测业务效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没测业务效果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_a82e3bc9fea94cfb94117e688a75bf5c",
+                  "kind": "team",
+                  "text": "队友负责演示文稿排版和汇报。",
+                  "source_quote": "队友负责演示文稿排版和汇报；",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "队友负责演示文稿排版和汇报；",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_dd6a56f6fa0040fdbe30a0cd8352488c",
+                  "kind": "action",
+                  "text": "本人完成 SQL 汇总、图表和口径说明。",
+                  "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图",
+                "作业是小组做的",
+                "我没测业务效果",
+                "课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录",
+                "用 SQL",
+                "再用表格画图",
+                "队友负责演示文稿排版和汇报；",
+                "SQL 汇总、图表和口径说明是我做的。"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_628ab3cf85bf434cb852630346dc0371",
+            "kind": "context",
+            "text": "该项目为课程作业“晚餐账本”。",
+            "source_quote": "课程作业“晚餐账本”",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程作业“晚餐账本”",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+            "kind": "context",
+            "text": "使用老师提供的模拟点餐记录。",
+            "source_quote": "拿老师给的模拟点餐记录",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_765df89548fa4c62902337ae4410b660",
+            "kind": "method_tool",
+            "text": "使用 SQL。",
+            "source_quote": "用 SQL",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQL",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_520a920274ee40f996555cd057d23173",
+            "kind": "method_tool",
+            "text": "使用表格绘制图表。",
+            "source_quote": "再用表格画图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "再用表格画图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+            "kind": "team",
+            "text": "作业由小组完成。",
+            "source_quote": "作业是小组做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "作业是小组做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_17848c114e814de0adf998030d417dcf",
+            "kind": "status_limit",
+            "text": "未测试业务效果。",
+            "source_quote": "我没测业务效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没测业务效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_a82e3bc9fea94cfb94117e688a75bf5c",
+            "kind": "team",
+            "text": "队友负责演示文稿排版和汇报。",
+            "source_quote": "队友负责演示文稿排版和汇报；",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "队友负责演示文稿排版和汇报；",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_dd6a56f6fa0040fdbe30a0cd8352488c",
+            "kind": "action",
+            "text": "本人完成 SQL 汇总、图表和口径说明。",
+            "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 4,
+      "stage": "EVALUATING",
+      "hash": "1a5c750465c6f137b88e765711cd67d6cf296bd062e002ff4b48e3e87b78e48d",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb",
+              "name": "晚餐账本",
+              "facts": [
+                {
+                  "id": "f_628ab3cf85bf434cb852630346dc0371",
+                  "kind": "context",
+                  "text": "该项目为课程作业“晚餐账本”。",
+                  "source_quote": "课程作业“晚餐账本”",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程作业“晚餐账本”",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+                  "kind": "context",
+                  "text": "使用老师提供的模拟点餐记录。",
+                  "source_quote": "拿老师给的模拟点餐记录",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "拿老师给的模拟点餐记录",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_765df89548fa4c62902337ae4410b660",
+                  "kind": "method_tool",
+                  "text": "使用 SQL。",
+                  "source_quote": "用 SQL",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQL",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_520a920274ee40f996555cd057d23173",
+                  "kind": "method_tool",
+                  "text": "使用表格绘制图表。",
+                  "source_quote": "再用表格画图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "再用表格画图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+                  "kind": "team",
+                  "text": "作业由小组完成。",
+                  "source_quote": "作业是小组做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "作业是小组做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_17848c114e814de0adf998030d417dcf",
+                  "kind": "status_limit",
+                  "text": "未测试业务效果。",
+                  "source_quote": "我没测业务效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没测业务效果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_a82e3bc9fea94cfb94117e688a75bf5c",
+                  "kind": "team",
+                  "text": "队友负责演示文稿排版和汇报。",
+                  "source_quote": "队友负责演示文稿排版和汇报；",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "队友负责演示文稿排版和汇报；",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_dd6a56f6fa0040fdbe30a0cd8352488c",
+                  "kind": "action",
+                  "text": "本人完成 SQL 汇总、图表和口径说明。",
+                  "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图",
+                "作业是小组做的",
+                "我没测业务效果",
+                "课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录",
+                "用 SQL",
+                "再用表格画图",
+                "队友负责演示文稿排版和汇报；",
+                "SQL 汇总、图表和口径说明是我做的。"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_628ab3cf85bf434cb852630346dc0371",
+            "kind": "context",
+            "text": "该项目为课程作业“晚餐账本”。",
+            "source_quote": "课程作业“晚餐账本”",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程作业“晚餐账本”",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+            "kind": "context",
+            "text": "使用老师提供的模拟点餐记录。",
+            "source_quote": "拿老师给的模拟点餐记录",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_765df89548fa4c62902337ae4410b660",
+            "kind": "method_tool",
+            "text": "使用 SQL。",
+            "source_quote": "用 SQL",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQL",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_520a920274ee40f996555cd057d23173",
+            "kind": "method_tool",
+            "text": "使用表格绘制图表。",
+            "source_quote": "再用表格画图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "再用表格画图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+            "kind": "team",
+            "text": "作业由小组完成。",
+            "source_quote": "作业是小组做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "作业是小组做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_17848c114e814de0adf998030d417dcf",
+            "kind": "status_limit",
+            "text": "未测试业务效果。",
+            "source_quote": "我没测业务效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没测业务效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_a82e3bc9fea94cfb94117e688a75bf5c",
+            "kind": "team",
+            "text": "队友负责演示文稿排版和汇报。",
+            "source_quote": "队友负责演示文稿排版和汇报；",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "队友负责演示文稿排版和汇报；",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_dd6a56f6fa0040fdbe30a0cd8352488c",
+            "kind": "action",
+            "text": "本人完成 SQL 汇总、图表和口径说明。",
+            "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 5,
+      "stage": "EVALUATING",
+      "hash": "f5894ff3f8b2f454a49ab43bc66e251d67ec488e33f64112237384e1d0108c93",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb",
+              "name": "晚餐账本",
+              "facts": [
+                {
+                  "id": "f_628ab3cf85bf434cb852630346dc0371",
+                  "kind": "context",
+                  "text": "该项目为课程作业“晚餐账本”。",
+                  "source_quote": "课程作业“晚餐账本”",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程作业“晚餐账本”",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+                  "kind": "context",
+                  "text": "使用老师提供的模拟点餐记录。",
+                  "source_quote": "拿老师给的模拟点餐记录",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "拿老师给的模拟点餐记录",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_765df89548fa4c62902337ae4410b660",
+                  "kind": "method_tool",
+                  "text": "使用 SQL。",
+                  "source_quote": "用 SQL",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQL",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_520a920274ee40f996555cd057d23173",
+                  "kind": "method_tool",
+                  "text": "使用表格绘制图表。",
+                  "source_quote": "再用表格画图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "再用表格画图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+                  "kind": "team",
+                  "text": "作业由小组完成。",
+                  "source_quote": "作业是小组做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "作业是小组做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_17848c114e814de0adf998030d417dcf",
+                  "kind": "status_limit",
+                  "text": "未测试业务效果。",
+                  "source_quote": "我没测业务效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没测业务效果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_a82e3bc9fea94cfb94117e688a75bf5c",
+                  "kind": "team",
+                  "text": "队友负责演示文稿排版和汇报。",
+                  "source_quote": "队友负责演示文稿排版和汇报；",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "队友负责演示文稿排版和汇报；",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_dd6a56f6fa0040fdbe30a0cd8352488c",
+                  "kind": "action",
+                  "text": "本人完成 SQL 汇总、图表和口径说明。",
+                  "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图",
+                "作业是小组做的",
+                "我没测业务效果",
+                "课程作业“晚餐账本”",
+                "拿老师给的模拟点餐记录",
+                "用 SQL",
+                "再用表格画图",
+                "队友负责演示文稿排版和汇报；",
+                "SQL 汇总、图表和口径说明是我做的。"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_628ab3cf85bf434cb852630346dc0371",
+            "kind": "context",
+            "text": "该项目为课程作业“晚餐账本”。",
+            "source_quote": "课程作业“晚餐账本”",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程作业“晚餐账本”",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_997e21f79ec643e2b30df838e2fa6eda",
+            "kind": "context",
+            "text": "使用老师提供的模拟点餐记录。",
+            "source_quote": "拿老师给的模拟点餐记录",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "拿老师给的模拟点餐记录",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_765df89548fa4c62902337ae4410b660",
+            "kind": "method_tool",
+            "text": "使用 SQL。",
+            "source_quote": "用 SQL",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQL",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_520a920274ee40f996555cd057d23173",
+            "kind": "method_tool",
+            "text": "使用表格绘制图表。",
+            "source_quote": "再用表格画图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "再用表格画图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_78454d9eafee4cb39a2e54b430240c1e",
+            "kind": "team",
+            "text": "作业由小组完成。",
+            "source_quote": "作业是小组做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "作业是小组做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_17848c114e814de0adf998030d417dcf",
+            "kind": "status_limit",
+            "text": "未测试业务效果。",
+            "source_quote": "我没测业务效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没测业务效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_a82e3bc9fea94cfb94117e688a75bf5c",
+            "kind": "team",
+            "text": "队友负责演示文稿排版和汇报。",
+            "source_quote": "队友负责演示文稿排版和汇报；",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "队友负责演示文稿排版和汇报；",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          },
+          {
+            "id": "f_dd6a56f6fa0040fdbe30a0cd8352488c",
+            "kind": "action",
+            "text": "本人完成 SQL 汇总、图表和口径说明。",
+            "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "SQL 汇总、图表和口径说明是我做的。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c56a3e79-2d40-432a-a58b-a2747628abbb"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    }
+  ],
+  "stage_first_draft_turn": 4,
+  "stage_first_draft_version": "v004",
+  "final_has_body": true,
+  "content_outcome": "has_experience_body",
+  "final_version": "v005",
+  "mean_turn_latency_seconds": 8.78,
+  "graph_usage": {
+    "input_tokens": 38352,
+    "output_tokens": 9298,
+    "total_tokens": 47650,
+    "logical_model_calls": 15,
+    "calls_with_usage": 15,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.005694,
+      "upper_bound": 0.022663,
+      "priced_calls": 15,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "judge_usage": {
+    "input_tokens": 10679,
+    "output_tokens": 20979,
+    "total_tokens": 31658,
+    "logical_model_calls": 7,
+    "calls_with_usage": 7,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.041773,
+      "upper_bound": 0.097173,
+      "priced_calls": 7,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "model_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-1e4f-7dc1-b388-8529561f6d95",
+      "started_at": "2026-10-09T02:10:59.792070+08:00",
+      "usage": {
+        "input_tokens": 314,
+        "output_tokens": 96,
+        "total_tokens": 410
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-2266-7f81-93d5-689af8f52d05",
+      "started_at": "2026-10-09T02:11:00.838806+08:00",
+      "usage": {
+        "input_tokens": 1576,
+        "output_tokens": 165,
+        "total_tokens": 1741
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-2667-7c91-a323-4e3c02416e38",
+      "started_at": "2026-10-09T02:11:01.863709+08:00",
+      "usage": {
+        "input_tokens": 343,
+        "output_tokens": 2259,
+        "total_tokens": 2602
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-4bd9-77b2-965e-d8755853fc27",
+      "started_at": "2026-10-09T02:11:11.449763+08:00",
+      "usage": {
+        "input_tokens": 2374,
+        "output_tokens": 474,
+        "total_tokens": 2848
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-532f-7aa1-8ceb-70daa5248781",
+      "started_at": "2026-10-09T02:11:13.327869+08:00",
+      "usage": {
+        "input_tokens": 3113,
+        "output_tokens": 395,
+        "total_tokens": 3508
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-5e08-7601-b439-516cd831d74d",
+      "started_at": "2026-10-09T02:11:16.104727+08:00",
+      "usage": {
+        "input_tokens": 1556,
+        "output_tokens": 131,
+        "total_tokens": 1687
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-61c3-7082-8d98-2305b92a43b5",
+      "started_at": "2026-10-09T02:11:17.059576+08:00",
+      "usage": {
+        "input_tokens": 575,
+        "output_tokens": 1111,
+        "total_tokens": 1686
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-772d-7cb1-9876-b48c8d61dc06",
+      "started_at": "2026-10-09T02:11:22.542017+08:00",
+      "usage": {
+        "input_tokens": 2150,
+        "output_tokens": 111,
+        "total_tokens": 2261
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-7ae3-7763-b6de-e1d4bed5f5f4",
+      "started_at": "2026-10-09T02:11:23.492099+08:00",
+      "usage": {
+        "input_tokens": 3440,
+        "output_tokens": 369,
+        "total_tokens": 3809
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-835b-77f0-a76c-a482a416b1dc",
+      "started_at": "2026-10-09T02:11:25.659763+08:00",
+      "usage": {
+        "input_tokens": 5343,
+        "output_tokens": 1898,
+        "total_tokens": 7241
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-a2c1-7dd0-a527-52e09b8dc9eb",
+      "started_at": "2026-10-09T02:11:33.697499+08:00",
+      "usage": {
+        "input_tokens": 2920,
+        "output_tokens": 233,
+        "total_tokens": 3153
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-a78e-7b02-8e61-30e9c5743f9d",
+      "started_at": "2026-10-09T02:11:34.926295+08:00",
+      "usage": {
+        "input_tokens": 3829,
+        "output_tokens": 246,
+        "total_tokens": 4075
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-ac1b-7eb1-9aa2-65a42298e1d8",
+      "started_at": "2026-10-09T02:11:36.091279+08:00",
+      "usage": {
+        "input_tokens": 2627,
+        "output_tokens": 149,
+        "total_tokens": 2776
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-afe8-74a2-804c-40940d99036d",
+      "started_at": "2026-10-09T02:11:37.064123+08:00",
+      "usage": {
+        "input_tokens": 5451,
+        "output_tokens": 1569,
+        "total_tokens": 7020
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-c91e-7172-966b-1585552a1fd4",
+      "started_at": "2026-10-09T02:11:43.518509+08:00",
+      "usage": {
+        "input_tokens": 2741,
+        "output_tokens": 92,
+        "total_tokens": 2833
+      }
+    }
+  ],
+  "judge_calls": [
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb6-cc46-7832-acd2-5286ae4f645a",
+      "started_at": "2026-10-09T02:11:44.327066+08:00",
+      "usage": {
+        "input_tokens": 1616,
+        "output_tokens": 417,
+        "total_tokens": 2033
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb6-df83-7ad3-bc75-36e9d932e551",
+      "started_at": "2026-10-09T02:11:49.252067+08:00",
+      "usage": {
+        "input_tokens": 1756,
+        "output_tokens": 2424,
+        "total_tokens": 4180
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb7-379a-7032-9b20-1ac0f10a233a",
+      "started_at": "2026-10-09T02:12:11.803437+08:00",
+      "usage": {
+        "input_tokens": 1803,
+        "output_tokens": 3759,
+        "total_tokens": 5562
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb7-bc02-7311-bab8-f5636c3b8067",
+      "started_at": "2026-10-09T02:12:45.698492+08:00",
+      "usage": {
+        "input_tokens": 1889,
+        "output_tokens": 7366,
+        "total_tokens": 9255
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb8-b63a-7660-8bc7-8aa62e40279d",
+      "started_at": "2026-10-09T02:13:49.754876+08:00",
+      "usage": {
+        "input_tokens": 1854,
+        "output_tokens": 3401,
+        "total_tokens": 5255
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb9-2fe3-7c43-8a8f-601555118b44",
+      "started_at": "2026-10-09T02:14:20.899468+08:00",
+      "usage": {
+        "input_tokens": 872,
+        "output_tokens": 2561,
+        "total_tokens": 3433
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb9-8969-7371-af6c-5769e7b839e0",
+      "started_at": "2026-10-09T02:14:43.817687+08:00",
+      "usage": {
+        "input_tokens": 889,
+        "output_tokens": 1051,
+        "total_tokens": 1940
+      }
+    }
+  ],
+  "simulator_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb6-5b9f-79b0-8515-c9656b57fff6",
+      "started_at": "2026-10-09T02:11:15.487268+08:00",
+      "usage": {
+        "input_tokens": 327,
+        "output_tokens": 7,
+        "total_tokens": 334
+      }
+    }
+  ],
+  "simulator_usage": {
+    "input_tokens": 327,
+    "output_tokens": 7,
+    "total_tokens": 334,
+    "logical_model_calls": 1,
+    "calls_with_usage": 1,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 5e-06,
+      "upper_bound": 0.000107,
+      "priced_calls": 1,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "simulator_fallbacks": 0,
+  "guard_fallbacks": 0,
+  "guard_fallbacks_status": "observed",
+  "writer_diagnostics": {
+    "status": "observed",
+    "model_completed": 2,
+    "model_fallback": 0,
+    "compression_model_completed": 0,
+    "compression_model_fallback": 0,
+    "versions_with_model_fallback": 0,
+    "not_observed_versions": 3
+  },
+  "safety_gate": "pending_claude_review",
+  "session_id": "5dddc045-7043-4cc3-a696-3a05ef2524b4"
+}

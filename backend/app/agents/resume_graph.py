@@ -1228,6 +1228,18 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
     action = decision.action
 
+    if action == TriageAction.WRAP_EXPERIENCE and _candidate_source_allowed(source_message):
+        # Reuse the existing deterministic WRAP path after this decision. A
+        # second triage could instead ask for JD and leave these facts unsaved.
+        # The task override is local to this call; the original task/JD stays.
+        result = await collecting_node(
+            {**state, "stage": "COLLECTING", "requested_task": "rewrite_experience"},
+            llm,
+        )
+        if result.get("stage") == "BUILDING":
+            return {**result, **(await building_node({**state, **result}, llm))}
+        return {"stage": "COLLECTING", **result}
+
     # 分支 1：用户粘贴了 JD 原文 → 走解码
     if action == TriageAction.DECODE_JD:
         jd_info, reply = await _run_decoder_and_build_reply(last_human, llm)

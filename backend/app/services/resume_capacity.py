@@ -196,9 +196,9 @@ def plan_compression(
                 continue
             field = "polished_bullets" if section == "projects" else "bullets"
             if len(item.get(field) or []) > 1:
-                actions.append({"op": "cap_bullets", "target": f"/{section}/{index}/{field}",
+                actions.append({"op": "merge_bullets", "target": f"/{section}/{index}/{field}",
                                 "item_id": item_id, "max_bullets": 1,
-                                "reason": "keep_to_one_bullet", "writer_required": False})
+                                "reason": "keep_merge_one_bullet", "writer_required": True})
     # Rank the writer request against the document *after* earlier reversible
     # actions; otherwise it may target a bullet we just hid or trimmed.
     projected = apply_deterministic_compression(resume_data, actions)
@@ -230,7 +230,7 @@ def apply_deterministic_compression(
     result = deepcopy(resume_data)
     for action in actions:
         op = action.get("op")
-        if op == "shorten_bullet":
+        if action.get("writer_required") or op in {"shorten_bullet", "merge_bullets"}:
             break
         if op == "clear_self_evaluation":
             result["self_evaluation"] = ""

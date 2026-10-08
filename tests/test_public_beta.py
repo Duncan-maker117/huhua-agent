@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "backend"))
 # Import-time safety, including when this module is run independently.
 _IMPORT_DIRECTORY = tempfile.TemporaryDirectory(prefix="huhua-public-import-")
 os.environ.update({"APP_ENV": "local", "ALLOW_INSECURE_LOCAL_STORAGE": "true",
-                   "REQUIRE_ACCOUNT": "false", "LLM_API_KEY": "", "ENABLE_RAG": "false",
+                   "REQUIRE_ACCOUNT": "false", "ACCOUNT_SECRET": "", "LLM_API_KEY": "", "ENABLE_RAG": "false",
                    "DATABASE_URL": f"sqlite:///{Path(_IMPORT_DIRECTORY.name) / 'unused.sqlite3'}",
                    "CHECKPOINT_DB_PATH": str(Path(_IMPORT_DIRECTORY.name) / "unused-checkpoints.sqlite3")})
 from app.config import get_settings  # noqa: E402
@@ -30,7 +30,8 @@ class PublicBetaSmokeTest(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory(prefix="huhua-public-test-")
         self.environment = patch.dict(os.environ, {
             "APP_ENV": "local", "ALLOW_INSECURE_LOCAL_STORAGE": "true", "REQUIRE_ACCOUNT": "false",
-            "LLM_API_KEY": "", "ENABLE_RAG": "false", "DATA_ENCRYPTION_KEYS": "{}", "DATA_ENCRYPTION_ACTIVE_KEY": "",
+            "LLM_API_KEY": "", "ENABLE_RAG": "false", "ACCOUNT_SECRET": "",
+            "DATA_ENCRYPTION_KEYS": "{}", "DATA_ENCRYPTION_ACTIVE_KEY": "",
             "DATABASE_URL": f"sqlite:///{Path(self.directory.name) / 'sessions.sqlite3'}",
             "CHECKPOINT_DB_PATH": str(Path(self.directory.name) / "checkpoints.sqlite3"),
         })
@@ -39,6 +40,12 @@ class PublicBetaSmokeTest(unittest.TestCase):
         self.engine = create_engine(get_settings().DATABASE_URL, connect_args={"check_same_thread": False})
         self.factory = sessionmaker(bind=self.engine)
         self.patches = [patch("app.database.engine", self.engine), patch("main.engine", self.engine)]
+        # Earlier test imports can capture a temporary get_settings mock via
+        # from-import. Bind every settings consumer to this fixture's real getter
+        # so local anonymous mode is independent of module discovery order.
+        for module in ("app.database", "main", "app.services.session_store", "app.services.runtime_limits",
+                       "app.api.chat", "app.api.conversations", "app.api.resume"):
+            self.patches.append(patch(module + ".get_settings", get_settings))
         for module in ("app.database", "main", "app.services.session_store", "app.services.conversation_store",
                        "app.services.canonical_resume", "app.services.runtime_limits", "app.services.profile_bridge"):
             self.patches.append(patch(module + ".SessionLocal", self.factory))

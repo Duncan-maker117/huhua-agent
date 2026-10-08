@@ -19,6 +19,26 @@ class FakeLLM:
 
 
 class FactExtractorTest(unittest.IsolatedAsyncioTestCase):
+    async def test_ui_empty_state_rewording_survives_fact_validation(self):
+        message = '在资料页项目中，我还补了加载中、没结果和请求失败的界面，网站没上线。'
+        llm = FakeLLM({'items': [{'section': 'projects', 'name': '资料页', 'facts': [
+            {'kind': 'action', 'text': '补充加载、空结果和请求失败界面',
+             'source_quote': '我还补了加载中、没结果和请求失败的界面'},
+            {'kind': 'status_limit', 'text': '网站没上线', 'source_quote': '网站没上线'}]}]})
+        checked = []
+
+        async def semantic(pairs):
+            checked.extend(pairs)
+            return {row['id']: {'verdict': 'pass'} for row in pairs}
+
+        patch = await extract_facts_patch(message, {}, llm, semantic_check=semantic)
+        collected = apply_fact_patch({}, patch)
+        self.assertEqual(patch['rejected'], [])
+        self.assertEqual([fact['text'] for fact in collected['projects'][0]['facts']],
+                         ['补充加载、空结果和请求失败界面', '网站没上线'])
+        self.assertEqual(len(checked), 1)
+        self.assertIn('没结果', checked[0]['source_quotes'][0])
+
     async def test_per_fact_rejection_keeps_supported_fact(self):
         message = "我在 PaperTool 做了原型，未上线。"
         llm = FakeLLM({"items": [{"section": "projects", "name": "PaperTool", "facts": [

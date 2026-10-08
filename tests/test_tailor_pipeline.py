@@ -43,12 +43,15 @@ class TailorPipelineTest(unittest.TestCase):
         self.assertEqual(infer_edit_scope(data, "优化书架角"), ("whole", []))
 
     def test_local_overflow_only_shortens_selected_bullet_and_preserves_other_bytes(self):
+        from app.services.resume_versions import text_hash
         original = base()
         for scope, targets in (("item", ["lead"]),
                                ("bullet", ["/projects/1/polished_bullets/0"])):
             with self.subTest(scope=scope):
-                state = {"resume_data": deepcopy(original), "resume_meta": {},
-                         "resume_versions": [], "collected_info": {}, "jd_info": {"role_profile": {}}}
+                meta = {'bullets': {'lead': [{'fact_ids': ['lead-f'], 'text_hash': text_hash('L' * 130)}]}}
+                state = {"resume_data": deepcopy(original), "resume_meta": meta,
+                         "resume_versions": [], "collected_info": {'projects': [{'item_id': 'lead', 'facts': [
+                             {'id': 'lead-f', 'text': 'L' * 130, 'status': 'active'}]}]}, "jd_info": {"role_profile": {}}}
                 calls = []
 
                 async def fake_writer(_collected, _profile, _llm, **kwargs):
@@ -56,14 +59,19 @@ class TailorPipelineTest(unittest.TestCase):
                     data = deepcopy(kwargs["current_data"])
                     if "约" in kwargs["instruction"] and kwargs["scope"] == "bullet":
                         data["projects"][1]["polished_bullets"][0] = "L" * 55
-                    return written(data, kwargs["resume_meta"])
+                    updated_meta = deepcopy(kwargs['resume_meta'])
+                    updated_meta['bullets']['lead'][0]['text_hash'] = text_hash(data['projects'][1]['polished_bullets'][0])
+                    value = written(data, updated_meta)
+                    value['writer_diagnostic'] = {'status': 'model_completed'}
+                    return value
 
                 def overflow(_data, constraints):
                     return {"status": "test_simulated_overflow", "pages": 3,
                             "page_limit": constraints["page_limit"], "within_page_limit": False}
 
                 with patch("app.agents.tailor_pipeline.run_resume_writer", side_effect=fake_writer), \
-                        patch("app.agents.tailor_pipeline.measure_rendered_pages", side_effect=overflow):
+                        patch("app.agents.tailor_pipeline.measure_rendered_pages", side_effect=overflow), \
+                        patch('app.agents.tailor_pipeline.verify_semantics', return_value={'retain_0': {'verdict': 'pass'}}):
                     result = asyncio.run(run_tailor_pipeline(state, original, object(),
                                                              instruction="把目标项目缩短", scope=scope,
                                                              targets=targets))
@@ -103,9 +111,14 @@ class TailorPipelineTest(unittest.TestCase):
         self.assertEqual(infer_edit_scope(data, "整体优化"), ("whole", []))
 
     def test_overflow_compression_order_two_writer_rounds_one_original_snapshot(self):
+        from app.services.resume_versions import text_hash
         original = base()
         state = {"resume_data": deepcopy(original), "resume_meta": {"version_id": "before-v1"},
-                 "resume_versions": [], "collected_info": {"projects": [{"item_id": "lead", "facts": []}]},
+                 "resume_versions": [], "collected_info": {"projects": [{'item_id': 'lead', 'facts': [
+                     {'id': 'lead-f', 'text': 'L' * 130, 'status': 'active'}]}],
+                     "work_experience": [{"item_id": "keep", "facts": [
+                     {"id": f"k{i}", "text": text, "source_quote": text, "status": "active"}
+                     for i, text in enumerate(original['work_experience'][0]['bullets'])]}]},
                  "jd_info": {"role_profile": {"seniority": "intern"}}}
         untouched_state = deepcopy(state)
         writer_calls = []
@@ -116,28 +129,51 @@ class TailorPipelineTest(unittest.TestCase):
                                  "scope": kwargs["scope"], "targets": list(kwargs["targets"]),
                                  "constraints": deepcopy(kwargs["constraints"])})
             if kwargs["scope"] == "whole":
-                return written(original)
+                value = written(original, {'bullets': {'keep': [
+                    {'text_hash': text_hash(text), 'fact_ids': [f'k{i}']}
+                    for i, text in enumerate(original['work_experience'][0]['bullets'])],
+                    'lead': [{'fact_ids': ['lead-f'], 'text_hash': text_hash('L' * 130)}]}})
+                value['writer_diagnostic'] = {'status': 'model_completed'}
+                return value
             data = deepcopy(kwargs["current_data"])
+            if kwargs['scope'] == 'item':
+                merged = '；'.join(data['work_experience'][0]['bullets'])
+                data['work_experience'][0]['bullets'] = [merged]
+                meta = deepcopy(kwargs['resume_meta'])
+                meta['bullets']['keep'] = [{'text_hash': text_hash(merged), 'fact_ids': ['k0', 'k1']}]
+                value = written(data, meta)
+                value['writer_diagnostic'] = {'status': 'model_completed'}
+                return value
             target = kwargs["targets"][0]
             _, section, index, field, bullet = target.split("/")
             prior = data[section][int(index)][field][int(bullet)]
             data[section][int(index)][field][int(bullet)] = prior[0] * (70 if len(writer_calls) == 2 else 55)
-            return written(data, kwargs["resume_meta"])
+            meta = deepcopy(kwargs['resume_meta'])
+            meta['bullets']['lead'][0]['text_hash'] = text_hash(data['projects'][1]['polished_bullets'][0])
+            value = written(data, meta)
+            value['writer_diagnostic'] = {'status': 'model_completed'}
+            return value
 
         def fake_measure(data, constraints):
             measurements.append(deepcopy(data))
             return {"status": "rendered", "pages": 3, "page_limit": constraints["page_limit"],
                     "within_page_limit": False}
 
+        async def retained(pairs, _model, **_kwargs):
+            return {row['id']: {'verdict': 'pass' if row['text'] in row['source_quotes'][0]
+                               or set(row['text']) == set(row['source_quotes'][0]) == {'L'} else 'fail'}
+                    for row in pairs}
+
         with patch("app.agents.tailor_pipeline.run_resume_writer", side_effect=fake_writer), \
-                patch("app.agents.tailor_pipeline.measure_rendered_pages", side_effect=fake_measure):
+                patch("app.agents.tailor_pipeline.measure_rendered_pages", side_effect=fake_measure), \
+                patch("app.agents.tailor_pipeline.verify_semantics", side_effect=retained):
             result = asyncio.run(run_tailor_pipeline(state, original, object(), instruction="压到一页"))
-        self.assertEqual([call["scope"] for call in writer_calls], ["whole", "bullet", "bullet"])
+        self.assertEqual([call["scope"] for call in writer_calls], ["whole", "item", "bullet"])
         self.assertEqual([action["op"] for action in result["compression_actions"]],
-                         ["hide_item", "cap_bullets", "shorten_bullet", "clear_self_evaluation",
-                          "shorten_bullet"])
+                         ["hide_item", "merge_bullets", "clear_self_evaluation", "shorten_bullet"])
         self.assertTrue(result["resume_data"]["projects"][0]["hidden"])
-        self.assertEqual(result["resume_data"]["work_experience"][0]["bullets"], ["K" * 55])
+        self.assertEqual(result["resume_data"]["work_experience"][0]["bullets"], ["K" * 80 + '；K2'])
+        self.assertEqual(result["resume_data"]["projects"][1]["polished_bullets"], ["L" * 55])
         self.assertEqual(result["resume_data"]["self_evaluation"], "")
         self.assertEqual(len(result["resume_versions"]), 1)
         self.assertEqual(result["resume_versions"][0]["version_id"], "before-v1")
@@ -328,9 +364,11 @@ class TailorPipelineTest(unittest.TestCase):
                 self.assertTrue(result['changed'])
                 self.assertNotIn('fallback_action', result['writer_diagnostic'])
 
-    def test_compression_writer_fallback_keeps_existing_local_behavior(self):
+    def test_compression_writer_fallback_preserves_original_body_and_metadata(self):
+        from app.services.resume_versions import text_hash
         original = base()
-        main = written(original)
+        meta = {'bullets': {'lead': [{'fact_ids': ['lead-f'], 'text_hash': text_hash('L' * 130)}]}}
+        main = written(original, meta)
         main['writer_diagnostic'] = {'status': 'model_completed'}
         shortened = deepcopy(original)
         shortened['projects'][1]['polished_bullets'] = ['原始事实回退']
@@ -343,9 +381,12 @@ class TailorPipelineTest(unittest.TestCase):
              patch('app.agents.tailor_pipeline.measure_rendered_pages', side_effect=[
                  {'status': 'rendered', 'pages': 2, 'within_page_limit': False},
                  {'status': 'rendered', 'pages': 1, 'within_page_limit': True}]):
-            result = asyncio.run(run_tailor_pipeline({'resume_data': original}, original, object()))
+            result = asyncio.run(run_tailor_pipeline({'resume_data': original, 'resume_meta': meta,
+                'collected_info': {'projects': [{'item_id': 'lead', 'facts': [
+                    {'id': 'lead-f', 'text': 'L' * 130, 'status': 'active'}]}]}}, original, object()))
         self.assertEqual(writer.call_count, 2)
-        self.assertEqual(result['resume_data'], shortened)
+        self.assertEqual(result['resume_data'], original)
+        self.assertEqual(result['resume_meta']['bullets'], meta['bullets'])
         self.assertEqual(result['compression_writer_diagnostics'], [compressed['writer_diagnostic']])
         self.assertEqual(result['writer_diagnostic']['status'], 'model_completed')
 

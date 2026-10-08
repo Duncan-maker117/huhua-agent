@@ -35,6 +35,56 @@ class Model:
 
 
 class ResumeLimitsTest(unittest.TestCase):
+    def test_colloquial_negative_measurement_limit_is_preserved_from_original_quote(self):
+        fact = {"id": "limit", "kind": "status_limit", "status": "active",
+                "text": "未测试业务效果", "source_quote": "我没测业务效果"}
+        result, meta, fallbacks = self.preserve(["实现接口"], [fact])
+        self.assertEqual(result["projects"][0]["polished_bullets"], ["实现接口；我没测业务效果"])
+        self.assertEqual(fallbacks[0]["fact_ids"], ["limit"])
+        again, _, repeated = preserve_item_limits(result, meta, {"projects": [
+            {"item_id": "p1", "facts": [fact]}]}, item_ids=["p1"])
+        self.assertEqual(again, result)
+        self.assertEqual(repeated, [])
+
+    def test_colloquial_negative_does_not_turn_regular_action_into_limit(self):
+        for quote in ["测试业务效果", "完成没收物品登记"]:
+            with self.subTest(quote=quote):
+                data, _, fallbacks = self.preserve(["实现接口"], [
+                    {"id": "a2", "kind": "action", "status": "active",
+                     "text": quote, "source_quote": quote}])
+                self.assertEqual(data, doc(["实现接口"]))
+                self.assertEqual(fallbacks, [])
+
+    def test_citing_composite_limit_does_not_discharge_omitted_clause(self):
+        text = "形成报名页草图，未开发上线"
+        limit = {"id": "limit", "kind": "status_limit", "status": "active",
+                 "text": "没有开发上线，也没统计报名效果",
+                 "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果。"}
+        meta = {"bullets": {"p1": [{"fact_ids": ["limit"],
+                "text_hash": hashlib.sha256(text.encode()).hexdigest()}]}}
+        collected = {"projects": [{"item_id": "p1", "facts": [limit]}]}
+        result, revised_meta, fallbacks = preserve_item_limits(doc([text]), meta, collected, item_ids=["p1"])
+        self.assertEqual(result["projects"][0]["polished_bullets"],
+                         ["形成报名页草图，未开发上线；也没统计报名效果"])
+        self.assertEqual(fallbacks[0]["fact_ids"], ["limit"])
+        again, _, repeated = preserve_item_limits(result, revised_meta, collected, item_ids=["p1"])
+        self.assertEqual(again, result)
+        self.assertEqual(repeated, [])
+
+    def test_ui_negative_objects_are_not_reappended_as_status_limits(self):
+        for quote in ['我还补了加载中、没结果和请求失败的界面',
+                      '检查过空关键词和没有匹配项的请求，补了对应提示']:
+            with self.subTest(quote=quote):
+                result, _, fallbacks = self.preserve(['补充加载与空结果提示'], [
+                    {'id': 'ui', 'kind': 'action', 'status': 'active', 'text': quote, 'source_quote': quote}])
+                self.assertEqual(result, doc(['补充加载与空结果提示']))
+                self.assertEqual(fallbacks, [])
+
+    def test_colloquial_split_limit_retains_subsystem_object(self):
+        result, _, _ = self.preserve(['搜索页面已上线'], [
+            {'id': 'l', 'text': '支付模块，没上线', 'source_quote': '支付模块，没上线'}])
+        self.assertEqual(result['projects'][0]['polished_bullets'], ['搜索页面已上线；支付模块，没上线'])
+
     def preserve(self, bullets, limits, **kwargs):
         collected = source()
         collected["projects"][0]["facts"] = [collected["projects"][0]["facts"][0], *limits]
@@ -70,20 +120,57 @@ class ResumeLimitsTest(unittest.TestCase):
                                    for text, fid in zip(data["projects"][0]["polished_bullets"], ["a", "l"])]}}
         state = {"resume_data": deepcopy(data), "resume_meta": meta, "collected_info": source()}
         written = {"resume_data": data, "resume_meta": meta, "match_plan": {
-            "experience_plan": [{"item_id": "p1", "treatment": "keep"}]}}
-        seen = []
+            "experience_plan": [{"item_id": "p1", "treatment": "keep"}]},
+            "writer_diagnostic": {"status": "model_completed"}}
+        merged = "实现接口；这是未上线原型"
+        for valid_hash in (True, False):
+            with self.subTest(valid_hash=valid_hash):
+                seen, calls, retained = [], [], []
 
-        def measure(data, constraints):
-            seen.append(deepcopy(data))
-            return {"pages": 2 if len(seen) == 1 else 1, "within_page_limit": len(seen) > 1}
+                async def writer(*_args, **kwargs):
+                    calls.append(kwargs['scope'])
+                    if kwargs['scope'] == 'whole':
+                        return deepcopy(written)
+                    self.assertEqual(kwargs['scope'], 'item')
+                    self.assertEqual(kwargs['targets'], ['p1'])
+                    self.assertEqual(kwargs['current_data'], data)
+                    return {**deepcopy(written), 'resume_data': doc([merged]),
+                            'resume_meta': {'bullets': {'p1': [{
+                                'text_hash': hashlib.sha256(merged.encode()).hexdigest() if valid_hash else 'stale',
+                                'fact_ids': ['a', 'l']}]}}}
 
-        with patch("app.agents.tailor_pipeline.run_resume_writer", return_value=written), \
-                patch("app.agents.tailor_pipeline.measure_rendered_pages", side_effect=measure):
-            result = asyncio.run(run_tailor_pipeline(state, data, object()))
-        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["实现接口；这是未上线原型"])
-        self.assertEqual(seen[-1], result["resume_data"])
-        self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["fact_ids"], ["a", "l"])
-        self.assertEqual(result["guard_fallbacks"][0]["reason"], "compression_preserved_status_limit")
+                async def verify(pairs, _model, **_kwargs):
+                    retained.append(pairs)
+                    self.assertEqual([row['text'] for row in pairs], data['projects'][0]['polished_bullets'])
+                    self.assertTrue(all(row['source_quotes'] == [merged] for row in pairs))
+                    return {row['id']: {'verdict': 'pass'} for row in pairs}
+
+                def measure(current, constraints):
+                    seen.append(deepcopy(current))
+                    fits = current['projects'][0]['polished_bullets'] == [merged]
+                    return {'status': 'rendered', 'pages': 1 if fits else 2,
+                            'page_limit': constraints['page_limit'], 'within_page_limit': fits}
+
+                with patch('app.agents.tailor_pipeline.run_resume_writer', side_effect=writer), \
+                        patch('app.agents.tailor_pipeline.verify_semantics', side_effect=verify), \
+                        patch('app.agents.tailor_pipeline.measure_rendered_pages', side_effect=measure):
+                    result = asyncio.run(run_tailor_pipeline(state, data, object()))
+                self.assertEqual(calls, ['whole', 'item'])
+                self.assertEqual(seen[-1], result['resume_data'])
+                self.assertEqual(state['collected_info'], source())
+                self.assertNotIn('旧框架', str(result['resume_data']))
+                if valid_hash:
+                    self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'], [merged])
+                    record = result['resume_meta']['bullets']['p1'][0]
+                    self.assertEqual(record['fact_ids'], ['a', 'l'])
+                    self.assertEqual(record['text_hash'], hashlib.sha256(merged.encode()).hexdigest())
+                    self.assertEqual(len(retained), 1)
+                    self.assertTrue(result['page_check']['within_page_limit'])
+                else:
+                    self.assertEqual(result['resume_data'], data)
+                    self.assertEqual(result['resume_meta']['bullets'], meta['bullets'])
+                    self.assertEqual(retained, [])
+                    self.assertFalse(result['page_check']['within_page_limit'])
 
     def test_existing_limit_not_duplicated_and_stale_meta_not_promoted(self):
         data = doc(["手工未核对正文"])

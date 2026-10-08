@@ -93,6 +93,59 @@ _RELEASE_PLAN = re.compile(
     r"(?:计划|准备|打算|拟|将|待|后续|未来)(?:正式|对外|公开)?(?:上线|发布|部署)|"
     r"\b(?:plan(?:ned|ning)?|intend(?:ed)?|yet|ready)\s+to\s+"
     r"(?:deploy|release|launch|publish)\b", re.I)
+_MEASUREMENT_DENIAL = re.compile(
+    r"(?:尚未|从未|并未|没有|未曾|不曾|未|没)(?:实际|正式|系统)?"
+    r"(?:(?:做|作|进行|开展|完成)(?:过)?)?(?:任何|实际|正式|系统)?"
+    r"(?:量化统计|定量统计|量化评估|定量评估|量化分析|定量分析|统计)"
+    r"(?!(?:的)?(?:报告|数据|结果|记录|表|文档|材料|证据|数值|信息|数字|学|知识|经验|能力))|"
+    r"\b(?:not|never|haven't|hasn't|didn't)\s+"
+    r"(?:(?:yet|performed|conducted|done|do|perform|conduct|a|any)\s+){0,4}"
+    r"(?:quantitative\s+(?:analysis|evaluation|measurement)|statistical\s+analysis)\b"
+    r"(?!\s+(?:report|data|results|records)\b)|"
+    r"\bno\s+(?:quantitative\s+(?:analysis|evaluation|measurement)|statistical\s+analysis)\s+"
+    r"(?:was|has\s+been)\s+(?:performed|conducted|done)\b", re.I)
+
+
+def _unretracted_limit(text: str, start: int) -> bool:
+    return not re.search(r"(?:并非|不是|并不是|不代表|不能说明|不意味着|并不意味着|没说|没有说|不)\s*$",
+                         text[max(0, start - 12):start])
+
+
+def _denies_measurement(text: str) -> bool:
+    # A reported lack of evidence is different from not doing the work.
+    # Ignore a denied denial (e.g. 并非未统计); semantics still checks its claim.
+    return any(_unretracted_limit(text, match.start())
+               for match in _MEASUREMENT_DENIAL.finditer(text))
+
+
+def _measurement_limit_supported(source: str) -> bool:
+    # Explicitly limiting the work to qualitative analysis can support the
+    # absence of a quantitative stage; matching objects still needs semantics.
+    return _denies_measurement(source) or any(_unretracted_limit(source, match.start())
+        for match in re.finditer(
+            r"(?:只|仅仅|仅)(?:做|作|进行|开展)(?:了|过)?(?:定性|质性)(?:分析|评估|观察)", source))
+
+
+def _experience_negation_text(text: str) -> str:
+    """UI empty-state labels are objects, not a denial of doing the work."""
+    clauses = re.split(r"([，,。；;！？!?\n]|但是|不过|但)", text)
+    for index in range(0, len(clauses), 2):
+        clause = clauses[index]
+        if re.search(r"补|设计|展示|显示|处理|实现|开发|编写|检查|核对|画", clause):
+            clauses[index] = re.sub(
+                r"(?:没有|没)(?:(?:搜索|查询)?结果|匹配(?:项|记录|结果))"
+                r"(?=[^，,。；;！？!?\n]{0,20}(?:界面|页面|状态|提示|的请求))", "空结果", clause)
+    return "".join(clauses)
+
+
+def _explicit_team_context(text: str) -> bool:
+    return bool(re.search(r"团队|小组|队友|组员|合作|共同|一起|协作|集体|搭档|"
+                          r"\b(?:teams?|teammates?|group|collaborat\w*)\b|"
+                          r"我们(?:做|写|开发|设计|实现|完成)|\bwe\s+(?:built|created|developed|made|worked)\b|"
+                          r"(?:我|本人)(?:和|与)[^，,。；;]{1,15}(?:一起|共同|做|开发|设计|实现)",
+                          text, re.I))
+
+
 _LOW_FREQUENCY = re.compile(r"有时(?:候)?|偶尔|偶然")
 _HIGH_FREQUENCY = re.compile(r"经常|频繁|常常|总是|(?<![异正非日恒平])常(?!用|规|识|量|数|态|年)")
 
@@ -164,6 +217,10 @@ def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
     if (_UNRELEASED_CLAIM.search(text) and not _UNRELEASED_CLAIM.search(source_quote)
             and not _RELEASE_PLAN.search(source_quote)):
         errors.append("unsupported_negative_release_status")
+    if _denies_measurement(text) and not _measurement_limit_supported(source_quote):
+        errors.append("unsupported_negative_measurement_status")
+    if re.search(r"团队项目|小组项目|团队作业|小组作业|\bteam\s+project\b", text, re.I) and not _explicit_team_context(source_quote):
+        errors.append("unsupported_team_project_context")
     if _explicit_frequency_upgrade(text, source_quote):
         errors.append("unsupported_frequency_upgrade")
     for term in RESPONSIBILITY_TERMS:
@@ -174,7 +231,7 @@ def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
             supported = supported or bool(re.search(r"我(?:写|做|负责)", source_quote))
         if not supported:
             errors.append("unsupported_responsibility_or_status:" + term)
-    if re.search(NEGATION, source_quote) and not re.search(NEGATION, text):
+    if re.search(NEGATION, _experience_negation_text(source_quote)) and not re.search(NEGATION, text):
         errors.append("missing_negation_or_plan_limit")
     for markers in (("demo", "原型"), ("mock", "模拟", "stub", "估算")):
         if any(marker in source_quote.casefold() for marker in markers) and not any(marker in text.casefold() for marker in markers):

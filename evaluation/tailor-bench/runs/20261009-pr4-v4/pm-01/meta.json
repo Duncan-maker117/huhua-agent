@@ -1,0 +1,661 @@
+{
+  "case_id": "pm-01",
+  "status": "completed",
+  "graph_status": "completed",
+  "evaluation_status": "completed",
+  "truth_review_status": "approved_by_claude",
+  "turn_count": 4,
+  "followup_count": 0,
+  "version_count": 4,
+  "visible_version_count": 4,
+  "first_draft_turn": 2,
+  "first_draft_version": "v002",
+  "commits": [
+    {
+      "turn": 1,
+      "stage": "JD_INPUT",
+      "hash": "23d8d02d387f87bb88159e2e1093fc2b9e8449d1c9fbc2121f4eb586befabc9e",
+      "has_experience": false,
+      "fact_snapshot": {
+        "status": "unknown",
+        "source": "committed_sql",
+        "reason": "authoritative_sql_fact_master_unavailable"
+      }
+    },
+    {
+      "turn": 2,
+      "stage": "JD_INPUT",
+      "hash": "e711cf133ad273daaee3a11d74f7f172f7b0419dab06878c1c2529ccce41ee8b",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {},
+        "active_facts": [],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 3,
+      "stage": "EVALUATING",
+      "hash": "47c4164510966b26a60039b3d58ead40ae7a64ac817822e51da0251263ed0f6c",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f",
+              "name": "拼单清单",
+              "facts": [
+                {
+                  "id": "f_d630fc0cbf7844949ed02753d7648db3",
+                  "kind": "role",
+                  "text": "参与“拼单清单”课程项目",
+                  "source_quote": "我参加过“拼单清单”这个课程项目",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我参加过“拼单清单”这个课程项目",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_04f908cbddb345bfa7cf366667593e47",
+                  "kind": "context",
+                  "text": "目标是解决宿舍一起买东西时清单老对不上的问题",
+                  "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_77cddbea1e8b4791bb8800750873dbfe",
+                  "kind": "action",
+                  "text": "询问同学平时如何记录清单",
+                  "source_quote": "我问了同学平时怎么记清单",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我问了同学平时怎么记清单",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5ea045946ec84accb0b87a79995c20a4",
+                  "kind": "action",
+                  "text": "绘制提交和确认的流程",
+                  "source_quote": "也画了提交和确认的流程",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "也画了提交和确认的流程",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我参加过“拼单清单”这个课程项目",
+                "想解决宿舍一起买东西时清单老对不上的问题",
+                "我问了同学平时怎么记清单",
+                "也画了提交和确认的流程",
+                "是个没开发上线的原型"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_d630fc0cbf7844949ed02753d7648db3",
+            "kind": "role",
+            "text": "参与“拼单清单”课程项目",
+            "source_quote": "我参加过“拼单清单”这个课程项目",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我参加过“拼单清单”这个课程项目",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          },
+          {
+            "id": "f_04f908cbddb345bfa7cf366667593e47",
+            "kind": "context",
+            "text": "目标是解决宿舍一起买东西时清单老对不上的问题",
+            "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          },
+          {
+            "id": "f_77cddbea1e8b4791bb8800750873dbfe",
+            "kind": "action",
+            "text": "询问同学平时如何记录清单",
+            "source_quote": "我问了同学平时怎么记清单",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          },
+          {
+            "id": "f_5ea045946ec84accb0b87a79995c20a4",
+            "kind": "action",
+            "text": "绘制提交和确认的流程",
+            "source_quote": "也画了提交和确认的流程",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 4,
+      "stage": "EVALUATING",
+      "hash": "6b7fb17c9b3eefd481fbdf59208b3a812cf498ec4c5a3951963c5e93cd536c5f",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f",
+              "name": "拼单清单",
+              "facts": [
+                {
+                  "id": "f_d630fc0cbf7844949ed02753d7648db3",
+                  "kind": "role",
+                  "text": "参与“拼单清单”课程项目",
+                  "source_quote": "我参加过“拼单清单”这个课程项目",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我参加过“拼单清单”这个课程项目",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_04f908cbddb345bfa7cf366667593e47",
+                  "kind": "context",
+                  "text": "目标是解决宿舍一起买东西时清单老对不上的问题",
+                  "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_77cddbea1e8b4791bb8800750873dbfe",
+                  "kind": "action",
+                  "text": "询问同学平时如何记录清单",
+                  "source_quote": "我问了同学平时怎么记清单",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我问了同学平时怎么记清单",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5ea045946ec84accb0b87a79995c20a4",
+                  "kind": "action",
+                  "text": "绘制提交和确认的流程",
+                  "source_quote": "也画了提交和确认的流程",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "也画了提交和确认的流程",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我参加过“拼单清单”这个课程项目",
+                "想解决宿舍一起买东西时清单老对不上的问题",
+                "我问了同学平时怎么记清单",
+                "也画了提交和确认的流程",
+                "是个没开发上线的原型"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_d630fc0cbf7844949ed02753d7648db3",
+            "kind": "role",
+            "text": "参与“拼单清单”课程项目",
+            "source_quote": "我参加过“拼单清单”这个课程项目",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我参加过“拼单清单”这个课程项目",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          },
+          {
+            "id": "f_04f908cbddb345bfa7cf366667593e47",
+            "kind": "context",
+            "text": "目标是解决宿舍一起买东西时清单老对不上的问题",
+            "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "想解决宿舍一起买东西时清单老对不上的问题",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          },
+          {
+            "id": "f_77cddbea1e8b4791bb8800750873dbfe",
+            "kind": "action",
+            "text": "询问同学平时如何记录清单",
+            "source_quote": "我问了同学平时怎么记清单",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我问了同学平时怎么记清单",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          },
+          {
+            "id": "f_5ea045946ec84accb0b87a79995c20a4",
+            "kind": "action",
+            "text": "绘制提交和确认的流程",
+            "source_quote": "也画了提交和确认的流程",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "也画了提交和确认的流程",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "bb170fa7-a3ab-4c2e-a08d-7678313d1e9f"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    }
+  ],
+  "stage_first_draft_turn": 3,
+  "stage_first_draft_version": "v003",
+  "final_has_body": true,
+  "content_outcome": "has_experience_body",
+  "final_version": "v004",
+  "mean_turn_latency_seconds": 12.521,
+  "graph_usage": {
+    "input_tokens": 30467,
+    "output_tokens": 10762,
+    "total_tokens": 41229,
+    "logical_model_calls": 12,
+    "calls_with_usage": 12,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.006549,
+      "upper_bound": 0.022054,
+      "priced_calls": 12,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "judge_usage": {
+    "input_tokens": 7220,
+    "output_tokens": 18705,
+    "total_tokens": 25925,
+    "logical_model_calls": 5,
+    "calls_with_usage": 5,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.037195,
+      "upper_bound": 0.083602,
+      "priced_calls": 5,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "model_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbc-c7bc-7c61-9d8b-c19e3a26eff6",
+      "started_at": "2026-10-09T02:18:16.380697+08:00",
+      "usage": {
+        "input_tokens": 1992,
+        "output_tokens": 3211,
+        "total_tokens": 5203
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbc-fb5a-7a80-bc0b-89c5e09d09eb",
+      "started_at": "2026-10-09T02:18:29.594295+08:00",
+      "usage": {
+        "input_tokens": 1584,
+        "output_tokens": 161,
+        "total_tokens": 1745
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbc-ff43-79d0-9ac1-7438087fc71a",
+      "started_at": "2026-10-09T02:18:30.595604+08:00",
+      "usage": {
+        "input_tokens": 608,
+        "output_tokens": 1095,
+        "total_tokens": 1703
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-16ec-7663-84bb-707cf9ea78ac",
+      "started_at": "2026-10-09T02:18:36.652473+08:00",
+      "usage": {
+        "input_tokens": 352,
+        "output_tokens": 1258,
+        "total_tokens": 1610
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-2d56-7990-9429-56e5c150ec38",
+      "started_at": "2026-10-09T02:18:42.390492+08:00",
+      "usage": {
+        "input_tokens": 2310,
+        "output_tokens": 332,
+        "total_tokens": 2642
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-3231-7042-b64a-cf6c36375e08",
+      "started_at": "2026-10-09T02:18:43.634080+08:00",
+      "usage": {
+        "input_tokens": 4122,
+        "output_tokens": 1642,
+        "total_tokens": 5764
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-4f09-7bf3-924f-58ef3be153c7",
+      "started_at": "2026-10-09T02:18:51.017882+08:00",
+      "usage": {
+        "input_tokens": 4238,
+        "output_tokens": 1292,
+        "total_tokens": 5530
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-6597-7571-a684-d7288cc832a2",
+      "started_at": "2026-10-09T02:18:56.792123+08:00",
+      "usage": {
+        "input_tokens": 2555,
+        "output_tokens": 230,
+        "total_tokens": 2785
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-6b5c-7d30-afa1-4150d559f4e5",
+      "started_at": "2026-10-09T02:18:58.268861+08:00",
+      "usage": {
+        "input_tokens": 3482,
+        "output_tokens": 239,
+        "total_tokens": 3721
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-7142-7cb3-a232-381b03e00600",
+      "started_at": "2026-10-09T02:18:59.778341+08:00",
+      "usage": {
+        "input_tokens": 2531,
+        "output_tokens": 206,
+        "total_tokens": 2737
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-768c-7591-803e-d6c0194ec85f",
+      "started_at": "2026-10-09T02:19:01.132766+08:00",
+      "usage": {
+        "input_tokens": 4219,
+        "output_tokens": 1004,
+        "total_tokens": 5223
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cbd-8786-77d2-967c-3da91f3a4f63",
+      "started_at": "2026-10-09T02:19:05.479030+08:00",
+      "usage": {
+        "input_tokens": 2474,
+        "output_tokens": 92,
+        "total_tokens": 2566
+      }
+    }
+  ],
+  "judge_calls": [
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cbd-8b79-7051-9107-d7b38d1c78f1",
+      "started_at": "2026-10-09T02:19:06.490031+08:00",
+      "usage": {
+        "input_tokens": 1830,
+        "output_tokens": 3208,
+        "total_tokens": 5038
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cbd-ef4f-7d53-b6b4-e82a060b47bc",
+      "started_at": "2026-10-09T02:19:32.047196+08:00",
+      "usage": {
+        "input_tokens": 1900,
+        "output_tokens": 5181,
+        "total_tokens": 7081
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cbe-9bc8-7301-85ee-c3f07093d584",
+      "started_at": "2026-10-09T02:20:16.200233+08:00",
+      "usage": {
+        "input_tokens": 1873,
+        "output_tokens": 4716,
+        "total_tokens": 6589
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cbf-354f-7661-b9ad-f84804f87591",
+      "started_at": "2026-10-09T02:20:55.503964+08:00",
+      "usage": {
+        "input_tokens": 803,
+        "output_tokens": 2611,
+        "total_tokens": 3414
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cbf-8655-7230-a814-f889f93d2180",
+      "started_at": "2026-10-09T02:21:16.245914+08:00",
+      "usage": {
+        "input_tokens": 814,
+        "output_tokens": 2989,
+        "total_tokens": 3803
+      }
+    }
+  ],
+  "simulator_calls": [],
+  "simulator_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "logical_model_calls": 0,
+    "calls_with_usage": 0,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "not_calculated",
+    "reported_token_cost_usd": null,
+    "sdk_http_attempts": null
+  },
+  "simulator_fallbacks": 0,
+  "guard_fallbacks": 0,
+  "guard_fallbacks_status": "observed",
+  "writer_diagnostics": {
+    "status": "observed",
+    "model_completed": 2,
+    "model_fallback": 0,
+    "compression_model_completed": 0,
+    "compression_model_fallback": 0,
+    "versions_with_model_fallback": 0,
+    "not_observed_versions": 2
+  },
+  "safety_gate": "pending_claude_review",
+  "session_id": "5a72250c-bec1-455f-8d8a-3d248cf838e9"
+}

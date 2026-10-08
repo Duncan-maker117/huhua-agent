@@ -27,7 +27,7 @@
 
 ## 当前状态
 
-2026-10-09 Tailor PR4：v3候选本地提交 `78aceab`（未push），Banz充值后官方余额复查可用。新公开 `runs/20261009-pr4-v3` 已完整跑完并补评一次，70版本59已评分/11无稿；编辑17/24（1无diff、5未遵循、1评分错误），首稿12/12≤2轮，事实模型疑点5；源码hash未变，未达PR4门槛。私有 `runs-private/20261009-pr4-real-01-v3` 两轮44facts保持一致、SQL/PDF绑定正确，无writer回退，但仍2页且出现无源“未上线”/重复正文，Codex私有复核已保存。最终v3 Guard统一8例通过，不能替代全套。正在独立tmp修v4：限制原文与去重/条件保留、负面上线与频率/因果边界、追问raw_note归属和项目名、repair需接语义失败与原指令、编辑评分排除隐藏truth且独立带已知JD。v4十个文件已合入MAIN，837/837无跳过、Ruff/diff通过；准备提交后新开公开/私有v4，PR5独立文件未接graph。工具明确以安全限制拒绝访问Ghostty，Claude交接只能先备文件，未发送；确认新增事实仍未知。旧run不覆盖，未部署/迁移真实库。
+2026-10-09 Tailor PR4：v4本地提交 `37be26e`，充值后公开/私有全套已结束（旧run保持）。公开58版47评分/11无稿，补评后编辑17/24：2无diff、3未遵循、2因design RuntimeError未运行；首稿12/12≤2轮，3条模型事实疑点，确认新增事实仍待Claude。私有v4两轮44facts/6skills/collected_info不变，node/SQL/PDF绑定正确，无writer回退且未复现无源未上线，但仍2页、3/8目标满足、本轮执行3/14操作（1/8目标），未达golden。v5在tmp整合target_bullets、schema层级恢复、保留证据的合并/缩短、否定量化/复合限制、UI空结果误杀、JD_INPUT本人资料接收与安全错误栈；不把raw_notes直接补成facts，避免旧删除/更正复活。PR5八个独立文件未接graph。Ghostty访问被工具安全限制拒绝，Claude交接文件已备未送；未push、部署或迁移真实库。
 
 2026-10-08 两份本人历史资料真实生成实测完成：Banz 明确授权 DeepSeek V4.1 Flash（API ID `deepseek-flash`）。在独立临时加密库走真实网页上传 PDF + Markdown、生成、纠错及 PDF/Word 下载；主工作区业务仍为 `a742100`，PR1 未合并。四个真实项目均保留，但联系栏「深圳」误成第五项目；一页要求未执行，默认模板 PDF 为 3 页；mtagent 冲突虽列入核对，正文仍含冲突日期/职责；第二轮明确删改等待约 47.6 秒，data/revision/PDF 完全不变。已只读定位联系栏解析过宽、旧 editor 强制原句保留且未接收篇幅指令、信息提取完整回显与对象数组校验矛盾等原因，未改业务代码或上线。含个人资料的原始 PDF/Word、两轮记录及报告仅保存在 Git 忽略目录 `data/output/tailor-real-materials-20261008/summary.md`；两份原件哈希未变。该结果证明当前应用不能直接产出可投递稿，不代表已单独评估模型写作能力。
 
@@ -77,7 +77,7 @@
 
 ## 下一步
 
-PR3 已提交 `ecf7a33`。余额已恢复，接下来新开 PR4 v3 全套逐版本验收与 Claude 事实复核，达到编辑≥90%、确认新增事实0后再接 PR5 router/复合编辑。PR6 接口草稿见 `docs/development/2026-10-08-tailor-api-handoff.md`，尚未交付前端验收。真实材料旧基线见 `evaluation/tailor-bench/runs-private/20261008-saved-real-01-baseline/summary.md`：两轮均3页，第二轮执行0/8目标、0/14操作。新旧运行的事实结论分别复核，不相互借用。
+PR4 v5最终离线整合通过：MAIN887/887（含21条未接入PR5组件测试），clean候选864通过/2私有fixture跳过。接下来冻结源码、新开公开 runs/20261009-pr4-v5 和私有 runs-private/20261009-pr4-real-01-v5（官方Flash、graph-only）。公开逐版本评分、事实复核和私有golden验收全部保留独立结果；达到编辑≥90%、确认新增事实0后才接PR5。Ghostty被工具安全限制拒绝，Claude交接文件已准备但未送达，不能冒充已评审。旧基线218文件及完成v4的102文件保留。未push、部署或迁移真实库。
 
 先承接 2026-10-08 的核心流程修复：发布需重新构建带 Pango/中文字体的镜像，再用线上独立测试会话核验完整资料、模板恢复及 PDF/Word 下载；本轮没有发布授权或线上验收结果，不把本地浏览器通过写成线上已解决。
 

@@ -180,6 +180,31 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
         output = await structured.ainvoke(prompt)
         return schema.model_validate(privacy.restore(_model_dict(output)))
 
+    def schema_structure() -> dict:
+        """Trusted type diagram only: no defaults, examples or failed values."""
+        definition = schema.model_json_schema()
+
+        def field_type(node: dict):
+            if "$ref" in node:
+                return node["$ref"].rsplit("/", 1)[-1]
+            if "enum" in node:
+                return {"one_of": node["enum"]}
+            if node.get("type") == "array":
+                return {"array_of": field_type(node.get("items", {}))}
+            if node.get("type") == "object" and isinstance(node.get("additionalProperties"), dict):
+                return {"string_keys_with_values": field_type(node["additionalProperties"])}
+            return node.get("type", "object")
+
+        objects = {}
+        for name, model_schema in [(schema.__name__, definition), *definition.get("$defs", {}).items()]:
+            if model_schema.get("type") == "object":
+                objects[name] = {
+                    "allowed_fields": {key: field_type(value)
+                                       for key, value in model_schema.get("properties", {}).items()},
+                    "required_fields": model_schema.get("required", []),
+                }
+        return {"root_type": schema.__name__, "objects": objects}
+
     # The first attempt and one optional schema correction share one deadline.
     # A timeout or provider error is never treated as a validation retry.
     async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
@@ -193,13 +218,20 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                 retry_state["schema_retry_reason_code"] = feedback["reason_code"]
             else:
                 retry_state.update(feedback)
-            correction = {"schema": schema.__name__, **feedback}
+            correction = {"schema": schema.__name__, **feedback,
+                          "schema_structure": schema_structure()}
             if retry_state.get("schema_retry_count", 0) >= 1:
                 raise
             retry_state["schema_retry_count"] = 1
+            placement_hint = (
+                "例如 summary/summary_fact_ids 属于 WriterDraft，不属于 WrittenItem 或 WrittenBullet。"
+                if "WriterDraft" in correction["schema_structure"]["objects"] else "")
             retry_prompt = [*messages, HumanMessage(content=(
                 "仅修正输出结构，候选人事实和任务输入与上一条完全相同。"
-                "不要回显错误输出、额外字段或解释。安全结构提示："
+                "不要回显错误输出、额外字段或解释。schema_structure 是可信字段类型图，不是事实或示例正文。"
+                "每层对象只能使用该类型的 allowed_fields；不要把父层字段放进子对象。"
+                + placement_hint +
+                "<extra> 是已隐藏的额外字段名，不是允许输出的字段；fact_id/item_id 仍只能来自原输入。安全结构提示："
                 + json.dumps(correction, ensure_ascii=False)))]
             try:
                 return await invoke(retry_prompt)
@@ -549,7 +581,11 @@ async def run_resume_writer(
     match_plan = _validate_plan(plan, source, role_profile, items, facts)
     req_ids = {row["req_id"] for row in match_plan["requirements"]}
     treatment = {row["item_id"]: row["treatment"] for row in match_plan["experience_plan"]}
-    expected_items = {item_id for item_id in allowed if treatment.get(item_id) != "backup"}
+    # _validate_plan already bounds every requested count by its treatment.
+    # Preserve an explicit zero; a bullet-scoped edit cannot trim sibling text.
+    target_caps = {row["item_id"]: row["target_bullets"] for row in match_plan["experience_plan"]}
+    expected_items = {item_id for item_id in allowed if treatment.get(item_id) != "backup"
+                      and (scope == "bullet" or target_caps[item_id] > 0)}
     if (writer_diagnostic["status"] == "model_completed" and expected_items
             and not any(row.item_id in expected_items for row in draft.items)):
         # A schema-valid but empty draft also falls back or leaves an edit undone.
@@ -580,11 +616,18 @@ async def run_resume_writer(
                 selected = [fact for fact in item["facts"] if _body_fact(fact) and fact.get("kind") in
                             {"action", "method_tool", "deliverable", "result_metric", "result_qualitative", "status_limit"}]
                 selected = (selected or [fact for fact in item["facts"] if _body_fact(fact)])[
-                    :{"lead": 3, "keep": 2, "brief": 1, "backup": 0}[treatment[item_id]]]
+                    :target_caps[item_id]]
                 from app.schemas.writer import WrittenItem, WrittenBullet
                 writers[item_id] = WrittenItem(item_id=item_id, section=section,
                                                bullets=[WrittenBullet(text=fact["text"], fact_ids=[fact["id"]])
                                                         for fact in selected])
+    elif scope != "bullet":
+        # A deliberate zero needs no model-written row, but still clears the
+        # selected item's old body. Unselected items remain untouched.
+        from app.schemas.writer import WrittenItem
+        for item_id in allowed:
+            if target_caps[item_id] == 0 and item_id not in writers:
+                writers[item_id] = WrittenItem(item_id=item_id, section=items[item_id][0])
     candidate_rows = []
     for item_id, written in writers.items():
         _, item = indexed_output.get(item_id, (None, None))
@@ -595,7 +638,7 @@ async def run_resume_writer(
         indices = sorted(bullet_targets.get(item_id, [])) if scope == "bullet" else list(range(len(written.bullets)))
         if scope == "bullet" and not indices:
             continue
-        cap = {"lead": 3, "keep": 2, "brief": 1, "backup": 0}[treatment[item_id]]
+        cap = target_caps[item_id]
         for position, bullet_index in enumerate(indices):
             bullet = (written.bullets[bullet_index] if scope == "bullet" and len(written.bullets) == len(old_bullets)
                       and bullet_index < len(written.bullets) else written.bullets[position] if position < len(written.bullets) else None)
@@ -631,9 +674,11 @@ async def run_resume_writer(
             continue
         rows = by_item.get(item_id, [])
         if not rows:
-            if scope == "whole":
+            if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"
                 item[field] = []
+                if target_caps[item_id] == 0 and section == "projects":
+                    item["description"] = ""
                 metadata[item_id] = []
                 if not any(_body_fact(fact) for fact in items[item_id][1]["facts"]):
                     item["hidden"] = True

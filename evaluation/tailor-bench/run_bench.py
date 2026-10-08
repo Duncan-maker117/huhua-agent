@@ -40,6 +40,61 @@ def timestamp() -> str:
     return datetime.now(ZoneInfo("Asia/Shanghai")).isoformat()
 
 
+def safe_exception_diagnostic(error: BaseException) -> dict:
+    """Types and repo code locations only, including suppressed context.
+
+    Never format an exception/traceback, inspect locals, or read source lines.
+    Data directories, private runs, dependencies and external paths are omitted.
+    """
+    root = ROOT.resolve()
+
+    def safe_name(name: str, fallback: str) -> str:
+        return name if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]{0,79}|<(?:module|lambda|listcomp|dictcomp|genexpr)>", name) else fallback
+
+    def repo_location(traceback) -> dict | None:
+        code = traceback.tb_frame.f_code
+        filename = code.co_filename
+        if filename.startswith("<"):
+            return None
+        try:
+            path = Path(filename)
+            path = (path if path.is_absolute() else root / path).resolve()
+            relative = path.relative_to(root)
+            parts = relative.parts
+            allowed = (parts[:2] in {("backend", "app"), ("backend", "scripts")}
+                       or parts[:1] in {("scripts",), ("tests",)}
+                       or (parts[:2] == ("evaluation", "tailor-bench") and len(parts) == 3))
+            if not allowed or path.suffix != ".py" or not path.is_file():
+                return None
+        except (OSError, ValueError, RuntimeError):
+            return None
+        return {"file": relative.as_posix(), "function": safe_name(code.co_name, "<unknown>"),
+                "lineno": traceback.tb_lineno}
+
+    chain = []
+    seen = set()
+    current, relation = error, "raised"
+    while current is not None and len(chain) < 8 and id(current) not in seen:
+        seen.add(id(current))
+        frames = []
+        traceback = current.__traceback__
+        depth = 0
+        while traceback is not None and depth < 96:
+            location = repo_location(traceback)
+            if location is not None:
+                frames.append(location)
+            traceback = traceback.tb_next
+            depth += 1
+        chain.append({"type": safe_name(type(current).__name__, "Exception"),
+                      "relation": relation, "context_suppressed": bool(current.__suppress_context__),
+                      "repo_frames": frames[-12:], "frames_truncated": traceback is not None or len(frames) > 12})
+        if current.__cause__ is not None:
+            current, relation = current.__cause__, "cause"
+        else:
+            current, relation = current.__context__, "context"
+    return {"chain": chain, "chain_truncated": current is not None}
+
+
 def write_json(path: Path, value) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     pending = path.with_suffix(path.suffix + ".tmp")
@@ -402,7 +457,9 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
                         chunks.append(chunk)
             record["status"] = "completed"
         except Exception as exc:
-            record.update(status="error", error_type=type(exc).__name__)
+            diagnostic = safe_exception_diagnostic(exc)
+            record.update(status="error", error_type=diagnostic["chain"][0]["type"],
+                          error_diagnostic=diagnostic)
             failed = True
         finally:
             counter_context.reset(token)
@@ -437,7 +494,9 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             record["acceptance_context"] = copy.deepcopy(committed_context)
             record["committed_fact_snapshot"] = committed_facts(stored)
         except Exception as exc:
-            record.update(status="error", state_error_type=type(exc).__name__)
+            diagnostic = safe_exception_diagnostic(exc)
+            record.update(status="error", state_error_type=diagnostic["chain"][0]["type"],
+                          state_error_diagnostic=diagnostic)
             failed = True
         record["new_versions"] = [v["version_id"] for v in recorder.versions if v["version_id"] not in before_ids]
         turns.append(record)

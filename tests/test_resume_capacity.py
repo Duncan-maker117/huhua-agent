@@ -61,12 +61,13 @@ class ResumeCapacityTest(unittest.TestCase):
         ]}
         actions = plan_compression(resume, match_plan)
         self.assertEqual([row["op"] for row in actions],
-                         ["hide_item", "cap_bullets", "shorten_bullet", "clear_self_evaluation"])
+                         ["hide_item", "merge_bullets", "shorten_bullet", "clear_self_evaluation"])
+        self.assertTrue(actions[1]["writer_required"])
         self.assertEqual(actions[2]["target"], "/work_experience/1/bullets/0")
         self.assertTrue(actions[2]["writer_required"])
         compressed = apply_deterministic_compression(resume, actions)
         self.assertTrue(compressed["work_experience"][0]["hidden"])
-        self.assertEqual(compressed["work_experience"][1]["bullets"], ["K" * 80])
+        self.assertEqual(compressed["work_experience"][1]["bullets"], ["K" * 80, "trim this second bullet"])
         self.assertEqual(compressed["self_evaluation"], "Generic summary")
         self.assertEqual(apply_deterministic_compression(compressed, actions[3:])["self_evaluation"], "")
         self.assertEqual(resume, unchanged)

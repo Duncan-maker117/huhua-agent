@@ -1,6 +1,6 @@
 # Tailor PR4/5 → PR6 接口交接
 
-当前为本地开发接口。PR4 v3离线通过784项，真实重跑因DeepSeek余额不足未开始，PR4尚未验收；PR5的独立组件尚未接入graph。前端可先阅读以下现有字段，完成验收前不部署。
+当前为本地开发接口。PR4 v4（`37be26e`）全套实测已结束，编辑17/24，未达≥90%门槛；事实仍待Claude复核。v5修复已通过独立代码复核，正在完成整合验证并准备新的公开/私有run。PR5独立组件尚未接入graph。以下为当前字段契约，尚未完成前端交付验收。
 
 ## 当前稿与 SSE
 
@@ -25,6 +25,8 @@
 若保存时事实校验改变正文，`page_check.content_integrity:changed_by_fact_sanitizer` 和 `pre_sanitization_data_hash` 标明变化；实际页数仍显示，但 `within_page_limit:null`，不能宣称靠删掉失效正文完成了压缩。此时 `change_summary` 可能仍来自写作阶段，执行结果须以保存后的 `data/diff` 为准。`resume_meta.writer_diagnostic` 的 `status:model_completed|model_fallback` 区分实际模型写作与原文回退，不向用户显示底层异常详情。
 
 v3 的诊断包含 `schema_retry_count:0|1`。`fallback_action:preserved_existing_draft` 表示改写失败，仍有效的上一版正文已保留；`deterministic_updates_applied` 区分本轮是否执行了已确认的资料纠正或删除。此时不能宣称润色或压缩成功，事实资料仍保留。撤销历史如因失效事实调整，其旧页数也会标 stale。PR4阶段这些诊断用于正确提示，勿展示底层schema路径。
+
+v5 在 `resume_meta.compression_retention_checks` 保存压缩的 `item_id/op/target/status/reason`。合并和缩短均检查证据信息保留；检查失败维持原文，页数可能继续超限。每轮最多一次压缩 writer、最多两轮；保留核验每轮最多一批、30 秒。这里只用于诊断，不能把模型完成等同于压缩成功。
 
 benchmark 的 `fact_snapshot/committed_fact_snapshot` 只用于离线审计，不是公共 API 字段；`committed_sql` 指权威、已隐私清洗的会话读取视图，不是原始数据库字节。
 

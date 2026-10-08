@@ -6,13 +6,13 @@ import hashlib
 import re
 from typing import Mapping, Sequence
 
-from app.services.fact_guard import _source_quote, normalize_text
+from app.services.fact_guard import _source_quote, _experience_negation_text, normalize_text
 from app.services.resume_facts import active_facts_for_writer
 
 
 _ASSERTED_LIMIT = re.compile(
     r"尚未|从未|并未|没有|不曾|未曾|不负责|不是|并非|不属于|"
-    r"未(?:上线|发布|完成|部署|实现|验证|参与|测试|统计|做)|"
+    r"(?:未|没)(?:上线|发布|完成|部署|实现|验证|参与|测试|统计|做|测)|"
     r"计划|准备|打算|仅(?:负责|参与|完成)|只(?:负责|参与|完成)|"
     r"\b(?:planned|not|never|without)\b", re.I)
 _PHASE_LIMITS = (
@@ -28,7 +28,7 @@ _CLAUSE_BREAK = re.compile(r"[。；;！？!?\n]+|[，]|,(?!\d)")
 _CONDITION_HINT = re.compile(
     r"如果|若|除非|只有|前提|条件|取决于|等待|要等|须经|批准|审批|验收|"
     r"在[^，,；;。]*(?:时|情况下)")
-_BARE_LIMIT = re.compile(r"^(?:尚未|从未|并未|没有|不曾|未曾|未|计划|准备|打算)")
+_BARE_LIMIT = re.compile(r"^(?:尚未|从未|并未|没有|不曾|未曾|未|没|计划|准备|打算)")
 _SUBJECT_END = re.compile(r"(?:模块|功能|接口|系统|项目|页面|版本|环境|方案|服务|数据|统计|测试|流程|评估|工作)$")
 
 
@@ -42,12 +42,12 @@ def _limit_clauses(fact: dict) -> list[str]:
     if fact.get("field") and fact["field"] not in {"description", "highlights"}:
         return []
     source = _source_quote(fact).strip()
-    if not source or not _STATUS_LIMIT.search(source):
+    if not source or not _STATUS_LIMIT.search(_experience_negation_text(source)):
         return []
     limits = []
     for sentence in _SENTENCE_BREAK.split(source):
         clauses = [part.strip() for part in _COMMA_BREAK.split(sentence) if part.strip()]
-        if any(_STATUS_LIMIT.search(clause) for clause in clauses) and _CONDITION_HINT.search(sentence):
+        if any(_STATUS_LIMIT.search(_experience_negation_text(clause)) for clause in clauses) and _CONDITION_HINT.search(sentence):
             # Do not detach a plan from prerequisites, including a condition
             # inside a clause or after the action. Approval/acceptance/waiting
             # hints are deliberately conservative: ambiguity retains the full
@@ -55,7 +55,7 @@ def _limit_clauses(fact: dict) -> list[str]:
             limits.append(sentence.strip())
             continue
         for index, clause in enumerate(clauses):
-            if not _STATUS_LIMIT.search(clause):
+            if not _STATUS_LIMIT.search(_experience_negation_text(clause)):
                 continue
             # “支付模块，尚未上线” and “若审批通过，计划部署” must not
             # become a claim about the entire project or an unconditional plan.
@@ -145,7 +145,12 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
             missing = []
             visible = list(bullets)
             for fact, clauses in limits:
-                if fact["id"] in supported:
+                # A valid citation identifies the source, not every preserved
+                # clause. A composite fact can retain "not launched" while
+                # dropping "no outcome measurement" despite a guard pass.
+                # Phase-only prose can still use the guard's approved rewrite.
+                if fact["id"] in supported and not any(
+                        _ASSERTED_LIMIT.search(clause) or _CONDITION_HINT.search(clause) for clause in clauses):
                     continue
                 for clause in clauses:
                     if not _already_visible(clause, visible):

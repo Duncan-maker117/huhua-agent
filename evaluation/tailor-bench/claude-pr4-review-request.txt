@@ -1,16 +1,18 @@
-Codex → Claude：PR4 预审交接（尚未验收）
+Codex → Claude：PR4 v4 实测交接，v5 离线整合通过，新run待执行（尚未验收）
 
-先读 pr4/summary.md 与 pr4/fact-review-v2.md。运行目录是 runs/20261009-pr4-v1、runs/20261009-pr4-v2；旧baseline保持历史归属，不覆盖旧run。主工作区已是更后的PR4 v3候选，784/784离线通过，v3尚未真实重跑；不能拿v2评分代表现源码。
+状态：文件已准备，未发送。工具以安全限制拒绝访问 Ghostty，不能声称 Claude 已收到或确认。
+先读 pr4/summary.md 与 pr4/fact-review-v4.md。源码 v4 为37be26e；公开 runs/20261009-pr4-v4，私有 runs-private/20261009-pr4-real-01-v4。全部历史 run 保留。
 
-v2有65个变化版本，53评分完成、11无稿、1评分错误；编辑11/24，另外2无diff、3未遵循、6评分错误、2未运行。末段API失败后补评分仍失败，原尝试保留；官方Flash最小检查HTTP402，余额接口is_available=false，故停止模型调用。
+公开：12例、59轮、58版，47已评分/11无稿；一次仅补评错误后编辑17/24（2无diff、3未遵循、2未运行），首稿12/12≤2轮。design第3轮RuntimeError，无原异常细节，不能猜供应方失败。v4采用独立job_context + observed_facts编辑评分，不把隐藏truth当用户已披露事实；原评分尝试保留。
 
-需逐版复核的重点：
-1. algorithm-01/v004-v005：从“训练用老师给的代码”扩成“完成训练与评估流程”；仅检查文件列表/查看错例是否足以支持这种主体与范围？同版“未做量化统计”没有已披露来源，不能从没给数字反推。
-2. frontend-01/v005-v006：查看请求返回+核对字段变成排查数据与接口不一致，Judge标unsupported；career-switch-01/v004新增表格“作为需求来源”，Judge亦标unsupported。
-3. 其余疑点与不可判定项全部在run review-queue.json；不要把模型判supported或旧基线的0当作本轮确认0。
+事实复核重点：
+1. algorithm v004/v005写未做量化统计，实际只披露错例查看、尺寸统一、重跑、记录变化，无统计否定。模型分别标unsupported/truth_only，两者都无本轮来源。
+2. pm v004新增团队项目，开场仅参加课程项目；隐藏truth不能替正文背书。backend v005把本地演示过写成演示通过，另请判其结果强化边界。
+3. direction v004漏没测业务效果；import v004/v005和ops v005/v006引用复合来源却只保留部分限制。编辑Judge仍可能判true，因此执行率不能替代事实审查。
+4. career和pm的限制在raw_notes里但未完整进入active facts；frontend的三类界面已披露而未入库。旧词法规则可复现把UI没结果当经历否定误杀，但没有原提取响应，不能断言就是本run实际原因。
 
-v3针对性修复：结构错误最多一次重试（主写作总60秒）；失败时保留仍有来源的原稿，明确纠正/删除仍生效且历史不能复活；Guard以原引文为准、带fact类型、逐子句核主体和新增动作/否定事实。逐步候选的4+2+2个合成Flash正反例符合预期，但不是最终提示词统一复测，也不是整套安全验收。
+私有 real-01仅官方Flash、无Pro：44facts/6skills/collected_info两轮不变，node/SQL/PDF对应一致；没有writer fallback，无源未上线未再出现。但2页、3/8目标满足，实际执行3/14操作、1/8完整目标；不得验收为可投递稿。正文及PDF只看私有目录review-v4.md与private-acceptance.json，不复制到公开报告。
 
-私有real-01只在cases-private/runs-private，使用原材料和golden参照、仅官方Flash。v2最终1页且SQL没有额外删句，但writer回退使稿质退化，不能验收；详情仅看私有summary/versions/PDF，不将正文复制进公开报告。
+v5已整合到本地源码：target_bullets实际约束；可信schema结构恢复提示；keep多句先合并并检验语义保留，不直接截第一条；否定量化状态、复合限制与口语没测；UI空结果标签误杀；安全异常诊断；JD_INPUT本人材料进入既有收集流程。MAIN887/887通过（含21条未集成PR5组件测试），clean候选864通过/2私有fixture跳过。尚未用v5实时结果替换上述v4结论。自动把raw_notes变事实暂不实施：现提取入口也接历史回放，缺少当前轮次/归属证明，不能复活被删除/更正事实。
 
-Banz已充值，余额接口复查is_available=true。接下来先新开v3全套及私有回放，再按§8完成PR4人工事实复核和90%执行率门槛，之后才接PR5。PR5组件未接graph，PR6接口草稿位于docs/development/2026-10-08-tailor-api-handoff.md。当前没有push/部署。
+PR4门槛仍为确认新增事实0、编辑≥90%；未达到就不集成PR5。PR6接口说明在docs/development/2026-10-08-tailor-api-handoff.md，尚未前端交付验收。未push、未部署、未迁移真实用户库。

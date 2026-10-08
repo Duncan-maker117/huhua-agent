@@ -29,6 +29,100 @@ def fact(text, identifier='f1', **extra):
 
 
 class FactGuardTests(unittest.IsolatedAsyncioTestCase):
+    def test_course_project_and_feedback_do_not_establish_team_project(self):
+        for source in ['我参加过课程项目，问过同学，也画了提交和确认流程',
+                       'I built a course project and asked classmates for feedback']:
+            with self.subTest(source=source):
+                self.assertIn('unsupported_team_project_context',
+                              lexical_fact_errors('课程团队项目', source))
+        for source in ['课程小组共同完成项目', '我和同学一起设计项目',
+                       '我与同学开发页面', '队友负责后端，我画原型', 'We built a team project',
+                       '同学们一起设计项目', '我们开发课程项目', 'We developed this project as a group']:
+            with self.subTest(source=source):
+                self.assertNotIn('unsupported_team_project_context',
+                                 lexical_fact_errors('团队项目', source))
+
+    async def test_team_marker_does_not_bypass_subject_semantic_check(self):
+        model = FakeModel([decision('b1', False, subject_ok=False,
+                                    unsupported_spans=['团队项目'])])
+        checked = await guard_bullets([{'id': 'b1', 'text': '团队项目', 'fact_ids': ['f1']}],
+                                     [fact('这是独立项目，参考过其他团队的方案')], llm=model)
+        self.assertEqual(checked[0]['lexical_errors'], [])
+        self.assertEqual(checked[0]['verdict'], 'fail')
+        self.assertEqual(model.structured.ainvoke.await_count, 1)
+
+    async def test_empty_result_ui_label_is_not_a_negative_experience_limit(self):
+        source = '我还补了加载中、没结果和请求失败的界面'
+        model = FakeModel([decision()])
+        checked = await guard_bullets(
+            [{'id': 'b1', 'text': '补充加载、空结果和请求失败界面', 'fact_ids': ['f1']}],
+            [fact(source)], llm=model)
+        self.assertEqual(checked[0]['lexical_errors'], [])
+        self.assertEqual(checked[0]['verdict'], 'pass')
+        self.assertEqual(model.structured.ainvoke.await_count, 1)
+
+    def test_empty_state_label_does_not_erase_actual_negative_work_status(self):
+        for source in ['我设计了没结果界面，网站没上线', '我没开发空结果页面',
+                       '我设计页面但没有结果', '我处理请求没有结果',
+                       '处理请求失败提示，但没有增长结果', '项目没有结果']:
+            with self.subTest(source=source):
+                self.assertIn('missing_negation_or_plan_limit',
+                              lexical_fact_errors('设计结果页面', source))
+
+    async def test_undisclosed_negative_measurement_cannot_pass_semantic_approval(self):
+        model = FakeModel([decision()])
+        checked = await guard_bullets(
+            [{'id': 'b1', 'item_id': 'p1',
+              'text': '查看错分图片并调整输入尺寸后重跑，未做量化统计',
+              'fact_ids': ['observed']}],
+            [fact('我看了错分图片，调整了输入尺寸并重跑，还记录了变化',
+                  'observed', item_id='p1', kind='action')], llm=model)
+        self.assertEqual(checked[0]['verdict'], 'fail')
+        self.assertIn('unsupported_negative_measurement_status', checked[0]['lexical_errors'])
+        self.assertEqual(model.structured.ainvoke.await_count, 0)
+
+    def test_negative_measurement_needs_work_status_not_missing_report_or_other_limit(self):
+        for source in ['项目没有部署，我查看了错例', '没有提供准确率数字',
+                       '没有量化结果记录', '我做过准确率统计，但没有在简历中写数值',
+                       '统计做过，但没有统计报告可提供', '没有统计数据', '没有量化统计报告',
+                       '统计做过，但没有统计的报告', '没有量化分析的记录', '没有统计学知识',
+                       '并非只做了定性分析', '不是仅仅做了定性观察',
+                       '我不只做了定性分析，也做了量化分析', '我不仅做了定性分析，也做了量化分析',
+                       'I reviewed errors but did not deploy the model']:
+            for claim in ['未做量化统计', '尚未开展定量评估', '没有进行统计',
+                          'Did not conduct quantitative analysis']:
+                with self.subTest(source=source, claim=claim):
+                    self.assertIn('unsupported_negative_measurement_status',
+                                  lexical_fact_errors(claim, source))
+
+    def test_explicit_measurement_limits_remain_semantically_reviewable(self):
+        for source in ['没有做过量化统计', '未统计准确率', '尚未开展定量评估',
+                       '没有做过任何量化统计', '只做了定性分析',
+                       'No quantitative analysis was performed',
+                       'I have not conducted a quantitative analysis',
+                       'I have not performed quantitative analysis']:
+            with self.subTest(source=source):
+                self.assertNotIn('unsupported_negative_measurement_status',
+                                 lexical_fact_errors('未做量化统计', source))
+        self.assertNotIn('unsupported_negative_measurement_status',
+                         lexical_fact_errors('并非未统计，已统计准确率', '已统计准确率'))
+
+    async def test_measurement_limit_must_belong_to_same_object(self):
+        model = FakeModel([decision('b1', False, results_supported=False,
+                                    unsupported_spans=['模型A未做量化统计'])])
+        checked = await guard_bullets(
+            [{'id': 'b1', 'text': '模型A未做量化统计', 'fact_ids': ['f1']}],
+            [fact('模型A已统计准确率，模型B未做量化统计')], llm=model)
+        self.assertEqual(checked[0]['lexical_errors'], [])
+        self.assertEqual(checked[0]['verdict'], 'fail')
+        self.assertEqual(model.structured.ainvoke.await_count, 1)
+
+    async def test_source_quote_overrides_extractor_added_negative_measurement(self):
+        checked = await guard_bullets(
+            [{'text': '查看错例，未做量化统计', 'fact_ids': ['f1']}],
+            [fact('查看错例，未做量化统计', source_quote='查看错例并记录变化')])
+        self.assertIn('unsupported_negative_measurement_status', checked[0]['lexical_errors'])
+
     async def test_prototype_does_not_prove_unreleased_status(self):
         model = FakeModel([decision()])
         checked = await guard_bullets(
@@ -228,8 +322,10 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([row['verdict'] for row in checked], ['fail', 'pass', 'fail'])
         self.assertEqual(model.structured.ainvoke.await_count, 1)
         payload = json.loads(model.structured.ainvoke.call_args.args[0][-1].content)
-        self.assertEqual(payload[0]['source_quotes'], [source])
-        self.assertEqual(payload[1]['source_quotes'], [explicit])
+        self.assertEqual([row['id'] for row in payload], ['explicit', 'unrelated'])
+        self.assertEqual(payload[0]['source_quotes'], [explicit])
+        self.assertEqual(payload[1]['source_quotes'], [source])
+        self.assertIn('unsupported_negative_measurement_status', checked[0]['lexical_errors'])
         prompt = model.structured.ainvoke.call_args.args[0][0].content
         self.assertIn('否定断言也必须逐项有原文支持', prompt)
         self.assertIn('没有部署”不等于“未测试”或“未统计', prompt)

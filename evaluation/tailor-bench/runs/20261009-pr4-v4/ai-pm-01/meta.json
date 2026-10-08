@@ -1,0 +1,786 @@
+{
+  "case_id": "ai-pm-01",
+  "status": "completed",
+  "graph_status": "completed",
+  "evaluation_status": "completed",
+  "truth_review_status": "approved_by_claude",
+  "turn_count": 4,
+  "followup_count": 0,
+  "version_count": 4,
+  "visible_version_count": 4,
+  "first_draft_turn": 2,
+  "first_draft_version": "v002",
+  "commits": [
+    {
+      "turn": 1,
+      "stage": "COLLECTING",
+      "hash": "5c3d8ec7d72219de60ab33c92b75abb8a46d63ed2e94804d846e370a6d03c00e",
+      "has_experience": false,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {},
+        "active_facts": [],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 2,
+      "stage": "COLLECTING",
+      "hash": "88ee1e11abe03e47984f1e84e8fc83721a0a92aff8edc59f790d1be361448c9e",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "6dcad7bc-0641-48de-a686-7068278886a2",
+              "name": "路线笔记",
+              "facts": [
+                {
+                  "id": "f_ff97adbc3a7f49b19dabb56479dc95d7",
+                  "kind": "context",
+                  "text": "“路线笔记”是一个旅游 Agent，属于课程小组 Demo",
+                  "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4d9e474c2c104e06b52e93e4634df7a5",
+                  "kind": "action",
+                  "text": "用自己写的出行问题测试该 Agent",
+                  "source_quote": "我拿自己写的出行问题试它",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我拿自己写的出行问题试它",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_071ea30b988349f9ad5c479a055263fd",
+                  "kind": "action",
+                  "text": "记录回答中乱编地点和时间冲突的情况",
+                  "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_3155fc71a1d5490081f13eb8b12e0466",
+                  "kind": "status_limit",
+                  "text": "项目尚未上线",
+                  "source_quote": "项目还没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "项目还没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                "我拿自己写的出行问题试它",
+                "把回答里乱编地点和时间冲突的情况记下来了",
+                "项目还没上线"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_ff97adbc3a7f49b19dabb56479dc95d7",
+            "kind": "context",
+            "text": "“路线笔记”是一个旅游 Agent，属于课程小组 Demo",
+            "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_4d9e474c2c104e06b52e93e4634df7a5",
+            "kind": "action",
+            "text": "用自己写的出行问题测试该 Agent",
+            "source_quote": "我拿自己写的出行问题试它",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_071ea30b988349f9ad5c479a055263fd",
+            "kind": "action",
+            "text": "记录回答中乱编地点和时间冲突的情况",
+            "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_3155fc71a1d5490081f13eb8b12e0466",
+            "kind": "status_limit",
+            "text": "项目尚未上线",
+            "source_quote": "项目还没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "项目还没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 3,
+      "stage": "EVALUATING",
+      "hash": "ed16e52f11f288bf5da44a5901ab9640aed2eb7893875a3f8c64c91fb7c646ff",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "6dcad7bc-0641-48de-a686-7068278886a2",
+              "name": "路线笔记",
+              "facts": [
+                {
+                  "id": "f_ff97adbc3a7f49b19dabb56479dc95d7",
+                  "kind": "context",
+                  "text": "“路线笔记”是一个旅游 Agent，属于课程小组 Demo",
+                  "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4d9e474c2c104e06b52e93e4634df7a5",
+                  "kind": "action",
+                  "text": "用自己写的出行问题测试该 Agent",
+                  "source_quote": "我拿自己写的出行问题试它",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我拿自己写的出行问题试它",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_071ea30b988349f9ad5c479a055263fd",
+                  "kind": "action",
+                  "text": "记录回答中乱编地点和时间冲突的情况",
+                  "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_3155fc71a1d5490081f13eb8b12e0466",
+                  "kind": "status_limit",
+                  "text": "项目尚未上线",
+                  "source_quote": "项目还没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "项目还没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                "我拿自己写的出行问题试它",
+                "把回答里乱编地点和时间冲突的情况记下来了",
+                "项目还没上线"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_ff97adbc3a7f49b19dabb56479dc95d7",
+            "kind": "context",
+            "text": "“路线笔记”是一个旅游 Agent，属于课程小组 Demo",
+            "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_4d9e474c2c104e06b52e93e4634df7a5",
+            "kind": "action",
+            "text": "用自己写的出行问题测试该 Agent",
+            "source_quote": "我拿自己写的出行问题试它",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_071ea30b988349f9ad5c479a055263fd",
+            "kind": "action",
+            "text": "记录回答中乱编地点和时间冲突的情况",
+            "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_3155fc71a1d5490081f13eb8b12e0466",
+            "kind": "status_limit",
+            "text": "项目尚未上线",
+            "source_quote": "项目还没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "项目还没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 4,
+      "stage": "EVALUATING",
+      "hash": "c425ca21e69fdcc4d23bcc2331a47258d543b0b922034db863654991a2fa20e4",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "",
+            "phone": "",
+            "email": "",
+            "location": ""
+          },
+          "education": [],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "6dcad7bc-0641-48de-a686-7068278886a2",
+              "name": "路线笔记",
+              "facts": [
+                {
+                  "id": "f_ff97adbc3a7f49b19dabb56479dc95d7",
+                  "kind": "context",
+                  "text": "“路线笔记”是一个旅游 Agent，属于课程小组 Demo",
+                  "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4d9e474c2c104e06b52e93e4634df7a5",
+                  "kind": "action",
+                  "text": "用自己写的出行问题测试该 Agent",
+                  "source_quote": "我拿自己写的出行问题试它",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我拿自己写的出行问题试它",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_071ea30b988349f9ad5c479a055263fd",
+                  "kind": "action",
+                  "text": "记录回答中乱编地点和时间冲突的情况",
+                  "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_3155fc71a1d5490081f13eb8b12e0466",
+                  "kind": "status_limit",
+                  "text": "项目尚未上线",
+                  "source_quote": "项目还没上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "项目还没上线",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                "我拿自己写的出行问题试它",
+                "把回答里乱编地点和时间冲突的情况记下来了",
+                "项目还没上线"
+              ]
+            }
+          ],
+          "skills": [],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_ff97adbc3a7f49b19dabb56479dc95d7",
+            "kind": "context",
+            "text": "“路线笔记”是一个旅游 Agent，属于课程小组 Demo",
+            "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_4d9e474c2c104e06b52e93e4634df7a5",
+            "kind": "action",
+            "text": "用自己写的出行问题测试该 Agent",
+            "source_quote": "我拿自己写的出行问题试它",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_071ea30b988349f9ad5c479a055263fd",
+            "kind": "action",
+            "text": "记录回答中乱编地点和时间冲突的情况",
+            "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          },
+          {
+            "id": "f_3155fc71a1d5490081f13eb8b12e0466",
+            "kind": "status_limit",
+            "text": "项目尚未上线",
+            "source_quote": "项目还没上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "项目还没上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "6dcad7bc-0641-48de-a686-7068278886a2"
+          }
+        ],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    }
+  ],
+  "stage_first_draft_turn": 3,
+  "stage_first_draft_version": "v003",
+  "final_has_body": true,
+  "content_outcome": "has_experience_body",
+  "final_version": "v004",
+  "mean_turn_latency_seconds": 13.132,
+  "graph_usage": {
+    "input_tokens": 31547,
+    "output_tokens": 11916,
+    "total_tokens": 43463,
+    "logical_model_calls": 9,
+    "calls_with_usage": 9,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.007244,
+      "upper_bound": 0.023763,
+      "priced_calls": 9,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "judge_usage": {
+    "input_tokens": 6303,
+    "output_tokens": 12008,
+    "total_tokens": 18311,
+    "logical_model_calls": 4,
+    "calls_with_usage": 4,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.023915,
+      "upper_bound": 0.055872,
+      "priced_calls": 4,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "model_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11caf-f453-7053-9eb6-9f3d65293708",
+      "started_at": "2026-10-09T02:04:15.827347+08:00",
+      "usage": {
+        "input_tokens": 2091,
+        "output_tokens": 4619,
+        "total_tokens": 6710
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-3c7c-7f01-95e3-c0990d9d1457",
+      "started_at": "2026-10-09T02:04:34.300201+08:00",
+      "usage": {
+        "input_tokens": 1580,
+        "output_tokens": 144,
+        "total_tokens": 1724
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-40a2-7fd3-9ddf-bc014e68a7ad",
+      "started_at": "2026-10-09T02:04:35.362919+08:00",
+      "usage": {
+        "input_tokens": 347,
+        "output_tokens": 1028,
+        "total_tokens": 1375
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-525a-7341-9b2c-ad406ee01bef",
+      "started_at": "2026-10-09T02:04:39.898974+08:00",
+      "usage": {
+        "input_tokens": 2320,
+        "output_tokens": 339,
+        "total_tokens": 2659
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-595f-7143-9272-012ed0607e4b",
+      "started_at": "2026-10-09T02:04:41.695420+08:00",
+      "usage": {
+        "input_tokens": 4964,
+        "output_tokens": 472,
+        "total_tokens": 5436
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-6516-72e2-8357-836fd8208b7a",
+      "started_at": "2026-10-09T02:04:44.694715+08:00",
+      "usage": {
+        "input_tokens": 5844,
+        "output_tokens": 1827,
+        "total_tokens": 7671
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-82c2-7410-92ba-0bf8dc2c17f0",
+      "started_at": "2026-10-09T02:04:52.290379+08:00",
+      "usage": {
+        "input_tokens": 6083,
+        "output_tokens": 1668,
+        "total_tokens": 7751
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-a03d-7d03-bf5e-f132bcf0634f",
+      "started_at": "2026-10-09T02:04:59.837100+08:00",
+      "usage": {
+        "input_tokens": 5841,
+        "output_tokens": 1727,
+        "total_tokens": 7568
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11cb0-bd2f-7133-8e71-8a2efad30772",
+      "started_at": "2026-10-09T02:05:07.247431+08:00",
+      "usage": {
+        "input_tokens": 2477,
+        "output_tokens": 92,
+        "total_tokens": 2569
+      }
+    }
+  ],
+  "judge_calls": [
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb0-c19b-7740-a428-41fad0510ce9",
+      "started_at": "2026-10-09T02:05:08.379167+08:00",
+      "usage": {
+        "input_tokens": 1827,
+        "output_tokens": 4230,
+        "total_tokens": 6057
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb1-6193-7482-bcf9-b7747caa1c93",
+      "started_at": "2026-10-09T02:05:49.331908+08:00",
+      "usage": {
+        "input_tokens": 1855,
+        "output_tokens": 3326,
+        "total_tokens": 5181
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb1-e728-7153-905c-b30125ae77d7",
+      "started_at": "2026-10-09T02:06:23.528183+08:00",
+      "usage": {
+        "input_tokens": 1871,
+        "output_tokens": 3361,
+        "total_tokens": 5232
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11cb2-62af-7dd2-8194-1644a3bd937d",
+      "started_at": "2026-10-09T02:06:55.151731+08:00",
+      "usage": {
+        "input_tokens": 750,
+        "output_tokens": 1091,
+        "total_tokens": 1841
+      }
+    }
+  ],
+  "simulator_calls": [],
+  "simulator_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "logical_model_calls": 0,
+    "calls_with_usage": 0,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "not_calculated",
+    "reported_token_cost_usd": null,
+    "sdk_http_attempts": null
+  },
+  "simulator_fallbacks": 0,
+  "guard_fallbacks": 0,
+  "guard_fallbacks_status": "observed",
+  "writer_diagnostics": {
+    "status": "observed",
+    "model_completed": 1,
+    "model_fallback": 1,
+    "compression_model_completed": 0,
+    "compression_model_fallback": 0,
+    "versions_with_model_fallback": 1,
+    "not_observed_versions": 2
+  },
+  "safety_gate": "pending_claude_review",
+  "session_id": "0f2e8ff8-1466-43a2-b65a-ea3a1b1a23fb"
+}

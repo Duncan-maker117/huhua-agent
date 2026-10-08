@@ -171,6 +171,20 @@ class PrivacyRestoreTest(unittest.TestCase):
         self.assertIn("no_reliable_baseline", result["recovery_policy"])
         self.assertEqual(result["discarded_rows"], {"checkpoints": 2, "writes": 2})
 
+    def test_changed_fact_master_alone_prevents_old_session_restore(self):
+        state = self.crypto.encrypt_json({"authoritative": True, "collected_info": {"facts": []},
+                                          "resume_meta": {}, "resume_versions": []},
+                                         owner="account:a", record="session_a", field="resume_state")
+        with closing(sqlite3.connect(self.app)) as db:
+            # Same document and SQL version: digest must include the fact master.
+            db.execute("UPDATE resume_sessions SET resume_state=? WHERE session_id='session_a'", (json.dumps(state),))
+            db.commit()
+        self.export_latest()
+        result = self.restore()
+        self.assertEqual(result["retained_conversations"], 1)
+        with closing(sqlite3.connect(self.root / "restored.sqlite3")) as db:
+            self.assertEqual(db.execute("SELECT session_id FROM resume_sessions").fetchall(), [("session_b",)])
+
     def test_unchanged_accounts_retain_history_but_old_logins_are_removed(self):
         self.export_latest()
         result = self.restore()

@@ -247,5 +247,5 @@ async def apply_suggestion(owner, session_id, change_id, expected_revision, grap
         change.status = "undone" if undo else "applied"
         change.payload = {**payload, "before_data": data, "after_revision": resume_revision(canonical)}
 
-    saved = await save_canonical_resume(session_id, expected_revision, updated, graph, serialize, after_save=record)
+    saved = await save_canonical_resume(session_id, expected_revision, updated, graph, serialize, after_save=record, source="restore" if undo else "writer")
     return {**saved, "change_id": change_id, "undone": undo}

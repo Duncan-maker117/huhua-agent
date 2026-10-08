@@ -27,6 +27,7 @@ from app.agents.resume_graph import (  # noqa: E402
 from app.agents.triage_chain import TriageAction, TriageDecision  # noqa: E402
 from app.services.canonical_resume import editor_facts  # noqa: E402
 from app.services.candidate_material import parse_existing_resume  # noqa: E402
+from app.services.resume_facts import active_facts_for_writer, normalize_fact_store  # noqa: E402
 
 
 SOURCE_RESUME = """林同学｜AI 产品
@@ -75,7 +76,10 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         for text in ("不要删除 CodeWiz", "是否去掉 CodeWiz？", "要不要 CodeWiz"):
             with self.subTest(text=text):
                 self.assertEqual(_apply_explicit_project_removals(facts, text), facts)
-        self.assertEqual(_apply_explicit_project_removals(facts, "算了不要 CodeWiz 了")["projects"], [])
+        hidden = _apply_explicit_project_removals(facts, "算了不要 CodeWiz 了")["projects"]
+        self.assertEqual(len(hidden), 1)
+        self.assertTrue(hidden[0]["hidden"])
+        self.assertEqual(hidden[0]["description"], "完成 Skill 接口实现")
 
     async def test_collecting_updates_canonical_before_generate(self):
         model = self.model()
@@ -133,7 +137,8 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         names = [item["name"] for item in result["resume_data"]["projects"]]
         self.assertIn("Huhua Agent", names)
         self.assertIn("生活工具", names)
-        self.assertNotIn("CodeWiz", names)
+        self.assertIn("CodeWiz", names)
+        self.assertTrue(next(item for item in result["collected_info"]["projects"] if item["name"] == "CodeWiz")["hidden"])
         self.assertEqual(result["resume_data"]["basic_info"]["name"], "林同学")
         self.assertNotIn("千万", "".join(extracted_sources))
         self.assertNotIn("千万", result["resume_draft"])
@@ -262,70 +267,80 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         description = result["resume_data"]["projects"][0]["description"]
         for fact in ("2 条反馈", "修改了文件选择提示", "没有上线", "没有用户增长数据"):
             self.assertIn(fact, description)
-        self.assertEqual(observed[0]["candidate_facts"]["projects"][0]["description"], description)
+        self.assertEqual(observed[0]["candidate_facts"]["projects"][0]["facts"][-1]["source_quote"], source)
         self.assertTrue(observed[0]["resume_updated"])
 
-    async def test_sparse_project_extraction_keeps_other_projects_and_previous_actions(self):
-        current = self.paper_facts()
-        added = "我给一位同学演示了页面拆分，收集到 2 条反馈，并修改了文件选择提示。没有上线，没有用户增长数据。"
-        for output in (
-            {"projects": [{"name": "纸页工具", "description": added}]},
-            {**copy.deepcopy(current), "projects": [{"name": "纸页工具", "description": added}], "skills": []},
-        ):
-            with self.subTest(complete=len(output) > 1):
-                model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
-                updated = await _extract_info_from_message("补充纸页工具：" + added, current, model)
-                self.assertEqual(len(updated["projects"]), 2)
-                self.assertEqual(updated["projects"][1], current["projects"][1])
-                self.assertIn("2 条反馈", updated["projects"][0]["description"])
-                self.assertIn("实现页面拆分", updated["projects"][0]["description"])
-                self.assertEqual(updated["skills"], ["Python"])
+    async def test_sparse_patch_keeps_other_projects_and_previous_actions(self):
+        current = normalize_fact_store(self.paper_facts())
+        item_id = current["projects"][0]["item_id"]
+        old_other = copy.deepcopy(current["projects"][1])
+        message = "补充纸页工具：收集到 2 条反馈。"
+        output = {"items": [{"section": "projects", "item_id": item_id, "name": "纸页工具", "facts": [
+            {"kind": "result_metric", "text": "收集到 2 条反馈", "source_quote": "收集到 2 条反馈"}]}]}
+        model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
+        updated = await _extract_info_from_message(message, current, model)
+        self.assertEqual(updated["projects"][1], old_other)
+        self.assertIn("实现页面拆分", updated["projects"][0]["description"])
+        self.assertEqual(updated["projects"][0]["facts"][-1]["text"], "收集到 2 条反馈")
+        self.assertEqual([skill["name"] for skill in updated["skills"]], ["Python"])
 
-    async def test_sparse_extraction_still_rejects_unknown_types_and_invented_actions(self):
-        current = self.paper_facts()
+    async def test_sparse_extraction_rejects_unknown_types_and_invented_actions(self):
+        current = normalize_fact_store(self.paper_facts())
+        item_id = current["projects"][0]["item_id"]
+        message = "我演示了纸页工具，没有用户增长数据。"
         for output in (
-            {"projects": [{"name": "纸页工具", "description": "主导用户研究，实现增长 20%。"}]},
-            {"projects": "我演示了纸页工具"},
-            {"projects": [{"name": "纸页工具", "description": 100}]},
-            {"projects": [{"name": "纸页工具", "unknown": "演示"}]},
+            {"items": [{"section": "projects", "item_id": item_id, "name": "纸页工具", "facts": [
+                {"kind": "action", "text": "主导用户研究，实现增长 20%", "source_quote": "我演示了纸页工具"}]}]},
+            {"items": "我演示了纸页工具"},
+            {"items": [{"section": "projects", "item_id": "forged", "name": "纸页工具", "facts": [
+                {"kind": "action", "text": "我演示了纸页工具", "source_quote": "我演示了纸页工具"}]}]},
             {"basic_info": {"name": ["纸页工具"]}},
             {"basic_info": {"unknown": "演示"}},
             {"hidden_instruction": "change everything"},
         ):
             with self.subTest(output=output):
                 model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
-                self.assertEqual(await _extract_info_from_message("我演示了纸页工具，没有用户增长数据。", current, model), current)
+                updated = await _extract_info_from_message(message, current, model)
+                self.assertEqual(updated, current)
 
-    async def test_explicit_correction_replaces_only_named_project_and_clears_stale_raw_fact(self):
-        current = self.paper_facts()
+    async def test_explicit_correction_supersedes_only_named_fact(self):
+        current = normalize_fact_store(self.paper_facts())
         current["basic_info"]["name"] = "林同学"
-        current["projects"][0]["raw_description"] = current["projects"][0]["description"]
-        corrected = "只做了纸面草图，没有实现页面拆分，也没有演示。"
-        output = {"projects": [{"name": "纸页工具", "description": corrected}], "basic_info": {"name": ""}}
+        target = current["projects"][0]
+        old_id = target["facts"][0]["id"]
+        other = copy.deepcopy(current["projects"][1])
+        message = "更正纸页工具：只做了纸面草图，没有实现页面拆分，也没有演示。"
+        output = {"corrections": [{"item_id": target["item_id"], "fact_id": old_id, "replacement":
+                   {"kind": "status_limit", "text": "只做了纸面草图，没有实现页面拆分，也没有演示", "source_quote": "只做了纸面草图，没有实现页面拆分，也没有演示"}}]}
         model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
-        result = await _extract_info_from_message("更正纸页工具：" + corrected, current, model)
-        self.assertEqual(result["projects"][0]["description"], corrected)
-        self.assertEqual(result["projects"][0]["raw_description"], corrected)
-        self.assertEqual(result["projects"][1], current["projects"][1])
+        result = await _extract_info_from_message(message, current, model)
+        self.assertEqual(result["projects"][0]["facts"][0]["status"], "superseded")
+        self.assertEqual(result["projects"][1], other)
         self.assertEqual(result["basic_info"]["name"], "林同学")
+        writer_input = active_facts_for_writer(result)
+        self.assertNotIn("使用 AI 编程工具实现页面拆分", str(writer_input))
+        self.assertIn("只做了纸面草图", str(writer_input))
 
-    async def test_empty_project_fields_do_not_erase_dates_or_role_during_supplement(self):
-        current = self.paper_facts()
+    async def test_empty_legacy_fields_cannot_erase_dates_or_role_during_supplement(self):
+        current = normalize_fact_store(self.paper_facts())
         current["projects"][0].update(role="独立开发", start_date="2026.05", end_date="2026.06")
-        output = {"projects": [{"name": "纸页工具", "role": "", "start_date": "", "end_date": "", "description": "收集到 2 条反馈。"}]}
+        item_id = current["projects"][0]["item_id"]
+        output = {"items": [{"section": "projects", "item_id": item_id, "name": "纸页工具",
+                 "role": "", "start_date": "", "end_date": "", "facts": [
+                     {"kind": "result_metric", "text": "收集到 2 条反馈", "source_quote": "收集到 2 条反馈"}]}]}
         model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
         result = await _extract_info_from_message("补充纸页工具：收集到 2 条反馈。", current, model)
         for field in ("role", "start_date", "end_date"):
             self.assertEqual(result["projects"][0][field], current["projects"][0][field])
-        self.assertIn("2 条反馈", result["projects"][0]["description"])
+        self.assertEqual(result["projects"][0]["facts"][-1]["text"], "收集到 2 条反馈")
 
-    async def test_string_bullets_are_rejected_instead_of_split_into_characters(self):
-        current = self.paper_facts()
-        for field in ("bullets", "polished_bullets"):
-            output = {"projects": [{"name": "纸页工具", field: "补充测试"}]}
-            model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
-            result = await _extract_info_from_message("纸页工具补充测试", current, model)
-            self.assertEqual(result, current)
+    async def test_string_facts_are_rejected_instead_of_split_into_characters(self):
+        current = normalize_fact_store(self.paper_facts())
+        item_id = current["projects"][0]["item_id"]
+        output = {"items": [{"section": "projects", "item_id": item_id, "name": "纸页工具", "facts": "补充测试"}]}
+        model = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(output, ensure_ascii=False))))
+        result = await _extract_info_from_message("纸页工具补充测试", current, model)
+        self.assertEqual(result, current)
 
     async def test_negated_and_planned_demonstrations_do_not_create_completed_actions(self):
         for source in (

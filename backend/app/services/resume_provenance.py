@@ -68,6 +68,28 @@ def _content_signature(collection, item):
     return json.dumps(content, ensure_ascii=False, sort_keys=True) if content else None
 
 
+def register_fact_items(db, account_id, session_id, collected_info, proposed):
+    """Register server-created identities from extractor state, never editor input."""
+    authoritative = _item_index(collected_info)
+    candidates = _item_index(proposed)
+    row = _job(db, account_id, session_id)
+    payload = _payload(row)
+    projection = copy.deepcopy(payload.get(PAYLOAD_KEY) or {"items": {}})
+    known = projection.setdefault("items", {})
+    additions = {key: collection for key, (collection, _) in candidates.items()
+                 if key not in known and key in authoritative and authoritative[key][0] == collection}
+    if not additions:
+        return
+    # Even a trusted extractor cannot move another session's opaque identities.
+    for other in db.scalars(select(ProfileJobVersion).where(ProfileJobVersion.session_id != session_id)).all():
+        if set(additions) & set(_payload(other).get(PAYLOAD_KEY, {}).get("items", {})):
+            raise _conflict()
+    for item_id, collection in additions.items():
+        known[item_id] = {"collection": collection, "fields": {}}
+    payload[PAYLOAD_KEY] = projection
+    _write_payload(db, account_id, session_id, row, payload)
+
+
 def validate_item_ids(db, account_id, session_id, current, proposed, *, removed_item_ids=(), bindings=()):
     """Require identities on existing bound items; new unbound items stay usable."""
     current_items = _item_index(current)
@@ -160,20 +182,39 @@ def sanitize_bound_fields(db, account_id, projection):
 
     changed = False
 
-    def walk(value):
+    def walk(value, fact_store=False):
         nonlocal changed
         if isinstance(value, dict):
-            result = {key: walk(item) for key, item in value.items()}
+            result = {key: walk(item, fact_store or key == "collected_info") for key, item in value.items()}
             rule = item_rules.get(value.get("item_id"))
             if not rule:
                 return result
-            if rule.get("removed"):
+            if rule.get("removed") and not (fact_store or "facts" in value):
                 changed = True
                 return None
             for field, references in rule.get("fields", {}).items():
                 stale_refs = [ref for ref in references if stale(ref)]
                 if not stale_refs:
                     continue
+                # Imported evidence inherits only its matching slot/references.
+                # A removed role must not erase this item's independent actions.
+                stale_ids = {ref["fact_id"] for ref in stale_refs}
+                def affected_fact(fact):
+                    refs = fact.get("profile_refs") or fact.get("profile_fact_refs") or []
+                    linked = {ref.get("fact_id") for ref in refs if isinstance(ref, dict)}
+                    linked.add(fact.get("profile_fact_id"))
+                    return (bool(linked & stale_ids) or fact.get("field") == field
+                            or (field in {"description", "bullets", "polished_bullets"} and not fact.get("field")))
+                existing = result.get("facts") or []
+                kept = [fact for fact in existing if not affected_fact(fact)]
+                if kept != existing:
+                    result["facts"] = kept
+                    result["raw_notes"] = []
+                    if field in {"description", "bullets", "polished_bullets"}:
+                        for raw_field in ("raw_description", "description"):
+                            if raw_field in result:
+                                result[raw_field] = ""
+                    changed = True
                 # Project bullets are derived from description and inherit its
                 # dependency even after a user adopts a different wording.
                 fields = (field, "polished_bullets") if field == "description" else (field,)
@@ -202,7 +243,7 @@ def sanitize_bound_fields(db, account_id, projection):
                         result[target] = clean_copy(result[target])
             return result
         if isinstance(value, list):
-            return [cleaned for item in value if (cleaned := walk(item)) is not None]
+            return [cleaned for item in value if (cleaned := walk(item, fact_store)) is not None]
         return copy.deepcopy(value)
 
     return walk(projection), changed

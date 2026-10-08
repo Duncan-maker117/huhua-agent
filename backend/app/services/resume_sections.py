@@ -13,6 +13,12 @@ DEFAULT_SECTIONS = (
 )
 
 
+def visible_items(data: dict[str, Any], kind: str) -> list[tuple[int, dict[str, Any]]]:
+    """Visible resume rows with their stable indices in the canonical document."""
+    return [(index, item) for index, item in enumerate(data.get(kind) or [])
+            if isinstance(item, dict) and item.get("hidden") is not True]
+
+
 def get_resume_sections(data: dict[str, Any]) -> list[dict[str, Any]]:
     """Keep explicit metadata intact; missing/None metadata uses legacy defaults.
 

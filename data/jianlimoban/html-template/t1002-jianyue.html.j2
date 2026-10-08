@@ -97,9 +97,9 @@
       {% if basic_info.phone %}<div class="info-item"><span class="label">电　话</span><span data-field-path="/basic_info/phone">{{ basic_info.phone }}</span></div>{% endif %}
       {% if basic_info.political %}<div class="info-item"><span class="label">政治面貌</span><span data-field-path="/basic_info/political">{{ basic_info.political }}</span></div>{% endif %}
       {% if basic_info.email %}<div class="info-item"><span class="label">邮　箱</span><span data-field-path="/basic_info/email">{{ basic_info.email }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].school %}<div class="info-item"><span class="label">毕业院校</span><span data-field-path="/education/0/school">{{ education[0].school }}</span></div>{% endif %}
+      {% if has_education_section and education and education[0].school %}<div class="info-item"><span class="label">毕业院校</span><span data-field-path="/education/{{ education[0]._source_index }}/school">{{ education[0].school }}</span></div>{% endif %}
       {% if basic_info.location %}<div class="info-item"><span class="label">住　址</span><span data-field-path="/basic_info/location">{{ basic_info.location }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].degree %}<div class="info-item"><span class="label">学　历</span><span data-field-path="/education/0/degree">{{ education[0].degree }}</span></div>{% endif %}
+      {% if has_education_section and education and education[0].degree %}<div class="info-item"><span class="label">学　历</span><span data-field-path="/education/{{ education[0]._source_index }}/degree">{{ education[0].degree }}</span></div>{% endif %}
     </div>
     {% if basic_info.photo %}<div class="photo" style="background:none;"><img src="{{ basic_info.photo }}" style="position:relative;z-index:2;width:100%;height:100%;object-fit:cover;border-radius:4px;"></div>{% else %}<div class="photo"><div class="badge">点击更改/替换</div></div>{% endif %}
   </div>
@@ -111,13 +111,13 @@
   {% endif %}
   {% if section.kind == 'education' %}
   <div class="item">
-    {% for edu in education %}{% set edu_index = loop.index0 %}
+    {% for edu in education %}{% set edu_index = edu._source_index %}
     <p class="item-text">{% if edu.start_date or edu.end_date %}{% if edu.start_date %}<span data-field-path="/education/{{ edu_index }}/start_date">{{ edu.start_date }}</span>{% endif %}{% if edu.start_date and edu.end_date %}—{% endif %}{% if edu.end_date %}<span data-field-path="/education/{{ edu_index }}/end_date">{{ edu.end_date }}</span>{% endif %}　{% endif %}就读于<span data-field-path="/education/{{ edu_index }}/school">{{ edu.school }}</span>{% if edu.major %}<span data-field-path="/education/{{ edu_index }}/major">{{ edu.major }}</span>专业{% endif %}{% if edu.degree %}（<span data-field-path="/education/{{ edu_index }}/degree">{{ edu.degree }}</span>）{% endif %}。{% if edu.highlights %}<span data-field-path="/education/{{ edu_index }}/highlights">{{ edu.highlights }}</span>{% endif %}</p>
     {% endfor %}
   </div>
 
   {% elif section.kind == 'work_experience' %}
-  {% for job in work_experience %}{% set job_index = loop.index0 %}
+  {% for job in work_experience %}{% set job_index = job._source_index %}
   <div class="item">
     <ul>
       {% if job.start_date or job.end_date %}<li>实习时间：{% if job.start_date %}<span data-field-path="/work_experience/{{ job_index }}/start_date">{{ job.start_date }}</span>{% endif %}{% if job.start_date and job.end_date %}—{% endif %}{% if job.end_date %}<span data-field-path="/work_experience/{{ job_index }}/end_date">{{ job.end_date }}</span>{% endif %}。</li>{% endif %}
@@ -131,7 +131,7 @@
   {% endfor %}
 
   {% elif section.kind == 'projects' %}
-  {% for p in projects %}{% set p_index = loop.index0 %}
+  {% for p in projects %}{% set p_index = p._source_index %}
   <div class="item">
     <p class="item-text"><span data-field-path="/projects/{{ p_index }}/name">{{ p.name }}</span>{% if p.role %}，<span data-field-path="/projects/{{ p_index }}/role">{{ p.role }}</span>{% endif %}{% if p.start_date or p.end_date %}，{% if p.start_date %}<span data-field-path="/projects/{{ p_index }}/start_date">{{ p.start_date }}</span>{% endif %}{% if p.start_date and p.end_date %}—{% endif %}{% if p.end_date %}<span data-field-path="/projects/{{ p_index }}/end_date">{{ p.end_date }}</span>{% endif %}{% endif %}</p>
     {% if p.polished_bullets %}

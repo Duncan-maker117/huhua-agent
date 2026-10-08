@@ -2,7 +2,7 @@
 
 import re
 
-from app.services.resume_sections import get_resume_sections
+from app.services.resume_sections import get_resume_sections, visible_items
 
 
 def resume_to_text(data: dict) -> str:
@@ -33,7 +33,7 @@ def resume_to_text(data: dict) -> str:
                     lines.append(f'\n## {heading}')
                 lines.append(body)
             continue
-        items = data.get(key) or []
+        items = [item for _, item in visible_items(data, key)]
         if not items:
             continue
         lines.append(f"\n## {heading}")
@@ -76,7 +76,7 @@ def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
         checks.append("补全姓名。")
     if not basic.get("phone") and not basic.get("email"):
         checks.append("补全至少一种联系方式。")
-    if not (data.get("work_experience") or data.get("projects")):
+    if not (visible_items(data, "work_experience") or visible_items(data, "projects")):
         checks.append("补充至少一段能证明能力的工作或项目经历。")
     text = resume_to_text(data)
     if re.search(r"\d+(?:[.,]\d+)?%?\*", text):

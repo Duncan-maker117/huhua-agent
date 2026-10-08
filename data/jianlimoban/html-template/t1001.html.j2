@@ -81,9 +81,9 @@
       {% if basic_info.ethnicity %}<div class="info-item"><span class="label">民　族</span><span data-field-path="/basic_info/ethnicity">{{ basic_info.ethnicity }}</span></div>{% endif %}
       {% if basic_info.height %}<div class="info-item"><span class="label">身　高</span><span data-field-path="/basic_info/height">{{ basic_info.height }}</span></div>{% endif %}
       {% if basic_info.phone %}<div class="info-item"><span class="label">电　话</span><span data-field-path="/basic_info/phone">{{ basic_info.phone }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].school %}<div class="info-item"><span class="label">毕业院校</span><span data-field-path="/education/0/school">{{ education[0].school }}</span></div>{% endif %}
+      {% if has_education_section and education and education[0].school %}<div class="info-item"><span class="label">毕业院校</span><span data-field-path="/education/{{ education[0]._source_index }}/school">{{ education[0].school }}</span></div>{% endif %}
       {% if basic_info.email %}<div class="info-item"><span class="label">邮　箱</span><span data-field-path="/basic_info/email">{{ basic_info.email }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].degree %}<div class="info-item"><span class="label">学　历</span><span data-field-path="/education/0/degree">{{ education[0].degree }}</span></div>{% endif %}
+      {% if has_education_section and education and education[0].degree %}<div class="info-item"><span class="label">学　历</span><span data-field-path="/education/{{ education[0]._source_index }}/degree">{{ education[0].degree }}</span></div>{% endif %}
     </div>
     {% if basic_info.photo %}<div class="photo"><img src="{{ basic_info.photo }}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;"></div>{% else %}<div class="photo">照片</div>{% endif %}
   </div>
@@ -94,7 +94,7 @@
   <div class="section-title"><span{% if section.title_path %} data-field-path="{{ section.title_path }}"{% endif %}>{{ section.title }}</span></div>
   {% endif %}
   {% if section.kind == 'education' %}
-  {% for edu in education %}{% set edu_index = loop.index0 %}
+  {% for edu in education %}{% set edu_index = edu._source_index %}
   <div class="item">
     <div class="item-header">
       <span class="item-title"><span data-field-path="/education/{{ edu_index }}/school">{{ edu.school }}</span>　<span data-field-path="/education/{{ edu_index }}/major">{{ edu.major }}</span>{% if edu.degree %}（<span data-field-path="/education/{{ edu_index }}/degree">{{ edu.degree }}</span>）{% endif %}</span>
@@ -105,7 +105,7 @@
   {% endfor %}
 
   {% elif section.kind == 'work_experience' %}
-  {% for job in work_experience %}{% set job_index = loop.index0 %}
+  {% for job in work_experience %}{% set job_index = job._source_index %}
   <div class="item">
     <div class="item-header">
       <span class="item-title"><span data-field-path="/work_experience/{{ job_index }}/company">{{ job.company }}</span>　<span data-field-path="/work_experience/{{ job_index }}/title">{{ job.title }}</span></span>
@@ -120,7 +120,7 @@
   {% endfor %}
 
   {% elif section.kind == 'projects' %}
-  {% for p in projects %}{% set p_index = loop.index0 %}
+  {% for p in projects %}{% set p_index = p._source_index %}
   <div class="item">
     <div class="item-header">
       <span class="item-title"><span data-field-path="/projects/{{ p_index }}/name">{{ p.name }}</span>{% if p.role %}　<span data-field-path="/projects/{{ p_index }}/role">{{ p.role }}</span>{% endif %}</span>

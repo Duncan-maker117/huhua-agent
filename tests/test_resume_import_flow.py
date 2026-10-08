@@ -75,7 +75,7 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(data["skills"]), 5)
         self.assertEqual(len(data["certificates"]), 2)
         self.assertEqual(data["projects"][0]["role"], "独立开发者")
-        self.assertEqual(data["projects"][1]["end_date"], "")
+        self.assertEqual(data["projects"][1]["end_date"], "2026.7")
         self.assertIn("draft.md：2026.7", "\n".join(data["verification_notes"]))
         self.assertNotIn("候选技能与奖项暂未写入", result["messages"][-1].content)
         self.assertEqual(len(result["collected_info"]["imported_documents"]), 2)
@@ -322,7 +322,8 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
             HumanMessage(content="补充：我给 Huhua Agent 做了三次本地验收。")
         ]
         updated = copy.deepcopy(collected)
-        updated["projects"][0]["description"] += "\n我给 Huhua Agent 做了三次本地验收。"
+        from app.services.resume_facts import new_fact
+        updated["projects"][0]["facts"].append(new_fact("我给 Huhua Agent 做了三次本地验收。"))
         with (
             patch(
                 "app.agents.resume_graph._extract_info_from_message",

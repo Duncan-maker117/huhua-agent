@@ -15,7 +15,7 @@ from docx import Document
 from docx.oxml.ns import qn
 from docx.shared import Inches, Mm, Pt
 
-from app.services.resume_sections import get_resume_sections
+from app.services.resume_sections import get_resume_sections, visible_items
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +121,8 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
             has_content = bool(resume_section["title"] or resume_section["content"])
         elif kind == "skills":
             has_content = any((data.get("skill_groups") or {}).values()) or bool(data.get("skills"))
+        elif kind in {"education", "work_experience", "projects"}:
+            has_content = bool(visible_items(data, kind))
         else:
             has_content = bool(data.get(kind))
         if not has_content:
@@ -136,7 +138,7 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
 def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> None:
     kind = section["kind"]
     if kind == "education":
-        for edu in data["education"]:
+        for _, edu in visible_items(data, "education"):
             line = " / ".join(
                 x
                 for x in [
@@ -153,7 +155,7 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
                 doc.add_paragraph(edu["highlights"])
 
     elif kind == "work_experience":
-        for job in data.get("work_experience") or []:
+        for _, job in visible_items(data, "work_experience"):
             line = " / ".join(
                 x
                 for x in [
@@ -168,7 +170,7 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
             for b in job.get("bullets") or []:
                 doc.add_paragraph(b, style="List Bullet")
     elif kind == "projects":
-        for proj in data.get("projects") or []:
+        for _, proj in visible_items(data, "projects"):
             line = " / ".join(
                 x
                 for x in [

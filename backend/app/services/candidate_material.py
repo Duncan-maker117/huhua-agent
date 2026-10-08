@@ -8,12 +8,14 @@ from __future__ import annotations
 import copy
 import re
 
+from app.services.resume_facts import new_fact
+
 _PROJECT_SECTION = re.compile(r"^项目经历(?:\s*[（(].*[）)])?$")
 _EDUCATION_SECTION = re.compile(r"^教育(?:背景|经历)(?:\s*[（(].*[）)])?$")
 _SKILL_SECTION = re.compile(r"^(?:产品与技术能力|专业技能|技能(?:与工具)?)(?:\s*[（(].*[）)])?$")
 _AWARD_SECTION = re.compile(r"^(?:校园活动|获奖经历|荣誉奖项|证书|竞赛与活动)(?:\s*[（(].*[）)])?$")
 _STOP_SECTION = re.compile(
-    r"^(?:编辑记录|到馆后的定稿顺序|定稿顺序|后续计划|工作计划|自我评价|"
+    r"^(?:编辑记录|备注|不进(?:入)?\s*(?:PDF|Word)|到馆后的定稿顺序|定稿顺序|后续计划|工作计划|自我评价|"
     r"个人总结|个人定位|工作经历|实习经历)(?:\s*[（(].*[）)])?$"
 )
 _PROJECT_HEADING = re.compile(r"^([^｜|\n]{2,90})[｜|](.+)$")
@@ -21,6 +23,9 @@ _FILE_BOUNDARY = re.compile(r"(?m)^\[文件[:：]\s*([^\]\n]{1,200})\]\s*\n?")
 _DATE = re.compile(r"(?<!\d)(20\d{2})(?:\s*[.．/年]\s*(0?[1-9]|1[0-2])(?!\d)\s*月?)?(?!\d)")
 _EMAIL = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.I)
 _PHONE = re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)")
+_URL = re.compile(r"https?://[^\s)>）]+", re.I)
+_MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\((https?://[^)]+)\)")
+_CITY = re.compile(r"(?:所在地|城市|现居|居住地)[：:]?\s*([\u4e00-\u9fff]{2,8})|(?<![\u4e00-\u9fff])(?:北京|上海|深圳|广州|杭州|成都|武汉|南京|苏州|西安)(?![\u4e00-\u9fff])")
 _UNSAFE_CLAUSE = re.compile(
     r"待补|待核实|待确认|定稿|下一步|后续验证方案|需要你|请你|"
     r"不以演示代替|训练营名称与奖项未经|候选范围"
@@ -41,7 +46,35 @@ _DOCUMENT_INSTRUCTION = re.compile(
 
 
 def _plain(line: str) -> str:
-    return line.replace("**", "").strip()
+    line = _MARKDOWN_LINK.sub(lambda match: match.group(1), line)
+    return re.sub(r"(?:^|\s)--(?:\s|$)", " · ", line.replace("**", "")).strip(" \t")
+
+
+def _links(line: str) -> list[dict]:
+    links = [{"text": match.group(1).strip(), "url": match.group(2).strip()}
+             for match in _MARKDOWN_LINK.finditer(line)]
+    known = {entry["url"] for entry in links}
+    links.extend({"text": url, "url": url} for url in _URL.findall(line) if url not in known)
+    return links
+
+
+def _contact_header(line: str) -> dict:
+    phone, email = _PHONE.search(line), _EMAIL.search(line)
+    github = re.search(r"(?:https?://)?(?:www\.)?github\.com/[\w.-]+", line, re.I)
+    city = _CITY.search(line)
+    signals = sum(bool(value) for value in (phone, email, github, city))
+    if signals < 2:
+        return {}
+    result = {}
+    if phone:
+        result["phone"] = phone.group(0)
+    if email and not email.group(0).lower().endswith("@example.com"):
+        result["email"] = email.group(0)
+    if github:
+        result["github"] = github.group(0)
+    if city:
+        result["location"] = city.group(1) or city.group(0)
+    return result
 
 
 def _resume_lines(text: str) -> list[str]:
@@ -80,7 +113,7 @@ def _dates(text: str) -> tuple[str, str]:
 
 
 def _project_heading(line: str) -> dict | None:
-    if _BASIC_FIELD.match(_plain(line)) or _PROJECT_METADATA.fullmatch(_plain(line)):
+    if _BASIC_FIELD.match(_plain(line)) or _PROJECT_METADATA.fullmatch(_plain(line)) or _contact_header(_plain(line)):
         return None
     match = _PROJECT_HEADING.fullmatch(_plain(line))
     if match:
@@ -110,7 +143,7 @@ def _project_heading(line: str) -> dict | None:
     role = _ROLE.search(re.sub(r"[\[［][^\]］]*[\]］]", "", detail))
     return {
         "name": name, "role": re.split(r"[·•]|\s*20\d{2}", role.group(0))[0].strip() if role else "",
-        "start_date": start_date, "end_date": end_date,
+        "start_date": start_date, "end_date": end_date, "subtitle": subtitle,
         "_description_lines": [part for part in (subtitle, *status_bits) if part],
         "_body_started": False,
     }
@@ -185,7 +218,8 @@ def _parse_document(text: str) -> dict | None:
     if not _looks_like_document(text):
         return None
     notes = ["内容来自所提供的简历资料；明确陈述已保留，缺失与冲突项需核对。"]
-    result = {"basic_info": {}, "education": [], "projects": [], "skills": [], "certificates": [], "verification_notes": notes}
+    result = {"basic_info": {}, "education": [], "projects": [], "skills": [], "certificates": [], "verification_notes": notes,
+              "metadata_context": []}
     summary_lines: list[str] = []
     basic = result["basic_info"]
     section = "intro"
@@ -213,6 +247,10 @@ def _parse_document(text: str) -> dict | None:
         if not raw:
             continue
         line = _plain(raw)
+        header = _contact_header(line)
+        if header:
+            basic.update({key: value for key, value in header.items() if value})
+            continue
         if _DOCUMENT_INSTRUCTION.match(line):
             continue
         next_section = None
@@ -227,13 +265,16 @@ def _parse_document(text: str) -> dict | None:
         elif line in {"自我评价", "个人总结", "个人定位"}:
             next_section = "summary"
         elif _STOP_SECTION.fullmatch(line):
-            next_section = "excluded"
+            next_section = "metadata" if re.search(r"编辑记录|备注|不进(?:入)?\s*(?:PDF|Word)", line) else "excluded"
         if next_section:
             finish_project()
             section = next_section
             heading_uncertain = bool(re.search(r"待(?:本人)?核|待确认|候选", line))
             if heading_uncertain and section in {"skills", "certificates"}:
                 notes.append(f"{line}：该节明确标为未核实，未作为已确认技能或奖项写入。")
+            continue
+        if section == "metadata":
+            result["metadata_context"].append(line)
             continue
         if section in {"intro", "education"}:
             field_match = _BASIC_FIELD.fullmatch(line)
@@ -281,6 +322,12 @@ def _parse_document(text: str) -> dict | None:
                 current = heading
                 continue
             if current is not None:
+                if (links := _links(raw)):
+                    known = {entry["url"] for entry in current.get("links", [])}
+                    current.setdefault("links", []).extend(entry for entry in links if entry["url"] not in known)
+                raw = _MARKDOWN_LINK.sub(lambda match: match.group(1), raw)
+                raw = _URL.sub("", raw)
+                line = _plain(raw)
                 if not current["_body_started"] and not re.match(r"^[-*•▸]", line):
                     start, end = _dates(line)
                     role = _ROLE.search(line)
@@ -320,8 +367,8 @@ def _compatible_date(left: str, right: str) -> str | None:
     return None
 
 
-def parse_existing_resume(text: str) -> dict | None:
-    """Retain source sections and expose conflicts instead of choosing a winner.
+def parse_existing_resume(text: str, *, user_fields: dict | None = None) -> dict | None:
+    """Merge independent documents into one evidence master with visible conflicts.
 
     Extra ``field_conflicts`` and ``imported_documents`` metadata is optional for
     callers; standard resume fields and readable verification notes remain.
@@ -332,12 +379,21 @@ def parse_existing_resume(text: str) -> dict | None:
     if not parsed:
         return None
     merged = {"basic_info": {}, "education": [], "projects": [], "skills": [], "certificates": [],
-              "verification_notes": [], "imported_documents": [], "field_conflicts": [], "personal_summary": ""}
+              "verification_notes": [], "imported_documents": [], "field_conflicts": [], "personal_summary": "",
+              "metadata_context": []}
     owners: dict[tuple, list[dict]] = {}
     conflicts: dict[tuple, dict] = {}
     projects: dict[str, dict] = {}
     schools: dict[tuple, dict] = {}
     project_statuses: dict[str, dict] = {}
+
+    source_order = {name: index for index, (name, _) in enumerate(parsed)}
+    confirmed = {name for name, result in parsed if any("本人确认" in line for line in result.get("metadata_context", []))}
+
+    def winner(options: list[dict]) -> dict:
+        return max(options, key=lambda option: (2 if option["source"] == "用户明确陈述" else
+                                              1 if option["source"] in confirmed else 0,
+                                              source_order.get(option["source"], -1)))
 
     def merge_field(target: dict, item: dict, field: str, identity: tuple, source: str) -> None:
         value = item.get(field, "")
@@ -349,7 +405,12 @@ def parse_existing_resume(text: str) -> dict | None:
             options.append({"value": value, "source": source})
         old = target.get(field, "")
         if key in conflicts:
-            conflicts[key]["values"] = copy.deepcopy(options)
+            conflict = conflicts[key]
+            conflict["values"] = copy.deepcopy(options)
+            selected = winner(options)
+            conflict["selected"] = selected["value"]
+            conflict["reason"] = "用户明确陈述" if selected["source"] == "用户明确陈述" else "本人确认编辑记录" if selected["source"] in confirmed else "较新材料"
+            target[field] = selected["value"]
             return
         if not old:
             target[field] = value
@@ -358,12 +419,15 @@ def parse_existing_resume(text: str) -> dict | None:
         if compatible is not None:
             target[field] = compatible
             return
-        target[field] = ""
-        conflict = {"scope": identity[0], "name": identity[1], "field": field, "values": copy.deepcopy(options)}
+        selected = winner(options)
+        target[field] = selected["value"]
+        conflict = {"scope": identity[0], "name": identity[1], "field": field, "values": copy.deepcopy(options),
+                    "selected": selected["value"], "reason": "用户明确陈述" if selected["source"] == "用户明确陈述" else "本人确认编辑记录" if selected["source"] in confirmed else "较新材料"}
         conflicts[key] = conflict
         merged["field_conflicts"].append(conflict)
 
     for source, result in parsed:
+        merged["metadata_context"].extend({"source": source, "text": line} for line in result.get("metadata_context", []))
         merged["imported_documents"].append({"name": source, "project_count": len(result["projects"]),
                                              "education_count": len(result["education"])})
         for field in result["basic_info"]:
@@ -371,26 +435,123 @@ def parse_existing_resume(text: str) -> dict | None:
         for item in result["education"]:
             identity = (item["school"].casefold(), item["major"].casefold())
             if identity not in schools:
-                schools[identity] = {"school": item["school"], "major": item["major"]}
+                import uuid
+                schools[identity] = {"item_id": str(uuid.uuid4()), "school": item["school"], "major": item["major"],
+                                     "facts": [], "raw_notes": []}
                 merged["education"].append(schools[identity])
+            merge_field(schools[identity], item, "major", ("education", item["school"]), source)
             for field in ("degree", "start_date", "end_date", "highlights"):
                 merge_field(schools[identity], item, field, ("education", item["school"]), source)
         for item in result["projects"]:
             identity = item["name"].casefold()
             if identity not in projects:
-                projects[identity] = {"name": item["name"], "role": "", "start_date": "", "end_date": "", "description": ""}
+                import uuid
+                projects[identity] = {"item_id": str(uuid.uuid4()), "name": item["name"], "role": "", "start_date": "", "end_date": "", "subtitle": "", "description": "",
+                                      "facts": [], "raw_notes": [], "links": []}
                 merged["projects"].append(projects[identity])
             target = projects[identity]
-            for field in ("role", "start_date", "end_date"):
+            known_links = {entry["url"] for entry in target["links"]}
+            target["links"].extend(entry for entry in item.get("links", []) if entry["url"] not in known_links)
+            for field in ("role", "start_date", "end_date", "subtitle"):
                 merge_field(target, item, field, ("projects", item["name"]), source)
             for status in item.get("_release_status", []):
                 merge_field(project_statuses.setdefault(identity, {}), {"release_status": status},
                             "release_status", ("projects", item["name"]), source)
             target["description"] = "\n".join(dict.fromkeys(filter(None, [*target["description"].splitlines(), *item["description"].splitlines()])))
+            for line in item["description"].splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                target["raw_notes"].append(line)
+                normalized = re.sub(r"[\s，。；、,.!?！？：:]", "", line).casefold()
+                duplicate = next((fact for fact in target["facts"] if re.sub(r"[\s，。；、,.!?！？：:]", "", fact["text"]).casefold() == normalized), None)
+                if duplicate:
+                    if not any(entry.get("name") == source for entry in duplicate["sources"]):
+                        duplicate["sources"].append({"source": "import", "source_quote": line, "turn_id": "", "name": source})
+                else:
+                    kind = "status_limit" if re.search(r"未上线|尚未|没有|并非|计划|原型|Demo", line, re.I) else "action"
+                    fact = new_fact(line, kind=kind, quote=line, source="import", source_name=source)
+                    fact["verification"] = "source_only"
+                    target["facts"].append(fact)
         for field in ("skills", "certificates", "verification_notes"):
             merged[field] = list(dict.fromkeys([*merged[field], *result[field]]))
         merged["personal_summary"] = "\n".join(dict.fromkeys(filter(None, [*merged["personal_summary"].splitlines(), *result["personal_summary"].splitlines()])))
+    if user_fields:
+        # Explicit user values outrank documents. Preserve all alternatives.
+        targets = {"basic_info": merged["basic_info"], **{item["name"]: item for item in merged["projects"]},
+                   **{item["school"]: item for item in merged["education"]}}
+        for scope, fields in user_fields.items():
+            target = targets.get(scope)
+            if target is None or not isinstance(fields, dict):
+                continue
+            for field, value in fields.items():
+                if not value:
+                    continue
+                identity = ("basic_info", "个人信息") if scope == "basic_info" else ("education", scope) if "school" in target else ("projects", scope)
+                merge_field(target, {field: value}, field, identity, "用户明确陈述")
     field_labels = {"role": "职责", "start_date": "开始时间", "end_date": "结束时间", "objective": "求职方向", "name": "姓名", "release_status": "上线状态"}
+    for school in merged["education"]:
+        for field in ("degree", "major", "start_date", "end_date", "highlights"):
+            value = school.get(field)
+            if not value:
+                continue
+            options = owners.get(("education", school["school"], field), [])
+            selected_sources = [option for option in options if option["value"] == value]
+            chosen = winner(selected_sources) if selected_sources else {"source": ""}
+            source = "chat" if chosen["source"] == "用户明确陈述" else "import"
+            fact = new_fact(value, kind="action" if field == "highlights" else "context", quote=value,
+                            source=source, source_name=chosen["source"])
+            fact["field"] = field
+            fact["verification"] = "source_only"
+            fact["sources"] = [{"source": "chat" if option["source"] == "用户明确陈述" else "import", "source_quote": value,
+                                "turn_id": "", "name": option["source"]} for option in selected_sources]
+            school["facts"].append(fact)
+    # A conflicting release claim cannot remain as two active statements or in
+    # the rendered description. The selected option is provisional until review.
+    for project in merged["projects"]:
+        role_conflict = next((entry for entry in merged["field_conflicts"] if entry["scope"] == "projects"
+                              and entry["name"] == project["name"] and entry["field"] == "role"), None)
+        if role_conflict:
+            losing_roles = {option["value"] for option in role_conflict["values"] if option["value"] != role_conflict["selected"]}
+            project["description"] = "\n".join(line for line in project["description"].splitlines()
+                                                if not any(role in line for role in losing_roles))
+            for fact in project["facts"]:
+                if any(role in fact["text"] for role in losing_roles):
+                    fact["status"] = "superseded"
+        for field, kind in (("role", "role"), ("start_date", "context"), ("end_date", "context"), ("subtitle", "context")):
+            value = project.get(field)
+            if not value:
+                continue
+            options = owners.get(("projects", project["name"], field), [])
+            selected_sources = [option for option in options if option["value"] == value]
+            chosen = winner(selected_sources) if selected_sources else {"source": ""}
+            source = "chat" if chosen["source"] == "用户明确陈述" else "import"
+            fact = new_fact(value, kind=kind, quote=value, source=source, source_name=chosen["source"])
+            fact["field"] = field
+            fact["verification"] = "source_only"
+            fact["sources"] = [{"source": "chat" if option["source"] == "用户明确陈述" else "import", "source_quote": value, "turn_id": "", "name": option["source"]}
+                               for option in selected_sources]
+            project["facts"].append(fact)
+        subtitle_conflict = next((entry for entry in merged["field_conflicts"] if entry["scope"] == "projects"
+                                  and entry["name"] == project["name"] and entry["field"] == "subtitle"), None)
+        if subtitle_conflict:
+            losing = {option["value"] for option in subtitle_conflict["values"] if option["value"] != subtitle_conflict["selected"]}
+            project["description"] = "\n".join(line for line in project["description"].splitlines() if line not in losing)
+            for fact in project["facts"]:
+                if fact["text"] in losing:
+                    fact["status"] = "superseded"
+        conflict = next((entry for entry in merged["field_conflicts"] if entry["scope"] == "projects"
+                         and entry["name"] == project["name"] and entry["field"] == "release_status"), None)
+        if conflict:
+            selected = conflict["selected"]
+            for fact in project["facts"]:
+                status = "未上线" if re.search(r"尚未上线|未上线|没有上线", fact["text"]) else "已上线" if re.search(r"已上线|已经上线", fact["text"]) else ""
+                if status and status != selected:
+                    fact["status"] = "superseded"
+            project["description"] = "\n".join(line for line in project["description"].splitlines()
+                                                if not ((selected == "未上线" and re.search(r"已上线|已经上线", line))
+                                                        or (selected == "已上线" and re.search(r"尚未上线|未上线|没有上线", line))))
+        project["raw_notes"] = list(dict.fromkeys(project["raw_notes"]))
     for conflict in merged["field_conflicts"]:
         options = "；".join(f"{option['source']}：{option['value']}" for option in conflict["values"])
         merged["verification_notes"].append(f"{conflict['name']}的{field_labels.get(conflict['field'], conflict['field'])}有多份资料差异（{options}），待核对后采用。")

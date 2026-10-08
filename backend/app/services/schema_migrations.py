@@ -10,7 +10,7 @@ class SchemaVersion(Base):
     version = Column(Integer, nullable=False)
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def record_schema_version(engine):
@@ -31,7 +31,7 @@ def require_current_schema(engine):
                 raise RuntimeError("Unsupported product schema version; explicit migration required")
     if "resume_sessions" in inspector.get_table_names():
         columns = {column["name"] for column in inspector.get_columns("resume_sessions")}
-        if not {"owner_key", "version"}.issubset(columns):
+        if not {"owner_key", "version", "resume_state"}.issubset(columns):
             raise RuntimeError("Legacy database requires an explicit offline security migration; no startup writes were performed")
     if "conversations" in inspector.get_table_names():
         columns = {column["name"] for column in inspector.get_columns("conversations")}
@@ -46,9 +46,16 @@ def migrate_schema(engine, *, allow_legacy=False):
         return
     inspector = inspect(engine)
     tables = inspector.get_table_names()
+    if "schema_versions" in tables:
+        with engine.connect() as connection:
+            version = connection.execute(text("SELECT version FROM schema_versions WHERE component = 'product_profile'")).scalar()
+            if version not in (None, 1, SCHEMA_VERSION):
+                raise RuntimeError("Unsupported product schema version; migration aborted before writes")
     if "resume_sessions" in tables:
         columns = {column["name"] for column in inspector.get_columns("resume_sessions")}
         with engine.begin() as connection:
+            if "resume_state" not in columns:
+                connection.execute(text("ALTER TABLE resume_sessions ADD COLUMN resume_state JSON"))
             if "owner_key" not in columns:
                 connection.execute(text("ALTER TABLE resume_sessions ADD COLUMN owner_key VARCHAR(128) NOT NULL DEFAULT ''"))
             if "version" not in columns:
@@ -60,4 +67,6 @@ def migrate_schema(engine, *, allow_legacy=False):
                     connection.execute(text("ALTER TABLE conversations ADD COLUMN version INTEGER NOT NULL DEFAULT 1"))
                 connection.execute(text("UPDATE resume_sessions SET owner_key = (SELECT owner_hash FROM conversations WHERE conversations.session_id = resume_sessions.session_id) WHERE owner_key = '' AND EXISTS (SELECT 1 FROM conversations WHERE conversations.session_id = resume_sessions.session_id)"))
     Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(text("UPDATE schema_versions SET version = :version WHERE component = 'product_profile' AND version = 1"), {"version": SCHEMA_VERSION})
     record_schema_version(engine)

@@ -380,12 +380,21 @@ class BackupTest(unittest.TestCase):
                 self.assertEqual(owner, "storage:one")
                 self.assertEqual(crypto.decrypt_json(json.loads(value), owner=owner, record="session", field="resume_data"), {"name": "PRIVATE_APP_MIGRATION"})
                 self.assertEqual(crypto.decrypt_text(draft, owner=owner, record="session", field="resume_draft"), "")
+            fact_state = {"authoritative": True, "collected_info": {"private": "PRIVATE_FACT_MASTER"},
+                          "resume_meta": {}, "resume_versions": []}
+            with closing(sqlite3.connect(target)) as db:
+                db.execute("UPDATE resume_sessions SET resume_state=? WHERE session_id='session'",
+                           (json.dumps(crypto.encrypt_json(fact_state, owner="storage:one", record="session", field="resume_state")),))
+                db.commit()
             rotated = DataCrypto({**crypto.keys, "next": os.urandom(32)}, "next")
             module.application_migrate(target, rotated_path, {}, rotated)
             with closing(sqlite3.connect(rotated_path)) as db:
                 value = json.loads(db.execute("SELECT resume_data FROM resume_sessions WHERE session_id='session'").fetchone()[0])
                 self.assertEqual(value["kid"], "next")
                 self.assertEqual(DataCrypto({"next": rotated.keys["next"]}, "next").decrypt_json(value, owner="storage:one", record="session", field="resume_data"), {"name": "PRIVATE_APP_MIGRATION"})
+                state = json.loads(db.execute("SELECT resume_state FROM resume_sessions WHERE session_id='session'").fetchone()[0])
+                self.assertEqual(state["kid"], "next")
+                self.assertEqual(DataCrypto({"next": rotated.keys["next"]}, "next").decrypt_json(state, owner="storage:one", record="session", field="resume_state"), fact_state)
                 suggestion = json.loads(db.execute("SELECT payload FROM resume_suggestions WHERE id='suggestion'").fetchone()[0])
                 self.assertEqual(suggestion["kid"], "next")
                 self.assertEqual(DataCrypto({"next": rotated.keys["next"]}, "next").decrypt_json(suggestion, owner="storage:one", record="suggestion", field="suggestion"), {"suggested_text": "PRIVATE_APP_SUGGESTION"})

@@ -571,7 +571,8 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
     dict; context.fact_refs identifies the imported source revisions for a job.
     Preferences remain prompt/UI settings and are never résumé biography.
     """
-    result = copy.deepcopy(current or {})
+    from app.services.resume_facts import normalize_fact_store, new_fact
+    result = normalize_fact_store(current or {})
     result.setdefault("basic_info", {})
     result.setdefault("education", [])
     result.setdefault("work_experience", [])
@@ -579,10 +580,22 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
     result.setdefault("skills", [])
 
     def bind(item, collection, field, fact):
-        if projection_bindings is None:
-            return
         if not item.get("item_id"):
             item["item_id"] = new_id()
+        reference = {"fact_id": fact["id"], "revision": fact["revision"]}
+        evidence = item.setdefault("facts", [])
+        matching = next((entry for entry in evidence if entry.get("text") == fact["value"]
+                         and entry.get("status", "active") == "active"), None)
+        if matching is None:
+            matching = new_fact(fact["value"], source="import", kind="context")
+            if field not in {"description", "bullets", "polished_bullets"}:
+                matching["field"] = field
+            evidence.append(matching)
+        references = matching.setdefault("profile_refs", [])
+        if reference not in references:
+            references.append(reference)
+        if projection_bindings is None:
+            return
         projection_bindings.append({"item_id": item["item_id"], "collection": collection,
                                     "field": field, "fact_id": fact["id"], "revision": fact["revision"]})
 
@@ -595,7 +608,7 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 if not result["basic_info"].get(field):
                     result["basic_info"][field] = value
         elif category == "skill":
-            if value not in result["skills"]:
+            if value not in [entry.get("name") if isinstance(entry, dict) else entry for entry in result["skills"]]:
                 result["skills"].append(value)
         elif category in {"project", "work", "education"}:
             collection, identity = {"project": ("projects", "name"),
@@ -820,7 +833,7 @@ def sanitize_projection(db, account_id, projection):
         nonlocal changed
         scope = scope or {}
         if isinstance(value, dict):
-            source_ids = [value.get(key) for key in ("id", "message_id", "source_id")]
+            source_ids = [value.get(key) for key in ("id", "message_id", "source_id", "turn_id")]
             source_ids.extend(value.get("source_ids") or [])
             if any(isinstance(item, str) and item in blocked for item in source_ids):
                 changed = True
@@ -830,12 +843,31 @@ def sanitize_projection(db, account_id, projection):
             own_scope = {**scope, "category": category, "subject": subject}
             if value.get("fact_id"):
                 own_scope["fact_id"] = value["fact_id"]
+            # Structured extracted facts retain profile references separately
+            # from their local opaque fact ID. Stale references invalidate the
+            # whole evidence record, including source_quote.
+            refs = value.get("profile_refs") or value.get("profile_fact_refs") or []
+            if isinstance(refs, list) and refs and invalidated_references(db, account_id, refs):
+                changed = True
+                return None
+            if value.get("profile_fact_id"):
+                linked = db.get(ProfileFact, value["profile_fact_id"])
+                if not linked or linked.account_id != account_id or linked.status != "active":
+                    changed = True
+                    return None
             result = {}
             for key, item in value.items():
                 child_scope = {**own_scope, "field": value.get("field") if key == "value" else key}
                 if key in _PROJECTION_CATEGORIES:
                     child_scope = {"category": _PROJECTION_CATEGORIES[key]}
                 result[key] = walk(item, child_scope)
+            if "facts" in value and len(result.get("facts") or []) < len(value.get("facts") or []):
+                # Unstructured notes cannot reliably identify the removed source
+                # span. Remove these copies so they cannot become evidence again.
+                result["raw_notes"] = []
+                for raw_field in ("raw_description", "description"):
+                    if raw_field in result:
+                        result[raw_field] = ""
             return result
         if isinstance(value, list):
             return [cleaned for item in value if (cleaned := walk(item, scope)) is not None]

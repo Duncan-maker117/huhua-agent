@@ -6,7 +6,7 @@
 
 ## 当前决策
 
-- **2026-10-08 Banz 要求按 `evaluation/tailor-bench/claude-review-response.txt` 的 R1–R5 修订并新跑 `20261008-baseline-v2`，旧 run 不动；同意在隔离工作区并行 PR1。`overhaul/tailor` 的业务代码仍与 `a742100` 一致。PR1 已在 `codex/tailor-pr1` 独立提交 `65b06cd`，全套 556/556 通过，未合并入基线。v2 的 12 例对话及全部逐版本评分已完成；交回 summary 与用例后等待 Claude 差异复核，不自动开始 PR2。不 push、不部署。**
+- **2026-10-08 最新授权：按规格 §8/§10 顺序继续 Tailor overhaul。PR1 已合入 `fcfef05`；PR2 岗位画像与方向识别已提交 `066e0ba`（601/601）。real-01 私有基准支持已提交 `d0ef0b6`，真实材料/结果只在 cases-private、runs-private；旧 218 份 run 文件哈希未变。PR3 事实母版、存储边界、导入与隐藏输出已完成，全量677/677（含9项PR4独立组件）；PR4/5 随后推进，PR6 按规格交 Cursor。使用 DeepSeek V4.1 Flash 实测授权保留。未 push、未部署、未迁移真实库。**
 
 - **2026-10-08 Banz 根据「制作个人简历网站」实测反馈授权优化核心流程。已完成本地完整资料直接成稿、生成指令/新事实不丢失、保存后确认及失败历史提示、自动分条不漏原句、模板偏好恢复和真实 PDF 下载。当前优先验收/发布这条流程；专业能力研究仍未另行接入。**
 
@@ -26,6 +26,8 @@
 - 登录后资料默认保留至手动删除；游客按上述临时保留期处理。档案删除阻止未来使用，原聊天删除独立处理；最小旧值排除资料加密保留以阻止旧副本复活。恢复需独立最新隐私状态与可信摘要。
 
 ## 当前状态
+
+2026-10-08 两份本人历史资料真实生成实测完成：Banz 明确授权 DeepSeek V4.1 Flash（API ID `deepseek-flash`）。在独立临时加密库走真实网页上传 PDF + Markdown、生成、纠错及 PDF/Word 下载；主工作区业务仍为 `a742100`，PR1 未合并。四个真实项目均保留，但联系栏「深圳」误成第五项目；一页要求未执行，默认模板 PDF 为 3 页；mtagent 冲突虽列入核对，正文仍含冲突日期/职责；第二轮明确删改等待约 47.6 秒，data/revision/PDF 完全不变。已只读定位联系栏解析过宽、旧 editor 强制原句保留且未接收篇幅指令、信息提取完整回显与对象数组校验矛盾等原因，未改业务代码或上线。含个人资料的原始 PDF/Word、两轮记录及报告仅保存在 Git 忽略目录 `data/output/tailor-real-materials-20261008/summary.md`；两份原件哈希未变。该结果证明当前应用不能直接产出可投递稿，不代表已单独评估模型写作能力。
 
 2026-10-08 Tailor PR0 R1–R5 修订完成：交付 `evaluation/tailor-bench/runs/20261008-baseline-v2/summary.md`、`cases/README.md` 和 `claude-review-followup-v2.txt`。12 例 approved truth，24 正向要求 + 11 gap；75 项 benchmark 测试、Ruff/diff检查通过。旧代码完整跑 58 轮，32 变化版本（31 可见、1内部）：20 个非空版本统一最终checker评分、12 no_draft；评分0错误/缺失。首稿10/12、两轮内8/12；编辑0/24；要求覆盖 disclosed10/14（71.4%）、truth11/24（45.8%），证据位覆盖12/18及13/46。自动词法/语义疑点0，但7个不可判定字段单列，确认新增经历事实仍待Claude复核，不能借用v1的0。150图调用、10模拟器调用（无回退）、45评分调用含全部旧尝试；首次失败与重评证据保留。旧v1全部103文件逐字哈希一致；业务源码与a742100/v1一致。导入标签未识别和data行动事实落入自评栏已只读定位，留待PR4。PR1独立分支commit `65b06cd`、全套556/556通过，位置 `/Users/yikuaibanz1/.codex/worktrees/tailor-pr1/huhua agent`，未合并到基线、未push、未部署。详见该工作区 `docs/development/2026-10-08-tailor-pr1-verification.md`。
 
@@ -73,7 +75,7 @@
 
 ## 下一步
 
-本轮交接修订后的 Tailor PR0 baseline-v2 summary、cases、review-queue 给 Claude 做差异复核。PR1 在独立分支已完成但未合并；不要自动开始 PR2。旧 v1 的 Claude 复核新增经历事实为 0 只属于历史运行，不移植为 v2 安全结论。复跑、重评与隔离说明见 `evaluation/tailor-bench/README.md`。
+PR3 已通过并准备提交，报告 `docs/development/2026-10-08-tailor-pr3-verification.md`。下一步接入 PR4 writer/局部修改/撤销/实际页数校验，再跑逐版本 benchmark；PR5 随后接 router/复合编辑，给 Cursor PR6 API 交接。真实材料旧基线见 `evaluation/tailor-bench/runs-private/20261008-saved-real-01-baseline/summary.md`：两轮均3页，第二轮执行0/8目标、0/14操作，语义事实待复核。本次导入检查识别4项目、联系栏归位，见 runs-private/20261008-pr3-import-check；尚不是新writer实测。公开基线旧结论保持历史归属。
 
 先承接 2026-10-08 的核心流程修复：发布需重新构建带 Pango/中文字体的镜像，再用线上独立测试会话核验完整资料、模板恢复及 PDF/Word 下载；本轮没有发布授权或线上验收结果，不把本地浏览器通过写成线上已解决。
 

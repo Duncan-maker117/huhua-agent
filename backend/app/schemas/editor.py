@@ -21,6 +21,11 @@ class BasicInfo(BaseModel):
     photo: str = ""
 
 
+class ItemLink(BaseModel):
+    text: str
+    url: str
+
+
 class EducationItem(BaseModel):
     item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     school: str = ""
@@ -29,6 +34,8 @@ class EducationItem(BaseModel):
     start_date: str = ""
     end_date: str = ""
     highlights: str = ""
+    hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
 class WorkItem(BaseModel):
@@ -38,6 +45,8 @@ class WorkItem(BaseModel):
     start_date: str = ""
     end_date: str = ""
     bullets: list[str] = []
+    hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
 class ProjectItem(BaseModel):
@@ -49,6 +58,8 @@ class ProjectItem(BaseModel):
     description: str = ""
     # 编辑 agent 压缩后的 STAR bullet（3-5 条）；为空则模板走 description fallback
     polished_bullets: list[str] = []
+    hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
 class ResumeSection(BaseModel):

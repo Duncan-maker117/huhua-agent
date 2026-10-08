@@ -58,6 +58,9 @@ class ResumeState(TypedDict):
     collected_info: dict
     resume_draft: str
     resume_data: dict  # 序列化后的 ResumeData（给 /resume 渲染用），building_node 产出
+    resume_meta: dict  # Bullet evidence and verification metadata, distinct from the draft.
+    resume_versions: list[dict]  # Last ten document snapshots; never fact-master snapshots.
+    session_constraints: dict
     resume_strategy: dict  # 简历策略：JD 匹配型 / 能力展示型
     eval_result: dict
     # ── Triage 相关字段 ─────────────────────────────────────────────
@@ -93,6 +96,9 @@ def _init_state() -> ResumeState:
         "collected_info": _empty_collected_info(),
         "resume_draft": "",
         "resume_data": {},
+        "resume_meta": {},
+        "resume_versions": [],
+        "session_constraints": {},
         "resume_strategy": {},
         "eval_result": {},
         "jd_skipped": False,
@@ -188,9 +194,24 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
     for key, value in (saved_resume.get("basic_info") or {}).items():
         basic_info[key] = base_basic.get(key, value)
 
+    def _active_item(item: dict) -> dict:
+        item = copy.deepcopy(item)
+        if "facts" in item:
+            facts = item.get("facts") or []
+            for field in {fact.get("field") for fact in facts if fact.get("field")}:
+                values = [fact["text"] for fact in facts if fact.get("field") == field and fact.get("status", "active") == "active"]
+                item[field] = values[-1] if values else ""
+            body = [fact["text"] for fact in facts if fact.get("status", "active") == "active" and not fact.get("field")]
+            item["description"] = "\n".join(body)
+            item["bullets"] = body
+        return item
+
+    def _presentation(item: dict) -> dict:
+        return {key: copy.deepcopy(item[key]) for key in ("item_id", "hidden", "links") if key in item}
+
     def _edu(e: dict) -> dict:
         return {
-            **({"item_id": e["item_id"]} if e.get("item_id") else {}),
+            **_presentation(e),
             "school": e.get("school", ""),
             "degree": e.get("degree", ""),
             "major": e.get("major", ""),
@@ -207,7 +228,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             else []
         )
         return {
-            **({"item_id": w["item_id"]} if w.get("item_id") else {}),
+            **_presentation(w),
             "company": w.get("company", ""),
             "title": w.get("title", "") or w.get("role", ""),
             "start_date": w.get("start_date", "") or w.get("duration", ""),
@@ -217,7 +238,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
 
     def _proj(p: dict) -> dict:
         return {
-            **({"item_id": p["item_id"]} if p.get("item_id") else {}),
+            **_presentation(p),
             "name": p.get("name", ""),
             "role": p.get("role", ""),
             "start_date": p.get("start_date", "") or p.get("duration", ""),
@@ -225,11 +246,11 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             "description": p.get("description", ""),
         }
 
-    projects = [_proj(p) for p in collected.get("projects", [])]
-    work_experience = [_work(w) for w in collected.get("work_experience", [])] + [
-        _work(i) for i in collected.get("internship", [])
+    projects = [_proj(_active_item(p)) for p in collected.get("projects", [])]
+    work_experience = [_work(_active_item(w)) for w in collected.get("work_experience", [])] + [
+        _work(_active_item(i)) for i in collected.get("internship", [])
     ]
-    education = [_edu(e) for e in collected.get("education", [])]
+    education = [_edu(_active_item(e)) for e in collected.get("education", [])]
 
     # Short, first-person experience fallback. Existing resume documents use
     # the section parser, so one long document can never become one project.
@@ -242,7 +263,9 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         "education": education,
         "work_experience": work_experience,
         "projects": projects,
-        "skills": list(collected.get("skills", [])),
+        "skills": [skill.get("name", "") if isinstance(skill, dict) else skill
+                   for skill in collected.get("skills", [])
+                   if not isinstance(skill, dict) or skill.get("status", "active") == "active"],
         "certificates": list(collected.get("certificates", [])),
         "self_evaluation": collected.get("personal_summary", ""),
         "resume_strategy": resume_strategy,
@@ -284,21 +307,20 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
         # Choosing ungrouped skills is also an explicit editor choice.
         merged["skill_groups"] = {}
 
-    old_projects = {
-        project.get("name"): project
-        for project in saved.get("projects") or []
-        if isinstance(project, dict) and project.get("name")
-    }
-    if old_projects:
-        projects = []
-        for project in merged.get("projects") or []:
-            item = dict(project)
-            old = old_projects.get(item.get("name"))
-            if old and old.get("description") == item.get("description"):
-                if old.get("polished_bullets"):
-                    item["polished_bullets"] = old["polished_bullets"]
-            projects.append(item)
-        merged["projects"] = projects
+    for section in ("projects", "work_experience", "education"):
+        old_items = saved.get(section) or []
+        by_id = {item.get("item_id"): item for item in old_items if item.get("item_id")}
+        label_key = {"projects": "name", "work_experience": "company", "education": "school"}[section]
+        by_name = {item.get(label_key): item for item in old_items if item.get(label_key)}
+        for item in merged.get(section) or []:
+            old = by_id.get(item.get("item_id")) or by_name.get(item.get(label_key))
+            if not old:
+                continue
+            for field in ("hidden", "links"):
+                if field not in item and field in old:
+                    item[field] = copy.deepcopy(old[field])
+            if section == "projects" and old.get("description") == item.get("description") and old.get("polished_bullets"):
+                item["polished_bullets"] = copy.deepcopy(old["polished_bullets"])
 
     notes = list(merged.get("verification_notes") or [])
     for note in saved.get("verification_notes") or []:
@@ -450,57 +472,83 @@ def _candidate_source_allowed(message: HumanMessage) -> bool:
 
 
 def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
-    """Fill absent facts from a named resume without duplicating saved projects."""
-    result = copy.deepcopy(collected)
+    """Merge imported evidence while preserving already asserted user facts."""
+    from app.schemas.facts import FACT_SECTIONS
+    from app.services.resume_facts import normalize_fact_store
+
+    result = normalize_fact_store(collected)
+    imported = normalize_fact_store(imported)
     basic = result.setdefault("basic_info", {})
+    conflicts = result.setdefault("field_conflicts", [])
     for key, value in imported.get("basic_info", {}).items():
-        if value and not basic.get(key):
+        if not value:
+            continue
+        if basic.get(key) and basic[key] != value:
+            conflict = {"scope": "basic_info", "name": "个人信息", "field": key,
+                        "values": [{"value": basic[key], "source": "用户明确陈述"}, {"value": value, "source": "导入材料"}],
+                        "selected": basic[key], "reason": "用户明确陈述"}
+            if conflict not in conflicts:
+                conflicts.append(conflict)
+        elif not basic.get(key):
             basic[key] = value
 
-    education = result.setdefault("education", [])
-    known_schools = {
-        (item.get("school", "").casefold(), item.get("major", "").casefold())
-        for item in education
-        if isinstance(item, dict)
-    }
-    for item in imported.get("education", []):
-        identity = (item.get("school", "").casefold(), item.get("major", "").casefold())
-        if identity not in known_schools:
-            education.append(item)
-            known_schools.add(identity)
+    for section in FACT_SECTIONS:
+        target_items = result.setdefault(section, [])
+        identity_field = {"projects": "name", "education": "school", "work_experience": "company", "internship": "company"}[section]
+        known = {item.get(identity_field, "").strip().casefold(): item for item in target_items
+                 if isinstance(item, dict) and item.get(identity_field)}
+        for source_item in imported.get(section, []):
+            if not isinstance(source_item, dict):
+                continue
+            label = source_item.get(identity_field, "").strip().casefold()
+            if not label:
+                continue
+            existing = known.get(label)
+            if existing is None:
+                target_items.append(copy.deepcopy(source_item))
+                known[label] = target_items[-1]
+                continue
+            for field in ("role", "start_date", "end_date", "subtitle", "degree", "major"):
+                incoming = source_item.get(field)
+                if not incoming:
+                    continue
+                old = existing.get(field)
+                if old and old != incoming:
+                    conflict = {"scope": section, "name": existing.get(identity_field), "field": field,
+                                "values": [{"value": old, "source": "用户明确陈述"}, {"value": incoming, "source": "导入材料"}],
+                                "selected": old, "reason": "用户明确陈述"}
+                    if conflict not in conflicts:
+                        conflicts.append(conflict)
+                elif not old:
+                    existing[field] = incoming
+            for field in ("description", "raw_description"):
+                incoming = source_item.get(field, "")
+                old = existing.get(field, "")
+                if incoming and incoming not in old:
+                    existing[field] = "\n".join(filter(None, [old, incoming]))
+            existing.setdefault("raw_notes", []).extend(note for note in source_item.get("raw_notes", [])
+                                                         if note not in existing["raw_notes"])
+            old_facts = existing.setdefault("facts", [])
+            by_text = {_re.sub(r"[\s，。；、,.!?！？：:]", "", fact.get("text", "")).casefold(): fact
+                       for fact in old_facts if isinstance(fact, dict)}
+            for fact in source_item.get("facts", []):
+                fact = copy.deepcopy(fact)
+                field = fact.get("field")
+                if field in {"role", "start_date", "end_date", "subtitle", "degree", "major"} and existing.get(field) and existing[field] != fact.get("text"):
+                    fact["status"] = "superseded"
+                key = _re.sub(r"[\s，。；、,.!?！？：:]", "", fact.get("text", "")).casefold()
+                same = by_text.get(key)
+                if same:
+                    provenance = same.setdefault("sources", [])
+                    provenance.extend(copy.deepcopy(source) for source in fact.get("sources", []) if source not in provenance)
+                else:
+                    old_facts.append(fact)
+                    by_text[key] = old_facts[-1]
+            if source_item.get("links"):
+                existing.setdefault("links", []).extend(link for link in source_item["links"]
+                                                       if link not in existing["links"])
 
-    projects = result.setdefault("projects", [])
-    projects[:] = [
-        item
-        for item in projects
-        if not (
-            item.get("name") in {"对话产出经历", "对话中描述的经历"}
-            and looks_like_existing_resume(item.get("description", ""))
-        )
-    ]
-    known_projects = {
-        item.get("name", "").casefold(): item
-        for item in projects
-        if isinstance(item, dict)
-    }
-    for project in imported.get("projects", []):
-        name = project.get("name", "")
-        if not name:
-            continue
-        existing = known_projects.get(name.casefold())
-        if existing:
-            for key in ("role", "start_date", "end_date", "description"):
-                if not existing.get(key) and project.get(key):
-                    existing[key] = project[key]
-            description = project.get("description", "")
-            if description and description not in existing.get("description", ""):
-                existing["description"] = (existing.get("description", "") + "\n" + description).strip()
-            continue
-        item = {**project, "raw_description": project.get("description", "")}
-        projects.append(item)
-        known_projects[name.casefold()] = item
-
-    for field in ("skills", "certificates", "imported_documents", "field_conflicts"):
+    for field in ("skills", "certificates", "imported_documents", "field_conflicts", "metadata_context"):
         target = result.setdefault(field, [])
         for item in imported.get(field, []):
             if item not in target:
@@ -517,7 +565,7 @@ def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
 
 
 def _apply_explicit_project_removals(collected: dict, text: str) -> dict:
-    """Honor a short, explicit named-project removal even if extraction fails."""
+    """Hide named projects in the current draft without erasing source facts."""
     if len(text.strip()) > 160 or _re.search(
         r"[?？]|要不要|是否|该不该|(?:别|不要|不用|无需)(?:再)?(?:删|去掉|移除)", text
     ):
@@ -534,12 +582,16 @@ def _apply_explicit_project_removals(collected: dict, text: str) -> dict:
     if not removed:
         return collected
     updated = copy.deepcopy(collected)
-    updated["projects"] = [p for p in updated["projects"] if p not in removed]
+    for project in updated["projects"]:
+        if project in removed:
+            project["hidden"] = True
     return updated
 
 
 def _keep_unextracted_experience(collected: dict, previous: dict, message: HumanMessage) -> dict:
     """Keep a grounded action when an extractor fails, without saving AI wording."""
+    from app.services.resume_facts import new_fact, normalize_fact_store
+
     if not _candidate_source_allowed(message) or not isinstance(message.content, str):
         return collected
     text = message.content.strip()
@@ -548,7 +600,12 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     corrected = _apply_explicit_project_removals(collected, text)
     if corrected != collected:
         return corrected
-    if _snippet_was_extracted(previous, collected, text):
+    previous_ids = {fact.get("id") for section in ("projects", "work_experience", "internship")
+                    for item in previous.get(section, []) for fact in item.get("facts", [])}
+    if any(fact.get("id") not in previous_ids and fact.get("source") == "chat"
+           and fact.get("source_quote") and fact["source_quote"] in text
+           for section in ("projects", "work_experience", "internship")
+           for item in collected.get(section, []) for fact in item.get("facts", [])):
         return collected
     # Ambiguous negations/corrections need the semantic extractor, not append-only fallback.
     if _re.search(r"计划|准备|打算|希望|将|没有(?:负责|做|参与|设计|开发)|没做过|未负责|并未|更正|改成|不是|别写|不要(?:写|放|这|该|此)", text):
@@ -575,21 +632,30 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     fallback = _harvest_projects_from_messages([message])
     if not fallback and not (len(matches) == 1 and action):
         return collected
-    result = copy.deepcopy(collected)
+    result = normalize_fact_store(collected)
     if len(matches) == 1:
         for key in ("projects", "work_experience", "internship"):
             for item in result.get(key, []):
-                if item == matches[0]:
-                    if key != "projects" and "bullets" in item:
-                        if text not in item["bullets"]:
-                            item["bullets"].append(text)
-                    else:
-                        description = item.get("description", "")
-                        if text not in description:
-                            item["description"] = (description + "\n" + text).strip()
+                if item.get("item_id") == matches[0].get("item_id") or (
+                    not matches[0].get("item_id") and
+                    (item.get("name") or item.get("company")) == (matches[0].get("name") or matches[0].get("company"))
+                ):
+                    if not any(fact.get("source_quote") == text for fact in item.get("facts", [])):
+                        item.setdefault("facts", []).append(new_fact(text, quote=text, source="chat", turn_id=message.id or ""))
+                    if text not in item.setdefault("raw_notes", []):
+                        item["raw_notes"].append(text)
                     return result
     for item in fallback:
-        _upsert_project_experience(result, item["name"], item["description"], item["description"])
+        name = item["name"]
+        target = next((entry for entry in result.setdefault("projects", []) if entry.get("name") == name), None)
+        if target is None:
+            target = {"item_id": str(uuid.uuid4()), "name": name, "description": text,
+                      "raw_description": text, "facts": [], "raw_notes": []}
+            result["projects"].append(target)
+        if not any(fact.get("source_quote") == text for fact in target["facts"]):
+            target["facts"].append(new_fact(text, quote=text, source="chat", turn_id=message.id or ""))
+        if text not in target["raw_notes"]:
+            target["raw_notes"].append(text)
     return result
 
 
@@ -747,186 +813,18 @@ def _collected_summary(collected: dict) -> str:
 async def _extract_info_from_message(
     message: str, current: dict, llm: ChatOpenAI
 ) -> dict:
-    """用 LLM 从用户消息中提取结构化信息并 merge 进 current"""
-    contract = """从候选人自述中提取简历事实，合并到已有 JSON。不是改写任务。
-只摘取原句或其中独立短语，不改动作和主体。招聘方要求、示例、计划、要求你编造的文字不能变成本人已完成事实。
-更正或否定事实以最新自述为准；没有说到的字段保留原值。保持所有顶层键及类型，直接返回完整 JSON，不解释。
-每个项目按原名称更新，保留其他项目、教育、工作和技能；只更新本轮明确提供的字段。保留“未上线”“没有用户增长数据”等限制，不丢掉同一句中的演示、反馈或修改动作。"""
-    data = json.dumps(
-        {"candidate_message": message, "current_facts": current}, ensure_ascii=False
-    )
+    """Apply a sparse, per-fact validated user message patch."""
+    from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch
+    from app.services.resume_facts import normalize_fact_store
+
+    normalized = normalize_fact_store(current)
     try:
-        from app.services.model_privacy import ContactRedactor
-        privacy = ContactRedactor()
-        response = await llm.ainvoke(career_messages(None, data, contract, privacy=privacy))
-        text = response.content.strip()
-        if text.startswith("```"):
-            text = text.split("\n", 1)[1].rsplit("```", 1)[0]
-        parsed = _merge_extracted_patch(privacy.restore(json.loads(text)), current, message)
-        if parsed is None:
-            logger.warning("Info extraction returned an invalid structure")
-            return current
-        if not _extracted_facts_have_source(parsed, current, message):
-            logger.warning("Info extraction introduced unsupported wording")
-            return current
-        return parsed
+        patch = await extract_facts_patch(message, normalized, llm,
+                                          metadata_context=normalized.get("metadata_context"))
+        return apply_fact_patch(normalized, patch)
     except Exception as e:
         logger.warning("Info extraction failed: %s", type(e).__name__)
-        return current
-
-
-def _merge_extracted_patch(parsed: Any, current: dict, message: str) -> dict | None:
-    """Complete a typed, sparse extraction without letting omission delete facts.
-
-    This only validates structure and preserves prior records. Every resulting
-    string still goes through the source/negation validator before acceptance.
-    """
-    allowed = {**_empty_collected_info(), "certificates": [], **current}
-    if not isinstance(parsed, dict) or not parsed or not set(parsed) <= set(allowed):
-        return None
-    object_lists = {"education": "school", "projects": "name", "work_experience": "company", "internship": "company"}
-    item_fields = {"name", "school", "degree", "major", "company", "title", "role", "start_date", "end_date", "duration", "description", "raw_description", "highlights", "bullets", "polished_bullets"}
-    removal = r"删除|删掉|去掉|移除|不要|不写|不放|不会|不熟悉|没用过|没学过|不掌握|不具备"
-    correcting = bool(_re.search(r"更正|改成|改为|不是|并非|实际(?:是|只)|之前.{0,15}(?:有误|不对|写错)", message))
-
-    def explicitly_removed(label: str) -> bool:
-        if not label or _re.search(r"[?？]|要不要|是否|(?:别|不要|不用|无需)(?:再)?(?:删|去掉|移除)", message):
-            return False
-        return bool(_re.search(
-            rf"(?:{removal})\s*[「『]?{_re.escape(label)}|{_re.escape(label)}[」』]?\s*(?:全部)?(?:{removal})",
-            message, _re.IGNORECASE,
-        ))
-
-    merged = copy.deepcopy(current)
-    for key, value in parsed.items():
-        expected = allowed[key]
-        if not isinstance(value, type(expected)):
-            return None
-        if isinstance(value, dict):
-            # Basic fields are strings; editor-owned skill groups are lists of strings.
-            if key == "basic_info":
-                from app.schemas.editor import BasicInfo
-
-                if not set(value) <= set(BasicInfo.model_fields) or not all(isinstance(v, str) for v in value.values()):
-                    return None
-            elif key == "skill_groups":
-                if not all(isinstance(v, list) and all(isinstance(s, str) for s in v) for v in value.values()):
-                    return None
-            else:
-                return None
-            merged[key] = copy.deepcopy(current.get(key) or {})
-            labels = {"name": "姓名", "phone": "手机号", "email": "邮箱", "location": "所在地", "objective": "求职意向"}
-            for field, new_value in value.items():
-                if not new_value and merged[key].get(field) and not explicitly_removed(labels.get(field, field)):
-                    continue
-                merged[key][field] = new_value
-        elif isinstance(value, list) and key in object_lists:
-            # Model echoes may retain an opaque ID from current context. Only
-            # the server's exact existing identity is accepted, and it is not
-            # treated as a newly extracted fact or a model-assigned identifier.
-            value = copy.deepcopy(value)
-            for item in value:
-                if isinstance(item, dict) and "item_id" in item:
-                    identity = object_lists[key]
-                    original = next((entry for entry in current.get(key) or []
-                                     if item.get(identity) and entry.get(identity) == item[identity]), None)
-                    if original is None or not original.get("item_id") or item["item_id"] != original["item_id"]:
-                        return None
-                    item.pop("item_id")
-            if any(not isinstance(item, dict) or not set(item) <= item_fields for item in value):
-                return None
-            for item in value:
-                for field, field_value in item.items():
-                    if field in {"bullets", "polished_bullets"}:
-                        if not isinstance(field_value, list) or not all(isinstance(s, str) for s in field_value):
-                            return None
-                    elif not isinstance(field_value, str):
-                        return None
-            identity = object_lists[key]
-            records = copy.deepcopy(current.get(key) or [])
-            for item in value:
-                label = item.get(identity, "").casefold()
-                existing = next((record for record in records if label and record.get(identity, "").casefold() == label), None)
-                if existing is not None:
-                    for field, new_value in item.items():
-                        old_value = existing.get(field)
-                        field_labels = {"role": "职责", "title": "职务", "start_date": "开始时间", "end_date": "结束时间", "duration": "时间"}
-                        if not new_value and old_value and not explicitly_removed(field_labels.get(field, field)):
-                            continue
-                        if not correcting and old_value and field in {"description", "raw_description", "highlights"}:
-                            if new_value in old_value:
-                                continue
-                            if old_value not in new_value:
-                                new_value = old_value + "\n" + new_value
-                        elif not correcting and old_value and field in {"bullets", "polished_bullets"}:
-                            new_value = list(dict.fromkeys([*old_value, *new_value]))
-                        existing[field] = new_value
-                    if correcting and "description" in item and "raw_description" in existing and "raw_description" not in item:
-                        existing["raw_description"] = item["description"]
-                elif item not in records:
-                    records.append(copy.deepcopy(item))
-            section_labels = {"education": "教育经历", "work_experience": "工作经历", "internship": "实习经历", "projects": "项目经历"}
-            if explicitly_removed(section_labels[key]) and not value:
-                records = []
-            else:
-                records = [item for item in records if not explicitly_removed(item.get(identity, ""))]
-            merged[key] = records
-        elif isinstance(value, list):
-            if not all(isinstance(item, str) for item in value):
-                return None
-            merged[key] = list(dict.fromkeys([*(current.get(key) or []), *value]))
-            if key in {"skills", "certificates"}:
-                merged[key] = [item for item in merged[key] if not explicitly_removed(item)]
-        else:
-            merged[key] = value
-    return merged
-
-
-def _extracted_facts_have_source(parsed: dict, current: dict, message: str) -> bool:
-    """Reject new text that cannot be found in the user's words or saved facts."""
-
-    def leaves(value: Any):
-        if isinstance(value, dict):
-            for item in value.values():
-                yield from leaves(item)
-        elif isinstance(value, list):
-            for item in value:
-                yield from leaves(item)
-        elif isinstance(value, str) and value.strip():
-            yield value
-
-    def normalized(value: str) -> str:
-        return _re.sub(r"[\s,，。；;:：•*\-]", "", value).casefold()
-
-    source_units = [
-        normalized(clause)
-        for source in (message, *leaves(current))
-        for clause in _re.split(r"[,，。；;!?？！\n]", source)
-        if normalized(clause)
-    ]
-
-    def supported(claim: str) -> bool:
-        for source in source_units:
-            for match in _re.finditer(_re.escape(claim), source):
-                prefix = source[: match.start()]
-                if _re.search(
-                    r"(?:没有|并未|从未|未|没|不曾|不)"
-                    r"(?:独立|直接|实际|真正|具体|亲自|主要|单独)?$"
-                    r"|(?:不是|并非)(?:我|本人|自己)?$"
-                    r"|(?:不会|不懂|不熟悉|未使用|没用过|没学过|不掌握|不具备)$"
-                    r"|(?:计划|准备|打算|希望|将)(?:要|去|开始|独立)?$",
-                    prefix,
-                ):
-                    continue
-                return True
-        return False
-
-    for value in leaves(parsed):
-        for claim in _re.split(r"[,，。；;\n]", value):
-            claim = normalized(claim)
-            if claim and not supported(claim):
-                return False
-    return True
+        return normalized
 
 
 # ── 阶段专属系统提示 ──────────────────────────────────────────────────────────
@@ -2152,6 +2050,9 @@ async def stream_agent(
                 resume_draft=state.values.get("resume_draft", ""),
                 stage=state.values.get("stage", ""),
                 archive_event=archive_event_for_message(lc_msg, state.values),
+                collected_info=state.values.get("collected_info") or {},
+                resume_meta=state.values.get("resume_meta") or {},
+                resume_versions=state.values.get("resume_versions") or [],
             )
     except Exception as e:
         logger.error("final state save error: %s", type(e).__name__)

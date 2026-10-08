@@ -7,7 +7,7 @@ from app.agents.resume_graph import _serialize_to_resume_data
 from app.api.resume import _llm_for_graph, get_graph
 from app.database import SessionLocal
 from app.services.access_control import authorize_session
-from app.services.canonical_resume import ResumeRevisionConflict, editor_facts, resume_revision, save_canonical_resume
+from app.services.canonical_resume import ResumeRevisionConflict, resume_revision, save_canonical_resume
 from app.services.profile_bridge import account_id, protect_data, protect_state
 from app.services.profile_service import context_to_collected_info, get_context, merge_job_version_import, ProfileRevisionConflict
 from app.services.resume_suggestions import apply_suggestion, generate_suggestion, preview_suggestion
@@ -104,7 +104,7 @@ async def import_facts(session_id: str, body: ProfileImport, request: Request):
         # same save/rollback boundary as an ordinary editor change.
         bindings = []
         values["collected_info"] = context_to_collected_info(
-            context, editor_facts(stored["resume_data"], values.get("collected_info")),
+            context, (stored["collected_info"] if stored.get("has_authoritative_state") else values.get("collected_info")),
             projection_bindings=bindings,
         )
         # Serialize selected facts rather than keeping a previous resume_data
@@ -122,7 +122,8 @@ async def import_facts(session_id: str, body: ProfileImport, request: Request):
         try:
             saved = await save_canonical_resume(session_id, resume_revision(stored["resume_data"]), data,
                                                 graph, _serialize_to_resume_data, after_save=record,
-                                                provenance_bindings=bindings)
+                                                provenance_bindings=bindings, source="import",
+                                                collected_info=values["collected_info"])
         except ResumeRevisionConflict:
             raise HTTPException(409, "简历已变化，请刷新后重新选取资料") from None
         return {**saved, "workspace": build_workspace(values, saved["data"]), "imported": len(context["facts"])}

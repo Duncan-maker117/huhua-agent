@@ -1,6 +1,7 @@
 """Persistence and lifecycle rules for private resume sessions."""
 
 import asyncio
+import copy
 import logging
 import weakref
 from datetime import UTC, datetime, timedelta
@@ -162,6 +163,8 @@ def save_resume_session(
     resume_draft: str = "",
     stage: str = "",
     archive_event: dict | None = None,
+    *, collected_info: dict | None = None, resume_meta: dict | None = None,
+    resume_versions: list | None = None,
 ) -> None:
     if not session_id or (not resume_data_has_content(resume_data) and not stage):
         return
@@ -172,6 +175,7 @@ def save_resume_session(
         if row is not None and (row.stage == DELETED_STAGE or _is_expired(row)):
             raise SessionStorageUnavailable("Session is no longer active")
         previous_data = row.resume_data if row is not None else {}
+        previous_state = row.resume_state if row is not None else {}
         if row is None:
             row = ResumeSession(session_id=session_id)
             db.add(row)
@@ -184,14 +188,26 @@ def save_resume_session(
         owner = conversation.owner_hash if conversation else ""
         if owner.startswith("account:"):
             from app.services.profile_bridge import protect_data
-            from app.services.resume_provenance import validate_item_ids
+            from app.services.resume_provenance import validate_item_ids, register_fact_items
             from app.services.resume_review import resume_to_text
+            register_fact_items(db, owner.split(":", 1)[1], session_id, collected_info or {}, resume_data)
             validate_item_ids(db, owner.split(":", 1)[1], session_id, previous_data, resume_data)
             row.resume_data = protect_data(owner, row.resume_data, db=db)
             has_bindings = any(item.get("item_id") for group in ("projects", "education", "work_experience")
                                for item in (row.resume_data.get(group) or []))
             row.resume_draft = (resume_to_text(row.resume_data) if has_bindings
                                 else protect_data(owner, row.resume_draft, db=db))
+        if collected_info is not None or previous_state.get("authoritative"):
+            from app.services.profile_bridge import protect_data
+            row.resume_state = make_resume_state(
+                collected_info if collected_info is not None else previous_state.get("collected_info"),
+                resume_meta if resume_meta is not None else previous_state.get("resume_meta"),
+                resume_versions if resume_versions is not None else previous_state.get("resume_versions"))
+            protected = protect_data(owner, {**row.resume_state, "resume_data": row.resume_data}, db=db)
+            row.resume_data = protected.pop("resume_data")
+            row.resume_state = protected
+            from app.services.resume_review import resume_to_text
+            row.resume_draft = resume_to_text(row.resume_data)
         if archive_event and owner.startswith("account:"):
             from app.services.profile_service import enqueue_archive_event
             enqueue_archive_event(db, account_id=owner.split(":", 1)[1],
@@ -214,11 +230,23 @@ def load_resume_session(session_id: str) -> dict | None:
         row = db.get(ResumeSession, session_id)
         if row is None or row.stage == DELETED_STAGE or _is_expired(row):
             return None
+        state = row.resume_state or {}
         payload = row.resume_data or {}
+        conversation = db.get(Conversation, session_id)
+        if state.get("authoritative"):
+            from app.services.profile_bridge import protect_data
+            from app.services.resume_review import resume_to_text
+            state = protect_data(conversation.owner_hash if conversation else "",
+                                 {**state, "resume_data": payload}, db=db)
+            payload = state.pop("resume_data")
         return {
             "session_id": row.session_id,
             "resume_data": payload,
-            "resume_draft": row.resume_draft or "",
+            "resume_draft": resume_to_text(payload) if state.get("authoritative") else row.resume_draft or "",
+            "collected_info": copy.deepcopy(state.get("collected_info") or {}),
+            "resume_meta": copy.deepcopy(state.get("resume_meta") or {}),
+            "resume_versions": copy.deepcopy(state.get("resume_versions") or []),
+            "has_authoritative_state": bool(state.get("authoritative")),
             "stage": row.stage or "",
             "has_data": resume_data_has_content(payload),
             "updated_at": row.updated_at.isoformat() if row.updated_at else "",
@@ -242,6 +270,7 @@ def delete_resume_session(session_id: str) -> None:
             db.add(row)
         row.resume_data = {}
         row.resume_draft = ""
+        row.resume_state = {}
         row.stage = DELETED_STAGE
         row.updated_at = datetime.now(UTC).replace(tzinfo=None)
         db.commit()
@@ -289,3 +318,9 @@ def purge_expired_resume_session(session_id: str, retention_days: int) -> None:
             db.commit()
     finally:
         db.close()
+
+
+def make_resume_state(collected_info, resume_meta=None, resume_versions=None):
+    """Facts and document metadata share their document's SQL transaction."""
+    return copy.deepcopy({"authoritative": True, "collected_info": collected_info or {},
+                          "resume_meta": resume_meta or {}, "resume_versions": (resume_versions or [])[-10:]})

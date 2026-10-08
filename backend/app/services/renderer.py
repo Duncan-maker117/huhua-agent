@@ -6,7 +6,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoescape
 
-from app.services.resume_sections import get_resume_sections
+from app.services.resume_sections import get_resume_sections, visible_items
 
 ROOT = Path(__file__).resolve().parents[3]
 TEMPLATE_DIR = ROOT / "data" / "jianlimoban" / "html-template"
@@ -47,8 +47,13 @@ def render_resume(template_id: str, data: dict[str, Any], interactive: bool = Fa
     if not isinstance(photo, str) or len(photo) > _MAX_PHOTO_URL_LENGTH or not _PHOTO_DATA_URL.fullmatch(photo):
         basic["photo"] = ""
     sections = get_resume_sections(data)
+    visible = {
+        kind: [{**item, "_source_index": index} for index, item in visible_items(data, kind)]
+        for kind in ("education", "work_experience", "projects")
+    }
     html = template.render(**{
         **data,
+        **visible,
         "basic_info": basic,
         "resume_sections": sections,
         "has_education_section": any(section["kind"] == "education" for section in sections),

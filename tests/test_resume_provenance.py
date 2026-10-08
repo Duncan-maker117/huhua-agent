@@ -59,7 +59,8 @@ class ResumeProvenanceTests(unittest.IsolatedAsyncioTestCase):
         })
 
     def linked(self, data):
-        return next(item for item in data["projects"] if item.get("item_id"))
+        return next((item for item in data["projects"] if item.get("item_id") and item.get("name") != "课程工具"),
+                    next(item for item in data["projects"] if item.get("item_id")))
 
     def mapping(self, sid):
         with self.factory() as db:
@@ -164,8 +165,8 @@ class ResumeProvenanceTests(unittest.IsolatedAsyncioTestCase):
         result = await self.a.post(f"/api/resume/session/{sid}/profile-facts", json={"fact_ids": [fact["id"]]})
         self.assertEqual(result.status_code, 200, result.text)
         self.assertEqual(result.json()["data"]["projects"][0]["role"], data["projects"][0]["role"])
-        self.assertNotIn("item_id", result.json()["data"]["projects"][0])
-        self.assertFalse(self.mapping(sid))
+        item_id = result.json()["data"]["projects"][0]["item_id"]
+        self.assertEqual(self.mapping(sid)["items"][item_id]["fields"], {})
 
     async def test_explicit_same_value_import_binds_existing_item(self):
         sid, data = await self.fixture()
@@ -198,16 +199,23 @@ class ResumeProvenanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 200, response.text)
 
     async def test_extraction_may_echo_existing_id_but_cannot_assign_one(self):
-        from app.agents.resume_graph import _merge_extracted_patch
+        from app.agents.fact_extractor import extract_facts_patch, apply_fact_patch
+        from types import SimpleNamespace
         item_id = str(uuid.uuid4())
         current = {"projects": [{"item_id": item_id, "name": "来源项目", "role": "参与者"}]}
-        parsed = {"projects": [{"item_id": item_id, "name": "来源项目", "description": "整理需求"}]}
-        merged = _merge_extracted_patch(parsed, current, "来源项目中整理需求")
-        self.assertIsNotNone(merged)
+        parsed = {"items": [{"section": "projects", "item_id": item_id, "name": "来源项目", "facts": [
+            {"kind": "action", "text": "整理需求", "source_quote": "整理需求"}]}]}
+        class Model:
+            async def ainvoke(self, _):
+                return SimpleNamespace(content=json.dumps(parsed, ensure_ascii=False))
+        patch = await extract_facts_patch("来源项目中整理需求", current, Model())
+        merged = apply_fact_patch(current, patch)
         self.assertEqual(merged["projects"][0]["item_id"], item_id)
-        self.assertEqual(merged["projects"][0]["description"], "整理需求")
-        parsed["projects"][0]["item_id"] = str(uuid.uuid4())
-        self.assertIsNone(_merge_extracted_patch(parsed, current, "来源项目中整理需求"))
+        self.assertIn("整理需求", [fact["text"] for fact in merged["projects"][0]["facts"]])
+        parsed["items"][0]["item_id"] = str(uuid.uuid4())
+        patch = await extract_facts_patch("来源项目中整理需求", current, Model())
+        self.assertEqual(patch["items"], [])
+        self.assertEqual(patch["rejected"][0]["reason"], "unknown_item_id")
 
     async def test_explicit_unauthenticated_local_compatibility_can_render_custom_body(self):
         self.a.cookies.clear()

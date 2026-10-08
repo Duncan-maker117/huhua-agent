@@ -94,7 +94,7 @@ class EditorPersistenceTest(unittest.IsolatedAsyncioTestCase):
             revision = (await current_resume(self.request, session))["revision"]
         return await save_current_resume(SaveResumeRequest(session_id=session, expected_revision=revision, resume_data=data), self.request)
 
-    async def test_edits_survive_refresh_and_replace_chat_facts(self):
+    async def test_edits_survive_refresh_and_append_chat_facts(self):
         original = candidate()
         self.seed(data=original)
         await self.checkpoint(original, collected_info={"internship": [{"company": "旧实习"}]})
@@ -110,8 +110,8 @@ class EditorPersistenceTest(unittest.IsolatedAsyncioTestCase):
         checkpoint = await self.graph.aget_state({"configurable": {"thread_id": "live"}})
         facts = checkpoint.values["collected_info"]
         self.assertEqual(facts["basic_info"]["name"], "已编辑姓名")
-        self.assertEqual(facts["projects"][0]["description"], "完成5个静态界面，未上线")
-        self.assertEqual(facts["internship"], [])
+        self.assertIn("完成5个静态界面，未上线", [f["text"] for f in facts["projects"][0]["facts"]])
+        self.assertEqual(facts["internship"][0]["company"], "旧实习")
         self.assertEqual(current["data"]["sections"][0]["kind"], "custom")
         self.assertEqual(current["data"]["skill_groups"], {"工具": ["Excel"]})
         self.assertEqual(current["data"]["verification_notes"], edited["verification_notes"])
@@ -203,7 +203,8 @@ class EditorPersistenceTest(unittest.IsolatedAsyncioTestCase):
                 checkpoint = await restored_graph.aget_state({"configurable": {"thread_id": "live"}})
                 self.assertEqual(current["revision"], result["revision"])
                 self.assertEqual(current["data"]["sections"], candidate()["sections"])
-                self.assertEqual(checkpoint.values["collected_info"]["projects"][0]["description"], "画了5个界面，未上线")
+                self.assertEqual(checkpoint.values["collected_info"], load_resume_session("live")["collected_info"])
+                self.assertNotIn("画了5个界面，未上线", str(checkpoint.values["collected_info"].get("projects", [])))
 
     async def test_database_reads_and_form_saves_do_not_require_a_model_key(self):
         self.seed(data=candidate())

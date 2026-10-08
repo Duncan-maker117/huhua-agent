@@ -67,7 +67,7 @@ def privacy_baseline(db):
         sessions[row["session_id"]] = {
             "owner": row["owner_hash"], "storage_owner": resume.get("owner_key") or row["owner_hash"],
             "version": resume.get("version", 0),
-            "canonical_digest": _digest([resume.get("resume_data"), resume.get("resume_draft"), resume.get("stage")]),
+            "canonical_digest": _digest([resume.get("resume_data"), resume.get("resume_draft"), resume.get("resume_state"), resume.get("stage")]),
         }
     return {
         "version": 1,

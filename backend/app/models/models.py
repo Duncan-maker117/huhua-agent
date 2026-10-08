@@ -50,6 +50,8 @@ class ResumeSession(Base):
     version = Column(Integer, default=1, nullable=False)
     _resume_data = Column("resume_data", JSON, nullable=False)
     _resume_draft = Column("resume_draft", Text, nullable=False)
+    _resume_state = Column("resume_state", JSON, nullable=True)
+    resume_state = encrypted_property("_resume_state", "resume_state", json_value=True, default=dict)
     resume_data = encrypted_property("_resume_data", "resume_data", json_value=True, default=dict)
     resume_draft = encrypted_property("_resume_draft", "resume_draft", default="")
     stage = Column(String, default="", nullable=False)
@@ -90,5 +92,6 @@ class Conversation(Base):
 register_encrypted_model(ResumeSession, [
     ("_resume_data", "resume_data", True, dict),
     ("_resume_draft", "resume_draft", False, ""),
+    ("_resume_state", "resume_state", True, dict),
 ])
 register_encrypted_model(Conversation, [("_title", "title", False, "新对话")])

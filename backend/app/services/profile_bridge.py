@@ -1,6 +1,9 @@
 """Apply profile provenance and invalidation rules at existing product boundaries."""
 
 import copy
+import hashlib
+import re
+from difflib import SequenceMatcher
 import logging
 
 from fastapi import HTTPException
@@ -64,13 +67,14 @@ def account_id(owner):
 def protect_data(owner, data, *, reject=False, db=None):
     account = account_id(owner)
     if not account:
-        return copy.deepcopy(data)
+        return sanitize_fact_history(copy.deepcopy(data))
     from app.services.resume_provenance import sanitize_bound_fields
 
     def clean(session):
         scoped, changed = sanitize_projection(session, account, data)
         cleaned, bound_changed = sanitize_bound_fields(session, account, scoped)
-        return cleaned, changed or bound_changed
+        history = sanitize_fact_history(cleaned, original=data)
+        return history, changed or bound_changed or history != cleaned
 
     if db is None:
         with SessionLocal() as session:
@@ -115,14 +119,14 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
         # Repair a checkpoint left ahead by a failed/crashed two-store edit.
         # Raw user messages remain available; editable facts always begin with
         # the acknowledged SQL version rather than a failed editor projection.
-        canonical = protect_data(owner, stored.resume_data, db=db)
-        from app.services.canonical_resume import editor_facts
+        stored_state = protect_data(owner, {**(stored.resume_state or {}), "resume_data": stored.resume_data}, db=db)
+        canonical = stored_state.pop("resume_data")
         from app.services.resume_review import resume_to_text
-        checkpoint_differs = values.get("resume_data") != canonical
         values["resume_data"] = canonical
         values["resume_draft"] = resume_to_text(canonical)
-        if checkpoint_differs:
-            values["collected_info"] = editor_facts(canonical, values.get("collected_info"))
+        if stored_state.get("authoritative"):
+            for key, default in (("collected_info", {}), ("resume_meta", {}), ("resume_versions", [])):
+                values[key] = copy.deepcopy(stored_state.get(key, default))
         if context is None:
             context = get_context(db, account, subject_ids=fact_ids, limit=100, include_contacts=False) if account else {"facts": [], "fact_refs": []}
         collected = (context_to_collected_info(context, values.get("collected_info"))
@@ -151,7 +155,9 @@ async def purge_invalidated_copies(owner, graph):
                 row = db.get(ResumeSession, session_id)
                 if not row:
                     continue
-                row.resume_data = protect_data(owner, row.resume_data, db=db)
+                clean = protect_data(owner, {**(row.resume_state or {}), "resume_data": row.resume_data}, db=db)
+                row.resume_data = clean.pop("resume_data")
+                row.resume_state = clean
                 # Rebuild the derived prose from its scoped structured source;
                 # a raw date string cannot identify which fact it came from.
                 from app.services.resume_review import resume_to_text
@@ -171,3 +177,73 @@ def archive_event_for_message(message, state):
         "human_text": message.content, "source_kind": kind,
         "collected_info_delta": {"basic_info": (state.get("collected_info") or {}).get("basic_info") or {}},
     }}
+
+
+def sanitize_fact_history(state, *, original=None):
+    """Keep inactive evidence out of drafts, including legacy versions without metadata."""
+    if not isinstance(state, dict) or "collected_info" not in state:
+        return state
+    result = copy.deepcopy(state)
+    sections = ("projects", "education", "work_experience", "internship")
+    active = {fact.get("id") for section in sections
+              for item in (result.get("collected_info") or {}).get(section, [])
+              for fact in item.get("facts", []) if fact.get("status", "active") == "active"}
+    original = original if isinstance(original, dict) else state
+    obsolete = {item.get("item_id"): [fact for fact in item.get("facts", []) if fact.get("id") not in active]
+                for section in sections for item in (original.get("collected_info") or {}).get(section, [])}
+
+    def normalized(text):
+        return re.sub(r"[\W_]+", "", text).casefold()
+
+    def unsupported(text, facts, field):
+        if not isinstance(text, str) or not text.strip():
+            return False
+        target = normalized(text)
+        for fact in facts:
+            # Dates and scalar identity fields are scoped to their original slot;
+            # all prose fields can contain literal or near-literal copies.
+            if field not in {"description", "raw_description", "bullets", "polished_bullets", "highlights"}:
+                if fact.get("field") and fact["field"] != field:
+                    continue
+            for quote in (fact.get("text"), fact.get("source_quote")):
+                if not isinstance(quote, str) or not quote.strip():
+                    continue
+                token = normalized(quote)
+                if token and (token == target or (len(token) >= 4 and token in target)
+                              or (min(len(token), len(target)) >= 5 and
+                                  SequenceMatcher(None, token, target, autojunk=False).ratio() >= 0.85)):
+                    return True
+        return False
+
+    def clean_version(version):
+        meta = version.get("resume_meta") or {}
+        bullets = meta.get("bullets") or {}
+        draft = version.get("resume_data") or {}
+        before = copy.deepcopy(draft)
+        hashes = {}
+        for section in sections:
+            for item in draft.get(section) or []:
+                item_id = item.get("item_id")
+                records = bullets.get(item_id) or []
+                stale_hashes = {entry.get("text_hash") for entry in records if set(entry.get("fact_ids") or []) - active}
+                facts = obsolete.get(item_id, [])
+                for field in ("name", "school", "company", "degree", "major", "role", "title", "start_date",
+                              "end_date", "duration", "description", "raw_description", "highlights", "bullets", "polished_bullets"):
+                    value = item.get(field)
+                    if isinstance(value, list):
+                        item[field] = [text for text in value if not unsupported(text, facts, field)
+                                       and (not isinstance(text, str) or hashlib.sha256(text.encode()).hexdigest() not in stale_hashes)]
+                    elif unsupported(value, facts, field):
+                        item[field] = ""
+                visible = item.get("polished_bullets") if section == "projects" else item.get("bullets")
+                hashes[item_id] = {hashlib.sha256(line.encode()).hexdigest() for line in visible or [] if isinstance(line, str)}
+        for item_id, records in list(bullets.items()):
+            bullets[item_id] = [entry for entry in records if not (set(entry.get("fact_ids") or []) - active)
+                                and ("resume_data" not in version or entry.get("text_hash") in hashes.get(item_id, set()))]
+        if draft != before and "resume_draft" in version:
+            from app.services.resume_review import resume_to_text
+            version["resume_draft"] = resume_to_text(draft)
+    clean_version(result)
+    for version in result.get("resume_versions") or []:
+        clean_version(version)
+    return result

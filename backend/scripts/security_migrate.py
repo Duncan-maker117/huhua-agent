@@ -248,6 +248,14 @@ def application_migrate(source: Path, destination: Path, owners: dict, crypto):
                     raise ValueError("Resume JSON must be an object")
                 row["resume_data"] = crypto.encrypt_json(value, owner=owner, record=session_id, field="resume_data")
                 row["resume_draft"] = text_value(row.get("resume_draft"), owner=owner, record=session_id, field="resume_draft")
+                state = row.get("resume_state") or {}
+                if isinstance(state, str):
+                    state = json.loads(state)
+                if crypto.is_encrypted(state):
+                    state = crypto.decrypt_json(state, owner=owner, record=session_id, field="resume_state")
+                if not isinstance(state, dict):
+                    raise ValueError("Resume state JSON must be an object")
+                row["resume_state"] = crypto.encrypt_json(state, owner=owner, record=session_id, field="resume_state")
             elif table.name == "conversations":
                 row["title"] = text_value(row.get("title") or "新对话", owner=row["owner_hash"], record=row["session_id"], field="title")
             elif table.name == "accounts":
@@ -280,7 +288,9 @@ def application_migrate(source: Path, destination: Path, owners: dict, crypto):
                 existing = {row["component"]: row for row in prepared["schema_versions"]}
                 for row in bootstrap:
                     old = existing.get(row["component"])
-                    if old is not None and old["version"] != row["version"]:
+                    known_upgrade = (row["component"] == "product_profile" and old is not None
+                                     and old["version"] == 1 and row["version"] == 2)
+                    if old is not None and old["version"] != row["version"] and not known_upgrade:
                         raise ValueError("Unsupported source schema version")
                     existing[row["component"]] = row
                 prepared["schema_versions"] = list(existing.values())

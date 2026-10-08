@@ -103,27 +103,63 @@ class CandidateMaterialDocumentsTest(unittest.TestCase):
         self.assertIn("AI 工具：Cursor / Google Stitch", result["skills"])
         self.assertIn("示例训练营  结营证书", result["certificates"])
 
-    def test_conflicting_fields_keep_sources_and_no_silent_winner(self):
+    def test_conflicting_fields_keep_sources_and_one_provisional_winner(self):
         result = parse_existing_resume(documents(("resume.pdf", PDF_TEXT), ("draft.md", MARKDOWN_TEXT)))
         route = next(p for p in result["projects"] if p["name"] == "RouteFlow")
-        self.assertEqual(route["role"], "")
+        self.assertEqual(route["role"], "产品方案与原型实现")
         self.assertEqual(route["start_date"], "2026.5")  # compatible year/month
-        self.assertEqual(route["end_date"], "")
+        self.assertEqual(route["end_date"], "2026.7")
         conflicts = {c["field"]: c for c in result["field_conflicts"]}
-        self.assertEqual(set(conflicts), {"role", "end_date"})
+        self.assertEqual(set(conflicts), {"role", "end_date", "subtitle"})
+        self.assertEqual(conflicts["role"]["selected"], route["role"])
         self.assertEqual(conflicts["end_date"]["values"], [{"value": "至今", "source": "resume.pdf"}, {"value": "2026.7", "source": "draft.md"}])
         notes = "\n".join(result["verification_notes"])
         self.assertIn("resume.pdf：至今", notes)
         self.assertIn("draft.md：2026.7", notes)
         self.assertIn("未验证真实旅行效果", route["description"])
 
-    def test_attachment_order_does_not_choose_conflict_winner(self):
+    def test_attachment_order_chooses_later_material_but_retains_conflict(self):
         result = parse_existing_resume(documents(("draft.md", MARKDOWN_TEXT), ("resume.pdf", PDF_TEXT)))
         route = next(p for p in result["projects"] if p["name"] == "RouteFlow")
-        self.assertEqual(route["role"], "")
-        self.assertEqual(route["end_date"], "")
+        self.assertEqual(route["role"], "项目发起人")
+        self.assertEqual(route["end_date"], "至今")
         self.assertEqual(route["start_date"], "2026.5")
         self.assertEqual(len(result["projects"]), 4)
+
+    def test_contact_header_editor_context_links_and_fact_sources(self):
+        first = """# 陈同学｜产品实习
+项目经历
+MapLab | 路线原型 · 2025
+- 完成 [PR #6](https://example.test/pr/6) 的路径调整。
+备注（不进入 PDF）
+- 本人确认：MapLab 是原型，没有上线。
+"""
+        second = """# 陈同学｜产品实习
+深圳｜13800138000｜student@school.test｜GitHub: github.com/demo
+项目经历
+MapLab | 路线原型 · 2025
+▸ 完成 PR #6 的路径调整。
+"""
+        result = parse_existing_resume(documents(("first.md", first), ("second.md", second)))
+        self.assertEqual(len(result["projects"]), 1)
+        project = result["projects"][0]
+        self.assertEqual(result["basic_info"]["location"], "深圳")
+        self.assertEqual(result["basic_info"]["email"], "student@school.test")
+        self.assertEqual(project["links"], [{"text": "PR #6", "url": "https://example.test/pr/6"}])
+        self.assertNotIn("https://", project["description"])
+        self.assertNotIn("备注", project["description"])
+        self.assertTrue(result["metadata_context"])
+        evidence = next(f for f in project["facts"] if "路径调整" in f["text"])
+        self.assertEqual({s["name"] for s in evidence["sources"]}, {"first.md", "second.md"})
+
+    def test_explicit_user_field_outranks_documents_and_is_only_active_header_fact(self):
+        result = parse_existing_resume(documents(("one.md", MARKDOWN_TEXT), ("two.md", MARKDOWN_TEXT.replace("负责 Agent 设计", "参与 Agent 设计"))),
+                                       user_fields={"CodeLab": {"role": "负责组件设计"}})
+        project = next(item for item in result["projects"] if item["name"] == "CodeLab")
+        self.assertEqual(project["role"], "负责组件设计")
+        conflict = next(c for c in result["field_conflicts"] if c["field"] == "role")
+        self.assertEqual(conflict["reason"], "用户明确陈述")
+        self.assertEqual([f["text"] for f in project["facts"] if f.get("field") == "role" and f["status"] == "active"], ["负责组件设计"])
 
     def test_identical_repeat_does_not_duplicate_records_or_conflicts(self):
         result = parse_existing_resume(documents(("one.md", MARKDOWN_TEXT), ("two.md", MARKDOWN_TEXT)))

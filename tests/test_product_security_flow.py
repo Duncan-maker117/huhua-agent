@@ -122,7 +122,7 @@ class ProductSecurityFlow(unittest.IsolatedAsyncioTestCase):
                   "collected_info": {"basic_info": data["basic_info"], "projects": data["projects"]},
                   "messages": [HumanMessage(content=marker, id="human-" + sid)]}
         await self.graph.aupdate_state({"configurable": {"thread_id": sid}}, values, as_node="building")
-        save_resume_session(sid, data, marker, "EVALUATING")
+        save_resume_session(sid, data, marker, "EVALUATING", collected_info=values["collected_info"])
         return sid, data
 
     async def test_every_private_session_endpoint_denies_other_account(self):

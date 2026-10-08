@@ -204,39 +204,37 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_extractor_rejects_unsupported_ownership_upgrade(self):
         current = _empty_collected_info()
-        invented = copy.deepcopy(current)
-        invented["projects"] = [{"name": "A", "description": "主导调研推动上线"}]
-        llm = SimpleNamespace(
-            ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(invented)))
-        )
-        rejected = await _extract_info_from_message("我在 A 项目参与调研", current, llm)
-        self.assertEqual(rejected, current)
+        message = "我在 A 项目参与调研"
+        llm = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps({
+            "items": [{"section": "projects", "name": "A", "facts": [
+                {"kind": "role", "text": "主导调研", "source_quote": "参与调研"}]}]}
+        ))))
+        rejected = await _extract_info_from_message(message, current, llm)
+        self.assertEqual(rejected["projects"], [])
 
-        grounded = copy.deepcopy(current)
-        grounded["projects"] = [{"name": "A", "description": "参与调研"}]
-        llm.ainvoke.return_value = AIMessage(content=json.dumps(grounded))
-        accepted = await _extract_info_from_message("我在 A 项目参与调研", current, llm)
-        self.assertEqual(accepted, grounded)
+        llm.ainvoke.return_value = AIMessage(content=json.dumps({
+            "items": [{"section": "projects", "name": "A", "facts": [
+                {"kind": "action", "text": "参与调研", "source_quote": "参与调研"}]}]}
+        ))
+        accepted = await _extract_info_from_message(message, current, llm)
+        self.assertEqual([f["text"] for f in accepted["projects"][0]["facts"]], ["参与调研"])
 
     async def test_extractor_does_not_turn_a_negated_action_into_a_claim(self):
         current = _empty_collected_info()
-        invented = copy.deepcopy(current)
-        invented["projects"] = [{"name": "A", "description": "负责上线"}]
-        llm = SimpleNamespace(
-            ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps(invented)))
-        )
-        rejected = await _extract_info_from_message(
-            "我在 A 项目没有负责上线，只参与调研", current, llm
-        )
-        self.assertEqual(rejected, current)
+        message = "我在 A 项目没有负责上线，只参与调研"
+        llm = SimpleNamespace(ainvoke=AsyncMock(return_value=AIMessage(content=json.dumps({
+            "items": [{"section": "projects", "name": "A", "facts": [
+                {"kind": "role", "text": "负责上线", "source_quote": "负责上线"}]}]}
+        ))))
+        rejected = await _extract_info_from_message(message, current, llm)
+        self.assertEqual(rejected["projects"], [])
 
-        grounded = copy.deepcopy(current)
-        grounded["projects"] = [{"name": "A", "description": "参与调研"}]
-        llm.ainvoke.return_value = AIMessage(content=json.dumps(grounded))
-        accepted = await _extract_info_from_message(
-            "我在 A 项目没有负责上线，只参与调研", current, llm
-        )
-        self.assertEqual(accepted, grounded)
+        llm.ainvoke.return_value = AIMessage(content=json.dumps({
+            "items": [{"section": "projects", "name": "A", "facts": [
+                {"kind": "action", "text": "参与调研", "source_quote": "参与调研"}]}]}
+        ))
+        accepted = await _extract_info_from_message(message, current, llm)
+        self.assertEqual([f["text"] for f in accepted["projects"][0]["facts"]], ["参与调研"])
 
     async def test_fallback_uses_user_words_not_ai_bullet(self):
         messages = [
@@ -279,117 +277,75 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_wrap_does_not_duplicate_an_extracted_chinese_project(self):
-        message = (
-            "以下均为虚构测试资料，请不要补充未提供的事实。姓名：测试甲。"
-            "教育：测试大学，计算机科学本科，2023.09-2027.06。"
-            "项目：测试知识库，2026.03-2026.04，我独立用 Python 和 FastAPI "
-            "实现文档检索接口，并编写了10条接口测试。"
-            "技能：Python、FastAPI、Git。邮箱 test@example.com。"
-        )
-        snippet = (
-            "测试知识库，2026.03-2026.04，我独立用 Python 和 FastAPI "
-            "实现文档检索接口，并编写了10条接口测试。技能：Python、FastAPI、Git。"
-        )
-        extracted = _empty_collected_info()
-        extracted["basic_info"].update(name="测试甲", email="test@example.com")
-        extracted["education"] = [
-            {
-                "school": "测试大学",
-                "major": "计算机科学",
-                "degree": "本科",
-                "start_date": "2023.09",
-                "end_date": "2027.06",
-            }
-        ]
-        extracted["projects"] = [
-            {
-                "name": "测试知识库",
-                "start_date": "2026.03",
-                "end_date": "2026.04",
-                "description": (
-                    "我独立用 Python 和 FastAPI 实现文档检索接口，"
-                    "并编写了10条接口测试"
-                ),
-            }
-        ]
-        extracted["skills"] = ["Python", "FastAPI", "Git"]
-
-        result = await self._wrap_with_extraction(message, snippet, extracted)
-
-        self.assertEqual(result["collected_info"], extracted)
-        serialized = _serialize_to_resume_data(result)
-        self.assertEqual(len(serialized["projects"]), 1)
-        self.assertNotIn("技能：", serialized["projects"][0]["description"])
+        message = "我在测试知识库实现文档检索接口，并编写10条接口测试。"
+        patch = {"items": [{"section": "projects", "name": "测试知识库", "facts": [
+            {"kind": "action", "text": "实现文档检索接口", "source_quote": "实现文档检索接口"},
+            {"kind": "deliverable", "text": "编写10条接口测试", "source_quote": "编写10条接口测试"}]}]}
+        result = await self._wrap_with_extraction(message, message, patch)
+        projects = result["collected_info"]["projects"]
+        self.assertEqual(len(projects), 1)
+        self.assertEqual([f["text"] for f in projects[0]["facts"]], ["实现文档检索接口", "编写10条接口测试"])
+        self.assertNotIn("技能：", str(projects[0]["facts"]))
 
     async def test_wrap_does_not_copy_extracted_work_or_internship_into_projects(self):
         snippet = "我在测试公司用 Python 实现文档检索接口，并编写了10条接口测试"
         for section in ("work_experience", "internship"):
             with self.subTest(section=section):
-                extracted = _empty_collected_info()
-                extracted[section] = [
-                    {
-                        "company": "测试公司",
-                        "description": "用 Python 实现文档检索接口，并编写了10条接口测试",
-                    }
-                ]
-                result = await self._wrap_with_extraction(snippet, snippet, extracted)
-                self.assertEqual(result["collected_info"], extracted)
+                patch = {"items": [{"section": section, "name": "测试公司", "facts": [
+                    {"kind": "action", "text": "用 Python 实现文档检索接口", "source_quote": "用 Python 实现文档检索接口"}]}]}
+                result = await self._wrap_with_extraction(snippet, snippet, patch)
                 self.assertEqual(result["collected_info"]["projects"], [])
+                self.assertEqual(result["collected_info"][section][0]["facts"][0]["source_quote"], "用 Python 实现文档检索接口")
 
     async def test_wrap_keeps_a_new_project_when_extraction_only_found_another(self):
         message = "我在 A 项目整理用户访谈。FastAPI，我实现了文档检索接口"
         snippet = "FastAPI，我实现了文档检索接口"
-        extracted = _empty_collected_info()
-        extracted["projects"] = [{"name": "A", "description": "整理用户访谈"}]
-
-        result = await self._wrap_with_extraction(message, snippet, extracted)
-
-        self.assertEqual(len(result["collected_info"]["projects"]), 2)
-        self.assertEqual(result["collected_info"]["projects"][0], extracted["projects"][0])
-        self.assertEqual(result["collected_info"]["projects"][1]["description"], snippet)
+        patch = {"items": [{"section": "projects", "name": "A", "facts": [
+            {"kind": "action", "text": "整理用户访谈", "source_quote": "整理用户访谈"}]}]}
+        result = await self._wrap_with_extraction(message, snippet, patch)
+        projects = result["collected_info"]["projects"]
+        self.assertEqual(len(projects), 2)
+        self.assertEqual(projects[0]["facts"][0]["text"], "整理用户访谈")
+        self.assertEqual(projects[1]["facts"][0]["source_quote"], snippet)
 
     async def test_wrap_keeps_raw_fallback_after_extraction_failure_or_rejection(self):
         current = _empty_collected_info()
         current["projects"] = [{"name": "旧项目", "description": "整理用户访谈"}]
         snippet = "我在新项目参与调研，并整理了12份访谈笔记"
-        invented = copy.deepcopy(current)
-        invented["projects"].append({"name": "新项目", "description": "主导调研推动上线"})
+        invented = {"items": [{"section": "projects", "name": "新项目", "facts": [
+            {"kind": "role", "text": "主导调研推动上线", "source_quote": "参与调研"}]}]}
         for extracted in (RuntimeError("offline extraction failure"), invented):
             with self.subTest(extracted=type(extracted).__name__):
-                result = await self._wrap_with_extraction(
-                    snippet, snippet, extracted, current=current
-                )
+                result = await self._wrap_with_extraction(snippet, snippet, extracted, current=current)
                 projects = result["collected_info"]["projects"]
                 self.assertEqual(len(projects), 2)
-                self.assertEqual(projects[0], current["projects"][0])
-                self.assertEqual(projects[1]["description"], snippet)
-                self.assertNotIn("主导", projects[1]["description"])
+                self.assertEqual(projects[0]["description"], current["projects"][0]["description"])
+                self.assertEqual(projects[1]["facts"][0]["source_quote"], snippet)
+                self.assertNotIn("主导", str(projects[1]["facts"]))
 
     async def test_wrap_uses_existing_chinese_name_for_new_raw_facts(self):
         current = _empty_collected_info()
         current["projects"] = [{"name": "测试知识库", "description": "实现文档检索接口"}]
         snippet = "测试知识库，并编写了10条接口测试"
-
-        result = await self._wrap_with_extraction(
-            snippet, snippet, RuntimeError("offline extraction failure"), current=current
-        )
-
+        result = await self._wrap_with_extraction(snippet, snippet, RuntimeError("offline extraction failure"), current=current)
         projects = result["collected_info"]["projects"]
         self.assertEqual(len(projects), 1)
-        self.assertEqual(projects[0]["name"], "测试知识库")
         self.assertIn("实现文档检索接口", projects[0]["description"])
-        self.assertIn("编写了10条接口测试", projects[0]["description"])
+        self.assertEqual(projects[0]["facts"][-1]["source_quote"], snippet)
 
     async def test_wrap_does_not_append_raw_text_to_an_updated_project(self):
+        from app.services.resume_facts import normalize_fact_store
         current = _empty_collected_info()
         current["projects"] = [{"name": "测试知识库", "description": "实现文档检索接口"}]
-        extracted = copy.deepcopy(current)
-        extracted["projects"][0]["description"] += "，并编写了10条接口测试"
+        current = normalize_fact_store(current)
         snippet = "测试知识库，并编写了10条接口测试"
-
-        result = await self._wrap_with_extraction(snippet, snippet, extracted, current)
-
-        self.assertEqual(result["collected_info"], extracted)
+        patch = {"items": [{"section": "projects", "item_id": current["projects"][0]["item_id"], "name": "测试知识库", "facts": [
+            {"kind": "deliverable", "text": "编写了10条接口测试", "source_quote": "编写了10条接口测试"}]}]}
+        result = await self._wrap_with_extraction(snippet, snippet, patch, current)
+        projects = result["collected_info"]["projects"]
+        self.assertEqual(len(projects), 1)
+        self.assertEqual([f["source_quote"] for f in projects[0]["facts"]].count("编写了10条接口测试"), 1)
+        self.assertEqual(projects[0]["description"], "实现文档检索接口")
 
     async def test_stream_emits_only_public_node_messages(self):
         class FakeGraph:

@@ -25,6 +25,13 @@ class ResumeStrategy(BaseModel):
     keyword_density_targets: list[str] = []
 
 
+class RequirementEvidence(BaseModel):
+    text: str
+    category: str
+    source_quote: str
+    verification_question: str = ""
+
+
 class JdInfo(BaseModel):
     job_title: str = ""
     company: str = ""
@@ -38,6 +45,7 @@ class JdInfo(BaseModel):
     hard_requirements: list[str] = []
     keyword_cloud: KeywordCloud = KeywordCloud()
     resume_strategy: ResumeStrategy = ResumeStrategy()
+    requirement_evidence: list[RequirementEvidence] = []
 
 
 class DecoderResponse(BaseModel):

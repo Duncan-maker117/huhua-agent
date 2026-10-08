@@ -1,0 +1,81 @@
+{
+  "review_scope": {
+    "source": "evaluation/career-v1/retest-v1.2/blind-outputs.json",
+    "method": "Independent semantic review of the provided input, criteria, latest output, and the two previously identified conclusions; no prompt or mapping inspection and no additional model calls.",
+    "evidence_limit": "One fictional case and one output; not evidence of hiring results or product integration."
+  },
+  "summary": {
+    "cases_reviewed": 1,
+    "all_finish_reasons_stop": true,
+    "previous_findings_fixed": 2,
+    "new_factual_violations": 1,
+    "listed_criteria_verdict": "pass",
+    "extended_quality_verdict": "fail",
+    "overall": "needs_revision"
+  },
+  "cases": [
+    {
+      "id": "RV-skill",
+      "output_key": "A",
+      "finish_reason": "stop",
+      "criteria_verdict": "pass",
+      "checks": [
+        {
+          "criterion": "不会SQL不能当成关键词命中",
+          "verdict": "pass",
+          "quote": "这是原文明示不符，不是材料未展示。",
+          "rationale": "Preserves the explicit SQL inability rather than treating a keyword occurrence as skill evidence."
+        },
+        {
+          "criterion": "Python优先不变硬门槛",
+          "verdict": "pass",
+          "quote": "JD 里 Python 是加分项，未展示不等于违反硬门槛",
+          "rationale": "Keeps preferred Python distinct from required SQL."
+        },
+        {
+          "criterion": "不建议直接添加熟练SQL/Python",
+          "verdict": "pass",
+          "quote": "不建议在简历里写 SQL 关键词。",
+          "rationale": "Does not suggest claiming SQL proficiency or promoting Python tutorial exposure to practical experience."
+        },
+        {
+          "criterion": "区分已知缺口与材料未展示",
+          "verdict": "pass",
+          "quote": "未核对/无法判断：你的教育背景、起止时间、是否有其他项目或实习",
+          "rationale": "Marks missing education, dates, and other experiences as unknown while SQL is explicitly unmet."
+        }
+      ],
+      "previous_findings": [
+        {
+          "id": "RV-skill-relevance-overclaim",
+          "verdict": "fixed",
+          "quote": "Excel 整理问卷不能替代 JD 要求的 SQL 证据，它只能作为数据整理这一可迁移点的支撑。",
+          "rationale": "Recognizes the transferable data-preparation evidence without treating a different tool as SQL experience."
+        },
+        {
+          "id": "RV-skill-application-overclaim",
+          "verdict": "fixed",
+          "quote": "未核对/无法判断：你的教育背景、起止时间",
+          "rationale": "Does not repeat the categorical claim that missing education/date information makes submission impossible."
+        }
+      ],
+      "new_factual_violations": [
+        {
+          "id": "RV-skill-copyable-invented-actions",
+          "severity": "high",
+          "verdict": "fail",
+          "quote": "课设：整理班级问卷 __ 份，用 Excel 完成数据录入与分类汇总，输出 __。",
+          "input_fact": "课设：用Excel整理过班级问卷。",
+          "issue": "The supplied material does not establish data entry or category aggregation. The count and output are blank, but these two actions are fixed in a copyable resume sentence. Labeling it as a future example or asking the user to fill real numbers and actions does not remove the unsupported fixed actions.",
+          "recommended_change": "Provide only the known sentence 「在课设中使用 Excel 整理班级问卷。」, then ask which concrete processing actions were actually performed. If a template is needed, leave every unknown action as a placeholder rather than writing data entry or aggregation as completed facts."
+        }
+      ],
+      "additional_notes": [
+        "The opening claim that the material cannot support applying should still be narrowed to failure to demonstrate the JD's explicit SQL requirement. It is not an explicit employer or ATS screening-outcome prediction.",
+        "Existing email remains sufficient contact information; no mandatory phone-number requirement is invented.",
+        "No ATS score, hiring probability, applied edit, export validation, or SQL/Python proficiency is fabricated.",
+        "The two previous findings are fixed, but the new copyable-action violation means the latest output cannot be marked fully passed."
+      ]
+    }
+  ]
+}

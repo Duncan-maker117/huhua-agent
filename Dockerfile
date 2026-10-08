@@ -5,11 +5,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PORT=8765
 
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY backend ./backend
+COPY backend/app ./backend/app
+COPY backend/main.py ./backend/main.py
+COPY backend/scripts ./backend/scripts
 COPY web ./web
-COPY data ./data
+COPY data/sample_resume.json data/jargon_dict.csv ./data/
+COPY data/jianlimoban/html-template ./data/jianlimoban/html-template
+
+RUN groupadd --gid 10001 huhua \
+    && useradd --uid 10001 --gid huhua --create-home huhua \
+    && mkdir -p /var/lib/huhua /app/backend/data \
+    && chown -R huhua:huhua /var/lib/huhua /app/backend/data
 
 WORKDIR /app/backend
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
+USER huhua
+EXPOSE 8765
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --workers 1"]

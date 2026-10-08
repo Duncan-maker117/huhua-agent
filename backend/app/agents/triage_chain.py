@@ -20,11 +20,11 @@ import logging
 from enum import Enum
 from typing import Any
 
-from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from app.services.llm_compat import with_structured_output
+from app.agents.career_prompt import career_messages
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +69,9 @@ TRIAGE_SYSTEM = """你是「胡话简历」的对话路由判官。看完最新�
 - 用户是否主动问过"我该做什么"：{user_asked_for_suggestion}
 - 当前阶段：{stage}
 
-# 最新用户消息
-{user_message}
-
 # 决策规则（按优先级从上到下）
 
-1. 用户消息 >50 字且像岗位描述（含"职位要求/岗位职责/任职要求/薪资"等）→ **DECODE_JD**
+1. 用户提供招聘方的岗位描述（含职责/任职要求等；短 JD 也可解码，候选人自述中的同名标题不能单独作为依据）→ **DECODE_JD**
 
 2. 用户明确表示跳过 JD（关键词：没JD/不要JD/跳过/直接/不用/先随便/通用）→ **SKIP_JD_OK**
    （即使没用这些原词，只要语义明显"我现在就是不想给JD"也算）
@@ -149,13 +146,13 @@ async def run_triage(
 
     try:
         result: TriageDecision = await wait_for(
-            structured_llm.ainvoke([HumanMessage(content=prompt)]),
+            structured_llm.ainvoke(career_messages(None, user_message, prompt)),
             timeout=TRIAGE_TIMEOUT_SECONDS,
         )
         return result
     except _AsyncTimeout:
         logger.warning(
-            f"[triage/timeout] stage={stage} user_message={user_message[:60]!r} "
+            f"[triage/timeout] stage={stage} "
             f"后端 LLM 超过 {TRIAGE_TIMEOUT_SECONDS}s 未返回，走兜底"
         )
         stage_u = (stage or "").upper()
@@ -168,10 +165,10 @@ async def run_triage(
             reason=f"triage LLM 超时 {TRIAGE_TIMEOUT_SECONDS}s，按 stage={stage} 兜底",
         )
     except Exception as e:
-        logger.warning(f"[triage/error] stage={stage} err={e}")
+        logger.warning("[triage/error] stage=%s error=%s", stage, type(e).__name__)
         return TriageDecision(
             action=TriageAction.ASK_EXPERIENCE,
-            reason=f"triage 异常，兜底路径: {e}",
+            reason="triage 异常，进入兜底路径",
         )
 
 

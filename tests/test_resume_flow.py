@@ -21,6 +21,7 @@ from app.agents.resume_graph import (  # noqa: E402
     _serialize_to_resume_data,
     collecting_node,
     evaluating_node,
+    export_node,
     stream_agent,
 )
 from app.agents.triage_chain import TriageAction, TriageDecision  # noqa: E402
@@ -101,7 +102,8 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["resume_data"]["skills"], ["Python"])
         self.assertIn("12 份访谈笔记", result["resume_draft"])
         self.assertIn("投递前核对", result["messages"][0].content)
-        self.assertIn("12 份访谈笔记", result["messages"][0].content)
+        self.assertIn("右侧简历", result["messages"][0].content)
+        self.assertNotIn("12 份访谈笔记", result["messages"][0].content)
         extractor.assert_awaited_once()
         editor.assert_awaited_once()
 
@@ -119,6 +121,30 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
             result = await evaluating_node(state, object())
         self.assertEqual(result["stage"], "EXPORT")
         extractor.assert_not_called()
+
+    async def test_exported_conversation_accepts_later_corrections(self):
+        state = self._evaluating_state("补充我整理了 12 份访谈笔记")
+        state["stage"] = "EXPORT"
+        state["jd_text"] = "产品岗位要求访谈分析"
+        updated = copy.deepcopy(state["collected_info"])
+        updated["projects"][0]["description"] = "整理了 12 份访谈笔记"
+        with (
+            patch("app.agents.resume_graph._extract_info_from_message", AsyncMock(return_value=updated)),
+            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
+            patch("app.agents.editor_chain.run_editor", AsyncMock(side_effect=lambda data, _llm: data)),
+        ):
+            result = await export_node(state, object())
+        self.assertEqual(result["stage"], "EVALUATING")
+        self.assertIn("12 份访谈笔记", result["resume_draft"])
+        self.assertEqual(state["jd_text"], "产品岗位要求访谈分析")
+
+    async def test_repeated_export_keeps_the_existing_draft(self):
+        state = self._evaluating_state("导出 Word")
+        state["stage"] = "EXPORT"
+        with patch("app.agents.resume_graph.evaluating_node", AsyncMock()) as evaluate:
+            result = await export_node(state, object())
+        evaluate.assert_not_awaited()
+        self.assertIn("模板页", result["messages"][0].content)
 
     async def test_edit_before_export_is_not_treated_as_confirmation(self):
         state = self._evaluating_state("项目描述有问题，请先补充整理访谈笔记，再导出")
@@ -404,11 +430,9 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
                 yield {}  # pragma: no cover
 
         with patch("app.agents.resume_graph.get_graph", return_value=FailingGraph()):
-            chunks = [
-                chunk
-                async for chunk in stream_agent([{"content": "你好"}], "s1", object())
-            ]
-        self.assertEqual(chunks, ["生成失败，请稍后重试。"])
+            with self.assertRaisesRegex(RuntimeError, "生成失败") as error:
+                _ = [chunk async for chunk in stream_agent([{"content": "你好"}], "s1", object())]
+        self.assertNotIn("private model diagnostics", str(error.exception))
 
 
 if __name__ == "__main__":

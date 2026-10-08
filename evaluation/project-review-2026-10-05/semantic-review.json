@@ -1,0 +1,47 @@
+{
+  "reviewer": "Codex source comparison; not a human user study",
+  "scope": "Six fixed synthetic rewrite service cases; excludes archive end-to-end and production login",
+  "candidate_results": {
+    "adoptable": 3,
+    "blocked": 2,
+    "unchanged": 1
+  },
+  "no_canonical_modified_during_generation": true,
+  "cases": [
+    {
+      "id": "plain_rewrite",
+      "judgment": "adoptable",
+      "reason": "保留 Python、编写动作和 PDF 合并工具，删除口语成分，没有增加事实。"
+    },
+    {
+      "id": "limited_role",
+      "judgment": "blocked",
+      "reason": "生成省略了“仅”，范围规则保守拦截；没有写入当前稿。应改善生成对限制词的保留。"
+    },
+    {
+      "id": "not_launched",
+      "judgment": "adoptable",
+      "reason": "保留本地 Demo、尚未上线、没有真实用户数据。"
+    },
+    {
+      "id": "no_metrics",
+      "judgment": "blocked",
+      "reason": "生成增加“形成可交付名单”修饰，依据核对保守拒绝；没有写入当前稿。"
+    },
+    {
+      "id": "jd_is_not_evidence",
+      "judgment": "unchanged",
+      "reason": "没有将偏好中 JD 的 Kubernetes 或百万用户写入经历，保留原句且不开放无变化采用。"
+    },
+    {
+      "id": "corrected_status",
+      "judgment": "adoptable",
+      "reason": "保留 2027 年毕业及更正此前 2026 年的关系。"
+    }
+  ],
+  "limitations": [
+    "每例仅运行一次，不能据此估计总体质量或成功率",
+    "2条被拦的生成结果说明候选可用率仍需提高",
+    "没有进行真实用户试用，档案长期语义验收另行验证"
+  ]
+}

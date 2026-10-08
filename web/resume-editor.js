@@ -22,10 +22,58 @@
     data: null, templates: [], template: null, revision: 0,
     request: 0, controller: null, timer: null, ready: false,
     frameRevision: -1, structureRevision: 0, height: 1123, previewHover: null,
-    editorHover: null, focused: null, exportBusy: false,
+    editorHover: null, focused: null, exportBusy: false, exportObjectUrl: null, exportFormat: null,
     draggedSection: null, undoSection: null,
+    session: null, mode: null, serverRevision: null, canSave: false,
+    savedVersion: 0, saveTimer: null, saving: null, saveFailed: false,
+    conflict: false, recovery: null, backupAvailable: true,
+    sessionInvalid: false, requireAccount: true, sampleSource: null, creatingDraft: false, createdDraftSession: null,
   };
   const removedSections = new Map();
+  const itemGroups = ['projects', 'education', 'work_experience'];
+  const pendingRemovedItems = new Map();
+  let trackedItemIds = new Set(), removalSequence = 0;
+  const sampleReadOnly = () => state.mode === 'sample' && state.requireAccount;
+  const itemIds = (data) => new Set(itemGroups.flatMap(group => (data?.[group] || []).map(item => item.item_id).filter(id => typeof id === 'string' && id)));
+  function trackItemChanges() {
+    const current = itemIds(state.data);
+    for (const id of trackedItemIds) if (!current.has(id)) pendingRemovedItems.set(id, ++removalSequence);
+    for (const id of current) pendingRemovedItems.delete(id);
+    trackedItemIds = current;
+  }
+  function resumeRequestUrl(path, {interactive = false, pending = false, exporting = false} = {}) {
+    const query = new URLSearchParams();
+    if (interactive) query.set('interactive', 'true');
+    if (exporting) query.set('export', 'true');
+    if (state.mode === 'personal' && state.session) {
+      query.set('session_id', state.session);
+      if (pending) for (const id of pendingRemovedItems.keys()) query.append('removed_item_ids', id);
+    }
+    const suffix = query.toString();
+    return path + (suffix ? '?' + suffix : '');
+  }
+  const requestData = () => sampleReadOnly() ? state.sampleSource : state.data;
+  async function fetchWithTimeout(url, options, readResponse, timeout = 30000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try { return await readResponse(await fetch(url, {...options, signal: controller.signal})); }
+    finally { clearTimeout(timer); }
+  }
+  function mergeReturnedItemIds(returned, submitted, references) {
+    // Attach only server metadata to the same live objects. A response must not
+    // replace text typed after its request, or revive an item deleted meanwhile.
+    for (const group of itemGroups) for (const [index, sent] of (submitted[group] || []).entries()) {
+      if (sent.item_id) continue;
+      const matches = (returned?.[group] || []).filter(item => typeof item.item_id === 'string' && item.item_id && Object.keys(sent).filter(key => key !== 'item_id').every(key => JSON.stringify(item[key]) === JSON.stringify(sent[key])));
+      if (matches.length !== 1) continue;
+      const id = matches[0].item_id, live = references[group][index];
+      if ((state.data[group] || []).includes(live) && !live.item_id) {
+        live.item_id = id; trackedItemIds.add(id); pendingRemovedItems.delete(id);
+      } else if (!(state.data[group] || []).includes(live) && !itemIds(state.data).has(id)) {
+        pendingRemovedItems.set(id, ++removalSequence);
+      }
+    }
+  }
   const escapeKey = (key) => String(key).replace(/~/g, '~0').replace(/\//g, '~1');
   const pointer = (...keys) => '/' + keys.map(escapeKey).join('/');
   const own = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
@@ -46,6 +94,136 @@
     status.classList.toggle('error', error);
   };
 
+  function setSaveStatus(message, error = false) {
+    $('save-status').textContent = message;
+    $('save-bar').classList.toggle('error', error);
+    $('btn-retry-save').hidden = !state.saveFailed || state.conflict || !state.canSave;
+    $('btn-load-latest').hidden = !state.conflict;
+    $('btn-download-draft').hidden = !state.data || state.mode !== 'personal' || (!state.saveFailed && state.savedVersion === state.revision);
+  }
+
+  // Recovery is deliberately memory-only. Leaving with unsaved changes warns below.
+  function keepBackup() {
+    if (state.mode !== 'personal' || !state.session || !state.data || state.sessionInvalid) return;
+    state.recovery = {session: state.session, base_revision: state.serverRevision,
+      data: structuredClone(state.data), removed_item_ids: [...pendingRemovedItems.keys()], saved_at: new Date().toISOString()};
+  }
+  function clearBackup() { state.recovery = null; }
+
+  function queueSave() {
+    if (state.mode !== 'personal') return;
+    keepBackup();
+    if (window.HuhuaAccount?.claimPending()) { setSaveStatus('当前体验待保存到账号，编辑内容仍在本页，请重试保留当前对话。', true); return; }
+    state.saveFailed = false;
+    setSaveStatus(state.canSave ? '有修改，正在保存到当前会话…' : '暂时不能保存到会话，请下载草稿备份。', !state.canSave);
+    clearTimeout(state.saveTimer);
+    if (state.canSave && !state.conflict) state.saveTimer = setTimeout(flushSave, 500);
+    else { state.saveFailed = true; setSaveStatus(state.conflict ? '会话内容已更新；你的修改仍在本页，请先下载备份。' : '暂时不能保存到会话，请下载草稿备份。', true); }
+  }
+
+  async function flushSave() {
+    if (window.HuhuaAccount?.claimPending()) return false;
+    clearTimeout(state.saveTimer);
+    if (state.mode !== 'personal' || state.savedVersion === state.revision) return true;
+    if (state.saving) return state.saving;
+    if (!state.canSave || state.conflict) return false;
+    state.saving = (async () => {
+      try {
+        while (state.savedVersion < state.revision) {
+          const version = state.revision;
+          const session = state.session;
+          const snapshot = JSON.parse(JSON.stringify(state.data));
+          const references = Object.fromEntries(itemGroups.map(group => [group, [...(state.data[group] || [])]]));
+          const removedSnapshot = new Map(pendingRemovedItems);
+          if (removedSnapshot.size > 300) throw new Error('本次删除的经历条目过多，请减少删除数量后再保存。');
+          setSaveStatus('正在保存到当前会话…');
+          // Saves are serial and are never aborted by another keystroke.
+          const {response, result} = await fetchWithTimeout('/api/resume/current', {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({session_id: session, expected_revision: state.serverRevision, resume_data: snapshot, removed_item_ids: [...removedSnapshot.keys()]}),
+          }, async response => {
+            let result;
+            try { result = await response.json(); } catch (error) { if (error.name === 'AbortError') throw error; result = {}; }
+            return {response, result};
+          });
+          if (!response.ok) {
+            state.conflict = response.status === 409;
+            if (response.status === 404) { state.canSave = false; state.sessionInvalid = true; }
+            throw new Error(result.detail?.message || (state.conflict ? '会话内容已更新，请保留草稿后载入最新内容。' : '保存失败，请重试或下载草稿备份。'));
+          }
+          if (state.session !== session || state.mode !== 'personal' || !state.data) return false;
+          if (!result.saved || !result.revision) throw new Error('保存结果未确认，请重试或下载草稿备份。');
+          for (const [id, sequence] of removedSnapshot) if (pendingRemovedItems.get(id) === sequence) pendingRemovedItems.delete(id);
+          if (result.data) mergeReturnedItemIds(result.data, snapshot, references);
+          state.serverRevision = result.revision;
+          state.savedVersion = version;
+          state.saveFailed = false;
+          if (state.savedVersion < state.revision) keepBackup();
+        }
+        clearBackup();
+        setSaveStatus(window.HuhuaAccount?.guest() ? '当前修改已临时保存。' + window.HuhuaAccount.guestNotice() : '已保存到当前会话，聊天核对和导出使用这份内容。');
+        return true;
+      } catch (error) {
+        state.saveFailed = true;
+        if (state.sessionInvalid) clearBackup();
+        else keepBackup();
+        setSaveStatus(error.name === 'AbortError' ? '保存等待超时，结果尚未确认。当前修改仍在本页，请重试或下载备份。' : error.message.includes('fetch') ? '连接已断开，当前修改尚未保存，仅留在本页。关闭前请重试或下载备份。' : error.message, true);
+        return false;
+      } finally { state.saving = null; }
+    })();
+    return state.saving;
+  }
+
+  function downloadDraft() {
+    if (window.HuhuaAccount?.requireLogin('登录后可以下载简历，并保留当前草稿和对话。')) return false;
+    if (!state.data) return;
+    const url = URL.createObjectURL(new Blob([JSON.stringify(state.data, null, 2)], {type: 'application/json'}));
+    const link = element('a');
+    link.href = url;
+    link.download = '简历-未保存草稿.json';
+    document.body.append(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  }
+  $('btn-download-draft').addEventListener('click', downloadDraft);
+  $('btn-retry-save').addEventListener('click', flushSave);
+  $('btn-load-latest').addEventListener('click', () => {
+    // Preserve a concrete copy before deliberately replacing the current page.
+    if (!downloadDraft()) return;
+    clearBackup();
+    state.savedVersion = state.revision;
+    location.reload();
+  });
+  $('back-to-chat').addEventListener('click', async (event) => {
+    if (state.mode !== 'personal' || state.savedVersion === state.revision) return;
+    event.preventDefault();
+    if (await flushSave()) location.href = $('back-to-chat').href;
+  });
+  window.addEventListener('huhua-account-reset', () => { clearExportFile(); $('export-result').hidden = true; state.mode = null; state.data = null; state.recovery = null; state.createdDraftSession = null; pendingRemovedItems.clear(); trackedItemIds.clear(); clearTimeout(state.saveTimer); });
+  window.addEventListener('beforeunload', (event) => {
+    if (state.mode !== 'personal' || state.savedVersion === state.revision) return;
+    keepBackup();
+    event.preventDefault(); event.returnValue = '';
+  });
+
+  function renderVerificationNotes() {
+    const card = $('verification-card');
+    const notes = state.data?.verification_notes || [];
+    card.replaceChildren();
+    card.hidden = !notes.length;
+    if (!notes.length) return;
+    card.append(element('strong', '', '仍为待核对草稿'), element('p', '', '以下信息尚待确认。请核对并修改对应字段；提示不会打印进简历。'));
+    notes.forEach((note, index) => {
+      const item = element('div', 'verification-item');
+      item.append(element('p', '', note), button('已核对，移除此提示', 'text-button', () => {
+        state.data.verification_notes.splice(index, 1);
+        renderVerificationNotes();
+        changed();
+      }));
+      card.append(item);
+    });
+  }
+
   function normaliseData(data) {
     const copy = JSON.parse(JSON.stringify(data || {}));
     if (!copy.basic_info || typeof copy.basic_info !== 'object') copy.basic_info = {};
@@ -58,6 +236,7 @@
     }
     for (const item of copy.work_experience) if (!Array.isArray(item.bullets)) item.bullets = [];
     for (const item of copy.projects) if (!Array.isArray(item.polished_bullets)) item.polished_bullets = [];
+    if (!Array.isArray(copy.verification_notes)) copy.verification_notes = [];
     if (!Array.isArray(copy.sections)) {
       copy.sections = builtinSections.map((section) => ({...section, content: '', title: section.kind === 'projects' ? copy.experience_section_title || section.title : section.title}));
     }
@@ -65,6 +244,7 @@
   }
 
   function setValue(path, value) {
+    if (sampleReadOnly()) return;
     const keys = path.slice(1).split('/').map((key) => key.replace(/~1/g, '/').replace(/~0/g, '~'));
     let parent = state.data;
     for (const key of keys.slice(0, -1)) {
@@ -80,6 +260,8 @@
   }
 
   function changed(path, value) {
+    if (sampleReadOnly()) return;
+    trackItemChanges();
     state.revision += 1;
     state.controller?.abort();
     setStatus('正在更新');
@@ -89,9 +271,11 @@
     }
     clearTimeout(state.timer);
     state.timer = setTimeout(renderPreview, 180);
+    queueSave();
   }
 
   function changeStructure(action) {
+    if (sampleReadOnly()) return;
     post({type: 'resume-field-active', path: null, reveal: false});
     state.ready = false;
     state.structureRevision = state.revision + 1;
@@ -347,6 +531,10 @@
       } else builders[meta.kind]?.(body);
     });
     buildSectionActions();
+    if (sampleReadOnly()) {
+      editor.querySelectorAll('input,textarea,select,button').forEach(control => { control.disabled = true; });
+      editor.querySelectorAll('[draggable]').forEach(control => { control.draggable = false; });
+    }
     editor.scrollTop = scrollTop;
   }
 
@@ -616,11 +804,13 @@
     try {
       const body = await response.json();
       if (typeof body.detail === 'string') return body.detail;
+      if (body.detail?.message) return body.detail.message;
     } catch (_) { /* Non-JSON error responses use a plain, local message. */ }
     return fallback;
   }
 
   async function renderPreview() {
+    if (window.HuhuaAccount?.claimPending()) return;
     if (!state.template || !state.data) return;
     clearTimeout(state.timer);
     state.controller?.abort();
@@ -631,9 +821,9 @@
     const request = ++state.request;
     setStatus('正在更新');
     try {
-      const response = await fetch(`/api/resume/render/${encodeURIComponent(template)}?interactive=true`, {
+      const response = await fetch(resumeRequestUrl(`/api/resume/render/${encodeURIComponent(template)}`, {interactive:true, pending:true}), {
         method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(state.data), signal: controller.signal,
+        body: JSON.stringify(requestData()), signal: controller.signal,
       });
       if (!response.ok) throw new Error(await responseError(response, '预览更新失败，请稍后重试'));
       const html = await response.text();
@@ -650,8 +840,16 @@
     }
   }
 
+  const templatePreferenceKey = () => 'huhua_resume_template:' + (state.session || 'sample');
+  function restoreTemplate() {
+    let selected;
+    try { selected = localStorage.getItem(templatePreferenceKey()); } catch (_) { /* Presentation preference is optional. */ }
+    return state.templates.find(template => template.id === selected) || state.templates[0];
+  }
   function selectTemplate(template) {
     state.template = template;
+    // Store presentation identifiers only, never resume text or account tokens.
+    try { localStorage.setItem(templatePreferenceKey(), template.id); } catch (_) { /* Editing still works without browser storage. */ }
     $('current-tpl').textContent = template.name;
     for (const item of $('template-list').children) {
       const active = item.dataset.templateId === template.id;
@@ -681,7 +879,7 @@
   $('photo-input').addEventListener('change', async (event) => {
     const file = event.target.files[0];
     event.target.value = '';
-    if (!file || !state.data) return;
+    if (!file || !state.data || sampleReadOnly()) return;
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       setStatus('头像仅支持 JPG / PNG', true);
       return;
@@ -707,78 +905,215 @@
     $('btn-export').setAttribute('aria-expanded', 'false');
   }
   $('btn-export').addEventListener('click', () => {
+    if (window.HuhuaAccount?.requireLogin('登录后即可导出这份简历，同时保留当前对话和个人信息。')) return;
     exportMenu.hidden = !exportMenu.hidden;
     $('btn-export').setAttribute('aria-expanded', String(!exportMenu.hidden));
   });
   document.addEventListener('click', (event) => { if (!event.target.closest('#export-wrap')) closeExportMenu(); });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeExportMenu(); });
 
+  function clearExportFile() {
+    if (state.exportObjectUrl) URL.revokeObjectURL(state.exportObjectUrl);
+    state.exportObjectUrl = null;
+    for (const id of ['export-download', 'export-open']) { $(id).hidden = true; $(id).removeAttribute('href'); }
+  }
+  function exportStatus(message, error = false) {
+    $('export-result').hidden = false;
+    $('export-result').classList.toggle('error', error);
+    $('export-status').textContent = message;
+  }
+  $('btn-retry-export').addEventListener('click', () => exportResume(state.exportFormat));
+  window.addEventListener('pagehide', event => { if (!event.persisted) clearExportFile(); });
+
   async function exportResume(format) {
     closeExportMenu();
-    if (!state.data || !state.template || state.exportBusy) return;
-    const snapshot = JSON.stringify(state.data);
+    if (window.HuhuaAccount?.requireLogin('登录后即可导出这份简历，同时保留当前对话和个人信息。')) return;
+    if (!state.data || !state.template || state.exportBusy || !['pdf', 'docx'].includes(format)) return;
     const template = encodeURIComponent(state.template.id);
-    // Open synchronously while the user's click still permits a print window.
-    const printWindow = format === 'pdf' ? window.open('', '_blank') : null;
-    if (format === 'pdf' && !printWindow) { setStatus('请允许弹出窗口后再导出 PDF', true); return; }
-    if (printWindow) { printWindow.opener = null; printWindow.document.title = '准备打印简历'; }
+    const session = state.session;
+    const label = format === 'pdf' ? 'PDF' : 'Word';
     state.exportBusy = true;
+    state.exportFormat = format;
+    clearExportFile();
+    $('btn-retry-export').hidden = true;
     $('btn-export').disabled = true;
+    exportStatus('正在保存并生成 ' + label + '…');
     try {
-      const response = await fetch(format === 'pdf' ? `/api/resume/render/${template}` : `/api/resume/export/docx/${template}`, {
+      if (state.mode === 'personal' && !(await flushSave())) throw new Error('当前修改尚未保存。请重试保存或下载草稿备份后再导出。');
+      const snapshot = JSON.stringify(requestData());
+      const {response, blob} = await fetchWithTimeout(resumeRequestUrl(`/api/resume/export/${format}/${template}`), {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body: snapshot,
-      });
-      if (!response.ok) throw new Error(await responseError(response, '导出失败，请稍后重试'));
-      if (format === 'pdf') {
-        const html = await response.text();
-        const printable = html.replace('</body>', '<script>window.addEventListener("load",()=>{document.fonts.ready.then(()=>window.print());});<\/script></body>');
-        printWindow.document.open();
-        printWindow.document.write(printable);
-        printWindow.document.close();
-      } else {
-        const url = URL.createObjectURL(await response.blob());
-        const link = element('a');
-        link.href = url;
-        let filename = '简历-通用Word.docx';
-        const match = (response.headers.get('Content-Disposition') || '').match(/filename\*=UTF-8''([^;]+)/i);
-        if (match) { try { filename = decodeURIComponent(match[1]); } catch (_) { /* Use default filename. */ } }
-        link.download = filename;
-        document.body.append(link);
-        link.click();
-        link.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
+      }, async response => {
+        if (!response.ok) throw new Error(await responseError(response, '导出失败，请稍后重试'));
+        return {response, blob: await response.blob()};
+      }, 60000);
+      if (state.session !== session || !state.data) return;
+      const signature = new Uint8Array(await blob.slice(0, 5).arrayBuffer());
+      const valid = format === 'pdf' ? new TextDecoder().decode(signature) === '%PDF-' : signature[0] === 80 && signature[1] === 75 && signature[2] === 3 && signature[3] === 4;
+      if (!valid) throw new Error(label + ' 文件内容异常，请重试；当前简历仍已保存。');
+      let filename = format === 'pdf' ? '简历.pdf' : '简历-通用Word.docx';
+      const match = (response.headers.get('Content-Disposition') || '').match(/filename\*=UTF-8''([^;]+)/i);
+      if (match) { try { filename = decodeURIComponent(match[1]).replace(/[\x00-\x1f/\\]/g, '_'); } catch (_) { /* Use default filename. */ } }
+      if (state.mode === 'sample') filename = '样例-' + filename;
+      state.exportObjectUrl = URL.createObjectURL(blob);
+      const link = $('export-download');
+      link.href = state.exportObjectUrl; link.download = filename; link.textContent = '下载 ' + label; link.hidden = false;
+      $('export-open').href = state.exportObjectUrl; $('export-open').hidden = false;
+      exportStatus(label + ' 文件已生成。若未出现下载，请点击下方下载，或打开文件后保存。后续修改需重新导出。');
+      link.click();
     } catch (error) {
-      printWindow?.close();
-      setStatus(error.message.includes('fetch') ? '连接已断开，请确认服务运行后重试' : error.message, true);
+      if (!state.data) return;
+      exportStatus(error.name === 'AbortError' ? '导出等待超时，已保存的简历仍在。请重试或选择另一种格式。' : error.message.includes('fetch') ? '连接已断开，下载未完成。请检查网络后重试。' : error.message, true);
+      $('btn-retry-export').hidden = false;
     } finally {
       state.exportBusy = false;
-      $('btn-export').disabled = false;
+      $('btn-export').disabled = !state.data;
     }
   }
   for (const option of document.querySelectorAll('.export-opt')) option.addEventListener('click', () => exportResume(option.dataset.format));
 
+  function activateData(data, mode) {
+    state.data = normaliseData(data);
+    state.mode = mode;
+    state.sampleSource = mode === 'sample' ? structuredClone(data) : null;
+    pendingRemovedItems.clear(); trackedItemIds = itemIds(state.data);
+    state.revision += 1;
+    state.savedVersion = state.revision;
+    state.saveFailed = false;
+    state.conflict = false;
+    pendingValues.clear();
+    removedSections.clear();
+    state.undoSection = null;
+    $('data-source').textContent = mode === 'sample' ? '样例' : '当前会话';
+    $('btn-export').disabled = false;
+    $('btn-export').textContent = mode === 'sample' ? '导出样例 ▾' : '导出 ▾';
+    $('btn-upload-photo').disabled = sampleReadOnly();
+    const notice = $('sample-notice');
+    notice.hidden = mode !== 'sample';
+    notice.replaceChildren();
+    if (mode === 'sample') {
+      notice.append(element('p', '', sampleReadOnly() ? '这是只读模板样例，可直接切换模板查看排版。新建个人草稿后填写自己的资料，登录后可导出。' : '这是样例，未保存到你的会话。这里的修改和导出只用于体验模板。'));
+      const blank = button('新建我的空白草稿', 'text-button', startBlank);
+      blank.disabled = !state.canSave && !state.requireAccount;
+      notice.append(blank);
+      setSaveStatus(sampleReadOnly() ? '只读样例：切换模板和预览不会保存个人简历。' : '样例模式：不会保存到你的会话。');
+    } else setSaveStatus(state.canSave ? window.HuhuaAccount?.guest() ? window.HuhuaAccount.guestNotice() : '已读取当前会话，修改后自动保存。' : '会话保存暂时不可用；修改后请下载草稿备份。', !state.canSave);
+    renderVerificationNotes();
+    if (sampleReadOnly()) $('verification-card').querySelectorAll('button').forEach(control => { control.disabled = true; });
+    buildForm();
+    renderPreview();
+  }
+
+  async function startBlank() {
+    if (state.creatingDraft) return;
+    state.creatingDraft = true;
+    try {
+      if (!state.canSave) {
+        if (!state.requireAccount) return;
+        setStatus('正在新建个人草稿…');
+        if (!state.createdDraftSession) {
+          const created = await fetch('/api/chat/conversations', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'});
+          if (!created.ok) throw new Error(await responseError(created, '新建对话失败，请重试。'));
+          const conversation = await created.json();
+          if (!conversation.session_id) throw new Error('新对话尚未确认，请重试。');
+          state.createdDraftSession = conversation.session_id;
+        }
+        // Retrying a failed read reuses the explicitly created conversation.
+        state.session = state.createdDraftSession;
+        window.HuhuaAccount?.rememberSession(state.session);
+        const query = new URLSearchParams(location.search); query.set('session', state.session);
+        history.replaceState({}, '', location.pathname + '?' + query.toString());
+        $('back-to-chat').href = '/?session=' + encodeURIComponent(state.session);
+        const response = await fetch('/api/resume/current?session_id=' + encodeURIComponent(state.session));
+        if (!response.ok) throw new Error(await responseError(response, '新对话已建立，草稿读取失败，请刷新后重试。'));
+        const current = await response.json();
+        state.serverRevision = current.revision || null; state.canSave = current.can_save === true && Boolean(state.serverRevision);
+        if (!state.canSave) throw new Error('新对话暂时不能保存，请刷新后重试。');
+        state.sessionInvalid = false;
+      }
+      activateData({verification_notes: []}, 'personal');
+      if (state.template) selectTemplate(state.template);
+      $('draft-recovery').hidden = true;
+      // This explicit user action creates a saved draft; template preview does not.
+      state.revision += 1; queueSave();
+    } catch (error) { setStatus(error.message, true); }
+    finally { state.creatingDraft = false; }
+  }
+
+  function showStartChoice() {
+    state.data = null;
+    state.mode = null;
+    $('data-source').textContent = '尚无个人简历';
+    $('btn-export').disabled = true;
+    $('btn-upload-photo').disabled = true;
+    setStatus('等待选择');
+    setSaveStatus(state.canSave ? '当前会话还没有简历。请选择开始方式。' : '未连接可保存的会话。可查看样例，或回到聊天建立会话。', !state.canSave);
+    const choice = element('div', 'start-choice');
+    choice.append(element('h2', '', '开始编辑你的简历'), element('p', '', '样例只用于查看排版；空白草稿会保存到当前会话。'));
+    const blank = button('新建空白草稿', 'secondary-button', startBlank);
+    blank.disabled = !state.canSave && !state.requireAccount;
+    choice.append(blank, button('查看模板样例', 'secondary-button', async () => {
+      try {
+        const response = await fetch('/api/resume/sample');
+        if (!response.ok) throw new Error('样例加载失败');
+        activateData(await response.json(), 'sample');
+      } catch (error) { setStatus(error.message, true); }
+    }));
+    editor.replaceChildren(choice);
+  }
+
+  function offerRecovery() {
+    if (!state.session || !state.canSave) return;
+    if (!state.recovery?.data || state.recovery.session !== state.session) return;
+    const notice = $('draft-recovery');
+    notice.hidden = false;
+    const matches = state.recovery.base_revision === state.serverRevision;
+    notice.append(element('p', '', matches ? '发现本标签页尚未保存的草稿，可恢复后继续编辑。' : '发现未保存草稿，但会话已更新。请先下载备份，避免覆盖新内容。'));
+    if (matches) notice.append(button('恢复未保存草稿', 'text-button', () => {
+      const recovery = state.recovery;
+      activateData(recovery.data, 'personal');
+      for (const id of recovery.removed_item_ids || []) if (!trackedItemIds.has(id)) pendingRemovedItems.set(id, ++removalSequence);
+      state.revision += 1;
+      queueSave();
+      notice.hidden = true;
+    }));
+    else notice.append(button('下载恢复草稿', 'text-button', () => {
+      const current = state.data;
+      state.data = state.recovery.data;
+      downloadDraft();
+      state.data = current;
+    }));
+    notice.append(button('放弃恢复', 'text-button', () => { clearBackup(); state.recovery = null; notice.hidden = true; }));
+  }
+
   async function initialise() {
     try {
+      const account = await window.HuhuaAccount?.ready;
+      state.requireAccount = account?.require_account !== false;
       let session = new URLSearchParams(location.search).get('session');
-      if (!session) { try { session = localStorage.getItem('huhua_session_id'); } catch (_) { /* Private browsing may block storage. */ } }
+      if (!session) session = window.HuhuaAccount?.rememberedSession();
+      state.session = session;
+      $('back-to-chat').href = session ? `/?session=${encodeURIComponent(session)}` : '/';
       const templateResponse = await fetch('/api/resume/templates');
       if (!templateResponse.ok) throw new Error('模板加载失败');
       state.templates = (await templateResponse.json()).templates;
-      let source = '样例';
-      if (session) {
+      let currentData = null;
+      if (session && !window.HuhuaAccount?.claimPending()) {
         const currentResponse = await fetch(`/api/resume/current?session_id=${encodeURIComponent(session)}`);
-        if (!currentResponse.ok) throw new Error(await responseError(currentResponse, '当前简历读取失败，请刷新重试'));
-        const current = await currentResponse.json();
-        if (current.has_data && current.data) { state.data = current.data; source = '当前会话'; }
+        if (currentResponse.ok) {
+          const current = await currentResponse.json();
+          state.serverRevision = current.revision || null;
+          state.sessionInvalid = !state.serverRevision;
+          if (state.sessionInvalid) clearBackup();
+          state.canSave = current.can_save === true && Boolean(state.serverRevision);
+          if (state.serverRevision) window.HuhuaAccount?.rememberSession(session);
+          if (current.has_data && current.data) currentData = current.data;
+        } else {
+          // An expired or unrelated session must never prevent public template browsing.
+          state.session = null; state.canSave = false; state.sessionInvalid = true;
+          $('back-to-chat').href = '/';
+        }
       }
-      if (!state.data) {
-        const sampleResponse = await fetch('/api/resume/sample');
-        if (!sampleResponse.ok) throw new Error('样例加载失败');
-        state.data = await sampleResponse.json();
-      }
-      state.data = normaliseData(state.data);
-      $('data-source').textContent = source;
       $('tpl-count').textContent = `(${state.templates.length})`;
       for (const template of state.templates) {
         const item = button('', 'tpl-item', () => selectTemplate(template));
@@ -786,13 +1121,44 @@
         item.append(element('span', 'tpl-name', template.name), element('span', 'tpl-style', template.style || ''));
         $('template-list').append(item);
       }
-      buildForm();
-      if (state.templates.length) selectTemplate(state.templates[0]);
+      if (currentData) activateData(currentData, 'personal');
+      else if (window.HuhuaAccount?.guest() || !session) {
+        const sample = await fetch('/api/resume/sample');
+        if (sample.ok) activateData(await sample.json(), 'sample');
+        else showStartChoice();
+      } else showStartChoice();
+      offerRecovery();
+      if (state.templates.length) selectTemplate(restoreTemplate());
       else setStatus('暂无可用模板', true);
     } catch (error) {
       setStatus(error.message.includes('fetch') ? '连接已断开，请确认服务运行后刷新' : error.message, true);
       editor.replaceChildren(element('p', 'empty-section', '暂时无法加载简历内容，请刷新页面重试。'));
     }
   }
+  window.addEventListener('huhua-account-claim-pending', () => {
+    clearTimeout(state.saveTimer); clearTimeout(state.timer); state.controller?.abort();
+    setSaveStatus('登录已成功，当前体验待保存；请重试保留当前对话。', true);
+  });
+  window.addEventListener('huhua-account-changed', event => {
+    if (event.detail?.session_id && (!state.data || state.mode === 'sample')) {
+      state.session = event.detail.session_id; window.HuhuaEditor.refreshCurrent().catch(error => setStatus(error.message, true));
+    }
+    if (state.session) window.HuhuaAccount?.rememberSession(state.session);
+    setSaveStatus('已登录，当前简历与编辑内容已保留，可以继续编辑或导出。');
+    if (state.mode === 'personal' && state.savedVersion !== state.revision) queueSave();
+    renderPreview();
+  });
+  window.HuhuaEditor = {
+    prepareProfileChange: async () => state.mode !== 'personal' || await flushSave(),
+    async refreshCurrent() {
+      const response = await fetch('/api/resume/current?session_id=' + encodeURIComponent(state.session));
+      if (!response.ok) throw new Error('档案信息已保存，但编辑页读取失败。请刷新后核对最新简历。');
+      const current = await response.json();
+      if (!current.has_data || !current.data) throw new Error('档案信息已提交，请回到对话核对成稿。');
+      state.serverRevision = current.revision;
+      state.canSave = current.can_save !== false;
+      clearBackup(); activateData(current.data, 'personal');
+    },
+  };
   initialise();
 })();

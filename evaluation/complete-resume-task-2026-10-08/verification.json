@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-08",
+  "scope": "Local source changes; isolated synthetic data; no external model/email calls or production deployment",
+  "offline": {
+    "passed": 504,
+    "total": 504,
+    "log": "offline-tests.log"
+  },
+  "chat_browser": {
+    "passed": 42,
+    "total": 42,
+    "page_errors": [],
+    "result": "chat-complete-browser-result.json"
+  },
+  "export_browser": {
+    "result": "export/browser-checks.json",
+    "download_contents": "export/download-content-checks.json",
+    "passed": 20,
+    "total": 20,
+    "page_errors": []
+  },
+  "static_checks": [
+    "Ruff changed Python files",
+    "JavaScript syntax checks",
+    "git diff --check"
+  ],
+  "limits": [
+    "Template preference is per-browser and per-session",
+    "PDF decorations can differ slightly from HTML preview",
+    "No real model, Docker build, Linux PDF rendering, production or in-app browser verification in this run"
+  ],
+  "compatibility_browser": {
+    "product-suggestion-pdf": {
+      "passed": 14,
+      "total": 14
+    },
+    "resume-provenance": {
+      "passed": 31,
+      "total": 31
+    },
+    "artifacts": "compatibility/",
+    "guest-experience": {
+      "passed": 28,
+      "total": 28
+    }
+  },
+  "temporary_resources": "All task-specific browser sessions and fixture servers stopped"
+}

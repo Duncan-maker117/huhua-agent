@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from typing import Annotated, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Message(BaseModel):
@@ -6,6 +8,35 @@ class Message(BaseModel):
     content: str
 
 
+class ReadJobURL(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    action: Literal["read_url"]
+    url: str = Field(min_length=1, max_length=2048)
+
+
+class ReadPublicURL(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    action: Literal["read_public_url"]
+    url: str = Field(min_length=1, max_length=2048)
+
+
+class SearchJobContext(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    action: Literal["search"]
+    company: str = Field(default="", max_length=80)
+    role: str = Field(default="", max_length=80)
+
+    @model_validator(mode="after")
+    def require_public_terms(self):
+        if not (self.company or self.role):
+            raise ValueError("请填写公司名或岗位名")
+        return self
+
+
 class ChatRequest(BaseModel):
     messages: list[Message]
     session_id: str | None = None
+    task: Literal["auto", "decode_jd", "rewrite_experience", "review_resume"] = "auto"
+    # Only the server can populate research sources. Clients select one bounded
+    # operation; they cannot submit fabricated tool results or model prompts.
+    web_tool: Annotated[ReadJobURL | ReadPublicURL | SearchJobContext, Field(discriminator="action")] | None = None

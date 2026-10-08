@@ -1,0 +1,52 @@
+{
+  "checked_at": "2026-10-04T17:31:49.853127+00:00",
+  "scope": "synthetic_rewrite_service_only",
+  "real_user_database_accessed": false,
+  "smtp_sent": false,
+  "sdk_retries": 0,
+  "max_model_calls": 2,
+  "model_call_attempts": 2,
+  "provider_error_types": [],
+  "human_semantic_review_required": true,
+  "cases": [
+    {
+      "id": "plain_rewrite",
+      "input": {
+        "id": "plain_rewrite",
+        "source": "我用 Python 写了一个合并 PDF 的工具。",
+        "instruction": "写成简洁的简历表述。",
+        "must_preserve": [
+          "Python",
+          "PDF"
+        ],
+        "must_not_add": [
+          "主导",
+          "独立",
+          "上线",
+          "提升"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": "5fd4f0e4-97c4-40f3-bb35-cc777a83c91d",
+        "revision": "48d72553f6c4fe2341656d5cae56292545197140c74ce8dac2d11484d8204a92",
+        "source_text": "我用 Python 写了一个合并 PDF 的工具。",
+        "suggested_text": "使用 Python 编写 PDF 合并工具。",
+        "reason": "改写仅保留原句已明确的事实：使用 Python、编写、PDF 合并工具。未添加工具名称、用途、上线状态、效果或主导程度等信息，属于同义精简表达。",
+        "evidence": [
+          "我用 Python 写了一个合并 PDF 的工具"
+        ],
+        "can_apply": true,
+        "blocking_reason": ""
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 1.78
+    }
+  ],
+  "status": "awaiting_semantic_review"
+}

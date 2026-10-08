@@ -5,6 +5,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+from fastapi import Request
+
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
@@ -93,6 +95,17 @@ class JevMatchUnitTest(unittest.TestCase):
 
 
 class JevMatchFallbackTest(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        # These are matching/fallback unit tests; ownership and budgets are
+        # covered by isolated integration tests, never by a production database.
+        self.request = Request({"type": "http", "method": "GET", "path": "/", "headers": []})
+        self.auth = patch("app.api.resume.authorize_session", return_value="unit-browser-owner")
+        self.budget = patch("app.services.runtime_limits.reserve_turn")
+        self.auth.start()
+        self.budget.start()
+        self.addCleanup(self.auth.stop)
+        self.addCleanup(self.budget.stop)
+
     async def test_current_exposes_match_control_only_with_jd_and_key(self):
         state = SimpleNamespace(values={"jd_info": JD, "jd_text": JD_TEXT, "resume_data": RESUME})
         graph = SimpleNamespace(aget_state=AsyncMock(return_value=state))
@@ -104,7 +117,7 @@ class JevMatchFallbackTest(unittest.IsolatedAsyncioTestCase):
             patch("app.api.resume._llm_for_graph", return_value=object()),
             patch("app.api.resume.get_graph", return_value=graph),
         ):
-            result = await current_resume("session-1")
+            result = await current_resume(self.request, "session-1")
         self.assertTrue(result["has_data"])
         self.assertTrue(result["has_jd"])
         self.assertTrue(result["match_enabled"])
@@ -116,7 +129,7 @@ class JevMatchFallbackTest(unittest.IsolatedAsyncioTestCase):
             patch("app.api.resume.load_resume_session", return_value={"resume_data": RESUME}),
             patch("app.api.resume.get_settings", return_value=settings),
         ):
-            result = await match_resume(MatchRequest(session_id="session-1"))
+            result = await match_resume(MatchRequest(session_id="session-1"), self.request)
         self.assertEqual(result["status"], "no_jd")
         self.assertIsNone(result["score"])
         self.assertTrue(result["checks"])
@@ -132,14 +145,14 @@ class JevMatchFallbackTest(unittest.IsolatedAsyncioTestCase):
             patch("app.api.resume._llm_for_graph", return_value=object()),
             patch("app.api.resume.get_graph", return_value=graph),
         ):
-            missing_key = await match_resume(MatchRequest(session_id="session-1"))
+            missing_key = await match_resume(MatchRequest(session_id="session-1"), self.request)
             self.assertEqual(missing_key["status"], "unavailable")
             self.assertIsNone(missing_key["score"])
             self.assertTrue(missing_key["checks"])
 
             settings.JEV_API_KEY = "test-key"
             with patch("app.api.resume.call_jev", new=AsyncMock(side_effect=RuntimeError("private upstream body"))):
-                failed = await match_resume(MatchRequest(session_id="session-1"))
+                failed = await match_resume(MatchRequest(session_id="session-1"), self.request)
         self.assertEqual(failed["status"], "unavailable")
         self.assertIsNone(failed["score"])
         self.assertNotIn("private upstream body", json.dumps(failed, ensure_ascii=False))

@@ -1,0 +1,40 @@
+.account-entry { font: inherit; font-size: 12px; font-weight: 650; border: 1px solid #d9cfeb; border-radius: 20px; color: #5423e7; background: #f6f1ff; padding: 6px 12px; white-space: nowrap; cursor: pointer; }
+#profile-overlay { position: fixed; inset: 0; z-index: 150; }
+#profile-overlay[hidden], #profile-overlay [hidden] { display: none !important; }
+.profile-backdrop { position: absolute; inset: 0; width: 100%; background: #21173455; border: 0; color: transparent; cursor: default; }
+#profile-drawer { position: absolute; inset: 0 0 0 auto; width: min(620px, 100%); max-width: 100%; overflow: auto; overscroll-behavior: contain; background: #faf8fe; color: #292333; box-shadow: -10px 0 40px #21173422; padding: 24px; font: 14px/1.7 system-ui, sans-serif; overflow-wrap: anywhere; box-sizing: border-box; }
+#profile-drawer *, #profile-drawer *::before, #profile-drawer *::after { box-sizing: border-box; }
+#profile-drawer header, .profile-identity { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+#profile-drawer h1 { font-size: 22px; font-weight: 700; margin: 0; }
+#profile-drawer h2 { font-size: 17px; font-weight: 650; } #profile-drawer h3 { font-size: 14px; font-weight: 650; margin: 3px 0; }
+#profile-drawer p { margin: 6px 0; } #profile-drawer a { color: #5423e7; text-decoration: underline; }
+.profile-status { min-height: 24px; color: #71667e; font-size: 12px; margin: 12px 0 20px !important; }
+.profile-status.error { color: #a3313c; }
+.profile-muted { color: #756c81; font-size: 12px; }
+.profile-identity { padding-bottom: 15px; border-bottom: 1px solid #e7e0ef; }
+.profile-identity p { flex: 1 1 100%; order: 1; }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.profile-button { border: 1px solid transparent; border-radius: 8px; background: #5423e7; padding: 7px 12px; color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.profile-button.secondary { background: #f0eafb; color: #5423e7; border-color: #e1d7f1; }
+.profile-button:disabled { cursor: wait; opacity: .5; }
+.profile-card { margin: 12px 0; padding: 17px; border: 1px solid #e4dced; border-radius: 12px; background: #fff; }
+.profile-card.conflict { border-color: #ebcc8e; background: #fffbf2; }
+.profile-eyebrow { color: #815513; font-size: 11px; font-weight: 650; }
+.profile-value { white-space: pre-wrap; font-size: 14px; color: #292333; }
+.profile-source { font-size: 12px; color: #756c81; margin-top: 12px; }
+.profile-source summary { cursor: pointer; } .profile-source blockquote { border-left: 2px solid #d9caeb; padding-left: 12px; white-space: pre-wrap; margin: 10px 0; }
+.profile-section-title { margin: 24px 0 10px; }
+.profile-notice { padding: 14px; border-radius: 10px; background: #f1ebfc; font-size: 12px; margin: 14px 0; }
+.profile-notice .profile-button { margin: 8px 8px 0 0; }
+.profile-form { display: flex; flex-direction: column; gap: 12px; align-items: stretch; margin-top: 15px; }
+.profile-form > button { align-self: flex-start; }
+.profile-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+.profile-field input, .profile-field textarea, .profile-field select { font: inherit; font-size: 14px; width: 100%; border: 1px solid #d8cee4; background: white; color: #292333; border-radius: 7px; padding: 9px 11px; }
+.profile-field textarea { min-height: 94px; resize: vertical; }
+#profile-drawer :focus-visible { outline: 2px solid #8261e9; outline-offset: 3px; }
+@media (max-width: 640px) { #profile-drawer { padding: 18px; } #chat-pane > header { padding-inline: 12px; gap: 6px; } #chat-pane > header > div:last-child { gap: 5px; } #chat-pane > header button { padding-inline: 7px; } #chat-pane > header > div:first-child > span { font-size: 16px; letter-spacing: 0; } .account-entry { padding: 6px 8px; } }
+
+.profile-code-step { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 15px; border-top: 1px solid #e7e0ef; }
+.profile-code-step > button { align-self: flex-start; }
+.profile-code-step input { letter-spacing: .16em; font-variant-numeric: tabular-nums; }
+.profile-code-step input::placeholder { letter-spacing: normal; }

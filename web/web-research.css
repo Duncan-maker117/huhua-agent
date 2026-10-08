@@ -1,0 +1,24 @@
+.web-research-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; min-width: 0; }
+.web-tool-toggle { border: 1px solid #ded5ed; border-radius: 18px; padding: 5px 9px; color: #59329b; background: #faf8fe; font-size: 11px; line-height: 1.5; }
+.web-tool-toggle[aria-expanded="true"] { background: #eee5ff; border-color: #b29bd5; }
+#web-research-panel { margin: 6px 8px 10px; padding: 12px; border: 1px solid #e0d5ed; border-radius: 12px; background: #faf8fe; }
+#web-research-panel[hidden], #web-research-panel form[hidden] { display: none; }
+.web-research-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: #493465; font-size: 12px; font-weight: 600; }
+.web-research-heading button, #web-tools-retry { font-size: 11px; color: #665878; text-decoration: underline; text-underline-offset: 3px; }
+#web-research-panel form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+#web-research-panel label { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; gap: 4px; color: #51455f; font-size: 12px; }
+#web-research-panel input { width: 100%; min-width: 0; box-sizing: border-box; padding: 7px 9px; border: 1px solid #d8cde7; border-radius: 7px; color: #272131; background: #fff; font-size: 13px; }
+#web-research-panel input:disabled { opacity: .6; }
+.web-tool-submit { border-radius: 8px; padding: 8px 12px; font-size: 12px; background: #5423b4; color: #fff; }
+.web-tool-submit:disabled { opacity: .45; cursor: not-allowed; }
+#web-research-status { margin-top: 8px; color: #71647f; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+#web-research-status.error { color: #98492e; }
+@media (max-width:640px) {
+  .web-tool-toggle { font-size: 10px; padding: 5px 7px; }
+  #web-research-panel input { font-size: 16px; }
+  #web-research-panel { max-height: 230px; overflow-y: auto; }
+}
+
+.web-tool-usage-notice { margin: 0 0 10px; color: #654c29; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+.web-direct-link-notice { margin: 0 16px 8px; }
+.web-tool-usage-notice[hidden] { display: none; }

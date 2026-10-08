@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-02",
+  "scope": "Local conversation history and canonical resume continuation; synthetic inputs only; not an online deployment or a live-model quality evaluation.",
+  "python_tests": {
+    "passed": 155,
+    "storage": "temporary SQLite databases"
+  },
+  "browser_history_mock": {
+    "passed": 36,
+    "report": "tests/conversation_history.browser.result.json"
+  },
+  "browser_stream_mock": {
+    "passed": 23,
+    "report": "tests/chat_stream.browser.result.json"
+  },
+  "browser_real_database": {
+    "passed": 13,
+    "checks": [
+      "独立浏览器仅含空白测试会话",
+      "首页创建数据库会话并保留URL",
+      "真实数据库保存A草稿",
+      "编辑页返回原聊天链接",
+      "新建B保留A且两会话独立",
+      "从历史切回A取到原稿",
+      "刷新恢复最新编辑",
+      "编辑A不影响B",
+      "当前会话最新稿Word实际下载成功",
+      "手机历史列表无页面横向溢出",
+      "显式删除A后历史不可再恢复",
+      "删除A保留B完整草稿",
+      "全流程未发起模型请求"
+    ],
+    "model_requests": 0,
+    "test_sessions_deleted": true
+  },
+  "docx_content_checks": {
+    "latest_a_name": true,
+    "latest_custom_section": true,
+    "no_b_content": true
+  },
+  "screenshots": [
+    "desktop-history-live.png",
+    "mobile-history-live.png",
+    "mobile-history.png"
+  ],
+  "limitations": [
+    "Browser cookie identity only; no account or cross-device synchronization.",
+    "History and editor revisions keep the latest resume, not a user-facing version timeline.",
+    "Postgres configuration is supported by existing code; this run validated SQLite only."
+  ]
+}

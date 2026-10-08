@@ -1,0 +1,123 @@
+{
+  "recorded_at": "2026-10-05T02:41:50.741017+08:00",
+  "url": "https://resume.yikuaibanz.cn",
+  "deployment_completed": true,
+  "friend_testing_ready": false,
+  "source_archive": {
+    "deployed": "dist/huhua-deployed-20261005-1.tar.gz",
+    "sha256": "eceb62d83b09494c091b23aff5ab1b47ceec509a987e55885ab1130cb8b92138",
+    "file_count": 133
+  },
+  "handoff_archive": {
+    "output": "dist/huhua-deploy.tar.gz",
+    "file_count": 134,
+    "archive_bytes": 445249,
+    "sha256": "3572a130a98673dff057dedfe2398ea9bdea41172485cb29f4dfa301e009e073",
+    "deployed": false,
+    "changes_from_deployed_archive": [
+      "docs/development/2026-10-05-server-deployment.md",
+      "docs/development/docker-deployment.md"
+    ]
+  },
+  "image": {
+    "tag": "huhua-agent:20261005-1",
+    "id": "sha256:b81e56f35a0d5000aa7e9423cabfe50cdbb544192f14201b1355d00d041de94d"
+  },
+  "offline_tests": {
+    "passed": 358,
+    "seconds": 33.157,
+    "network": "none",
+    "uses_production_data_or_env": false,
+    "server_log": "/opt/huhua-validation-20261005/offline-tests.log"
+  },
+  "public_http_checks": {
+    "passed": 8,
+    "details": "public-checks.json",
+    "https_certificate_verified": true
+  },
+  "restart": {
+    "completed": true,
+    "container_health": "healthy",
+    "database": "ok",
+    "checkpoint": "ok",
+    "real_user_record_persistence_tested": false
+  },
+  "live_model": {
+    "details": "live-rewrite.json",
+    "synthetic_cases": 1,
+    "calls": 2,
+    "can_apply": true,
+    "canonical_unchanged": true,
+    "agent_source_comparison": "Candidate preserves Python, PDF and tool creation; no unsupported claims added.",
+    "human_user_study": false,
+    "scope": "rewrite service only; not chat SSE E2E"
+  },
+  "existing_site_status_before_and_after": {
+    "yikuaibanz.cn": 200,
+    "jev.yikuaibanz.cn": 302,
+    "pandeflow.yikuaibanz.cn": 302
+  },
+  "runtime": {
+    "non_root": true,
+    "single_worker": true,
+    "ports": {
+      "8765/tcp": [
+        {
+          "HostIp": "127.0.0.1",
+          "HostPort": "18765"
+        }
+      ]
+    },
+    "data_mounts": [
+      {
+        "name": "huhua_app_data",
+        "destination": "/var/lib/huhua"
+      }
+    ],
+    "uses_host_caddy": true
+  },
+  "production_data_migrated": false,
+  "mail": {
+    "domain_verified": true,
+    "restricted_sending_key": true,
+    "test_email_sent": false,
+    "real_receipt_verified": false,
+    "real_login_verified": false,
+    "sender": "Huhua <login@resume.yikuaibanz.cn>",
+    "runtime_sender_loaded": true
+  },
+  "production_full_chat_and_export_e2e_verified": false,
+  "independent_key_backup": {
+    "completed": false,
+    "full_env_transfer": "rejected by automatic approval; no local copy created",
+    "minimal_recovery_keys_transfer": "not performed; no explicit approval received"
+  },
+  "pending": [
+    "Authorized real email receipt, login, SSE, save, export verification",
+    "Independent recovery materials and paired backup/restore rehearsal"
+  ],
+  "evidence_files": {
+    "deployment-summary.json": "79af3569822836507927bef8ec14d9d13d04e6949166635aafed8a76d05c0731",
+    "requirements.resolved.txt": "c1a281023cb32605f120c1923639c45d3ff0b8ec6c0ed650ad81755a6bc6f13d",
+    "public-checks.json": "34e64569ac65847704f166b77339b971a6b26833eeb0b77678d091339b8521e1",
+    "live-rewrite.json": "b201cff10d61a2a658cb56d999d75e05dfd2b23f37d8919e104649fb57b5dba3",
+    "mail-domain-verification.json": "8baf48d46f41dc59d723a40eaf347dfeee93cdadd45b7db0a03304b96ae56431",
+    "resend-domain-verified.jpg": "05694cd7fb43e2da0a9dcffa536d44647fbbc8579b991e2fc753ad5debd03802"
+  },
+  "mail_domain_followup": {
+    "checked_at": "2026-10-05T03:06:43.929591+08:00",
+    "details": "mail-domain-verification.json",
+    "domain_verified": true,
+    "runtime_sender_updated": true,
+    "real_test_email_sent": false,
+    "real_receipt_and_login_verified": false
+  },
+  "initial_mail_status": {
+    "domain_verified": false,
+    "restricted_sending_key": true,
+    "test_email_sent": false,
+    "real_receipt_verified": false,
+    "real_login_verified": false
+  },
+  "updated_at": "2026-10-05T03:07:22.302154+08:00"
+}

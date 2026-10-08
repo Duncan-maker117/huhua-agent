@@ -1,0 +1,97 @@
+{
+  "checked_at": "2026-10-05T01:57:52.228611+08:00",
+  "scope": "2026-10-05 authorized report and local code implementation",
+  "offline": {
+    "passed": 358,
+    "seconds": 9.181,
+    "baseline": 310,
+    "new_tests": 48,
+    "command": ".venv/bin/python scripts/run_tests.py -q",
+    "external_providers": "disabled"
+  },
+  "browser": {
+    "suggestion-browser": {
+      "passed": 21,
+      "page_errors": 0,
+      "artifact": "suggestion-browser.json",
+      "api_mode": "mock"
+    },
+    "provenance-browser": {
+      "passed": 27,
+      "page_errors": 0,
+      "artifact": "provenance-browser.json",
+      "api_mode": "mock"
+    },
+    "real-browser": {
+      "passed": 26,
+      "page_errors": 0,
+      "artifact": "real-browser.json",
+      "api_mode": "real encrypted app; memory-only mailbox"
+    }
+  },
+  "word_export": {
+    "passed": true,
+    "artifact": "docx-checks.json",
+    "downloaded_files": [
+      "nora-before-delete.docx",
+      "nora-after-delete.docx"
+    ]
+  },
+  "live_model": {
+    "cases": 6,
+    "model_calls": 10,
+    "adoptable": 3,
+    "blocked": 2,
+    "unchanged": 1,
+    "canonical_modified": false,
+    "artifact": "live-rewrite.json",
+    "review": "semantic-review.json",
+    "reviewer": "Codex source comparison, not human user study",
+    "separate_prior_attempts": [
+      "live-rewrite-sandbox-attempt.json",
+      "live-rewrite-single-case.json"
+    ]
+  },
+  "independent_review": {
+    "passed": 5,
+    "included_in_full_suite_count": false,
+    "note": "Temporary isolated HTTP reproduction; regression cases retained in test_resume_provenance.py"
+  },
+  "real_user_data_accessed": false,
+  "real_email_sent": false,
+  "production_server_restarted": false,
+  "database_schema_migration": false,
+  "deployed": false,
+  "limitations": [
+    "Historic content without stable mappings and arbitrarily rewritten new entries cannot be perfectly traced.",
+    "Six single-run synthetic rewrites do not establish overall model quality or real user benefit.",
+    "Long-term archive semantic evaluation, real email receipt/login and public deployment still require separate verification."
+  ],
+  "tested_source_sha256": {
+    "backend/app/agents/resume_graph.py": "3807bda51dade1f7a57e925c16862d297a6e003616cdbff44eb4415c7429ee0c",
+    "backend/app/models/profile.py": "04231d842c8f2f06b8a0619fe830a8b2578c77a6d4a71b98b4801902a74f5a70",
+    "backend/app/schemas/editor.py": "3335b06f016b8b57eb9defa9f47de5c5c080408dd706b6bc6c39f7199db848af",
+    "backend/app/api/resume_changes.py": "586d3480219c24c41622d84ecfe7a3293f844a22d42c7f6e7bf45d7ec042c729",
+    "backend/app/api/resume.py": "4fa2f2bf26c85c79041dd942b28c4a2ff443d3049895eb0c439d16176f802dc9",
+    "backend/app/services/canonical_resume.py": "9970b97c4c6f0a15e63dfc071d453600da7e064db50a1aefa812b2153d355f12",
+    "backend/app/services/resume_suggestions.py": "1a6f9d9ad0c76b4ae24f8122af7773aa29291b2955ac3cd824c7a698316eb175",
+    "backend/app/services/profile_bridge.py": "2fce48f0ee4791ca5b36064c99f37f4919a47ca576aa6d3032357fb118731252",
+    "backend/app/services/session_store.py": "c8960dfbfa4d61f2ac1ba8cb8bdc517302dc6fda103cde35917aad90dc82ca60",
+    "backend/app/services/profile_service.py": "cba14cabb1d80e5fab0a3806d7ce2c579bc8630b7caa8b450bdabebabcdddc4c",
+    "backend/app/services/resume_provenance.py": "085e83c646f83cfc950c8074f3dfa9c3ff10e857fe9bc2b521c2146ec5261a1b",
+    "web/index.html": "3ef3886e028d72fbc86347ff95cba8c70b79d0fa68f6f6879ade4caad9a3dfa7",
+    "web/resume-editor.js": "af1ce01c03a0fff9610826ccd2f965e51c5754e9b4aa51d4526d332d8e69fdc2",
+    "web/resume-workspace.css": "0fcdaa336a91b721c25dbad782dfe98aebe6457bf9a12c06310baca543bce2a1",
+    "web/resume-workspace.js": "ffad9d45ff951a41193d3461aad719bc3444c9098554c11733d056ffac6a5477",
+    "tests/test_resume_import_flow.py": "a25a1967091625cbf07e06d041219c00c6d5351df3e6ce6b5c2e47f185f41a14",
+    "tests/test_profile_invalidation_scope.py": "120743c837aa6e1bb1a412663125889f9b1dc07106f6099f03a9862514e55888",
+    "tests/test_suggestion_generation.py": "ffaaaff78d6ce9b5aaf2a506b8132aeda186970e8dd9cbcfc9b747683aabf8c6",
+    "tests/test_resume_provenance.py": "398ecb0806b1022fd9ef9c9ad18bea40f855882db05e9684730e128fe66834da",
+    "tests/suggestion_generation.browser.js": "2720714692d741b9a9847f663afb4b73ef0e2de86a891ba99a476f8c3c7ca4e2",
+    "tests/resume_provenance.browser.js": "551aea9ec9b2ac3074438d5d9f0bd56bf624b6777f1e622c90e138d8343e2288",
+    "tests/product_live_server.py": "d9a935dc77e6819622e6076a6c23cdd056425c9d04327cc9ba02576f6b33300c",
+    "scripts/evaluate_rewrites.py": "647628a3529122f7b11508bdcb2610f34ed0d09ab50067b438ade7dbf9b08fe0"
+  },
+  "temporary_test_server_stopped": true,
+  "test_browser_sessions_closed": true
+}

@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "pack_version": "draft.0.1",
+  "checked_on": "2026-10-06",
+  "runtime_enabled": false,
+  "description": "研究数据，尚未接入应用；acceptance 为拟议验收，不代表测试通过。正反例是自拟示例。",
+  "proposed_scope": {
+    "region": "中国大陆优先",
+    "stage": [
+      "校招",
+      "实习"
+    ],
+    "roles": [
+      "产品",
+      "技术"
+    ]
+  },
+  "sources": [
+    {
+      "id": "S01",
+      "url": "https://capd.mit.edu/resources/resumes-writing-about-your-skills/",
+      "publisher": "MIT CAPD",
+      "read_scope": "article_body_sections",
+      "evidence_kind": "institutional_guidance",
+      "locator": "PAR Statements; How to best represent your experiences",
+      "checked_on": "2026-10-06"
+    },
+    {
+      "id": "S02",
+      "url": "https://capd.mit.edu/resources/career-toolkit-crafting-an-effective-resume/",
+      "publisher": "MIT CAPD",
+      "read_scope": "official_full_transcript_not_video_frames",
+      "evidence_kind": "institutional_guidance",
+      "locator": "master_resume_and_tailoring; PAR; results_without_numbers",
+      "locator_kind": "topic_paraphrase_not_timestamp",
+      "checked_on": "2026-10-06"
+    },
+    {
+      "id": "S03",
+      "url": "https://www.aboutamazon.com/news/workplace/amazon-job-application-resume-writing-tips",
+      "publisher": "Amazon",
+      "read_scope": "article_body",
+      "evidence_kind": "named_recruiter_advice",
+      "locator": "sections 1-4",
+      "checked_on": "2026-10-06"
+    },
+    {
+      "id": "S04",
+      "url": "https://residential.intl.zju.edu.cn/deve_career_info/id-15.html",
+      "publisher": "浙江大学国际校区书院",
+      "read_scope": "workshop_report_full_body",
+      "evidence_kind": "institutional_workshop_report",
+      "locator": "中文与英文简历工作坊报道",
+      "checked_on": "2026-10-06"
+    },
+    {
+      "id": "S05",
+      "url": "https://job.xaut.edu.cn/2022jiebiyeshengjiuyezhidaoshouce.pdf",
+      "publisher": "西安理工大学学生就业指导服务中心",
+      "read_scope": "resume_chapter_and_preface_not_entire_handbook",
+      "evidence_kind": "institutional_guidance",
+      "locator": "PDF pages 22-26; printed pages 20-24",
+      "checked_on": "2026-10-06"
+    },
+    {
+      "id": "S06",
+      "url": "https://pubsonline.informs.org/doi/abs/10.1287/mnsc.2024.04528",
+      "publisher": "Management Science",
+      "read_scope": "publisher_abstract_authors_disclosures_not_full_study",
+      "evidence_kind": "field_experiment",
+      "locator": "Abstract; Funding; published online 2025-04-18",
+      "checked_on": "2026-10-06"
+    }
+  ],
+  "rules": [
+    {
+      "id": "R01",
+      "name": "完整材料与投递版本分开",
+      "source_ids": [
+        "S02",
+        "S05"
+      ],
+      "source_principle": "先保留经历，再依申请目标取舍。",
+      "when": [
+        "材料包含多个经历",
+        "需要生成整份投递稿"
+      ],
+      "action": "输出选入、候补和待核对经历；不因未选入简历而删除原始材料。",
+      "exceptions": [
+        "用户明确只修改一个段落时，不强行重写整稿"
+      ],
+      "reject_example": "因为简历只能展示两个项目，导入时只提取前两个。",
+      "acceptance": "全部输入经历可追溯；所选经历与岗位方向有具体对应理由。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R02",
+      "name": "按目标读者选择重点",
+      "source_ids": [
+        "S03",
+        "S04"
+      ],
+      "source_principle": "相关程度决定内容优先级。",
+      "when": [
+        "已知岗位方向或JD"
+      ],
+      "action": "用已有事实说明关键能力；没有JD时按已知方向做能力展示，并标记尚未针对具体职位定制。",
+      "exceptions": [
+        "不得把JD要求改写为用户已经掌握的技能",
+        "地区和企业特殊要求需另核验"
+      ],
+      "reject_example": "JD要求用户调研，原材料没有，就补写完成20次用户访谈。",
+      "acceptance": "每项核心表述有本人事实；不因缺JD无限阻塞成稿。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R03",
+      "name": "没有数字也可写真实交付",
+      "source_ids": [
+        "S02",
+        "S03"
+      ],
+      "source_principle": "量化适用于已有指标；并非每条都有数字。",
+      "when": [
+        "没有可信业务指标",
+        "已有个人行动或交付物"
+      ],
+      "action": "保留具体行动、对象、已完成产物和状态；只追问能显著改变判断的信息。",
+      "exceptions": [
+        "定性成果同样不能虚构",
+        "目标、预测和实测必须分开"
+      ],
+      "reject_example": "本地演示成功，被写成上线服务千人、效率提升40%。",
+      "acceptance": "缺数字仍给出可用表达；不新增效果、上线或用户规模。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R04",
+      "name": "压缩要点并检查整稿空间",
+      "source_ids": [
+        "S01"
+      ],
+      "source_principle": "简短要点比长段落更易扫描。",
+      "when": [
+        "段落包含多个主题",
+        "项目篇幅挤占其他重要内容"
+      ],
+      "action": "先分配全稿内容，再压缩重复背景；按模板实际渲染核对空间。",
+      "exceptions": [
+        "一到两行是软建议，不能按固定字符数强裁",
+        "压缩不能丢失否定、职责范围和阶段限定"
+      ],
+      "reject_example": "为凑两行删除仅参与和尚未上线。",
+      "acceptance": "关键限定保留；未渲染时不宣称已减少具体行数。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R05",
+      "name": "个人行动与团队成果区分",
+      "source_ids": [
+        "S01"
+      ],
+      "source_principle": "说明做了什么及产生的结果。",
+      "when": [
+        "原材料只有团队介绍或笼统职责"
+      ],
+      "action": "优先使用已知个人动作；个人分工确实未知时提出一个具体问题。",
+      "exceptions": [
+        "已有独立开发或明确分工时不要重复追问",
+        "团队成果可保留但应归属团队"
+      ],
+      "reject_example": "参加四人课程小组，被改为领导四人团队。",
+      "acceptance": "动词强度和责任范围与事实一致；已回答的问题不反复出现。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R06",
+      "name": "专业术语服务于能力证据",
+      "source_ids": [
+        "S02"
+      ],
+      "source_principle": "语言应适合读者，岗位术语须与真实经历相符。",
+      "when": [
+        "项目技术名词密集",
+        "相同材料需面向不同岗位"
+      ],
+      "action": "按读者保留能解释实际决策或实现的术语；全局技能单独归类。",
+      "exceptions": [
+        "工程岗位可能需要更多实现细节",
+        "不得把技术术语替换为未做过的产品研究"
+      ],
+      "reject_example": "把实现接口改成完成竞品分析和用户访谈。",
+      "acceptance": "产品版和开发版可以重点不同，事实范围保持一致。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R07",
+      "name": "地区和用途限制规则范围",
+      "source_ids": [
+        "S04",
+        "S05"
+      ],
+      "source_principle": "中文、英文及不同申请用途存在差异。",
+      "when": [
+        "涉及照片、个人信息、页数、申请表或CV"
+      ],
+      "action": "按国家地区、文档用途及目标企业明示要求选择规则；冲突时展示具体条件。",
+      "exceptions": [
+        "招聘者的地区偏好不自动成为普遍硬要求",
+        "未知目标系统时不能宣称解析通过"
+      ],
+      "reject_example": "一律强制所有求职者上传照片或删除照片。",
+      "acceptance": "不适用的规则不会成为阻塞项；目标系统要求与一般建议分开。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    },
+    {
+      "id": "R08",
+      "name": "效果结论保持实验范围",
+      "source_ids": [
+        "S06"
+      ],
+      "source_principle": "特定市场的写作辅助实验证据有其干预和人群边界。",
+      "when": [
+        "评估规则包价值",
+        "描述产品求职效果"
+      ],
+      "action": "先记录事实保真、编辑质量与可用性，再观察真实用户结果；外部实验不转写为产品提升率。",
+      "exceptions": [
+        "评审偏好不等于面试转化",
+        "非生成式辅助不等于生成式整稿改写"
+      ],
+      "reject_example": "引用外部实验后宣称本Agent提升8%录用率。",
+      "acceptance": "内部指标与实际招聘结果分别报告；比较允许相同、退步和无法判断。",
+      "status": "draft",
+      "action_kind": "product_design_derived_from_source_not_source_quote",
+      "product_quality_validation": "not_run"
+    }
+  ]
+}

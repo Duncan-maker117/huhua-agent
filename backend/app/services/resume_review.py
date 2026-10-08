@@ -2,6 +2,8 @@
 
 import re
 
+from app.services.resume_sections import get_resume_sections
+
 
 def resume_to_text(data: dict) -> str:
     basic = data.get("basic_info") or {}
@@ -11,25 +13,44 @@ def resume_to_text(data: dict) -> str:
         lines.append(contact.strip(" ·"))
     if basic.get("objective"):
         lines.append(f"求职意向：{basic['objective']}")
-    for heading, key in (("工作与实习经历", "work_experience"), ("项目经历", "projects"), ("教育经历", "education")):
+    for section in get_resume_sections(data):
+        key = section['kind']
+        heading = section['title']
+        if key == 'custom':
+            body = section.get('content') or ''
+        elif key == 'skills':
+            groups = data.get('skill_groups') or {}
+            body = '\n'.join(f"{label}：{'、'.join(values)}" for label, values in groups.items()) if groups else '、'.join(data.get('skills') or [])
+        elif key == 'certificates':
+            body = '\n'.join(f'- {value}' for value in data.get('certificates') or [])
+        elif key == 'self_evaluation':
+            body = data.get('self_evaluation') or ''
+        else:
+            body = None
+        if body is not None:
+            if body.strip():
+                if heading:
+                    lines.append(f'\n## {heading}')
+                lines.append(body)
+            continue
         items = data.get(key) or []
         if not items:
             continue
         lines.append(f"\n## {heading}")
         for item in items:
             title = item.get("company") or item.get("name") or item.get("school") or "[待填写]"
-            detail = item.get("title") or item.get("role") or item.get("degree") or ""
+            detail = item.get("title") or item.get("role") or ' · '.join(part for part in (item.get('major'), item.get('degree')) if part) or ""
             lines.append(" · ".join(part for part in (title, detail) if part))
+            dates = ' — '.join(str(item.get(k) or '') for k in ('start_date', 'end_date')).strip(' —')
+            if dates:
+                lines.append(dates)
             bullets = item.get("bullets") or item.get("polished_bullets") or []
             if not bullets and item.get("description"):
                 bullets = [item["description"]]
             for bullet in bullets:
                 lines.append(f"- {bullet}")
-    skills = data.get("skills") or []
-    if skills:
-        lines.append("\n## 技能\n" + "、".join(skills))
-    if data.get("self_evaluation"):
-        lines.append("\n## 自我评价\n" + data["self_evaluation"])
+            if key == 'education' and item.get('highlights'):
+                lines.append(item['highlights'])
     return "\n".join(lines)
 
 
@@ -38,6 +59,9 @@ def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
     jd_info = jd_info or {}
     basic = data.get("basic_info") or {}
     checks = []
+    for note in (data.get('verification_notes') or [])[:30]:
+        if isinstance(note, str) and note.strip():
+            checks.append('待核对：' + note)
     if not basic.get("name"):
         checks.append("补全姓名。")
     if not basic.get("phone") and not basic.get("email"):

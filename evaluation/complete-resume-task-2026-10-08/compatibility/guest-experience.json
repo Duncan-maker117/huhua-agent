@@ -1,0 +1,17 @@
+{
+  "test": "tests/guest_experience.browser.js",
+  "status": "passed",
+  "passed_checks": 28,
+  "scope": "All business APIs mocked; no email, model, user database or credentials used.",
+  "evidence": "Completed playwright-cli invocation in huhua-guest-export-maintenance2; its returned checks were observed in the tool output. Raw stdout was not archived.",
+  "boundaries": [
+    "Guest export does not request a download endpoint",
+    "Login claim failure preserves chat and unsent input",
+    "Retry does not repeat OTP verification or claim all browser sessions",
+    "Pending editor changes save before identity switch",
+    "Word download completes",
+    "PDF download completes with authenticated current session and the latest saved editor name",
+    "Preview endpoint is not used for PDF export",
+    "No browser page errors"
+  ]
+}

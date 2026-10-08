@@ -9,6 +9,7 @@ async (page) => {
   const order = () => page.locator('.section-drag-handle').evaluateAll((nodes) => nodes.map((node) => node.closest('details').dataset.sectionId));
   const headings = () => page.frameLocator('#preview-frame').locator('.section-title [data-field-path^="/sections/"]').allTextContents();
   await page.setViewportSize({width: 1440, height: 960});
+  await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
   await page.goto('http://127.0.0.1:8765/resume');
   await settled();
   await page.evaluate(() => { for (const node of document.querySelectorAll('.edit-section')) if (node.dataset.sectionId !== 'basic-info') node.open = false; });

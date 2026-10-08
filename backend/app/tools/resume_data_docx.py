@@ -12,7 +12,8 @@ import logging
 from typing import Any
 
 from docx import Document
-from docx.shared import Inches, Pt
+from docx.oxml.ns import qn
+from docx.shared import Inches, Mm, Pt
 
 from app.services.resume_sections import get_resume_sections
 
@@ -52,12 +53,16 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
     """把 ResumeData dict 转为 docx bytes。空字段不输出对应行。"""
     doc = Document()
     for section in doc.sections:
+        section.page_width = Mm(210)
+        section.page_height = Mm(297)
         section.top_margin = Inches(0.8)
         section.bottom_margin = Inches(0.8)
         section.left_margin = Inches(1.0)
         section.right_margin = Inches(1.0)
     style = doc.styles["Normal"]
     style.font.name = "微软雅黑"
+    # python-docx's font.name only sets Latin mappings; map CJK explicitly too.
+    style.element.get_or_add_rPr().get_or_add_rFonts().set(qn("w:eastAsia"), "微软雅黑")
     style.font.size = Pt(10.5)
 
     basic = data.get("basic_info") or {}

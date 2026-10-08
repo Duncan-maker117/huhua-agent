@@ -10,15 +10,17 @@
 """
 
 import asyncio
+from collections import Counter
 import logging
 import re
 from typing import Any
 
-from langchain_core.messages import HumanMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
 from app.services.llm_compat import with_structured_output
+from app.agents.career_prompt import career_messages
+from app.services.model_privacy import ContactRedactor
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +32,11 @@ def _numbers(text: str) -> set[str]:
 
 
 def _source_supported_bullets(description: str, bullets: list[str]) -> bool:
-    """Only accept whole source sentences; overlap alone cannot prove the same claim.
+    """Accept a reordering of every source sentence, without dropping qualifications.
 
     An LLM changing 「参与调研」 to 「主导调研」 keeps most words but changes the
-    candidate's responsibility. Extractive sentences are the safe first release.
+    candidate's responsibility. Selecting only a subset can also hide facts such
+    as 「尚未上线」, because downstream views prefer bullets over description.
     """
     if not description or not bullets or not all(isinstance(b, str) for b in bullets):
         return False
@@ -41,20 +44,20 @@ def _source_supported_bullets(description: str, bullets: list[str]) -> bool:
     def normalized(text: str) -> str:
         return re.sub(r"\s+", "", text.strip().lstrip("-•* ").rstrip("。；;.!！ "))
 
-    source_units = {
+    source_units = Counter(
         normalized(sentence)
         for line in description.splitlines()
         for sentence in re.split(r"[。；;]", line)
         if normalized(sentence)
-    }
-    return all(normalized(bullet) in source_units for bullet in bullets)
+    )
+    return Counter(normalized(bullet) for bullet in bullets) == source_units
 
 
 class _ProjectPolish(BaseModel):
     name: str = Field(..., description="项目名，原样返回用于匹配")
     polished_bullets: list[str] = Field(
         default_factory=list,
-        description="仅摘取原 description 中完整句子，可排序，不改写事实或动词",
+        description="完整保留原 description 中每个句子，可排序，不删句、不改写事实或动词",
     )
 
 
@@ -74,7 +77,7 @@ class EditorOutput(BaseModel):
     )
     project_polishes: list[_ProjectPolish] = Field(
         default_factory=list,
-        description="对每个项目的 description 压缩结果；name 必须和输入一致以便匹配",
+        description="对每个项目的 description 分句整理结果；name 必须和输入一致以便匹配",
     )
 
 
@@ -108,15 +111,12 @@ projects 里既有项目又有活动时，按"项目经历"处理（多数场景
 不确定就返回空串，由模板使用默认。
 
 ## 任务 3：projects description 整理
-只能从 description 中摘取完整的原句作为 bullet，可调整句子的先后顺序。
+只能把 description 中完整的原句整理为 bullet，可调整句子的先后顺序。
+必须保留全部原句，包括职责范围、反馈、尚未上线和效果未验证等限制；不得只选择其中几句。
 原文写「参与」就保留「参与」，不得改成「负责」「主导」「推动上线」等更强的职责或结果。
 不得新增数字、项目名、动作或成果。原文没有可独立摘取的句子，就返回空数组，保留原文。
 
 返回时 `project_polishes[].name` 必须和输入项目的 name 完全一致，便于前端 match。
-
-# 输入 JSON
-
-{resume_json}
 
 # 输出
 
@@ -132,15 +132,21 @@ async def run_editor(resume_data: dict, llm: ChatOpenAI) -> dict:
     import json as _json
 
     structured_llm = with_structured_output(llm, EditorOutput)
-    prompt = EDITOR_SYSTEM.format(
-        resume_json=_json.dumps(resume_data, ensure_ascii=False, indent=2)
+    privacy = ContactRedactor()
+    messages = career_messages(
+        None,
+        "候选人当前简历数据：\n"
+        + _json.dumps(resume_data, ensure_ascii=False, indent=2),
+        EDITOR_SYSTEM,
+        privacy=privacy,
     )
 
     try:
         result: EditorOutput = await asyncio.wait_for(
-            structured_llm.ainvoke([HumanMessage(content=prompt)]),
+            structured_llm.ainvoke(messages),
             timeout=EDITOR_TIMEOUT_SECONDS,
         )
+        result = EditorOutput.model_validate(privacy.restore(result.model_dump()))
     except asyncio.TimeoutError:
         logger.warning(
             f"[editor/timeout] LLM 超过 {EDITOR_TIMEOUT_SECONDS}s 未返回，跳过美化"

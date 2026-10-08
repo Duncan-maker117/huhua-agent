@@ -1,0 +1,276 @@
+{
+  "scope": "合成 API/SSE 浏览器工作区回归；未调用真实模型、用户会话或导出服务。",
+  "checks": [
+    {
+      "id": "jd-without-resume",
+      "passed": true,
+      "detail": "尚无简历时，JD 解析直接展示在工作区"
+    },
+    {
+      "id": "jd-evidence",
+      "passed": true,
+      "detail": "岗位保留原句依据"
+    },
+    {
+      "id": "jd-interpretation",
+      "passed": true,
+      "detail": "原长解读迁移到右侧岗位解读"
+    },
+    {
+      "id": "tabs-are-buttons",
+      "passed": true,
+      "detail": "五个阶段可点击且具备 tab 语义"
+    },
+    {
+      "id": "guidance-visible",
+      "passed": true,
+      "detail": "追问与选项显示在输入框上方"
+    },
+    {
+      "id": "advice-separate",
+      "passed": true,
+      "detail": "建议和待补事实明确分开"
+    },
+    {
+      "id": "chat-bounds-initial",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":777.609375,\"clientWidth\":778,\"scrollWidth\":778,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":false,\"left\":0,\"right\":0},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":745.609375},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":777.609375}]}"
+    },
+    {
+      "id": "icons-offline",
+      "passed": true,
+      "detail": "断开外网字体后首页所有图标仍由本地 SVG 渲染，不显示英文 token"
+    },
+    {
+      "id": "choice-sends-once",
+      "passed": true,
+      "detail": "快速连续点击同组两个选项共40次，只提交一轮"
+    },
+    {
+      "id": "choice-complete-answer",
+      "passed": true,
+      "detail": "完整回答直接发送，不夹带草稿、附件或另选的任务"
+    },
+    {
+      "id": "choice-user-bubble",
+      "passed": true,
+      "detail": "选项直接作为用户消息显示"
+    },
+    {
+      "id": "choice-preserves-input",
+      "passed": true,
+      "detail": "已有草稿原样保留，不追加选项文字"
+    },
+    {
+      "id": "choice-preserves-attachments",
+      "passed": true,
+      "detail": "未发送附件和对应任务留给原草稿"
+    },
+    {
+      "id": "choice-hides-group",
+      "passed": true,
+      "detail": "点选后这组立即收起"
+    },
+    {
+      "id": "answered-group-stays-hidden",
+      "passed": true,
+      "detail": "流结束与画布刷新后，已回答的同组不会再出现"
+    },
+    {
+      "id": "chat-bounds-choice-focus",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":777.609375,\"clientWidth\":778,\"scrollWidth\":778,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":4.796875,\"right\":772.796875},{\"id\":\"guidance-dock\",\"visible\":false,\"left\":0,\"right\":0},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":777.609375}]}"
+    },
+    {
+      "id": "busy-status",
+      "passed": true,
+      "detail": "流式时清楚提示同步中，并隐藏旧追问"
+    },
+    {
+      "id": "experiences-before-done",
+      "passed": true,
+      "detail": "元数据到达即更新右侧经历，无需等流结束"
+    },
+    {
+      "id": "experience-missing",
+      "passed": true,
+      "detail": "经历缺口与教育分别可见"
+    },
+    {
+      "id": "new-question-available",
+      "passed": true,
+      "detail": "下一轮的新问题正常出现"
+    },
+    {
+      "id": "short-chat",
+      "passed": true,
+      "detail": "聊天不复制工作区的长资料"
+    },
+    {
+      "id": "resume-before-done",
+      "passed": true,
+      "detail": "本轮事实触发新画布，回复结束前即可看到"
+    },
+    {
+      "id": "latest-reply-visible",
+      "passed": true,
+      "detail": "追问展开改变布局后，消息区仍显示最新回复"
+    },
+    {
+      "id": "no-version-hash",
+      "passed": true,
+      "detail": "版本只用于变化检测，不显示技术 hash"
+    },
+    {
+      "id": "chat-bounds-conversation",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":777.609375,\"clientWidth\":778,\"scrollWidth\":778,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":4.796875,\"right\":772.796875},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":745.609375},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":777.609375}]}"
+    },
+    {
+      "id": "no-overflow-0-1440",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-0-1440",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":777.609375,\"clientWidth\":778,\"scrollWidth\":778,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":4.796875,\"right\":772.796875},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":745.609375},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":777.609375}]}"
+    },
+    {
+      "id": "no-overflow-1-1024",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-1-1024",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":593.921875,\"clientWidth\":594,\"scrollWidth\":594,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":0,\"right\":593.921875},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":561.921875},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":593.921875}]}"
+    },
+    {
+      "id": "no-overflow-2-768",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-2-768",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":768,\"clientWidth\":768,\"scrollWidth\":768,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":0,\"right\":768},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":736},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":768}]}"
+    },
+    {
+      "id": "no-overflow-3-390",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-3-390",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":390,\"clientWidth\":390,\"scrollWidth\":390,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":0,\"right\":390},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":12,\"right\":378},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":390}]}"
+    },
+    {
+      "id": "no-overflow-4-768",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-4-768",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":768,\"clientWidth\":768,\"scrollWidth\":768,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":0,\"right\":768},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":736},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":768}]}"
+    },
+    {
+      "id": "no-overflow-5-1024",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-5-1024",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":593.921875,\"clientWidth\":594,\"scrollWidth\":594,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":0,\"right\":593.921875},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":561.921875},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":593.921875}]}"
+    },
+    {
+      "id": "no-overflow-6-1440",
+      "passed": true,
+      "detail": "A4 缩放后的真实占位不撑宽页面"
+    },
+    {
+      "id": "chat-bounds-resize-6-1440",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":777.609375,\"clientWidth\":778,\"scrollWidth\":778,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":true,\"left\":4.796875,\"right\":772.796875},{\"id\":\"guidance-dock\",\"visible\":true,\"left\":32,\"right\":745.609375},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":777.609375}]}"
+    },
+    {
+      "id": "keyboard-tabs",
+      "passed": true,
+      "detail": "方向键切换工作区并移动焦点"
+    },
+    {
+      "id": "review-items",
+      "passed": true,
+      "detail": "核对 tab 展示当前问题"
+    },
+    {
+      "id": "export-current-session",
+      "passed": true,
+      "detail": "导出编辑入口绑定当前会话"
+    },
+    {
+      "id": "mobile-workspace",
+      "passed": true,
+      "detail": "手机单独打开可关闭的工作区"
+    },
+    {
+      "id": "mobile-no-overflow",
+      "passed": true,
+      "detail": "390px 页面与画布均无横向溢出"
+    },
+    {
+      "id": "mobile-return-chat",
+      "passed": true,
+      "detail": "手机可返回对话且恢复输入"
+    },
+    {
+      "id": "failed-choice-can-retry",
+      "passed": true,
+      "detail": "请求未被服务端接受时显示失败，并重新提供选项"
+    },
+    {
+      "id": "choice-keyboard-sends",
+      "passed": true,
+      "detail": "键盘回车可重试，仍直接发送完整回答"
+    },
+    {
+      "id": "sse-error-choice-can-retry",
+      "passed": true,
+      "detail": "HTTP 200 内的 SSE 错误也恢复选项，不能误认为回答完成"
+    },
+    {
+      "id": "history-restores-workspace",
+      "passed": true,
+      "detail": "刷新历史恢复 JD、经历和简历"
+    },
+    {
+      "id": "paint-error-preserves-preview",
+      "passed": true,
+      "detail": "渲染失败明确提示并保留已有预览"
+    },
+    {
+      "id": "new-chat-clears-workspace",
+      "passed": true,
+      "detail": "切换新会话不残留旧 JD、经历、追问或简历"
+    },
+    {
+      "id": "chat-bounds-new-chat",
+      "passed": true,
+      "detail": "{\"left\":0,\"right\":777.609375,\"clientWidth\":778,\"scrollWidth\":778,\"scrollLeft\":0,\"children\":[{\"id\":\"messages\",\"visible\":false,\"left\":0,\"right\":0},{\"id\":\"guidance-dock\",\"visible\":false,\"left\":0,\"right\":0},{\"id\":\"composer-wrap\",\"visible\":true,\"left\":0,\"right\":777.609375}]}"
+    },
+    {
+      "id": "workspace-text-safe",
+      "passed": true,
+      "detail": "所有岗位、选项和建议按文本呈现，不能注入 HTML"
+    },
+    {
+      "id": "no-page-errors",
+      "passed": true,
+      "detail": "[]"
+    }
+  ],
+  "errors": []
+}

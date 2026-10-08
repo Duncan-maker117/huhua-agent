@@ -1,0 +1,142 @@
+{
+  "date": "2026-10-04T20:37:15.516487+08:00",
+  "scope": "approved_local_implementation_and_isolated_validation",
+  "python_suite": {
+    "command": ".venv/bin/python scripts/run_tests.py",
+    "tests": 289,
+    "seconds": 5.451,
+    "passed": true,
+    "model": "offline",
+    "database": "temporary",
+    "real_credentials_used": false
+  },
+  "browser_batches": [
+    {
+      "evidence": "evaluation/product-profile-live-2026-10-04/verification.json",
+      "checks": 22,
+      "passed": true,
+      "kind": "real_backend_and_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-live-2026-10-04/pdf-verification.json",
+      "checks": 5,
+      "passed": true,
+      "kind": "real_backend_and_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-2026-10-04/editor-profile-regression.json",
+      "checks": 6,
+      "passed": true,
+      "kind": "mock_api_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-2026-10-04/history-regression.json",
+      "checks": 37,
+      "passed": true,
+      "kind": "mock_api_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-2026-10-04/import-status-ui.json",
+      "checks": 7,
+      "passed": true,
+      "kind": "mock_api_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-2026-10-04/product-ui-result.json",
+      "checks": 29,
+      "passed": true,
+      "kind": "mock_api_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-2026-10-04/stream-regression.json",
+      "checks": 23,
+      "passed": true,
+      "kind": "mock_api_browser"
+    },
+    {
+      "evidence": "evaluation/product-profile-2026-10-04/workspace-regression.json",
+      "checks": 54,
+      "passed": true,
+      "kind": "mock_api_browser"
+    }
+  ],
+  "checks": "Different batches overlap and must not be added into a coverage percentage.",
+  "static_checks": {
+    "ruff": "passed on changed business modules and new security/archive tests",
+    "compileall": "passed",
+    "git_diff_check": "passed"
+  },
+  "live_model": {
+    "status": "not_validated",
+    "attempts": 1,
+    "completed": 0,
+    "limitation": "OpenAIConnectionError; no model output; second scenario not run"
+  },
+  "safety": {
+    "real_database_migrated": false,
+    "existing_env_modified": false,
+    "original_8765_service_switched": false,
+    "real_smtp_sent": false,
+    "public_deployment": false,
+    "test_servers_closed": true
+  },
+  "remaining_environment_validation": [
+    "Configure approved SMTP, HTTPS origin and separately held production keys",
+    "Re-run live model synthetic fact/correction scenarios when provider connectivity is available",
+    "Validate PostgreSQL and paired restore in the target environment",
+    "Refresh independently trusted privacy snapshots after privacy changes",
+    "Authorize real-data copy migration before switching the existing service",
+    "Authorize and run target-user trials"
+  ],
+  "source_baseline": {
+    "path": "/var/folders/2z/csfpf2k94x9021h6cypf5k5w0000gn/T/huhua-source-baseline-78v7cx07",
+    "files": 126,
+    "missing_original_files": [],
+    "modified_existing_files": [
+      "backend/app/agents/career_prompt.py",
+      "backend/app/agents/public_reply.py",
+      "backend/app/api/conversations.py",
+      "backend/app/services/canonical_resume.py",
+      "backend/app/services/conversation_store.py",
+      "backend/app/services/data_crypto.py",
+      "docs/development/2026-10-04-product-and-profile-plan.md",
+      "tests/chat_markdown.browser.js",
+      "tests/chat_stream.browser.js",
+      "tests/conversation_history.browser.js",
+      "tests/resume_persistence.browser.js",
+      "tests/resume_workspace.browser.js",
+      "tests/test_conversations.py",
+      "tests/test_resume_persistence.py",
+      "tests/test_resume_workspace.py",
+      "tests/test_skill_requests.py",
+      "web/conversation-history.js",
+      "web/resume-workspace.css",
+      "web/resume-workspace.js",
+      ".env.example",
+      "README.md",
+      "backend/app/agents/decoder_chain.py",
+      "backend/app/agents/editor_chain.py",
+      "backend/app/agents/resume_graph.py",
+      "backend/app/agents/triage_chain.py",
+      "backend/app/api/chat.py",
+      "backend/app/api/resume.py",
+      "backend/app/config.py",
+      "backend/app/database.py",
+      "backend/app/models/models.py",
+      "backend/app/services/session_store.py",
+      "backend/main.py",
+      "mmr.md",
+      "render.yaml",
+      "requirements.txt",
+      "tests/resume_editor.browser.js",
+      "tests/resume_sections.browser.js",
+      "tests/test_jev_match.py",
+      "tests/test_privacy.py",
+      "tests/test_public_beta.py",
+      "tests/test_resume_flow.py",
+      "web/index.html",
+      "web/resume-editor.js"
+    ],
+    "note": "Selected preexisting source/doc baseline; no real DB backup was made in this turn"
+  }
+}

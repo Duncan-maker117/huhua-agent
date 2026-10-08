@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-06",
+  "scope": "本地无引用旧功能清理；未部署",
+  "removed_files": [
+    "backend/app/agents/orchestrator.py",
+    "backend/app/agents/wrapper_chain.py",
+    "backend/app/agents/evaluator_chain.py",
+    "backend/app/schemas/wrapper.py",
+    "backend/app/schemas/evaluator.py",
+    "backend/app/schemas/optimizer.py",
+    "backend/app/schemas/user.py",
+    "data/golden_resumes.json",
+    "data/golden_resumes_distribution_report.md"
+  ],
+  "related_changes": [
+    "移除旧包装/优化/评分提示词及 DECODER_PROMPT 别名",
+    "移除 golden_resumes 的 loader、预加载及 Docker/源码包引用",
+    "以现用建议依据核验替换旧评分兼容性测试，增加无效依据拒绝回归",
+    "同步 README 和 mmr；清除已删模块的 7 份缓存字节码"
+  ],
+  "preserved": [
+    "JD_DECODER 提示词 AST 值不变",
+    "当前 LangGraph 主流程与三个 Skill",
+    "联网工具及档案归档",
+    "可选 jargon_dict RAG",
+    "用户资料、数据库及受限运行配置",
+    "既有研究与历史验收资料"
+  ],
+  "verification": {
+    "offline_tests": {
+      "command": ".venv/bin/python scripts/run_tests.py -q",
+      "passed": 471,
+      "failed": 0,
+      "duration_seconds": 10.391,
+      "note": "首次沙箱运行仅本地 TLS 监听被拒；允许本地端口后全套重跑通过。隔离临时数据库及外部服务凭证，无真实模型或发信请求。"
+    },
+    "ruff": {
+      "status": "passed",
+      "files": [
+        "backend/app/agents/prompts.py",
+        "backend/app/rag/loader.py",
+        "backend/main.py",
+        "tests/test_llm_compat.py",
+        "scripts/package_deploy.py"
+      ]
+    },
+    "python_compile": "passed",
+    "active_reference_scan": "no stale references in backend/tests/scripts/README/Dockerfile/.github/requirements",
+    "jd_prompt_ast_unchanged": true,
+    "package": {
+      "path": "/private/tmp/huhua-legacy-cleanup-deploy.tar.gz",
+      "file_count": 131,
+      "bytes": 473246,
+      "sha256": "8ea240d2ad44eaa736c0943192441fd14b7b7762d3727476579f5c3c67d3ee03",
+      "deleted_paths_absent": true,
+      "current_skills_and_jargon_present": true
+    }
+  },
+  "rollback_snapshot": {
+    "path": "/var/folders/2z/csfpf2k94x9021h6cypf5k5w0000gn/T/huhua-legacy-cleanup-431r2hur",
+    "manifest": "manifest.json",
+    "files": 17,
+    "sha256_verified": true,
+    "note": "系统临时目录，不是长期备份"
+  },
+  "deployed": false,
+  "commit_or_push": false
+}

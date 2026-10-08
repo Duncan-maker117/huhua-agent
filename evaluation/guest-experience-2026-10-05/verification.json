@@ -1,0 +1,71 @@
+{
+  "status": "deployed_public_checks_passed",
+  "local_tests": {
+    "passed": 374,
+    "seconds": 37.538
+  },
+  "server_isolated_tests": {
+    "passed": 377,
+    "seconds": 37.289,
+    "network": "none",
+    "production_data_mounted": false
+  },
+  "ui_fixture": {
+    "backend": "real encrypted temporary app",
+    "mail": "memory-only .invalid mailbox",
+    "model": "synthetic streaming fixture",
+    "checks": [
+      "first visit composer enabled",
+      "six sample templates visible without login",
+      "template switch previews immediately",
+      "guest stream creates visible resume",
+      "Word click prompts login",
+      "login stays on same session",
+      "unsent composer text preserved",
+      "Word downloaded and XML contains fixture name",
+      "claimed conversation shown in account history",
+      "claimed history import completed"
+    ],
+    "download": "guest-ui-export.docx",
+    "screenshot": "login-continued.jpg",
+    "limits": [
+      "Browser download-event observer timed out; local downloaded DOCX and HTTP 200 independently confirmed",
+      "No real mail delivered or received",
+      "Profile extraction intentionally unavailable without model in fixture"
+    ]
+  },
+  "production": {
+    "initial_release": "stopped before code switch due to WAL snapshot backup issue; old version automatically restarted healthy; WAL tooling fixed and paired backup succeeded; subsequent digest glob permission check caused second automatic rollback; corrected read check then final switch succeeded",
+    "data_or_credentials_transferred": false,
+    "image": "huhua-agent:20261005-2",
+    "image_id": "sha256:7a249bdd7a75c906bb3721f4bc23bdabc8f8e03984daf89b88d7bf9db4cc24d2",
+    "source_archive_sha256": "3838655075bf7253caaf3c219ab159aaa2053833019ead8cba39184f0c19b5f2",
+    "healthy": true,
+    "public_api_checks": 16,
+    "app_env_unchanged": true,
+    "data_volume_preserved": true,
+    "paired_backup": "/opt/huhua-backups/pre-20261005-2-wal-fixed",
+    "privacy_snapshot_sha256": "b5471704dc383ff009a8329204791c816af7f331980d47187f978c84a8eb34ba",
+    "real_guest_chat": "completed one synthetic-input turn through live model in unauthenticated browser",
+    "browser_export_gate": "Word click opens login prompt",
+    "real_mail_sent": false,
+    "real_account_login_claim_validated": false,
+    "browser_guest_editor": "name edit autosaved; template switched to dark-blue; screenshot shows login button and guest retention notice",
+    "screenshot": "online-guest-template.jpg",
+    "inline_preview": "visible after returning from full template editor; screenshot online-guest-chat.jpg",
+    "complete_guest_browser_flow": [
+      "initial guest composer enabled",
+      "real-model synthetic conversation completed",
+      "Word export requires login",
+      "full template renders current guest resume",
+      "guest name edit saved",
+      "template switch renders",
+      "return to chat retains current draft and visible preview"
+    ]
+  },
+  "wal_backup_regression": {
+    "new_tests": 3,
+    "existing_privacy_restore_tests": 7,
+    "source_database_modified": false
+  }
+}

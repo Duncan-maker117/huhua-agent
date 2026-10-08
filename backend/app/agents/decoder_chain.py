@@ -10,6 +10,8 @@ from tenacity import (
 )
 
 from app.agents.prompts import JD_DECODER_PROMPT
+from app.schemas.decoder import JdInfo
+from app.services.model_privacy import ContactRedactor, redact_model_messages
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,8 @@ async def run_decoder_chain(
     import asyncio
 
     context = ""
+    privacy = ContactRedactor()
+    safe_jd_text = privacy.redact(jd_text)
     from app.config import get_settings
 
     if not get_settings().ENABLE_RAG:
@@ -42,7 +46,7 @@ async def run_decoder_chain(
             from app.rag.vector_store import get_retriever
 
             retriever = get_retriever(collection="jargon_dict", k=5)
-            return retriever.invoke(jd_text)
+            return retriever.invoke(safe_jd_text)
 
         _task = asyncio.create_task(asyncio.to_thread(_retrieve))
         done, _ = await asyncio.wait([_task], timeout=8.0)
@@ -52,7 +56,7 @@ async def run_decoder_chain(
         else:
             logger.warning("RAG retrieval timed out, proceeding without context")
     except Exception as e:
-        logger.warning(f"RAG retrieval skipped: {e}")
+        logger.warning("RAG retrieval skipped: %s", type(e).__name__)
 
     if llm is None:
         return {
@@ -68,11 +72,14 @@ async def run_decoder_chain(
         }
 
     # 单次调用，统一 Prompt 同时输出 JSON + 毒舌文本
-    chain = JD_DECODER_PROMPT | llm
-    output = await chain.ainvoke({"context": context, "jd_text": jd_text})
+    messages = redact_model_messages(
+        JD_DECODER_PROMPT.format_messages(context=context, jd_text=safe_jd_text), privacy
+    )
+    output = await llm.ainvoke(messages)
 
-    content = output.content
+    content = privacy.restore(output.content)
     jd_info, decode_text = _split_output(content)
+    jd_info = _validate_jd_info(jd_info, jd_text)
     decoded_items, summary = _parse_decode_text(decode_text)
 
     return {
@@ -89,11 +96,44 @@ async def _run_without_rag(jd_text: str, llm: ChatOpenAI | None) -> dict:
             "summary": f"[待接入 LLM] JD 长度：{len(jd_text)} 字",
             "jd_info": _empty_jd_info(),
         }
-    chain = JD_DECODER_PROMPT | llm
-    output = await chain.ainvoke({"context": "", "jd_text": jd_text})
-    jd_info, decode_text = _split_output(output.content)
+    privacy = ContactRedactor()
+    messages = redact_model_messages(
+        JD_DECODER_PROMPT.format_messages(context="", jd_text=jd_text), privacy
+    )
+    output = await llm.ainvoke(messages)
+    jd_info, decode_text = _split_output(privacy.restore(output.content))
+    jd_info = _validate_jd_info(jd_info, jd_text)
     decoded_items, summary = _parse_decode_text(decode_text)
     return {"decoded_items": decoded_items, "summary": summary, "jd_info": jd_info}
+
+
+def _validate_jd_info(info: dict, jd_text: str) -> dict:
+    """Validate structure and reject evidence quotes absent from supplied JD.
+
+    This is a source-location check, not proof that semantic extraction is correct.
+    """
+    try:
+        parsed = JdInfo.model_validate(info)
+    except Exception:
+        logger.warning("JD info has an invalid structure")
+        return _empty_jd_info()
+    parsed.resume_strategy.keyword_density_targets = []
+    categories = {
+        "required",
+        "preferred",
+        "responsibility",
+        "eligibility",
+        "unspecified",
+    }
+    parsed.requirement_evidence = [
+        item
+        for item in parsed.requirement_evidence
+        if item.source_quote.strip()
+        and item.source_quote in jd_text
+        and item.category in categories
+        and item.text.strip()
+    ]
+    return parsed.model_dump()
 
 
 def _split_output(content: str) -> tuple[dict, str]:
@@ -173,7 +213,7 @@ def _parse_json_part(text: str) -> dict:
         except json.JSONDecodeError:
             pass
 
-    logger.warning(f"JD 信息提取 JSON 解析失败: {text[:200]}")
+    logger.warning("JD 信息提取 JSON 解析失败")
     return _empty_jd_info()
 
 

@@ -1,0 +1,70 @@
+// Real encrypted app, fictional data, no API mocks or model calls.
+async (page) => {
+  const base='http://127.0.0.1:8894',checks=[],email='paper-'+Date.now()+'@huhua-fixture.invalid';
+  const check=(id,passed)=>{checks.push({id,passed:Boolean(passed)});if(!passed)throw new Error(id);};
+  const queryValue=(value,key)=>{const query=value.split('?')[1]||'';const pair=query.split('&').find(part=>part.split('=')[0]===key);return pair?decodeURIComponent(pair.split('=').slice(1).join('=')):null;};
+  await page.unroute('**/api/**');
+  const request=async(path,method='GET',data)=>{
+    const response=await page.request.fetch(base+path,{method,headers:{Origin:base},...(data===undefined?{}:{data})});
+    const body=await response.json();if(!response.ok())throw new Error(path+': '+response.status());return body;
+  };
+  await page.goto(base+'/');await page.locator('#btn-account-profile').click();
+  await page.getByLabel('登录邮箱',{exact:true}).fill(email);
+  await page.getByRole('button',{name:'发送验证码',exact:true}).click();await page.getByLabel('邮箱验证码',{exact:true}).waitFor();
+  const otp=await request('/__test__/otp?email='+encodeURIComponent(email));
+  await page.getByLabel('邮箱验证码',{exact:true}).fill(otp.code);await page.getByRole('button',{name:'登录',exact:true}).click();
+  await page.waitForFunction(()=>document.getElementById('btn-account-profile').textContent==='我的档案'&&!document.getElementById('btn-send').disabled);
+  const session=await page.evaluate(()=>new URLSearchParams(location.search).get('session'));
+  const name=await request('/api/profile/facts','POST',{category:'basic',subject:'基础信息',field:'name',value:'虚构打印验收'});
+  const fact=await request('/api/profile/facts','POST',{category:'project',subject:'虚构打印项目',field:'description',value:'整理虚构文档测试'});
+  // These are normal authenticated fact/import APIs, never fixture-only writes.
+  const profile=await request('/api/profile');
+  await request('/api/resume/session/'+session+'/profile-facts','POST',{fact_ids:profile.facts.map(f=>f.id)});
+  await page.reload();await page.waitForFunction(()=>document.getElementById('workspace-status').textContent.includes('简历已更新'));
+  await page.getByRole('button',{name:/核对并采用措辞|核对一处表达修改/}).first().click();
+  await page.locator('.suggestion-form select').selectOption('整理虚构文档测试');
+  await page.getByLabel('拟采用的建议句',{exact:true}).fill('整理虚构文档测试。');
+  await page.getByRole('button',{name:'核对依据与改动',exact:true}).click();await page.getByRole('button',{name:'采用这句',exact:true}).waitFor();
+  await page.getByRole('button',{name:'采用这句',exact:true}).click();await page.getByRole('button',{name:'撤销本次采用',exact:true}).waitFor();
+  const canonical=await request('/api/resume/current?session_id='+session);
+  check('suggestion-persisted-before-pdf',JSON.stringify(canonical.data).includes('整理虚构文档测试。'));
+  await page.locator('#workspace-tab-resume').click();
+  await page.locator('#tpl-rail .tpl-chip').nth(3).click();
+  const chatTemplate=await page.locator('#tpl-rail .tpl-chip.active').getAttribute('data-id');
+  await page.reload();await page.waitForFunction(()=>document.querySelector('#tpl-rail .tpl-chip.active')&&document.getElementById('live-sheet').srcdoc.includes('整理虚构文档测试。'));
+  check('chat-template-survives-reload',await page.locator('#tpl-rail .tpl-chip.active').getAttribute('data-id')===chatTemplate);
+  await page.goto(base+'/resume?session='+session);await page.locator('[data-input-path="/basic_info/name"]').waitFor();
+  check('chat-template-restored-in-full-editor',await page.locator('.tpl-item.active').getAttribute('data-template-id')===chatTemplate);
+  await page.locator('.tpl-item').nth(1).click();
+  const editorTemplate=await page.locator('.tpl-item.active').getAttribute('data-template-id');
+  await page.goto(base+'/?session='+session);await page.waitForFunction(()=>document.querySelector('#tpl-rail .tpl-chip.active')&&document.getElementById('live-sheet').srcdoc.includes('整理虚构文档测试。'));
+  check('editor-template-restored-in-chat',await page.locator('#tpl-rail .tpl-chip.active').getAttribute('data-id')===editorTemplate);
+  await page.goto(base+'/resume?session='+session);await page.locator('[data-input-path="/basic_info/name"]').waitFor();
+  await page.waitForFunction(()=>!document.getElementById('btn-export').disabled);
+  await page.waitForFunction(()=>document.getElementById('preview-frame').srcdoc.includes('整理虚构文档测试。'));
+  const preview=page.frameLocator('#preview-frame');
+  check('actual-preview-latest-adopted-text',(await preview.locator('body').textContent()).includes('整理虚构文档测试。'));
+  check('actual-preview-name',(await preview.locator('body').textContent()).includes('虚构打印验收'));
+  check('preview-has-no-editor-ui',await preview.locator('[data-input-path]').count()===0);
+  await page.locator('#btn-export').click();
+  const responseReady=page.waitForResponse(response=>response.url().includes('/api/resume/export/pdf/')&&response.request().method()==='POST');
+  const downloadReady=page.waitForEvent('download');
+  await page.getByRole('button',{name:'导出 PDF',exact:true}).click();
+  const response=await responseReady,download=await downloadReady;
+  const exportRequest=response.request(),exported=exportRequest.postDataJSON();
+  check('pdf-export-uses-current-session',queryValue(exportRequest.url(),'session_id')===session);
+  check('pdf-source-has-latest-adopted-text',JSON.stringify(exported.projects).includes('整理虚构文档测试。'));
+  check('pdf-source-has-current-name',exported.basic_info.name==='虚构打印验收');
+  const signature=await page.evaluate(async()=>{
+    const blob=await(await fetch(document.getElementById('export-download').href)).arrayBuffer();
+    return Array.from(new Uint8Array(blob).slice(0,5));
+  });
+  check('actual-pdf-response',response.ok()&&response.headers()['content-type'].includes('application/pdf')&&signature.join(',')==='37,80,68,70,45');
+  const pdf={generated:true,path:'/private/tmp/huhua-suggestion-applied.pdf'};
+  await download.saveAs(pdf.path);
+  check('actual-pdf-downloaded',await download.failure()===null&&download.suggestedFilename().endsWith('.pdf'));
+  check('pdf-download-link-remains-visible',await page.locator('#export-download').isVisible());
+  await page.screenshot({path:'/private/tmp/huhua-suggestion-export.png',fullPage:true});
+  check('canonical-unchanged-by-export',(await request('/api/resume/current?session_id='+session)).revision===canonical.revision);
+  return{scope:'Actual encrypted app and downloaded PDF after explicit UI suggestion adoption; fictional data; no model or external email. Extract the downloaded PDF text to verify the rendered artifact.',checks,pdf};
+}

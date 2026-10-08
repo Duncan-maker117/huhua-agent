@@ -1,0 +1,38 @@
+{
+  "checked_at": "2026-10-04T17:31:12.495004+00:00",
+  "scope": "synthetic_rewrite_service_only",
+  "real_user_database_accessed": false,
+  "smtp_sent": false,
+  "sdk_retries": 0,
+  "max_model_calls": 2,
+  "model_call_attempts": 1,
+  "provider_error_types": [
+    "OpenAIConnectionError"
+  ],
+  "human_semantic_review_required": true,
+  "cases": [
+    {
+      "id": "plain_rewrite",
+      "input": {
+        "id": "plain_rewrite",
+        "source": "我用 Python 写了一个合并 PDF 的工具。",
+        "instruction": "写成简洁的简历表述。",
+        "must_preserve": [
+          "Python",
+          "PDF"
+        ],
+        "must_not_add": [
+          "主导",
+          "独立",
+          "上线",
+          "提升"
+        ]
+      },
+      "status": "not_validated",
+      "http_status": 502,
+      "elapsed_seconds": 0.03
+    }
+  ],
+  "limitation": "stopped_after_unavailable_call_no_retry",
+  "status": "not_validated"
+}

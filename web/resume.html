@@ -4,17 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>胡话简历 · 简历编辑</title>
-  <link rel="stylesheet" href="/static/resume-editor.css">
-  <script src="/static/resume-editor.js" defer></script>
+  <link rel="stylesheet" href="/static/resume-editor.css?v=20261008-export">
+  <link rel="stylesheet" href="/static/account-profile.css?v=20261004">
+  <script src="/static/account-profile.js?v=20261005-guest"></script>
+  <script src="/static/resume-editor.js?v=20261008-export" defer></script>
 </head>
 <body>
   <header id="header">
     <span>胡话简历 <span class="header-divider">/</span> 简历编辑</span>
     <div id="header-actions">
+      <button id="btn-account-profile" class="account-entry" type="button" aria-expanded="false">个人档案</button>
       <button id="btn-mobile-preview" class="mobile-mode active" type="button">看预览</button>
       <button id="btn-mobile-edit" class="mobile-mode" type="button">改内容</button>
       <button id="btn-toggle-data" type="button" aria-expanded="true">收起编辑</button>
-      <a href="/">回到聊天</a>
+      <a id="back-to-chat" href="/">回到聊天</a>
     </div>
   </header>
 
@@ -29,12 +32,20 @@
         <div class="preview-heading">预览 <span class="muted" id="current-tpl"></span></div>
         <span id="render-status" role="status" aria-live="polite">正在加载</span>
         <div id="export-wrap">
-          <button id="btn-export" type="button" aria-expanded="false">导出 ▾</button>
+          <button id="btn-export" type="button" aria-expanded="false" disabled>导出 ▾</button>
           <div id="export-menu" hidden>
             <button class="export-opt" data-format="pdf" type="button">导出 PDF</button>
             <button class="export-opt" data-format="docx" type="button">通用 Word</button>
             <p class="export-note">所选模板用于 PDF；Word 使用统一排版。</p>
           </div>
+        </div>
+      </div>
+      <div id="export-result" class="export-result" hidden>
+        <p id="export-status" role="status" aria-live="polite"></p>
+        <div class="export-actions">
+          <a id="export-download" class="text-button" hidden>下载文件</a>
+          <a id="export-open" class="text-button" target="_blank" rel="noopener noreferrer" hidden>打开文件</a>
+          <button id="btn-retry-export" class="text-button" type="button" hidden>重试导出</button>
         </div>
       </div>
       <div id="preview-scroll"><div id="preview-page"><iframe id="preview-frame" title="简历预览，点击文字可定位编辑" sandbox="allow-scripts"></iframe></div></div>
@@ -48,6 +59,17 @@
         <input id="photo-input" type="file" accept="image/jpeg,image/png" hidden>
       </div>
       <p class="editor-note">输入实时更新；悬停预览文字可定位字段。栏目支持拖拽排序、改名和删除。</p>
+      <div id="save-bar" class="save-bar">
+        <span id="save-status" role="status" aria-live="polite">正在读取会话</span>
+        <div class="save-actions">
+          <button id="btn-retry-save" class="text-button" type="button" hidden>重试保存</button>
+          <button id="btn-download-draft" class="text-button" type="button" hidden>下载草稿备份</button>
+          <button id="btn-load-latest" class="text-button" type="button" hidden>备份并载入最新</button>
+        </div>
+      </div>
+      <div id="draft-recovery" class="draft-notice" hidden></div>
+      <div id="sample-notice" class="draft-notice" hidden></div>
+      <section id="verification-card" class="verification-card" aria-label="待核对提示" hidden></section>
       <div id="form-editor"></div>
     </section>
   </main>

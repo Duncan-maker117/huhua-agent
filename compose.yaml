@@ -1,0 +1,64 @@
+name: huhua
+
+services:
+  app:
+    image: huhua-agent:${HUHUA_IMAGE_TAG:-local}
+    build: .
+    init: true
+    restart: unless-stopped
+    env_file:
+      - path: ./deploy/app.env
+        format: raw
+    environment:
+      APP_ENV: production
+      REQUIRE_ACCOUNT: "true"
+      AUTH_COOKIE_SECURE: "true"
+      ALLOW_INSECURE_LOCAL_STORAGE: "false"
+      APP_ORIGIN: https://${HUHUA_DOMAIN:?Set HUHUA_DOMAIN in deploy/compose.env}
+      DATABASE_URL: sqlite:////var/lib/huhua/huhua.db
+      CHECKPOINT_DB_PATH: /var/lib/huhua/checkpoints.sqlite3
+      ENABLE_RAG: "false"
+      PORT: "8765"
+    # Only Caddy can reach this port from outside the Compose network.
+    # Do not publish app ports when trusting forwarded headers from this network.
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8765", "--workers", "1", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    volumes:
+      - app_data:/var/lib/huhua
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/healthz', timeout=4).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    stop_grace_period: 180s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      HUHUA_DOMAIN: ${HUHUA_DOMAIN:?Set HUHUA_DOMAIN in deploy/compose.env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  app_data:
+  caddy_data:
+  caddy_config:

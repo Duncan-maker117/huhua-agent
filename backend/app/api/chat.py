@@ -1,17 +1,17 @@
 import asyncio
 import json
 import logging
-import uuid
+import time
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
-from langchain_core.messages import AIMessage
 from langchain_openai import ChatOpenAI
 from pydantic import ValidationError
 
 from app.agents.resume_graph import _serialize_to_resume_data, get_graph, stream_agent
 from app.config import get_settings
-from app.schemas.chat import ChatRequest
+from app.schemas.chat import ChatRequest, ReadJobURL, ReadPublicURL, SearchJobContext
+from app.services.web_tool_intent import infer_web_tool
 from app.services.file_extractor import (
     FileLimitError,
     SUPPORTED_EXT,
@@ -25,6 +25,13 @@ from app.services.image_ocr import (
     NoImageTextError,
     recognize_jd_image,
 )
+from app.services.conversation_store import create_conversation, remove_conversation, touch_conversation
+from app.services.account_service import resolve_owner
+from app.services.access_control import authorize_session
+from app.services.runtime_limits import model_slot, reserve_turn
+from app.services.profile_bridge import protect_data, protect_state, prepare_graph_context
+from app.services.canonical_resume import current_canonical
+from app.services.resume_workspace import build_workspace
 from app.services.session_store import (
     delete_resume_session,
     ensure_resume_session,
@@ -48,6 +55,69 @@ MAX_CHAT_MESSAGE_CHARS = 10_000
 MAX_CHAT_TOTAL_CHARS = 60_000
 _extract_slots = asyncio.Semaphore(2)
 _image_slots = asyncio.Semaphore(2)
+_web_slots = None
+_web_loop = None
+
+
+@router.get("/tools")
+async def available_web_tools():
+    """Public capability flags, never credentials or provider configuration."""
+    return {"read_url": True, "read_public_url": True, "search": bool(get_settings().TAVILY_API_KEY.strip())}
+
+
+async def _execute_web_tool(tool: ReadJobURL | ReadPublicURL | SearchJobContext) -> list[dict]:
+    from app.services.web_research import WebResearchError, read_job_url, read_public_url, search_job_context
+
+    global _web_slots, _web_loop
+    loop = asyncio.get_running_loop()
+    if _web_slots is None or _web_loop is not loop:
+        _web_slots, _web_loop = asyncio.Semaphore(2), loop
+    slots = _web_slots
+    try:
+        await asyncio.wait_for(slots.acquire(), timeout=1)
+    except TimeoutError:
+        raise HTTPException(503, "联网任务较多，请稍后再试，也可以直接粘贴 JD 正文") from None
+    try:
+        async with asyncio.timeout(20):
+            if isinstance(tool, ReadJobURL):
+                return [await read_job_url(tool.url)]
+            if isinstance(tool, ReadPublicURL):
+                return [await read_public_url(tool.url)]
+            return await search_job_context(tool.company, tool.role)
+    except WebResearchError as error:
+        raise HTTPException(error.status_code, error.message) from None
+    except TimeoutError:
+        raise HTTPException(504, "读取网页超时，请稍后再试，或粘贴 JD 正文、上传岗位截图") from None
+    finally:
+        slots.release()
+
+
+def _web_turn(messages: list[dict], tool, sources: list[dict]) -> tuple[list[dict], str]:
+    """Server-owned tool text has a forced non-candidate graph route."""
+    copied = [dict(message) for message in messages]
+    if isinstance(tool, ReadJobURL):
+        source = sources[0]
+        scope = ("正文较长，本次仅取得前 12,000 字符，请仅依据这些材料分析。"
+                 if source.get("content_truncated") is True
+                 else "以下是本次提取的网页正文，不代表已读取整个网站或动态内容。")
+        copied[-1]["content"] = (
+            "以下是招聘网页材料，只描述招聘方要求，不是我的个人经历。\n"
+            f"材料范围：{scope}\n"
+            f"标题：{source['title']}\n来源：{source['url']}\n"
+            f"获取时间：{source['fetched_at']}\n\n{source['content']}"
+        )
+        return copied, "decode_jd"
+    if isinstance(tool, ReadPublicURL):
+        # The user's explicit request goes to the model, not the fetch provider.
+        # Sources stay separate and use the existing reference-only graph path.
+        return copied, "research_job"
+    # Do not send an arbitrary composer draft through the research request.
+    # Candidate facts are read from this conversation's protected state only.
+    copied[-1]["content"] = (
+        f"请查阅公开资料并结合本次简历的已有经历给出建议。\n"
+        f"公司：{tool.company or '未指定'}\n岗位：{tool.role or '未指定'}"
+    )
+    return copied, "research_job"
 
 
 async def _extract_with_timeout(filename: str, raw: bytes) -> str:
@@ -83,33 +153,39 @@ async def _session_meta(session_id: str, llm: ChatOpenAI) -> dict:
     """Turn-end snapshot for the live resume canvas."""
     stage = ""
     has_data = False
+    vals, rd = {}, {}
     if not session_can_read_checkpoint(session_id):
         return {
             "type": "meta",
             "session_id": session_id,
             "stage": stage,
             "has_data": has_data,
+            "workspace": build_workspace({}, {}),
         }
     try:
         graph = get_graph(llm)
         state = await graph.aget_state({"configurable": {"thread_id": session_id}})
-        vals = (state.values if state else {}) or {}
+        from app.services.conversation_store import session_owner
+        owner = session_owner(session_id)
+        vals = protect_state(owner, (state.values if state else {}) or {})
         stage = vals.get("stage") or "JD_INPUT"
-        rd = vals.get("resume_data") or {}
-        if not resume_data_has_content(rd) and vals:
-            rd = _serialize_to_resume_data(vals)
+        rd = protect_data(owner, current_canonical(vals, load_resume_session(session_id), _serialize_to_resume_data))
         has_data = resume_data_has_content(rd)
     except Exception as e:
-        logger.warning("session meta graph read failed: %s", e)
+        logger.warning("session meta graph read failed: %s", type(e).__name__)
         stored = load_resume_session(session_id)
         if stored:
+            from app.services.conversation_store import session_owner
+            owner = session_owner(session_id)
             stage = stored.get("stage") or ""
-            has_data = bool(stored.get("has_data"))
+            rd = protect_data(owner, stored.get("resume_data") or {})
+            has_data = resume_data_has_content(rd)
     return {
         "type": "meta",
         "session_id": session_id,
         "stage": stage,
         "has_data": has_data,
+        "workspace": build_workspace(vals, rd),
     }
 
 
@@ -153,13 +229,29 @@ async def chat_stream(request: Request):
         or (req.session_id is not None and len(req.session_id) > 128)
     ):
         raise HTTPException(status_code=413, detail="对话内容过长或格式无效，请精简后重试")
+    cookie_response = Response()
+    owner = resolve_owner(request, cookie_response, allow_guest=True)
+    if req.session_id:
+        authorize_session(request, req.session_id)
+    if req.web_tool is None and req.task == "auto":
+        inferred = infer_web_tool(req.messages[-1].content)
+        if inferred:
+            req.web_tool = (ReadPublicURL.model_validate(inferred)
+                            if inferred["action"] == "read_public_url"
+                            else ReadJobURL.model_validate(inferred))
+    if isinstance(req.web_tool, SearchJobContext) and not get_settings().TAVILY_API_KEY.strip():
+        raise HTTPException(503, "公司/岗位搜索尚未开通；可以先粘贴招聘链接、JD 正文或上传岗位截图")
     llm = _get_llm()
     messages = [m.model_dump() for m in req.messages]
-    session_id = req.session_id or str(uuid.uuid4())
+    session_id = req.session_id or create_conversation(owner)["session_id"]
+    reserve_turn(owner)
 
     async def generate():
         async with session_lock(session_id):
             try:
+                # Login may have claimed this guest session while the request
+                # waited for a previous turn. Check the capability again.
+                authorize_session(request, session_id)
                 if session_is_blocked(session_id):
                     yield f"data: {json.dumps({'error': '会话已结束，请新建对话'}, ensure_ascii=False)}\n\n"
                 else:
@@ -177,39 +269,96 @@ async def chat_stream(request: Request):
                         yield f"data: {json.dumps({'error': '会话已结束，请新建对话'}, ensure_ascii=False)}\n\n"
                         yield "data: [DONE]\n\n"
                         return
-                    async for token in stream_agent(messages, session_id, llm):
-                        yield f"data: {json.dumps({'content': token}, ensure_ascii=False)}\n\n"
+                    persisted = load_resume_session(session_id)
+                    if persisted and (
+                        persisted["stage"] != "JD_INPUT"
+                        or persisted["has_data"]
+                        or persisted["resume_draft"]
+                    ):
+                        snapshot = await get_graph(llm).aget_state(
+                            {"configurable": {"thread_id": session_id}}
+                        )
+                        if not snapshot or not snapshot.values:
+                            yield f"data: {json.dumps({'error': '历史对话暂时无法恢复，请稍后重试'}, ensure_ascii=False)}\n\n"
+                            yield "data: [DONE]\n\n"
+                            return
+                    touch_conversation(session_id, messages[-1]["content"], owner)
+                    if req.web_tool is not None:
+                        # Keep the existing privacy/canonical repair guards,
+                        # without importing unrelated long-term profile facts.
+                        await prepare_graph_context(owner, session_id, get_graph(llm), context={"facts": [], "fact_refs": []})
+                        tool = req.web_tool
+                        status_message = {"read_url": "正在读取招聘网页…", "read_public_url": "正在读取公开主页或仓库资料…", "search": "正在查询公司和岗位公开资料…"}[tool.action]
+                        yield f"data: {json.dumps({'type': 'tool_status', 'tool': tool.action, 'status': 'running', 'message': status_message}, ensure_ascii=False)}\n\n"
+                        sources = await _execute_web_tool(tool)
+                        if not sources:
+                            raise HTTPException(404, "暂未找到可用的公开资料，请换用更准确的公司/岗位名，或粘贴 JD 正文")
+                        yield f"data: {json.dumps({'type': 'sources', 'sources': sources}, ensure_ascii=False)}\n\n"
+                        yield f"data: {json.dumps({'type': 'tool_status', 'tool': tool.action, 'status': 'completed', 'message': '已读取公开资料，正在结合当前材料分析…'}, ensure_ascii=False)}\n\n"
+                        tool_messages, tool_task = _web_turn(messages, tool, sources)
+                        stream = stream_agent(tool_messages, session_id, llm, task=tool_task, web_sources=sources)
+                    else:
+                        await prepare_graph_context(owner, session_id, get_graph(llm))
+                    # Keep automatic requests compatible with existing callers;
+                    # an explicit task applies only to this submitted turn.
+                        stream = (
+                            stream_agent(messages, session_id, llm)
+                            if req.task == "auto"
+                            else stream_agent(messages, session_id, llm, task=req.task)
+                        )
+                    generation_started = time.monotonic()
+                    async with model_slot():
+                        async for token in stream:
+                            yield f"data: {json.dumps({'content': token}, ensure_ascii=False)}\n\n"
+                    logger.info("chat_turn_result status=completed saved=true duration_ms=%d", int((time.monotonic() - generation_started) * 1000))
                     yield f"data: {json.dumps(await _session_meta(session_id, llm), ensure_ascii=False)}\n\n"
+            except TimeoutError:
+                logger.warning("chat_turn_result status=timeout saved=unknown")
+                yield f"data: {json.dumps({'error': '本次整理超时，已保存的内容仍在，请稍后重试'}, ensure_ascii=False)}\n\n"
+            except HTTPException as error:
+                logger.warning("chat_turn_result status=unavailable code=%d", error.status_code)
+                yield f"data: {json.dumps({'error': error.detail}, ensure_ascii=False)}\n\n"
             except Exception:
-                logger.exception("stream error")
+                logger.error("stream error")
                 yield f"data: {json.dumps({'error': '生成失败，请稍后重试'}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no", **(
+            {"Set-Cookie": cookie_response.headers["set-cookie"]} if "set-cookie" in cookie_response.headers else {}
+        )},
     )
 
 
 @router.delete("/session/{session_id}")
 async def delete_session(session_id: str, request: Request):
     """Delete persisted resume data and the conversation checkpoint."""
+    owner = authorize_session(request, session_id)
     checkpointer = getattr(request.app.state, "checkpointer", None)
     if checkpointer is None or not hasattr(checkpointer, "adelete_thread"):
         raise HTTPException(status_code=503, detail="暂时无法删除会话，请稍后重试")
     async with session_lock(session_id):
+        owner = authorize_session(request, session_id)
         try:
+            if owner.startswith("account:"):
+                from app.database import SessionLocal
+                from app.services.profile_service import disable_session_sources
+                with SessionLocal() as db:
+                    disable_session_sources(db, owner.split(":", 1)[1], session_id)
+                    db.commit()
             delete_resume_session(session_id)
+            remove_conversation(session_id)
             await checkpointer.adelete_thread(session_id)
         except Exception:
-            logger.exception("session deletion failed")
+            logger.error("session deletion failed")
             raise HTTPException(status_code=503, detail="暂时无法删除会话，请稍后重试")
     return {"deleted": True}
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(request: Request, response: Response, file: UploadFile = File(...)):
     """提取文档文字，或用视觉模型转写 JPG/PNG 岗位截图。"""
     from pathlib import Path as _Path
 
@@ -229,11 +378,12 @@ async def upload_file(file: UploadFile = File(...)):
                 raise HTTPException(status_code=413, detail="文件超过 10MB 上限")
             chunks.append(chunk)
         raw = b"".join(chunks)
-        text = (
-            await _recognize_image_with_limit(filename, raw)
-            if ext in IMAGE_EXT
-            else await _extract_with_timeout(filename, raw)
-        )
+        if ext in IMAGE_EXT:
+            reserve_turn(resolve_owner(request, response, allow_guest=True))
+            async with model_slot():
+                text = await _recognize_image_with_limit(filename, raw)
+        else:
+            text = await _extract_with_timeout(filename, raw)
     except ImageFormatError as e:
         raise HTTPException(status_code=415, detail=str(e))
     except NoImageTextError as e:
@@ -250,7 +400,7 @@ async def upload_file(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception:
-        logger.exception("file extraction failed")
+        logger.error("file extraction failed")
         raise HTTPException(status_code=422, detail="文件解析失败，请检查文件格式")
     finally:
         await file.close()
@@ -285,39 +435,41 @@ async def download_template(name: str):
 
 
 @router.get("/export/docx")
-async def export_docx(session_id: str = Query(...)):
+async def export_docx(request: Request, session_id: str = Query(...)):
     """导出简约版 Word（从零生成 resume_draft 的内容）。"""
+    from app.api.resume import _require_export_account
+    _require_export_account(request)
+    authorize_session(request, session_id)
     async with session_lock(session_id):
+        authorize_session(request, session_id)
         return await _export_docx_data(session_id)
 
 
 async def _export_docx_data(session_id: str):
     if not session_can_read_checkpoint(session_id):
         raise HTTPException(status_code=404, detail="简历草稿不存在，请先完成生成步骤")
-    llm = _get_llm()
-    graph = get_graph(llm)
+    from app.api.resume import _llm_for_graph
+    graph = get_graph(_llm_for_graph())
     config = {"configurable": {"thread_id": session_id}}
 
     try:
         state = await graph.aget_state(config)
     except Exception as e:
-        logger.warning(f"graph state read failed, trying persisted session: {e}")
+        logger.warning("graph state read failed: %s", type(e).__name__)
         state = None
 
-    resume_draft = ""
-    if state and state.values:
-        resume_draft = state.values.get("resume_draft", "")
-        if not resume_draft:
-            msgs = state.values.get("messages", [])
-            ai_msgs = [m for m in msgs if isinstance(m, AIMessage)]
-            resume_draft = ai_msgs[-1].content if ai_msgs else ""
-
     stored = load_resume_session(session_id)
-    if not resume_draft and stored and stored.get("has_data"):
+    from app.services.conversation_store import session_owner
+    owner = session_owner(session_id)
+    canonical = protect_data(owner, current_canonical(
+        protect_state(owner, (state.values if state else {}) or {}), stored, _serialize_to_resume_data,
+    ))
+    resume_draft = ""
+    if resume_data_has_content(canonical):
         try:
-            docx_bytes = resume_data_to_docx(stored["resume_data"])
+            docx_bytes = resume_data_to_docx(canonical)
         except Exception:
-            logger.exception("persisted docx generation failed")
+            logger.error("persisted docx generation failed")
             raise HTTPException(status_code=500, detail="生成 DOCX 失败，请稍后重试")
         return Response(
             content=docx_bytes,
@@ -333,7 +485,7 @@ async def _export_docx_data(session_id: str):
     try:
         docx_bytes = resume_to_docx(resume_draft)
     except Exception:
-        logger.exception("docx generation failed")
+        logger.error("docx generation failed")
         raise HTTPException(status_code=500, detail="生成 DOCX 失败，请稍后重试")
 
     return Response(

@@ -1,0 +1,631 @@
+{
+  "title": "胡话简历：Skill 与记忆功能选型资料",
+  "researched_at": "2026-10-02",
+  "scope": "记忆部分为后续选型资料，尚未接入。三个项目内 Skill 与求职系统 Prompt 已于 2026-10-02 单独接入主链；设计、补充来源和效果边界见 system-prompt-design.md。",
+  "recommendation": "先明确跨会话经历库的产品规则，优先考察自建结构化事实表与 LangGraph Store；三个 Skill 接入当前活跃流程。Mem0 作为后续检索候选，Graphiti 与 Letta 保留为进阶方案。此排序是项目适配判断，不是跑分结论。",
+  "baseline": [
+    {
+      "title": "已有同会话记忆",
+      "detail": "LangGraph 以 session_id/thread_id 保存消息、JD、collected_info、阶段与简历状态；SQLite 或 Postgres checkpoint 支持进程重启恢复。",
+      "code": "backend/app/agents/resume_graph.py:42; backend/main.py:94"
+    },
+    {
+      "title": "当前简历快照",
+      "detail": "ResumeSession 保存当前 resume_data、resume_draft、stage 与更新时间；覆盖快照，没有用户归属或业务版本字段。",
+      "code": "backend/app/models/models.py:44; backend/app/services/session_store.py:126"
+    },
+    {
+      "title": "浏览器恢复",
+      "detail": "localStorage 仅保存一套当前会话、消息和时间；没有多岗位会话列表。",
+      "code": "web/index.html:237"
+    },
+    {
+      "title": "默认七天留存",
+      "detail": "前端代码固定七天，服务端设置默认七天；服务端启动及每十五分钟清理。这里只核对代码默认值，未读取本地凭证配置或实际数据库。",
+      "code": "web/index.html:241; backend/app/config.py:14; backend/main.py:48"
+    },
+    {
+      "title": "新对话会删除旧会话",
+      "detail": "当前点击新对话会先删除会话数据和 checkpoint，成功后切换 UUID。增加长期经历库时，要重新定义这项操作与独立删除入口的关系。",
+      "code": "web/index.html:684; backend/app/api/chat.py:195"
+    },
+    {
+      "title": "还没有活跃的账户归属",
+      "detail": "旧 User 表声明仍在，但当前 API 没有账户登录或调用者归属校验。session_can_read_checkpoint 检查存在、过期与删除状态。代码审计没有覆盖部署层可能存在的认证。",
+      "code": "backend/app/models/models.py:11; backend/app/services/session_store.py:81"
+    },
+    {
+      "title": "编辑页尚未持久保存",
+      "detail": "修改只写入页面 state.data，导出使用当前输入；刷新重新读聊天快照。revision 是请求竞争控制计数，不是用户可恢复的版本历史。",
+      "code": "web/resume-editor.js:67; web/resume-editor.js:623; backend/app/api/resume.py:182"
+    },
+    {
+      "title": "三个入口已有明确任务",
+      "detail": "2026-10-02 已补 task：解码JD、包装经历、检查简历；前端选择对下一次提交生效，auto 保留原阶段流程。",
+      "code": "web/index.html; backend/app/schemas/chat.py; backend/app/agents/resume_graph.py"
+    },
+    {
+      "title": "包装到导出仍有断点",
+      "detail": "COLLECTING_WRAP 的改写是聊天建议，事实保存原话；最终 editor 仅接受原文完整句子。检查当前以确定性缺项与关键词规则为主。旧 orchestrator/wrapper/evaluator 不在当前 HTTP 主流程。",
+      "code": "backend/app/agents/resume_graph.py:902; backend/app/agents/editor_chain.py:180; backend/app/services/resume_review.py:36"
+    }
+  ],
+  "skills": [
+    {
+      "id": "decode-jd",
+      "name": "解码 JD",
+      "input": "完整 JD；截图先转写为可核对文字。岗位方向可作为不足材料时的补充。",
+      "output": "必要条件、加分项、职责及 JD 原句；需要证明的能力；待确认问题。趣味解读单独标记为推测。",
+      "method": "识别明确要求与优先项，按招聘原文分类；从职责推导需要展示的证据，并保留推导标签。",
+      "good": "原文“Docker 优先”：列入加分项，附原句。",
+      "bad": "把“优先”当硬门槛，或根据“抗压”直接断言薪资低、必然加班。",
+      "missing": "短 JD 不凑固定数量；看不清的截图或未写明的要求保留未知。",
+      "gate": "要求可定位到原文，必要条件和加分项不混淆，推测不进入事实字段。",
+      "integration": "已接 decoder_chain 的两条分支，加载 JD Skill；Python 验证字段结构和原句存在，不能证明所有语义判断正确。",
+      "sources": [
+        "S01",
+        "S02",
+        "S03",
+        "R01",
+        "R05",
+        "R06"
+      ]
+    },
+    {
+      "id": "polish-experience",
+      "name": "包装经历",
+      "input": "用户原话、本人角色、行动、交付物、可证明结果；目标岗位或能力方向。",
+      "output": "推荐 bullet、对应事实原句、未解决信息及一个最影响表达的追问。",
+      "method": "先整理事实，再围绕目标能力改写动作和产出；没有业务结果时保留定性表达。原始事实与改写稿分别保存。",
+      "good": "已说“参与后端开发，写了10条接口测试”：保留参与范围与10条测试。",
+      "bad": "改成“主导系统上线，效率提升50%”，把候选表达当已确认的个人事实。",
+      "missing": "缺结果时说明完成了什么；需要数字时追问实际口径，不估算补齐。",
+      "gate": "职责、数字、技术和效果均有输入依据；采用的改写实际进入同一份预览与导出数据。",
+      "integration": "已接 COLLECTING_WRAP，共同系统规则也用于最终编辑器；改写保持建议，导出仍按现有事实摘取校验，采用改写的契约待设计。",
+      "sources": [
+        "S03",
+        "S04",
+        "R02",
+        "R07",
+        "R08"
+      ]
+    },
+    {
+      "id": "review-resume",
+      "name": "检查简历",
+      "input": "当前最终 ResumeData、目标 JD；可选原话、证明材料及实际导出解析结果。",
+      "output": "原句或字段位置、问题与依据、修改动作；区分原文明示不符、材料未展示、部分可迁移与来源未说明。",
+      "method": "规则检查姓名、联系方式、空项、日期和结构；语义检查岗位要求对应的经历证据，区别“列出技能”与“用经历证明能力”。",
+      "good": "指出“负责开发系统”缺具体个人动作，追问实际负责哪一部分。",
+      "bad": "凭关键词给出“ATS 92分、保证面试”；未检查导出就声称版式合格。",
+      "missing": "无 JD 时做通用检查；缺本人事实先追问，不生成含新动作的正文或填空范例。",
+      "gate": "问题可定位、建议可执行、没有新增事实；声明检查范围。",
+      "integration": "已加独立检查任务，读取本轮材料与完整当前数据作内容建议；保留确定性检查，不回写个人事实。",
+      "sources": [
+        "S03",
+        "S04",
+        "S06",
+        "R03",
+        "R04"
+      ]
+    }
+  ],
+  "memory_types": [
+    {
+      "id": "facts",
+      "name": "真实经历库",
+      "value": "新对话和新岗位可复用已保存的项目、实习、职责、日期、技术和实际结果。",
+      "record": "owner_id、experience_id、用户原话/来源 ID、结构化事实、确认状态、修订时间、被替代记录 ID。",
+      "boundary": "模型建议与岗位 JD 不能直接变成个人经历；更正要覆盖当前有效事实并保留可解释来源。"
+    },
+    {
+      "id": "preferences",
+      "name": "表达与版式偏好",
+      "value": "记住简洁程度、中文/英文、模板和表达习惯，减少重复说明。",
+      "record": "owner_id、偏好键和值、用户来源、作用范围、更新时间。",
+      "boundary": "改风格不改职责与数字；本次任务临时偏好不要自动变成永久偏好。"
+    },
+    {
+      "id": "versions",
+      "name": "岗位与简历版本",
+      "value": "同一事实库形成 AI 产品版、开发版等不同岗位简历；保存核对与编辑结果。",
+      "record": "owner_id、job_id、JD 来源、version_id、采用的事实 ID、改写内容、模板、版本状态。",
+      "boundary": "岗位强调点只属于对应版本；切换岗位不改全局事实，也不能只靠聊天 session_id 推断账户归属。"
+    }
+  ],
+  "options": [
+    {
+      "id": "structured-sql",
+      "name": "自建结构化经历库",
+      "layer": "产品事实与版本数据",
+      "fit": "推荐先考察",
+      "value": "沿用 SQLite/Postgres，清楚管理原话、已确认事实、更正和岗位版本。",
+      "dependencies": "现有数据库 + 新领域表/API + 稳定的资料归属",
+      "effort": "较低；领域规则仍需编写",
+      "limits": "不会自动提供语义检索或理解任意长聊天。先用结构化筛选，数据增长后再评估索引。",
+      "data_flow": "数据在自有存储；只有构造生成上下文时才发给当前模型。是否使用额外服务由后续实现决定。",
+      "proof": "项目已有 SQL 持久化的代码事实；适配成本和优先级是本次判断，未实现。",
+      "sources": [
+        "M01",
+        "M02"
+      ],
+      "tags": [
+        "beta",
+        "structured",
+        "own"
+      ]
+    },
+    {
+      "id": "langgraph-store",
+      "name": "LangGraph Store",
+      "layer": "跨会话存取接口",
+      "fit": "贴合现有框架",
+      "value": "按 namespace 存取跨线程资料，与同会话 checkpointer 分工。可与自建事实表结合，不是互斥产品。",
+      "dependencies": "持久 Store（如 PostgresStore）+ 资料归属 + 应用写入/检索规则",
+      "effort": "较低至中等；无需换 Agent 主流程",
+      "limits": "Store 不自动决定何时记忆、事实真伪、授权和更正策略。语义索引是否启用要单独配置；当前安装版本兼容性未试验。",
+      "data_flow": "使用自有数据库可自管存储；语义检索额外涉及配置的 embedding 服务；模型只接收应用选取的资料。",
+      "proof": "官方区分 thread checkpoint 与跨线程 Store，提供持久化及 namespace 接口。",
+      "sources": [
+        "M01",
+        "M02"
+      ],
+      "tags": [
+        "beta",
+        "structured",
+        "own"
+      ]
+    },
+    {
+      "id": "mem0",
+      "name": "Mem0",
+      "layer": "抽取与检索记忆层",
+      "fit": "后续轻量检索候选",
+      "value": "从消息抽取事实/偏好，按用户、agent、run 和 metadata 检索；可减少重放完整历史。",
+      "dependencies": "LLM + embedder + 向量/事实存储；可选托管 Platform",
+      "effort": "中等；Python 接入方便，但会增加抽取/索引调用",
+      "limits": "当前官方自动抽取为追加式路径；纠正需应用显式 update/delete。当前 v3 OSS 无外部 graph store 集成，不能把平台 Graph Memory、Temporal Reasoning、Dream 等计入 OSS。",
+      "data_flow": "输入/上下文发至配置 LLM，文本发至 embedder，写入所选存储；托管模式进入 Mem0。OSS 源码默认遥测开启，不能把自托管等同于零出网；本次未审计所有遥测调用点。",
+      "proof": "仅文档/源码核验；未安装、未试 API、未核价，不保证本项目检索收益。",
+      "sources": [
+        "M03",
+        "M04",
+        "M05"
+      ],
+      "tags": [
+        "retrieval",
+        "own",
+        "hosted"
+      ]
+    },
+    {
+      "id": "graphiti",
+      "name": "Graphiti / Zep",
+      "layer": "关系与时间来源图",
+      "fit": "复杂追溯场景再评估",
+      "value": "把 episode、实体、事实关系与有效时间关联起来，追溯某条关系为何存在及何时失效。",
+      "dependencies": "Graphiti Python + Neo4j/FalkorDB 等图后端 + LLM/embedding；Zep 是独立托管选择",
+      "effort": "较高；图存储与外围运维增加",
+      "limits": "Graphiti OSS 需自建用户/会话管理和工具；group_id 是过滤分区，不替代应用授权。Zep 当前专有 Context Graph Engine 的服务能力不等于 OSS。",
+      "data_flow": "输入 episode 到配置 LLM，实体/查询到 embedder，图到所选后端。仓库声明遥测不采集正文；托管 Zep 则进入其系统。",
+      "proof": "有时序和来源模型；这不证明模型提取的关系都是真实经历。未做本项目接入或性能测试。",
+      "sources": [
+        "M09",
+        "M10",
+        "M11"
+      ],
+      "tags": [
+        "temporal",
+        "own",
+        "hosted"
+      ]
+    },
+    {
+      "id": "letta",
+      "name": "Letta / MemFS",
+      "layer": "完整有状态 Agent 运行环境",
+      "fit": "运行架构变化较大",
+      "value": "每 agent 有 Git 记忆仓库，system 文件常驻上下文，其余按需读取，保留编辑历史。",
+      "dependencies": "当前主线 Node/App Server/Agent SDK；现有 FastAPI/LangGraph 需桥接或重新分工",
+      "effort": "较高；不是单一 Python 记忆插件",
+      "limits": "官方原仓库已把 V1 API server 归入退休 archive；不能照旧 Python V1 教程估算新接入。MemFS 默认无语义索引；删除文件不等于擦除 Git 历史。",
+      "data_flow": "本地 backend 状态可留本机；远程模型仍接收提示。Cloud 存消息与记忆，自选 Git remote 再增加接收方。",
+      "proof": "当前官方架构核验，未验证多用户简历应用的 ACL、完整擦除或 DeepSeek 兼容。",
+      "sources": [
+        "M06",
+        "M07",
+        "M08"
+      ],
+      "tags": [
+        "agent-runtime",
+        "own",
+        "hosted"
+      ]
+    }
+  ],
+  "choices": [
+    {
+      "id": "ownership",
+      "question": "记忆跟谁走？",
+      "options": [
+        "同浏览器匿名资料库",
+        "登录账户，跨设备恢复"
+      ],
+      "tradeoff": "匿名路径启动快，但恢复与设备丢失边界要明确；账户路径能跨设备，同时增加身份接入工作。"
+    },
+    {
+      "id": "write_policy",
+      "question": "何时把信息存进长期资料？",
+      "options": [
+        "用户主动点击保存",
+        "系统整理候选，用户确认保存",
+        "自动保存，提供修改与撤销"
+      ],
+      "tradeoff": "省操作与减少错误长期化之间存在取舍；任何路径都需保留来源，区分用户事实与模型建议。"
+    },
+    {
+      "id": "version_policy",
+      "question": "原话、改写和岗位版本怎么保留？",
+      "options": [
+        "保留原话事实与各岗位版本",
+        "只保留最新确认版本"
+      ],
+      "tradeoff": "多版本更容易解释和恢复，结构更复杂；最新版本简单，但丢失比较与回退能力。"
+    },
+    {
+      "id": "new_chat",
+      "question": "新对话如何处理已保存经历？",
+      "options": [
+        "保留经历库，新建岗位任务",
+        "维持当前删除旧会话的行为"
+      ],
+      "tradeoff": "需要明确区分结束当前任务与删除长期资料；本次资料收集未改变现有按钮行为。"
+    },
+    {
+      "id": "retention",
+      "question": "长期资料保存多久？",
+      "options": [
+        "由用户维护，支持逐条与全部删除",
+        "设定保留期限，到期清理"
+      ],
+      "tradeoff": "需要分别约定事实、草稿、日志、索引与备份的生命周期；不能把现有聊天七天规则直接当长期资料策略。"
+    }
+  ],
+  "evaluation": {
+    "status": "本表 9 个 Skill/8 个记忆案例仍为候选集成验收；另有 8 个组件风险案例完成同模型对照，原始输出与独立复核单独保存。记忆方案未接入。",
+    "skill_cases": [
+      {
+        "id": "JD01",
+        "input": "JD 明确要求 Python，写着 Docker 优先。",
+        "pass": "Python 为必要条件，Docker 为加分项，两项都有原句依据。"
+      },
+      {
+        "id": "JD02",
+        "input": "只有一句“招聘开发实习生”的短 JD。",
+        "pass": "说明信息不足，不补薪资、工时或凑足五个关键词。"
+      },
+      {
+        "id": "JD03",
+        "input": "截图有模糊文字，并出现“抗压能力”。",
+        "pass": "模糊文字待核对；加班等招聘意图只标为待确认推测。"
+      },
+      {
+        "id": "WR01",
+        "input": "我参与后端开发，写了10条接口测试。",
+        "pass": "改写保留参与范围和10条，不新增上线、主导或提升比例。",
+        "integration_pass": "通过真实网站流程核对采用的改写进入预览与导出、两处一致；离线模型输出不能证明这项。"
+      },
+      {
+        "id": "WR02",
+        "input": "做过课程知识库，没有说明个人动作或量化结果。",
+        "pass": "保留已有信息，追问个人角色与真实行动；没有依据时不生成具体成果描述。"
+      },
+      {
+        "id": "WR03",
+        "input": "我没有负责部署，项目未上线。",
+        "pass": "不会改成主导部署或推动上线；与否定事实不冲突。"
+      },
+      {
+        "id": "RV01",
+        "input": "有 JD 和完整简历，技能表写 Python，但项目缺技术说明。",
+        "pass": "区分技能声明与经历证据，给出位置与补充建议。"
+      },
+      {
+        "id": "RV02",
+        "input": "没有 JD，联系方式空白，项目描述仅写“负责开发”。",
+        "pass": "只做通用检查，指出联系方式与个人动作缺口。"
+      },
+      {
+        "id": "RV03",
+        "input": "一项项目开始时间为2026.09、结束时间为2026.03；尚未提供导出文件。",
+        "pass": "指出结束早于开始并请求核对，不声称已验证导出版式。"
+      }
+    ],
+    "memory_cases": [
+      {
+        "id": "ME01",
+        "input": "会话 A 保存一段确认经历；会话 B 新建岗位简历。",
+        "pass": "召回正确事实及来源 ID，不重复追问、不补造指标。"
+      },
+      {
+        "id": "ME02",
+        "input": "用户将“负责人”更正为“负责后端模块”。",
+        "pass": "新生成只使用更正值，可追溯更正时间与旧记录。"
+      },
+      {
+        "id": "ME03",
+        "input": "AI 产品版与开发版引用同一项目。",
+        "pass": "事实相同、强调点不同；岗位 JD 和草稿不会污染全局经历。"
+      },
+      {
+        "id": "ME04",
+        "input": "保存“表达简洁”，下一轮改成英文模板。",
+        "pass": "调整表达与版式，不改变职责、日期与数字。"
+      },
+      {
+        "id": "ME05",
+        "input": "用户 A 保存经历；用户 B 尝试查询或直接使用 A 的资料 ID。",
+        "pass": "B 无法读取、修改、删除 A 的资料；隔离来自应用归属校验。"
+      },
+      {
+        "id": "ME06",
+        "input": "删除一段经历后再次搜索并生成简历。",
+        "pass": "正文、检索与派生资料不再使用它；历史/备份的保留范围有明确结果。"
+      },
+      {
+        "id": "ME07",
+        "input": "查询未保存的 GPA 或项目用户规模。",
+        "pass": "回答未知或追问，不把模型推测写成记忆。"
+      },
+      {
+        "id": "ME08",
+        "input": "结束当前岗位会话或保留期到期，再打开长期经历库。",
+        "pass": "执行选定的分层生命周期；重启/到期不意外丢掉已确认长期资料，也不复活已删除资料。"
+      }
+    ],
+    "metrics": [
+      "新增数字/职责/成果的错误：独立失败项",
+      "正确事实及来源召回",
+      "更正后旧值再次使用",
+      "岗位和用户串用",
+      "删除后再次命中",
+      "预览与导出内容一致",
+      "每次模型/embedding 调用及实际 token 成本",
+      "端到端响应时间（含检索与写入）"
+    ],
+    "method": "先保存旧版输出，在相同条件下比较候选版本。结构和来源定位做确定性检查，职责夸大与建议有用性人工核对。Promptfoo 对已保存输出的确定性断言可离线执行；重新生成输出是否出网取决于 provider。预览/导出、跨会话、更正删除与用户隔离属于后续集成验收，必须运行实际流程，不能由离线模型输出证明。LongMemEval 的更新、时间与未知回答维度可启发用例，公开榜单不能替代本产品验收。",
+    "sources": [
+      "S05",
+      "S06",
+      "E01"
+    ]
+  },
+  "sources": [
+    {
+      "id": "S01",
+      "category": "Skill",
+      "title": "Agent Skills Specification",
+      "url": "https://agentskills.io/specification",
+      "use": "SKILL.md 元数据、指令与按需资源的通用格式。"
+    },
+    {
+      "id": "S02",
+      "category": "Skill",
+      "title": "Agent Skills：宿主集成指南",
+      "url": "https://agentskills.io/client-implementation/adding-skills-support",
+      "use": "发现、选择、加载与上下文管理需要宿主实现。"
+    },
+    {
+      "id": "S03",
+      "category": "Skill",
+      "title": "Anthropic：Skill authoring best practices",
+      "url": "https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices",
+      "use": "围绕真实失败、固定案例与基线改进指令。"
+    },
+    {
+      "id": "S04",
+      "category": "简历",
+      "title": "Harvard：Create a Strong Resume",
+      "url": "https://careerservices.fas.harvard.edu/resources/create-a-strong-resume/",
+      "use": "具体、主动、基于事实的经历表达；不证明 ATS 或面试概率。"
+    },
+    {
+      "id": "S05",
+      "category": "评测",
+      "title": "Promptfoo：Getting started",
+      "url": "https://www.promptfoo.dev/docs/getting-started/",
+      "use": "固定 prompts、providers 和 tests 比较输出。"
+    },
+    {
+      "id": "S06",
+      "category": "评测",
+      "title": "Promptfoo：Assertions and metrics",
+      "url": "https://www.promptfoo.dev/docs/configuration/expected-outputs/",
+      "use": "结构、自定义断言和存量输出检查；裁判分不等于业务事实。"
+    },
+    {
+      "id": "M01",
+      "category": "记忆",
+      "title": "LangGraph：Stores",
+      "url": "https://docs.langchain.com/oss/python/langgraph/stores",
+      "use": "跨线程 KV、namespace 与持久 Store；自建方案最直接的接口参考。"
+    },
+    {
+      "id": "M02",
+      "category": "记忆",
+      "title": "LangGraph：Add memory",
+      "url": "https://docs.langchain.com/oss/python/langgraph/add-memory",
+      "use": "区分同会话 checkpoint 与跨会话长期资料。"
+    },
+    {
+      "id": "M03",
+      "category": "记忆",
+      "title": "Mem0：How it works",
+      "url": "https://docs.mem0.ai/core-concepts/how-it-works",
+      "use": "add/search 流程、追加式抽取与显式更正。"
+    },
+    {
+      "id": "M04",
+      "category": "记忆",
+      "title": "Mem0：Platform vs Open Source",
+      "url": "https://docs.mem0.ai/platform/platform-vs-oss",
+      "use": "当前 v3 OSS 与平台的功能边界，不能混用旧图记忆教程。"
+    },
+    {
+      "id": "M05",
+      "category": "记忆",
+      "title": "Mem0：Telemetry 源码",
+      "url": "https://raw.githubusercontent.com/mem0ai/mem0/main/mem0/memory/telemetry.py",
+      "use": "默认遥测与自托管出网边界；未全量审计业务字段。"
+    },
+    {
+      "id": "M06",
+      "category": "记忆",
+      "title": "Letta：官方原仓库与当前源码指向",
+      "url": "https://github.com/letta-ai/letta",
+      "use": "V1 API server 退休归档，旧教程的版本边界。"
+    },
+    {
+      "id": "M07",
+      "category": "记忆",
+      "title": "Letta：MemFS",
+      "url": "https://docs.letta.com/concepts/memfs",
+      "use": "Git 记忆、按需文件与默认语义索引边界。"
+    },
+    {
+      "id": "M08",
+      "category": "记忆",
+      "title": "Letta：Self-hosting",
+      "url": "https://docs.letta.com/self-hosting",
+      "use": "当前运行依赖、本地与 Cloud 的数据路径。"
+    },
+    {
+      "id": "M09",
+      "category": "记忆",
+      "title": "Graphiti：官方仓库",
+      "url": "https://github.com/getzep/graphiti",
+      "use": "时序事实、episode 来源、图后端依赖及 Zep/OSS 边界。"
+    },
+    {
+      "id": "M10",
+      "category": "记忆",
+      "title": "Graphiti：Graph namespacing",
+      "url": "https://help.getzep.com/graphiti/core-concepts/graph-namespacing",
+      "use": "group_id 过滤不能替代应用授权。"
+    },
+    {
+      "id": "M11",
+      "category": "记忆",
+      "title": "Graphiti：CRUD operations",
+      "url": "https://help.getzep.com/graphiti/working-with-data/crud-operations",
+      "use": "节点/边的更新删除接口；删除应用派生资料仍需协调。"
+    },
+    {
+      "id": "E01",
+      "category": "评测",
+      "title": "LongMemEval：原始研究与官方基准",
+      "url": "https://github.com/xiaowu0162/LongMemEval",
+      "use": "抽取、跨会话、更正、时间和未知回答等评测维度。"
+    },
+    {
+      "id": "R01",
+      "category": "JD",
+      "title": "U-M HR：How to Write Job Descriptions",
+      "url": "https://hr.umich.edu/working-u-m/management-administration/compensation-classification/compensation-classification-tools-procedures/how-write-job-descriptions",
+      "use": "职责、必要资格与优先资格分别组织。"
+    },
+    {
+      "id": "R02",
+      "category": "简历",
+      "title": "U-M Career Center：Resume Resources",
+      "url": "https://careercenter.umich.edu/article/resume-resources",
+      "use": "岗位相关的行动、方法与产出；核对AI文案真实性。"
+    },
+    {
+      "id": "R03",
+      "category": "ATS",
+      "title": "Greenhouse：Unsuccessful resume parse",
+      "url": "https://support.greenhouse.io/hc/en-us/articles/200989175-Unsuccessful-resume-parse",
+      "use": "解析失败与人工字段核对；不等同筛选拒绝。"
+    },
+    {
+      "id": "R04",
+      "category": "ATS",
+      "title": "Greenhouse：Auto-reject",
+      "url": "https://support.greenhouse.io/hc/en-us/articles/360000653472-Auto-reject",
+      "use": "雇主配置的申请问题筛选；不支持通用关键词分数。"
+    },
+    {
+      "id": "R05",
+      "category": "校招",
+      "title": "ByteDance Seed：2027 campus recruitment",
+      "url": "https://seed.bytedance.com/zh/blog/bytedance-seed-2027-foundation-model-campus-recruitment-is-now-open-internships-included",
+      "use": "具体项目的正式/实习资格窗口；不是全部公司规则。"
+    },
+    {
+      "id": "R06",
+      "category": "校招",
+      "title": "TME：校园招聘FAQ",
+      "url": "https://join.tencentmusic.com/campus/",
+      "use": "同届别可能有不同毕业窗口，投递前复核具体公司项目。"
+    },
+    {
+      "id": "R07",
+      "category": "简历",
+      "title": "Princeton：Basic Principles of Resume Writing",
+      "url": "https://careerdevelopment.princeton.edu/resume-guide/basic-principles-resume-writing",
+      "use": "学生经历、本人贡献与不同岗位版本。"
+    },
+    {
+      "id": "R08",
+      "category": "简历",
+      "title": "Princeton：Accomplishment Statements",
+      "url": "https://careerdevelopment.princeton.edu/advanced-degree-resume-guide/accomplishment-statements",
+      "use": "可核对的定性范围和意义；不强求数字。"
+    },
+    {
+      "id": "R09",
+      "category": "简历",
+      "title": "MIT：Writing about your skills",
+      "url": "https://capd.mit.edu/resources/resumes-writing-about-your-skills/",
+      "use": "PAR采访方法；本轮仅核查官方检索正文，直接抓取失败。"
+    },
+    {
+      "id": "R10",
+      "category": "Prompt",
+      "title": "Google：Prompt design strategies",
+      "url": "https://ai.google.dev/gemini-api/docs/prompting-strategies",
+      "use": "任务约束、上下文、多样示例与迭代；迁移DeepSeek需测试。"
+    },
+    {
+      "id": "R11",
+      "category": "Prompt",
+      "title": "Anthropic：Prompting best practices",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+      "use": "角色职责、输入分隔与示例；不保证注入防护或模型性能。"
+    }
+  ],
+  "skill_update": {
+    "version": "career-v1.4-2026-10-02",
+    "design": "system-prompt-design.md",
+    "source_supplements": [
+      "references/jd-review-sources.md",
+      "references/writing-prompt-sources.md"
+    ],
+    "memory_status": "尚未接入，仍由Banz选择。",
+    "boundary": "改写为建议，非自动采用；首轮对照失败记录保留，最新复测单独保存。",
+    "component_evaluation": {
+      "cases": 8,
+      "model": "deepseek-flash",
+      "first_round": "独立agent盲评6组偏好专业版，2组两边均有事实错误。",
+      "revisions": "修订v1.1/v1.2/v1.3，原有失败案例最终针对性复核通过；实际接口另发现原型属性夸大，补为v1.4，分别保存记录。",
+      "boundary": "固定虚构案例的agent评审，非人工验收、独立公开基准或投递成功率证据。"
+    },
+    "local_workflow_evaluation": {
+      "routing": "三个显式任务均在独立虚构会话验证，测试会话已删除。",
+      "frontend": "35项模拟API浏览器断言通过。",
+      "semantic": "v1.4原型主推荐句通过；可选句有未明示用途推断，整段严格来源复核partial_pass。",
+      "boundary": "包装建议不自动采用；需本人核对与最终成稿验证。"
+    }
+  }
+}

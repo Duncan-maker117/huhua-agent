@@ -4,9 +4,17 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>胡话简历 · The Curator</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="stylesheet" href="/static/chat-markdown.css?v=20261002-1"/>
+<link rel="stylesheet" href="/static/conversation-history.css?v=20261002-1"/>
+<link rel="stylesheet" href="/static/account-profile.css?v=20261004"/>
+<script src="/static/account-profile.js?v=20261005-guest"></script>
+<script src="/static/vendor/marked.umd.js"></script>
+<script src="/static/vendor/purify.min.js"></script>
+<script src="/static/chat-markdown.js?v=20261002-1"></script>
+<link rel="stylesheet" href="/static/web-research.css?v=20261006-4"/>
+<script src="/static/web-research.js?v=20261006-4"></script>
+<script src="/static/vendor/tailwindcss-3.4.17.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 <script id="tailwind-config">
   tailwind.config = {
     darkMode: "class",
@@ -43,7 +51,6 @@
   }
 </script>
 <style>
-  .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
   body { font-family: 'Inter', sans-serif; background-color: #faf8fe; color: #1a1b1f; }
   h1, h2, h3, .font-headline { font-family: 'Plus Jakarta Sans', sans-serif; }
   .bubble-user { animation: slide-in-right .25s ease-out; }
@@ -63,6 +70,7 @@
   .tpl-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #c9c3d9; color: #484456; background: #fff; cursor: pointer; }
   .tpl-chip.active { border-color: #5423e7; color: #3c00bd; background: #f0ecff; font-weight: 600; }
 </style>
+<link rel="stylesheet" href="/static/resume-workspace.css?v=20261006-4"/>
 </head>
 <body class="bg-background text-on-background overflow-hidden h-screen flex">
 
@@ -78,14 +86,19 @@
       </nav>
     </div>
     <div class="flex items-center gap-3">
+      <button id="btn-account-profile" type="button" class="account-entry" aria-expanded="false">个人档案</button>
+      <button id="btn-history" class="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors px-3 py-1.5 rounded-full border border-outline-variant/40" aria-controls="conversation-drawer" aria-expanded="false">历史对话</button>
       <button id="btn-new-chat" class="text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors px-3 py-1.5 rounded-full border border-outline-variant/40">新对话</button>
-      <button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors p-2 lg:hidden" id="btn-toggle-canvas" title="简历画布">description</button>
+      <button class="text-on-surface-variant hover:text-primary transition-colors p-2 lg:hidden" id="btn-toggle-canvas" title="简历工作区" aria-label="打开简历工作区"><span class="ui-icon" data-icon="description" aria-hidden="true"></span></button>
     </div>
   </header>
+  <div id="conversation-bar">
+    <span id="conversation-title">正在读取对话…</span>
+    <span id="conversation-status" role="status" aria-live="polite">正在准备体验…</span>
+    <button id="btn-history-retry" type="button" hidden>重试</button>
+  </div>
 
-  <div class="flex-1 relative flex flex-col items-center overflow-y-auto">
-    <div class="absolute top-1/4 -right-20 w-96 h-96 bg-primary-fixed/20 rounded-full blur-[120px] pointer-events-none"></div>
-    <div class="absolute bottom-1/4 -left-20 w-80 h-80 bg-tertiary-fixed/30 rounded-full blur-[100px] pointer-events-none"></div>
+  <div id="chat-body" class="flex-1 relative flex flex-col items-center overflow-y-auto">
 
     <!-- 空状态（欢迎页） -->
     <div id="empty-state" class="w-full max-w-4xl flex-1 min-h-0 overflow-y-auto flex flex-col items-center z-10 pt-4 px-4 md:px-8">
@@ -99,8 +112,8 @@
         <p class="text-on-surface-variant text-lg max-w-lg mx-auto opacity-70">
           对话收集经历，右侧 A4 实时长出来。有 JD 做岗位匹配，没 JD 做能力展示。
         </p>
-        <p class="text-xs text-on-surface-variant/70 max-w-xl mx-auto">
-          输入内容会发送给第三方生成模型；服务器暂存约 7 天，本机记录超过 7 天会在下次打开时清理。请勿上传身份证、银行卡等无关敏感信息；点击“新对话”会删除当前会话数据。
+        <p id="data-retention-notice" class="text-xs text-on-surface-variant/70 max-w-xl mx-auto">
+          发送的内容会交给第三方生成模型处理。未登录时，对话和简历仅供临时体验，闲置 24 小时后清理；新建对话后无法从历史找回这次体验。登录后才会长期保留当前对话和个人信息。请勿上传与求职无关的敏感信息。
         </p>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full mb-5">
@@ -108,7 +121,7 @@
           <div class="space-y-4">
             <div class="flex items-start gap-4">
               <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                <span class="material-symbols-outlined">auto_awesome</span>
+                <span class="ui-icon" data-icon="auto_awesome" aria-hidden="true"></span>
               </div>
               <div class="flex-1 space-y-2">
                 <h3 id="quick-card-title" class="font-bold text-lg text-on-surface">从真实经历开始</h3>
@@ -118,14 +131,17 @@
           </div>
           <div class="mt-5 flex flex-wrap gap-3">
             <button class="quick-action px-5 py-2.5 rounded-full bg-primary text-on-primary text-sm font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-              data-title="解码 JD · 看懂岗位黑话"
-              data-desc="粘贴一段招聘 JD 原文，我会拆出目标岗位的关键词和隐含要求，告诉你这份 JD 真正在筛什么，然后帮你定位自己经历里命中的部分。">解码 JD</button>
+              data-task="decode_jd"
+              data-title="解码 JD · 拆出要求与证据"
+              data-desc="粘贴招聘 JD 原文，我会区分必要条件、加分项与待确认的推断，再对照你的经历找证据。">解码 JD</button>
             <button class="quick-action px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface text-sm font-semibold hover:bg-surface-container-highest transition-colors"
-              data-title="包装经历 · STAR 法则重写"
-              data-desc="把你做过的工作、项目或平时的习惯扔给我（不用写得完整），我会用 STAR-V 法则重写成 ATS 友好的 bullet，量化数字不够会追问你一两个关键指标。">包装经历</button>
+              data-task="rewrite_experience"
+              data-title="包装经历 · 写清你的真实贡献"
+              data-desc="讲讲你做过的工作或项目。我会整理你的行动、方法与产出，缺少关键事实时追问；没有数据也能先写清已完成的内容。">包装经历</button>
             <button class="quick-action px-5 py-2.5 rounded-full bg-surface-container-high text-on-surface text-sm font-semibold hover:bg-surface-container-highest transition-colors"
+              data-task="review_resume"
               data-title="检查简历 · JD 证据与投递可读性"
-              data-desc="发一份已有简历（文本粘贴或拖入 PDF），我会核对 JD 要求有没有真实经历支撑，并检查联系方式、事实与解析风险。">检查简历</button>
+              data-desc="发来已有简历，我会优先检查事实一致性、岗位证据与表达。未实际验证的文件解析和招聘条件会标明待核验。">检查简历</button>
           </div>
         </div>
         <a href="/resume" class="bg-surface-container-low p-5 rounded-[2rem] flex flex-col justify-between relative overflow-hidden group hover:bg-surface-container transition-colors">
@@ -136,7 +152,7 @@
           </div>
           <div class="z-10 mt-6">
             <span class="inline-flex items-center gap-1 text-primary text-sm font-bold group-hover:gap-3 transition-all">
-              进入画廊 <span class="material-symbols-outlined text-sm">arrow_forward</span>
+              进入画廊 <span class="ui-icon text-sm" data-icon="arrow_forward" aria-hidden="true"></span>
             </span>
           </div>
         </a>
@@ -156,49 +172,72 @@
     </div>
 
     <!-- 底部 Command Bar -->
-    <div class="w-full max-w-4xl px-4 md:px-8 pb-4 z-10 shrink-0">
+    <div id="composer-wrap" class="w-full max-w-4xl px-4 md:px-8 pb-4 z-10 shrink-0">
+      <section id="guidance-dock" aria-label="待你补充" hidden></section>
       <div id="command-bar" class="relative group">
         <div class="absolute -inset-1 bg-gradient-to-r from-primary/10 to-tertiary-fixed/10 rounded-[2rem] blur-xl opacity-50 group-focus-within:opacity-100 transition-opacity"></div>
         <div id="command-surface" class="relative bg-surface-container-lowest/80 backdrop-blur-2xl rounded-[2rem] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.08)] border border-white/40 transition-all">
+          <div id="flow-actions" class="hidden flex-wrap gap-2 px-4 pb-2" aria-label="简历操作">
+            <button id="btn-build-draft" class="rounded-full border border-primary/30 px-3 py-1 text-xs text-primary disabled:opacity-50" type="button">生成草稿</button>
+            <button id="btn-review-current" class="rounded-full border border-primary/30 px-3 py-1 text-xs text-primary disabled:opacity-50" type="button">检查当前简历</button>
+          </div>
+          <p id="selected-task-hint" class="hidden px-4 pb-2 text-xs text-primary" aria-live="polite"></p>
+          <p id="request-status" class="hidden px-4 pb-2 text-xs text-on-surface-variant" role="status" aria-live="polite"></p>
+          <section id="web-research-panel" aria-label="读取招聘资料" hidden>
+            <div class="web-research-heading"><span>读取公开招聘资料</span><button id="web-research-close" type="button">收起</button></div>
+            <form id="web-read-panel" hidden>
+              <label>招聘链接<input id="web-read-url" type="url" required maxlength="2048" placeholder="https://…" autocomplete="off"></label>
+              <button id="web-read-submit" class="web-tool-submit" type="submit" disabled>读取链接</button>
+            </form>
+            <form id="web-search-panel" hidden>
+              <label>公司名称<input id="web-search-company" maxlength="80" placeholder="例如：目标公司" autocomplete="off"></label>
+              <label>岗位关键词<input id="web-search-role" maxlength="80" placeholder="例如：AI 产品经理" autocomplete="off"></label>
+              <button id="web-search-submit" class="web-tool-submit" type="submit" disabled>搜索岗位</button>
+            </form>
+            <p id="web-research-status" role="status" aria-live="polite"></p>
+            <button id="web-tools-retry" type="button">重新检查工具</button>
+          </section>
           <!-- 附件 chip 区 -->
           <div id="attachments" class="hidden flex-wrap gap-2 px-4 pb-3"></div>
           <!-- 拖拽提示遮罩 -->
           <div id="drop-overlay" class="hidden absolute inset-0 rounded-[2rem] bg-primary/10 backdrop-blur-sm border-2 border-dashed border-primary flex items-center justify-center pointer-events-none z-20">
             <div class="text-primary font-bold text-lg flex items-center gap-2">
-              <span class="material-symbols-outlined">upload_file</span> 松手上传文件
+              <span class="ui-icon" data-icon="upload_file" aria-hidden="true"></span> 松手上传文件
             </div>
           </div>
           <div class="flex flex-col gap-4">
             <div class="flex items-start px-4 gap-4">
-              <span class="material-symbols-outlined text-outline mt-2">edit_note</span>
+              <span class="ui-icon text-outline mt-2" data-icon="edit_note" aria-hidden="true"></span>
               <textarea id="input" rows="1" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline text-lg py-2 resize-none outline-none" placeholder="输入消息，Enter 发送 · 可粘贴或拖入 PDF/DOCX/JPG/PNG"></textarea>
             </div>
             <div class="flex items-center justify-between border-t border-outline-variant/10 pt-4 px-2">
-              <div class="flex items-center gap-2">
+              <div class="web-research-actions">
+                <button id="web-read-toggle" class="web-tool-toggle" type="button" aria-controls="web-research-panel" aria-expanded="false">读招聘链接</button>
+                <button id="web-search-toggle" class="web-tool-toggle" type="button" aria-controls="web-research-panel" aria-expanded="false">查公司岗位</button>
                 <label class="p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant cursor-pointer" title="上传文件（PDF/DOCX/TXT/MD/JPG/PNG；图片由视觉模型识别）">
-                  <span class="material-symbols-outlined text-lg">attach_file</span>
+                  <span class="ui-icon text-lg" data-icon="attach_file" aria-hidden="true"></span>
                   <input id="file-input" type="file" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.jpg,.jpeg,.png" multiple/>
                 </label>
               </div>
               <button id="btn-send" class="bg-primary text-on-primary w-12 h-12 rounded-full flex items-center justify-center shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed" title="发送">
-                <span id="btn-send-icon" class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+                <span id="btn-send-icon" class="ui-icon" data-icon="send" aria-hidden="true"></span>
               </button>
             </div>
           </div>
         </div>
       </div>
-      <div class="mt-3 flex justify-center gap-8 text-[10px] font-bold uppercase tracking-widest text-outline">
+      <div id="composer-links" class="mt-3 flex justify-center gap-8 text-[10px] font-bold text-outline">
         <a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
-          <span class="material-symbols-outlined text-sm">keyboard_command_key</span> 快捷键
+          <span class="ui-icon text-sm" data-icon="keyboard_command_key" aria-hidden="true"></span> 快捷键
         </a>
         <a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
-          <span class="material-symbols-outlined text-sm">help</span> 指南
+          <span class="ui-icon text-sm" data-icon="help" aria-hidden="true"></span> 指南
         </a>
         <a class="hover:text-primary transition-colors flex items-center gap-1" href="/resume">
-          <span class="material-symbols-outlined text-sm">bolt</span> 模板
+          <span class="ui-icon text-sm" data-icon="bolt" aria-hidden="true"></span> 模板
         </a>
         <a id="btn-gen-resume" class="hidden hover:text-primary text-primary transition-colors flex items-center gap-1" target="_blank" rel="noopener">
-          <span class="material-symbols-outlined text-sm">description</span> 生成简历预览
+          <span class="ui-icon text-sm" data-icon="description" aria-hidden="true"></span> 生成简历预览
         </a>
       </div>
     </div>
@@ -206,62 +245,80 @@
 
 </section>
 
-<aside id="canvas-pane" class="hidden lg:flex w-[42%] xl:w-[46%] flex-col h-full border-l border-outline-variant/30">
+<aside id="canvas-pane" aria-label="简历工作区" class="hidden lg:flex w-[42%] xl:w-[46%] flex-col h-full border-l border-outline-variant/30">
   <div class="px-5 py-4 flex items-center justify-between gap-3">
     <div>
-      <div class="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">Live Resume</div>
-      <div class="text-sm font-semibold text-on-surface mt-0.5">边聊边长出来</div>
+      <div class="text-sm font-semibold text-on-surface">简历工作区</div>
+      <div id="workspace-status" class="workspace-status" role="status" aria-live="polite">把岗位、经历和简历放在一起</div>
     </div>
     <div class="flex items-center gap-2">
       <a id="btn-open-full" class="text-xs text-primary font-semibold hover:underline" href="/resume">全屏模板</a>
       <button id="btn-export-docx" class="text-xs px-3 py-1.5 rounded-full bg-primary text-on-primary font-semibold disabled:opacity-40" title="下载通用排版的 Word，所选模板样式适用于 PDF" disabled>通用 Word</button>
+      <button id="btn-close-workspace" type="button" aria-label="返回对话">返回对话</button>
     </div>
   </div>
-  <div id="stage-rail" class="px-5 pb-3"></div>
+  <div id="stage-rail" class="px-5 pb-3" role="tablist" aria-label="查看工作区内容"></div>
+  <div id="workspace-body">
+  <section id="workspace-panel-jd" role="tabpanel" aria-labelledby="workspace-tab-jd" tabindex="0"></section>
+  <section id="workspace-panel-experiences" role="tabpanel" aria-labelledby="workspace-tab-experiences" tabindex="0" hidden></section>
+  <section id="workspace-panel-resume" role="tabpanel" aria-labelledby="workspace-tab-resume" tabindex="0" hidden>
+  <div id="verification-panel" class="hidden mx-5 mb-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"></div>
   <div id="tpl-rail" class="px-5 pb-3 flex flex-wrap gap-2"></div>
-  <div class="flex-1 overflow-hidden px-5 pb-5">
+  <div id="resume-preview-area" class="flex-1 overflow-hidden px-5 pb-5">
     <div id="canvas-empty" class="h-full rounded-2xl border border-dashed border-primary/20 bg-white/40 flex flex-col items-center justify-center text-center px-8">
-      <span class="material-symbols-outlined text-primary text-4xl mb-3">article</span>
+      <span class="ui-icon text-primary text-4xl mb-3" data-icon="article" aria-hidden="true"></span>
       <p class="text-on-surface font-semibold">简历还是一张白纸</p>
       <p class="text-on-surface-variant text-sm mt-2 leading-relaxed">贴 JD 或聊项目，经历确认后这里会铺开 A4。</p>
     </div>
     <div id="canvas-sheet-wrap" class="hidden h-full overflow-auto rounded-2xl bg-[#d8d2e4] p-4">
-      <iframe id="live-sheet" class="block mx-auto bg-white" sandbox=""></iframe>
+      <div id="sheet-size"><iframe id="live-sheet" title="当前简历预览" class="block bg-white" sandbox=""></iframe></div>
     </div>
+  </div>
+  </section>
+  <section id="workspace-panel-review" role="tabpanel" aria-labelledby="workspace-tab-review" tabindex="0" hidden></section>
+  <section id="workspace-panel-export" role="tabpanel" aria-labelledby="workspace-tab-export" tabindex="0" hidden></section>
+  <section id="workspace-suggestions" aria-label="建议" hidden></section>
   </div>
 </aside>
 
 </main>
 
+<div id="conversation-overlay" hidden>
+  <button id="conversation-backdrop" type="button" aria-label="关闭历史对话"></button>
+  <aside id="conversation-drawer" role="dialog" aria-modal="true" aria-labelledby="history-heading" tabindex="-1">
+    <div class="history-heading-row"><h2 id="history-heading">历史对话</h2><button id="btn-close-history" type="button" aria-label="关闭历史对话">×</button></div>
+    <p class="history-description">登录后，每个对话独立保存岗位、经历和简历，随时回来继续修改。</p>
+    <button id="btn-history-new" type="button">＋ 新建对话</button>
+    <div class="history-list-heading"><span>我的对话</span><button id="btn-refresh-history" type="button">刷新</button></div>
+    <p id="history-list-status" role="status"></p>
+    <nav id="conversation-list" aria-label="历史对话列表"></nav>
+    <p id="history-retention">登录后保留对话；临时体验闲置 24 小时后清理。</p>
+  </aside>
+</div>
+
+<script src="/static/resume-workspace.js?v=20261008-export"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
 const MSG_KEY = 'huhua_messages';
 const SAVED_AT_KEY = 'huhua_saved_at';
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const savedAt = Number(localStorage.getItem(SAVED_AT_KEY) || 0);
-if (!savedAt || Date.now() - savedAt >= SESSION_TTL_MS) {
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(MSG_KEY);
-  localStorage.removeItem(SAVED_AT_KEY);
-}
-// 跳页回来时优先恢复旧 session；第一次打开才生成新的
-let SESSION_ID = localStorage.getItem(SESSION_KEY) || crypto.randomUUID();
-localStorage.setItem(SESSION_KEY, SESSION_ID);
-if (!localStorage.getItem(SAVED_AT_KEY)) {
-  localStorage.setItem(SAVED_AT_KEY, String(Date.now()));
-}
-// 恢复消息历史（每次 send 完会写入）
-let _saved = [];
-try { _saved = JSON.parse(localStorage.getItem(MSG_KEY) || '[]'); } catch { _saved = []; }
-const messages = Array.isArray(_saved) ? _saved : [];
-
+function localRead(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
+// Only session identifiers persist. Unsaved messages live in this tab's memory.
+const LEGACY_SESSION_ID = localRead(SESSION_KEY);
+let SESSION_ID = new URLSearchParams(location.search).get('session') || LEGACY_SESSION_ID || null;
+let conversationReady = false;
+let conversationBusy = true;
+const legacyMessages = [];
+const messages = [];
+const chatBackups = new Map();
+const chatRecoveries = new Map();
+const unsavedChatSessions = new Set();
 function saveMessages() {
-  try {
-    localStorage.setItem(MSG_KEY, JSON.stringify(messages));
-    localStorage.setItem(SAVED_AT_KEY, String(Date.now()));
-  }
-  catch (e) { /* localStorage 满了也不阻塞 */ }
+  if (!SESSION_ID) return;
+  chatBackups.set(SESSION_ID, messages.map(message => ({...message})));
+  unsavedChatSessions.add(SESSION_ID);
+  if (window.HuhuaAccount?.rememberSession) window.HuhuaAccount.rememberSession(SESSION_ID);
+  else try { localStorage.setItem(SESSION_KEY, SESSION_ID); } catch (_) { /* Server remains authoritative. */ }
 }
 
 const emptyStateEl = document.getElementById('empty-state');
@@ -276,7 +333,27 @@ updateInputPlaceholder();
 window.addEventListener('resize', updateInputPlaceholder);
 const sendBtn = document.getElementById('btn-send');
 
-function appendBubble(role, content) {
+function renderAssistant(element, content, streaming = false) {
+  if (window.HuhuaMarkdown) {
+    window.HuhuaMarkdown.render(element, content, { streaming });
+  } else {
+    element.textContent = content;
+    element.style.whiteSpace = 'pre-wrap';
+  }
+  // A model-produced template link must stay with this chat even when another
+  // tab has since changed the browser's most recently opened conversation.
+  if (SESSION_ID) for (const link of element.querySelectorAll('a[href]')) {
+    try {
+      const url = new URL(link.href, location.href);
+      if (url.origin === location.origin && url.pathname === '/resume' && !url.searchParams.has('session')) {
+        url.searchParams.set('session', SESSION_ID);
+        link.href = url.pathname + url.search + url.hash;
+      }
+    } catch (_) { /* The Markdown renderer already validates link protocols. */ }
+  }
+}
+
+function appendBubble(role, content, interrupted = false) {
   const wrap = document.createElement('div');
   if (role === 'user') {
     wrap.className = 'bubble-user flex justify-end';
@@ -284,15 +361,16 @@ function appendBubble(role, content) {
   } else {
     wrap.className = 'bubble-ai flex';
     wrap.innerHTML = `
-      <div class="flex gap-3 max-w-[90%]">
+      <div class="flex gap-3 max-w-[90%] min-w-0">
         <div class="w-8 h-8 rounded-full bg-tertiary-fixed flex-shrink-0 flex items-center justify-center">
-          <span class="material-symbols-outlined text-sm text-on-tertiary-fixed-variant">auto_awesome</span>
+          <span class="ui-icon text-sm text-on-tertiary-fixed-variant" data-icon="auto_awesome" aria-hidden="true"></span>
         </div>
-        <div class="border-l-[4px] border-tertiary-fixed pl-4 py-1 text-on-surface leading-relaxed whitespace-pre-wrap break-words"></div>
+        <div class="border-l-[4px] border-tertiary-fixed pl-4 py-1 text-on-surface leading-relaxed break-words min-w-0"></div>
       </div>`;
   }
   const textEl = wrap.querySelector(role === 'user' ? 'div.rounded-br-sm' : 'div.border-l-\\[4px\\]');
-  textEl.textContent = content;
+  if (role === 'user') textEl.textContent = content;
+  else renderAssistant(textEl, content, interrupted);
   messagesEl.appendChild(wrap);
   messagesEl.scrollTop = messagesEl.scrollHeight;
   return textEl;
@@ -300,47 +378,68 @@ function appendBubble(role, content) {
 
 // 当前进行中的流式请求控制器（null 表示空闲，可点击发送；否则点击按钮就是中断）
 let currentController = null;
+let selectedTask = 'auto';
 const sendBtnIcon = document.getElementById('btn-send-icon');
+let waitingTimer = null;
+
+function updateFlowActions() {
+  const actions = document.getElementById('flow-actions');
+  actions.classList.toggle('hidden', messages.length === 0);
+  actions.classList.toggle('flex', messages.length > 0);
+  document.getElementById('btn-build-draft').disabled = Boolean(currentController) || conversationBusy || !conversationReady;
+  document.getElementById('btn-build-draft').classList.toggle('hidden', ['EVALUATING', 'EXPORT'].includes(canvasState.stage) && canvasState.hasData);
+  document.getElementById('btn-review-current').disabled = Boolean(currentController) || conversationBusy || !conversationReady || !canvasState.hasData;
+}
 
 function setSendButtonMode(mode) {
   // mode: 'idle' | 'streaming'
   if (mode === 'streaming') {
-    sendBtnIcon.textContent = 'stop';
+    sendBtnIcon.dataset.icon = 'stop';
     sendBtn.title = '中断生成';
     sendBtn.classList.remove('bg-primary', 'shadow-primary/30');
     sendBtn.classList.add('bg-red-500', 'shadow-red-500/30');
   } else {
-    sendBtnIcon.textContent = 'send';
+    sendBtnIcon.dataset.icon = 'send';
     sendBtn.title = '发送';
     sendBtn.classList.remove('bg-red-500', 'shadow-red-500/30');
     sendBtn.classList.add('bg-primary', 'shadow-primary/30');
   }
 }
 
-async function send(text) {
+async function send(text, {quickReply = false, webTool = null, keepDraft = false} = {}) {
+  if (window.HuhuaAccount?.claimPending()) return false;
   // 流式中忽略新发送，避免孤儿 fetch（旧 controller 被覆盖就再也 abort 不了）
-  if (currentController) return;
+  if (currentController) return false;
+  if (conversationBusy || !conversationReady || !SESSION_ID) {
+    window.HuhuaHistory?.showConnectionProblem();
+    return false;
+  }
   if (pendingUploads > 0) {
     alert('附件还在上传，请等上传完成后再发送。');
-    return;
+    return false;
   }
   text = (text ?? inputEl.value).trim();
   // 允许"只有附件没有文字"也能发
-  if (!text && attachments.length === 0) return;
+  const sentAttachments = quickReply || webTool ? [] : [...attachments];
+  if (!quickReply && !webTool) webTool = window.HuhuaWebResearch?.infer(text, sentAttachments.length) || null;
+  const submittedSession = SESSION_ID;
+  if (!text && sentAttachments.length === 0) return false;
 
   // 拼接附件到消息内容
-  const attachmentPrefix = attachments
+  const attachmentPrefix = sentAttachments
     .map(a => `[文件: ${a.filename}]\n${a.text}`)
     .join('\n\n---\n\n');
   const fullContent = attachmentPrefix
     ? (text ? `${attachmentPrefix}\n\n---\n\n${text}` : attachmentPrefix)
     : text;
-  const displayText = text || `（已上传 ${attachments.length} 个文件）`;
+  const displayText = text || `（已上传 ${sentAttachments.length} 个文件）`;
 
   clearMatchResult();
 
-  inputEl.value = '';
-  autoResize();
+  if (!quickReply && !keepDraft) {
+    inputEl.value = '';
+    autoResize();
+  }
   setSendButtonMode('streaming');
 
   if (emptyStateEl && !emptyStateEl.classList.contains('hidden')) {
@@ -349,77 +448,144 @@ async function send(text) {
   }
 
   messages.push({ role: 'user', content: fullContent });
-  appendBubble('user', attachments.length
-    ? `${attachments.map(a => '📎 ' + a.filename).join('  ')}${text ? '\n\n' + text : ''}`
+  saveMessages();
+  appendBubble('user', sentAttachments.length
+    ? `${sentAttachments.map(a => '📎 ' + a.filename).join('  ')}${text ? '\n\n' + text : ''}`
     : displayText);
-  clearAttachments();
+  if (!quickReply && !keepDraft) clearAttachments();
 
   const aiEl = appendBubble('assistant', '');
-  aiEl.parentElement.classList.add('streaming');
+  aiEl.classList.add('streaming');
+  aiEl.setAttribute('aria-busy', 'true');
   let buffer = '';
-  let aborted = false;
+  let interrupted = false;
+  let completed = false;
+  let usedWebTool = Boolean(webTool);
+  let toolMessage = '';
+  let lastWorkspaceMeta = null;
+  let renderFrame = null;
+  const scheduleRender = () => {
+    if (renderFrame !== null) return;
+    renderFrame = requestAnimationFrame(() => {
+      renderFrame = null;
+      renderAssistant(aiEl, buffer, true);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+  };
   currentController = new AbortController();
+  window.HuhuaWorkspace?.setStreaming(true);
+  window.HuhuaWebResearch?.setStreaming(true);
+  const submittedTask = quickReply ? 'auto' : selectedTask;
+  updateFlowActions();
+  const statusEl = document.getElementById('request-status');
+  const startedAt = Date.now();
+  statusEl.classList.remove('hidden');
+  const updateWaiting = () => {
+    if (buffer) { statusEl.textContent = '正在回复…'; return; }
+    if (toolMessage) { statusEl.textContent = toolMessage; return; }
+    const seconds = Math.floor((Date.now() - startedAt) / 1000);
+    statusEl.textContent = seconds < 20 ? `正在整理资料… ${seconds} 秒` : `仍在处理中… ${seconds} 秒，可点击发送按钮中断`;
+  };
+  updateWaiting();
+  waitingTimer = setInterval(updateWaiting, 1000);
 
   try {
     const res = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages, session_id: SESSION_ID }),
+      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}) }),
       signal: currentController.signal
     });
     if (!res.ok) {
       let detail = `请求失败 (${res.status})`;
-      try { detail = (await res.json()).detail || detail; } catch {}
+      try { const value = (await res.json()).detail; detail = typeof value === 'string' ? value : value?.message || detail; } catch {}
       throw new Error(detail);
     }
+    // A successfully accepted turn consumes the selection. HTTP/network
+    // failures keep it selected so the next submission can retry the task.
+    if (!quickReply && !keepDraft) resetSelectedTask();
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let pending = '';
+    let receivedDone = false;
+    let streamFailed = false;
+    const consumeEvent = (event) => {
+      const data = event.split(/\r?\n/)
+        .filter(line => line.startsWith('data:'))
+        .map(line => line.slice(5).replace(/^ /, ''))
+        .join('\n');
+      if (!data) return;
+      if (data === '[DONE]') { receivedDone = true; return; }
+      let parsed;
+      try { parsed = JSON.parse(data); } catch { return; }
+      if (parsed.type === 'meta') { if (parsed.workspace) lastWorkspaceMeta = parsed.workspace; applyMeta(parsed); return; }
+      if (parsed.type === 'tool_status') {
+        usedWebTool = true;
+        toolMessage = typeof parsed.message === 'string' ? parsed.message : parsed.status === 'completed' ? '网页资料已获取，正在解读…' : '正在获取网页资料…';
+        window.HuhuaWebResearch?.toolStatus({...parsed, message:toolMessage}); updateWaiting(); return;
+      }
+      if (parsed.type === 'sources') {
+        window.HuhuaWorkspace?.setWebSources(parsed.sources, submittedSession); return;
+      }
+      if (typeof parsed.error === 'string') { streamFailed = true; buffer += `\n[错误: ${parsed.error}]`; }
+      else if (typeof parsed.content === 'string') buffer += parsed.content;
+      scheduleRender();
+    };
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
-      pending += decoder.decode(value, { stream: true });
-      const lines = pending.split('\n');
-      pending = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6);
-        if (data === '[DONE]') { aiEl.parentElement.classList.remove('streaming'); break; }
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.type === 'meta') {
-            applyMeta(parsed);
-            continue;
-          }
-          const { content, error } = parsed;
-          if (error) buffer += `\n[错误: ${error}]`;
-          else if (content) buffer += content;
-          aiEl.textContent = buffer;
-          messagesEl.scrollTop = messagesEl.scrollHeight;
-        } catch {}
+      pending += done ? decoder.decode() : decoder.decode(value, { stream: true });
+      const events = pending.split(/\r?\n\r?\n/);
+      pending = events.pop();
+      for (const event of events) {
+        consumeEvent(event);
+        if (receivedDone) break;
       }
+      if (done && pending) consumeEvent(pending);
+      if (receivedDone) { await reader.cancel(); break; }
+      if (done) break;
     }
+    if (!receivedDone) throw new Error('回复连接已断开，请重试。');
+    completed = !streamFailed;
+    if (completed) window.HuhuaWorkspace?.commitWebSources(lastWorkspaceMeta, submittedSession);
   } catch (e) {
     if (e.name === 'AbortError') {
-      aborted = true;
+      interrupted = true;
       buffer = buffer ? buffer + '\n\n[已中断]' : '[已中断]';
-      aiEl.textContent = buffer;
     } else {
-      buffer = `请求失败：${e.message}`;
-      aiEl.textContent = buffer;
+      const failure = `请求失败：${e.message}`;
+      buffer = buffer ? `${buffer}\n\n${failure}` : failure;
     }
   }
 
-  aiEl.parentElement.classList.remove('streaming');
-  messages.push({ role: 'assistant', content: buffer });
+  if (renderFrame !== null) cancelAnimationFrame(renderFrame);
+  renderAssistant(aiEl, buffer, interrupted);
+  aiEl.classList.remove('streaming');
+  aiEl.setAttribute('aria-busy', 'false');
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  messages.push({ role: 'assistant', content: buffer, ...(interrupted ? { interrupted: true } : {}) });
   saveMessages();
   currentController = null;
+  window.HuhuaWorkspace?.setStreaming(false);
+  window.HuhuaWebResearch?.setStreaming(false);
+  clearInterval(waitingTimer);
+  waitingTimer = null;
+  statusEl.classList.add('hidden');
   setSendButtonMode('idle');
+  updateFlowActions();
+  if (!completed) {
+    if (!quickReply && !keepDraft && !inputEl.value.trim()) { inputEl.value = text; autoResize(); }
+    if (usedWebTool) window.HuhuaWebResearch?.offerRetry(webTool);
+  }
   inputEl.focus();
+  // Guidance reappears after streaming and changes the available message height.
+  // Scroll only after that layout has settled so the latest reply stays visible.
+  requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
 
   // 对话推进后刷新右侧画布 + 预览按钮
   maybeShowGenerateLink();
   refreshCanvas();
+  window.HuhuaHistory?.afterTurn();
+  return completed;
 }
 
 const STAGES = [
@@ -502,18 +668,26 @@ matchButton.addEventListener('click', async () => {
 function applyMeta(meta) {
   if (meta.stage) canvasState.stage = meta.stage;
   if (typeof meta.has_data === 'boolean') canvasState.hasData = meta.has_data;
+  if (meta.workspace) window.HuhuaWorkspace?.update(meta.workspace, { focus: true });
   renderStageRail();
   if (meta.has_data) refreshCanvas();
 }
 
 function renderStageRail() {
-  const rail = document.getElementById('stage-rail');
-  if (!rail) return;
-  const idx = Math.max(0, STAGES.findIndex(s => s.id === canvasState.stage));
-  rail.innerHTML = STAGES.map((s, i) => {
-    const cls = i < idx ? 'done' : (i === idx ? 'active' : '');
-    return `<span class="stage-chip ${cls}">${s.label}</span>`;
-  }).join('');
+  window.HuhuaWorkspace?.setStage(canvasState.stage);
+}
+
+function restoreCanvasTemplate() {
+  const saved = localRead('huhua_resume_template:' + (SESSION_ID || 'sample'));
+  if (canvasState.templates.some(template => template.id === saved)) {
+    canvasState.templateId = saved;
+  } else if (canvasState.templateSession !== SESSION_ID || !canvasState.templates.some(template => template.id === canvasState.templateId)) {
+    canvasState.templateId = canvasState.templates[0]?.id || 't001-jianyue';
+  }
+  canvasState.templateSession = SESSION_ID;
+  document.querySelectorAll('#tpl-rail .tpl-chip').forEach(button => {
+    button.classList.toggle('active', button.dataset.id === canvasState.templateId);
+  });
 }
 
 async function loadTemplates() {
@@ -522,19 +696,19 @@ async function loadTemplates() {
   try {
     const body = await fetch('/api/resume/templates').then(r => r.json());
     canvasState.templates = body.templates || [];
-    if (!canvasState.templates.find(t => t.id === canvasState.templateId) && canvasState.templates[0]) {
-      canvasState.templateId = canvasState.templates[0].id;
-    }
+    restoreCanvasTemplate();
     rail.innerHTML = canvasState.templates.map(t =>
       `<button class="tpl-chip ${t.id === canvasState.templateId ? 'active' : ''}" data-id="${t.id}">${t.name}</button>`
     ).join('');
     rail.querySelectorAll('.tpl-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         canvasState.templateId = btn.dataset.id;
+        try { localStorage.setItem('huhua_resume_template:' + (SESSION_ID || 'sample'), canvasState.templateId); } catch (_) { /* Optional presentation preference. */ }
         rail.querySelectorAll('.tpl-chip').forEach(b => b.classList.toggle('active', b === btn));
         if (canvasState.data) paintSheet(canvasState.data);
       });
     });
+    if (canvasState.data) paintSheet(canvasState.data);
   } catch (e) { /* silent */ }
 }
 
@@ -542,14 +716,23 @@ function scaleSheet() {
   const iframe = document.getElementById('live-sheet');
   const wrap = document.getElementById('canvas-sheet-wrap');
   if (!iframe || !wrap) return;
-  const avail = wrap.clientWidth - 24;
+  const size = document.getElementById('sheet-size');
+  if (!wrap.clientWidth || !size) return;
+  const avail = wrap.clientWidth - 32;
   const pageWidth = 794; // 210mm at 96dpi-ish
-  const scale = Math.max(0.42, Math.min(1, avail / pageWidth));
+  const scale = Math.max(0.1, Math.min(1, avail / pageWidth));
+  iframe.style.transformOrigin = 'top left';
   iframe.style.transform = `scale(${scale})`;
   iframe.style.height = `${297 * 3.78}px`;
+  size.style.width = `${pageWidth * scale}px`;
+  size.style.height = `${297 * 3.78 * scale}px`;
 }
 
+let canvasPaintRequest = 0;
+let canvasReadRequest = 0;
 async function paintSheet(data) {
+  restoreCanvasTemplate();
+  const request = ++canvasPaintRequest;
   const emptyEl = document.getElementById('canvas-empty');
   const wrap = document.getElementById('canvas-sheet-wrap');
   const iframe = document.getElementById('live-sheet');
@@ -557,59 +740,86 @@ async function paintSheet(data) {
   const fullLink = document.getElementById('btn-open-full');
   if (!iframe || !wrap) return;
   try {
-    const res = await fetch(`/api/resume/render/${canvasState.templateId}`, {
+    const res = await fetch(`/api/resume/render/${canvasState.templateId}?session_id=${encodeURIComponent(SESSION_ID)}`,  {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) return;
-    iframe.srcdoc = await res.text();
+    if (!res.ok) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
+    const html = await res.text();
+    if (request !== canvasPaintRequest) return false;
+    iframe.srcdoc = html;
     emptyEl.classList.add('hidden');
     wrap.classList.remove('hidden');
     if (exportBtn) exportBtn.disabled = false;
     if (fullLink) fullLink.href = `/resume?session=${encodeURIComponent(SESSION_ID)}`;
     requestAnimationFrame(scaleSheet);
-  } catch (e) { /* silent */ }
+    return true;
+  } catch (e) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
 }
 
 async function refreshCanvas() {
+  if (window.HuhuaAccount?.claimPending()) return false;
+  if (!SESSION_ID || !conversationReady || conversationBusy) return false;
+  const request = ++canvasReadRequest;
+  const session = SESSION_ID;
   try {
     const r = await fetch(`/api/resume/current?session_id=${encodeURIComponent(SESSION_ID)}`);
-    if (!r.ok) return;
+    if (!r.ok) { if (request === canvasReadRequest && session === SESSION_ID) window.HuhuaWorkspace?.canvasError(); return false; }
     const body = await r.json();
+    if (request !== canvasReadRequest || session !== SESSION_ID) return false;
     setMatchAvailable(Boolean(body.has_data && body.has_jd && body.match_enabled));
     if (body.stage) canvasState.stage = body.stage;
+    if (body.workspace) window.HuhuaWorkspace?.update(body.workspace);
     renderStageRail();
     if (body.has_data && body.data) {
       canvasState.hasData = true;
       canvasState.data = body.data;
-      await paintSheet(body.data);
+      const painted = await paintSheet(body.data);
+      if (request !== canvasReadRequest || session !== SESSION_ID) return false;
+      if (!painted) return false;
+      if (painted) window.HuhuaWorkspace?.canvasResult(body);
+    } else {
+      canvasPaintRequest++;
+      canvasState.hasData = false;
+      canvasState.data = null;
+      document.getElementById('canvas-empty')?.classList.remove('hidden');
+      document.getElementById('canvas-sheet-wrap')?.classList.add('hidden');
+      document.getElementById('btn-export-docx').disabled = true;
+      window.HuhuaWorkspace?.canvasResult(body);
     }
-  } catch (e) { /* silent */ }
+    const notesPanel = document.getElementById('verification-panel');
+    const notes = body.data?.verification_notes || [];
+    notesPanel.replaceChildren();
+    notesPanel.classList.toggle('hidden', notes.length === 0);
+    if (notes.length) {
+      const heading = document.createElement('p');
+      heading.className = 'font-semibold';
+      heading.textContent = '待核对草稿 · 确认后再投递';
+      notesPanel.appendChild(heading);
+      const list = document.createElement('ul');
+      list.className = 'list-disc pl-4 mt-1';
+      for (const note of notes.slice(0, 3)) {
+        const item = document.createElement('li'); item.textContent = note; list.appendChild(item);
+      }
+      notesPanel.appendChild(list);
+    }
+    updateFlowActions();
+    maybeShowGenerateLink();
+    return true;
+  } catch (e) { if (request === canvasReadRequest && session === SESSION_ID) window.HuhuaWorkspace?.canvasError(); return false; }
 }
 
-async function maybeShowGenerateLink() {
+function maybeShowGenerateLink() {
   const btn = document.getElementById('btn-gen-resume');
   if (!btn) return;
-  try {
-    const r = await fetch(`/api/resume/current?session_id=${encodeURIComponent(SESSION_ID)}`);
-    if (!r.ok) return;
-    const body = await r.json();
-    setMatchAvailable(Boolean(body.has_data && body.has_jd && body.match_enabled));
-    if (body.stage) {
-      canvasState.stage = body.stage;
-      renderStageRail();
-    }
-    if (body.has_data) {
+    if (canvasState.hasData) {
       btn.href = `/resume?session=${encodeURIComponent(SESSION_ID)}`;
       btn.classList.remove('hidden');
-      canvasState.hasData = true;
-      canvasState.data = body.data;
     } else {
       btn.classList.add('hidden');
       btn.href = '';
     }
-  } catch (e) { /* silent */ }
 }
 
 function resetGenerateLink() {
@@ -639,16 +849,18 @@ inputEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
 });
 
-// quick-action chip：点击切换卡片标题/说明，不再直接触发 LLM 对话
+// A chip selects the task for the next submitted turn without sending a message.
 const quickTitleEl = document.getElementById('quick-card-title');
 const quickDescEl = document.getElementById('quick-card-desc');
 const defaultQuickTitle = quickTitleEl?.textContent || '';
 const defaultQuickDesc = quickDescEl?.textContent || '';
 const quickActionBtns = document.querySelectorAll('.quick-action');
+const selectedTaskHint = document.getElementById('selected-task-hint');
 const activeChipCls = ['bg-primary', 'text-on-primary', 'shadow-lg', 'shadow-primary/20'];
 const idleChipCls = ['bg-surface-container-high', 'text-on-surface', 'hover:bg-surface-container-highest', 'transition-colors'];
 function setChipActive(activeBtn) {
   quickActionBtns.forEach(b => {
+    b.setAttribute('aria-pressed', String(b === activeBtn));
     activeChipCls.forEach(c => b.classList.remove(c));
     idleChipCls.forEach(c => b.classList.add(c));
     b.classList.remove('font-bold');
@@ -661,61 +873,40 @@ function setChipActive(activeBtn) {
     activeBtn.classList.add('font-bold');
   }
 }
+function resetSelectedTask() {
+  selectedTask = 'auto';
+  setChipActive(null);
+  if (quickTitleEl) quickTitleEl.textContent = defaultQuickTitle;
+  if (quickDescEl) quickDescEl.textContent = defaultQuickDesc;
+  if (selectedTaskHint) {
+    selectedTaskHint.textContent = '';
+    selectedTaskHint.classList.add('hidden');
+  }
+}
 quickActionBtns.forEach(btn => {
   btn.addEventListener('click', () => {
-    const isActive = btn.classList.contains('bg-primary');
+    if (currentController) return;
+    const isActive = selectedTask === btn.dataset.task;
     if (isActive) {
-      // 再点一次回到默认文案
-      setChipActive(null);
-      if (quickTitleEl) quickTitleEl.textContent = defaultQuickTitle;
-      if (quickDescEl) quickDescEl.textContent = defaultQuickDesc;
+      resetSelectedTask();
       return;
     }
+    selectedTask = btn.dataset.task;
     setChipActive(btn);
     if (quickTitleEl && btn.dataset.title) quickTitleEl.textContent = btn.dataset.title;
     if (quickDescEl && btn.dataset.desc) quickDescEl.textContent = btn.dataset.desc;
+    if (selectedTaskHint) {
+      selectedTaskHint.textContent = `下次发送：${btn.textContent.trim()}。${btn.dataset.desc}`;
+      selectedTaskHint.classList.remove('hidden');
+    }
+    inputEl.focus();
   });
 });
 // 初始把所有 chip 重置到 idle 态，避免第一个 chip HTML 硬编码 bg-primary
 // 导致第一次点击被误判为"已 active，回默认"
-setChipActive(null);
+resetSelectedTask();
 
-// 新对话按钮（可选存在）：清空本地记录 + 换 SESSION_ID
-document.getElementById('btn-new-chat')?.addEventListener('click', async () => {
-  if (currentController) {
-    alert('请先结束当前生成，再开始新对话。');
-    return;
-  }
-  if (messages.length && !confirm('清空当前对话，开始新对话？')) return;
-  const oldSessionId = SESSION_ID;
-  try {
-    const res = await fetch(`/api/chat/session/${encodeURIComponent(oldSessionId)}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`删除失败 (${res.status})`);
-  } catch (e) {
-    alert(`当前会话未能从服务器删除，请稍后重试：${e.message}`);
-    return;
-  }
-  messages.length = 0;
-  saveMessages();
-  messagesEl.innerHTML = '';
-  messagesEl.classList.add('hidden');
-  emptyStateEl.classList.remove('hidden');
-  clearAttachments();
-  SESSION_ID = crypto.randomUUID();
-  localStorage.setItem(SESSION_KEY, SESSION_ID);
-  localStorage.setItem(SAVED_AT_KEY, String(Date.now()));
-  setMatchAvailable(false);
-  resetGenerateLink();
-  canvasState.hasData = false;
-  canvasState.data = null;
-  canvasState.stage = 'JD_INPUT';
-  renderStageRail();
-  document.getElementById('canvas-empty')?.classList.remove('hidden');
-  document.getElementById('canvas-sheet-wrap')?.classList.add('hidden');
-  const exportBtn = document.getElementById('btn-export-docx');
-  if (exportBtn) exportBtn.disabled = true;
-  inputEl.focus();
-});
+// Creation, switching and explicit deletion are managed by conversation-history.js.
 
 // ── 文件附件：上传 / 粘贴 / 拖拽 ────────────────────────────────
 const attachments = [];
@@ -742,8 +933,9 @@ function renderAttachments() {
     const chip = document.createElement('div');
     chip.className = 'inline-flex items-center gap-2 bg-surface-container-high px-3 py-1.5 rounded-full text-xs text-on-surface max-w-[240px]';
     const icon = document.createElement('span');
-    icon.className = 'material-symbols-outlined text-sm text-primary';
-    icon.textContent = 'description';
+    icon.className = 'ui-icon text-sm text-primary';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.dataset.icon = 'description';
     const name = document.createElement('span');
     name.className = 'truncate font-medium';
     name.title = a.filename;
@@ -752,10 +944,11 @@ function renderAttachments() {
     length.className = 'text-outline';
     length.textContent = `${a.text_length}字`;
     const remove = document.createElement('button');
-    remove.className = 'chip-remove material-symbols-outlined text-sm text-outline hover:text-error';
+    remove.className = 'chip-remove ui-icon text-sm text-outline hover:text-error';
+    remove.setAttribute('aria-label', '移除附件 ' + a.filename);
     remove.dataset.idx = i;
     remove.style.fontSize = '16px';
-    remove.textContent = 'close';
+    remove.dataset.icon = 'close';
     chip.append(icon, name, length, remove);
     attachmentsEl.appendChild(chip);
     if (a.source_type === 'image' && !a.uploading) {
@@ -790,6 +983,7 @@ function clearAttachments() {
 }
 
 async function uploadOne(file) {
+  if (window.HuhuaAccount?.claimPending()) return;
   if (!ALLOWED_EXT.test(file.name)) {
     alert(`不支持的文件类型：${file.name}\n支持：PDF / DOCX / TXT / MD / JPG / PNG`);
     return;
@@ -888,28 +1082,54 @@ commandBar.addEventListener('drop', async e => {
   if (files && files.length) await uploadFiles(files);
 });
 
-// 恢复历史对话：如果 localStorage 有上次的消息，全部重新渲染
-if (messages.length > 0) {
-  emptyStateEl.classList.add('hidden');
-  messagesEl.classList.remove('hidden');
-  messages.forEach(m => {
-    const display = (m.role === 'user' && typeof m.content === 'string')
-      ? m.content.split('\n\n---\n\n').pop()  // 剥离附件 prefix，只显示用户那条纯文本
-      : m.content;
-    appendBubble(m.role === 'user' ? 'user' : 'assistant', display);
-  });
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-  // 如果曾产出过简历数据，按钮也恢复显示
-  maybeShowGenerateLink();
-  refreshCanvas();
-}
-
+window.HuhuaWebResearch?.init({
+  send, input: () => inputEl.value,
+  busy: () => Boolean(currentController || pendingUploads || conversationBusy || !conversationReady || window.HuhuaAccount?.claimPending()),
+});
+window.HuhuaWorkspace?.init({
+  sendChoice: value => send(value, {quickReply: true}),
+  fillInput(value) {
+    inputEl.value = inputEl.value.trim() ? inputEl.value.trimEnd() + '\n' + value : value;
+    autoResize();
+    inputEl.focus();
+  },
+  resize: scaleSheet,
+  refresh: refreshCanvas,
+  session: () => SESSION_ID,
+});
 loadTemplates();
 renderStageRail();
+updateFlowActions();
+document.getElementById('btn-build-draft').addEventListener('click', () => {
+  if (currentController || pendingUploads) return;
+  resetSelectedTask();
+  send('请按已有真实资料生成简历草稿；尚未核实的内容保留核对提示。');
+});
+document.getElementById('btn-review-current').addEventListener('click', async () => {
+  if (currentController || !canvasState.hasData) return;
+  await refreshCanvas();
+  if (currentController || !canvasState.hasData) return;
+  selectedTask = 'review_resume';
+  send('请检查当前保存的简历，优先指出影响投递的事实与表达问题。');
+});
+window.addEventListener('focus', () => { if (!currentController) refreshCanvas(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !currentController) refreshCanvas();
+});
 window.addEventListener('resize', scaleSheet);
+window.addEventListener('huhua-account-reset', () => {
+  currentController?.abort();
+  unsavedChatSessions.clear(); chatBackups.clear(); chatRecoveries.clear(); messages.length = 0;
+  inputEl.value = ''; clearAttachments(); currentController = null;
+});
+window.addEventListener('beforeunload', event => {
+  if (unsavedChatSessions.size || inputEl.value.trim() || attachments.length || currentController) { event.preventDefault(); event.returnValue = ''; }
+});
 document.getElementById('btn-export-docx')?.addEventListener('click', async () => {
+  if (window.HuhuaAccount?.requireLogin('登录后即可导出这份简历，同时保留当前对话和个人信息。')) return;
+  if (!await refreshCanvas()) { alert('暂时无法读取最新简历，请重试。'); return; }
   if (!canvasState.data) return;
-  const res = await fetch(`/api/resume/export/docx/${canvasState.templateId}`, {
+  const res = await fetch(`/api/resume/export/docx/${canvasState.templateId}?session_id=${encodeURIComponent(SESSION_ID)}`,  {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(canvasState.data),
@@ -928,14 +1148,10 @@ document.getElementById('btn-export-docx')?.addEventListener('click', async () =
   URL.revokeObjectURL(url);
 });
 document.getElementById('btn-toggle-canvas')?.addEventListener('click', () => {
-  const pane = document.getElementById('canvas-pane');
-  pane.classList.toggle('hidden');
-  pane.classList.toggle('flex');
-  pane.classList.toggle('absolute');
-  pane.classList.toggle('inset-0');
-  pane.classList.toggle('z-50');
+  window.HuhuaWorkspace?.setMobileOpen(true);
 });
 
 </script>
+<script src="/static/conversation-history.js?v=20261005-guest"></script>
 </body>
 </html>

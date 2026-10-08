@@ -1,0 +1,141 @@
+{
+  "scope": "独立浏览器：分片ReadableStream模拟SSE，业务API全部拦截；未调用真实LLM或用户会话。",
+  "checks": [
+    {
+      "id": "first-text-before-done",
+      "passed": true,
+      "detail": "首段已显示，SSE仍未结束"
+    },
+    {
+      "id": "partial-bold-no-stars",
+      "passed": true,
+      "detail": "未闭合加粗在流式显示时不露星号"
+    },
+    {
+      "id": "structured-before-done",
+      "passed": true,
+      "detail": "流尚未结束，列表已渲染"
+    },
+    {
+      "id": "final-bold",
+      "passed": true,
+      "detail": "加粗与关闭前空格容错"
+    },
+    {
+      "id": "final-no-stars",
+      "passed": true,
+      "detail": "正文不露Markdown星号"
+    },
+    {
+      "id": "list-structure",
+      "passed": true,
+      "detail": "有序/无序列表"
+    },
+    {
+      "id": "quote-code-table",
+      "passed": true,
+      "detail": "引用、代码和表格保持结构"
+    },
+    {
+      "id": "safe-link",
+      "passed": true,
+      "detail": "链接可用且带rel"
+    },
+    {
+      "id": "template-link-session",
+      "passed": true,
+      "detail": "AI模板链接绑定本会话而非其他标签页活动ID"
+    },
+    {
+      "id": "user-text-only",
+      "passed": true,
+      "detail": "用户原文仍按纯文本显示"
+    },
+    {
+      "id": "raw-markdown-persisted",
+      "passed": true,
+      "detail": "持久化未变成HTML或视觉补全稿"
+    },
+    {
+      "id": "abort-retains-content",
+      "passed": true,
+      "detail": "中断保留已收到内容并保持Markdown显示"
+    },
+    {
+      "id": "abort-cleans-state",
+      "passed": true,
+      "detail": "中断后恢复发送并清理光标"
+    },
+    {
+      "id": "abort-saves-raw-and-state",
+      "passed": true,
+      "detail": "历史保留中断状态和原始Markdown"
+    },
+    {
+      "id": "network-error-retains-content",
+      "passed": true,
+      "detail": "网络断开不覆盖已收到正文"
+    },
+    {
+      "id": "abort-history-rendered",
+      "passed": true,
+      "detail": "中断历史刷新后显示一致"
+    },
+    {
+      "id": "history-rendered",
+      "passed": true,
+      "detail": "刷新历史同样按Markdown显示"
+    },
+    {
+      "id": "cursor-cleared",
+      "passed": true,
+      "detail": "结束后无流式光标/忙状态"
+    },
+    {
+      "id": "no-executable-markup",
+      "passed": true,
+      "detail": "危险标签/远程图片不可执行"
+    },
+    {
+      "id": "no-dangerous-links",
+      "passed": true,
+      "detail": "危险链接协议不可点"
+    },
+    {
+      "id": "heading-style",
+      "passed": true,
+      "detail": "标题形成语义节点"
+    },
+    {
+      "id": "mobile-no-page-overflow",
+      "passed": true,
+      "detail": "长表格/代码不撑出手机页面"
+    },
+    {
+      "id": "no-page-errors",
+      "passed": true,
+      "detail": "[]"
+    }
+  ],
+  "errors": [],
+  "intercepted_requests": [
+    "/api/resume/templates",
+    "/api/chat/conversations",
+    "/api/chat/conversations/markdown-stream-fixture",
+    "/api/resume/current",
+    "/api/resume/current",
+    "/api/chat/conversations/markdown-stream-fixture",
+    "/api/chat/conversations",
+    "/api/resume/current",
+    "/api/chat/conversations/markdown-stream-fixture",
+    "/api/chat/conversations",
+    "/api/resume/current",
+    "/api/chat/conversations/markdown-stream-fixture",
+    "/api/chat/conversations",
+    "/api/resume/templates",
+    "/api/chat/conversations",
+    "/api/chat/conversations",
+    "/api/chat/conversations/markdown-stream-fixture",
+    "/api/resume/current"
+  ]
+}

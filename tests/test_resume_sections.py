@@ -7,6 +7,8 @@ import zipfile
 from pathlib import Path
 
 from docx import Document
+from docx.oxml.ns import qn
+from docx.shared import Mm
 from PIL import Image
 from pydantic import ValidationError
 
@@ -139,6 +141,12 @@ class ResumeSectionsTest(unittest.TestCase):
     def test_empty_builtin_body_is_hidden(self):
         data = ResumeData(sections=[section("education", "空教育")]).model_dump()
         self.assertNotIn("空教育", paragraphs(data))
+
+    def test_word_uses_a4_and_explicit_cjk_font(self):
+        doc = Document(io.BytesIO(resume_data_to_docx(self.data)))
+        self.assertAlmostEqual(doc.sections[0].page_width.mm, Mm(210).mm, delta=0.03)
+        self.assertAlmostEqual(doc.sections[0].page_height.mm, Mm(297).mm, delta=0.03)
+        self.assertEqual(doc.styles["Normal"].element.rPr.rFonts.get(qn("w:eastAsia")), "微软雅黑")
 
     def test_legacy_schema_and_metadata_roundtrip(self):
         legacy = copy.deepcopy(self.data)

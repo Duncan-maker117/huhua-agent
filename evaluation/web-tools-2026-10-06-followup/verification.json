@@ -1,0 +1,71 @@
+{
+  "checked_at": "2026-10-06T07:21:55.223087+00:00",
+  "authorization": "Banz: 你开始吧; recommended first phase in development plan",
+  "deployed": {
+    "url": "https://resume.yikuaibanz.cn",
+    "image": "huhua-agent:20261006-3",
+    "image_id": "sha256:f54511951c69940b3a52bce9f7ec04dd031546ee95bba1c4be61b63feca0cc43",
+    "health": "ok",
+    "search_enabled": false,
+    "source_archive_sha256": "4717f8aadbbbb61c74e9838a71a2047d12638dc04a4b964e2a76e54c33adf163",
+    "source_files": 138
+  },
+  "checks": {
+    "local_offline": {
+      "passed": 422,
+      "seconds": 9.13
+    },
+    "graph_after_prompt_fix": {
+      "passed": 9
+    },
+    "server_offline": {
+      "passed": 422,
+      "seconds": 39.669,
+      "image": "20261006-2",
+      "final_image_difference": "only web/index.html cache versions; all other archive files hash-identical"
+    },
+    "frontend_static_and_state": {
+      "passed": 27
+    },
+    "public_api": {
+      "passed": 11,
+      "tested_image": "20261006-2",
+      "final_cache_release_health": "ok"
+    },
+    "chinese_public_fetch": {
+      "success": 2,
+      "dynamic_page_fallback": 1,
+      "artifact": "chinese-fetch.json"
+    },
+    "synthetic_live_model": {
+      "total_attempts": 4,
+      "initial_cases": 2,
+      "recheck_cases": 2,
+      "artifact": "semantic-review.json",
+      "main_boundaries_passed_after_recheck": true,
+      "general_reliability_proven": false
+    },
+    "browser": {
+      "local": "synthetic sources/models, actual encrypted API; long-source label, reference-only search, latest group after reload; zero JS errors",
+      "production": "existing independent guest public-JD session restored; new script versions and usage/source notices visible; zero JS errors",
+      "proof": "online-tools-scope.jpg"
+    }
+  },
+  "changes": [
+    "content_truncated is explicit for fetched job pages and survives graph/API/workspace projection",
+    "UI explains target-JD replacement, attempt counting, excerpts and latest-source group",
+    "research contract preserves known negative facts",
+    "frontend resource versions prevent old cached UI"
+  ],
+  "remaining": [
+    "Tavily credential absent; no real search performed",
+    "Two synthetic model cases only, wording precision still imperfect",
+    "Source cards show latest group only",
+    "Production email receipt/account login continuation not tested in this tools scope"
+  ],
+  "backup_directory": "/opt/huhua-backups/pre-20261006-3/",
+  "backup_hash_evidence": "server-cache-release.log",
+  "secrets_or_user_databases_downloaded": false,
+  "schema_or_dependencies_added": false,
+  "email_sent": false
+}

@@ -22,6 +22,7 @@ class BasicInfo(BaseModel):
 
 
 class EducationItem(BaseModel):
+    item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     school: str = ""
     degree: str = ""
     major: str = ""
@@ -31,6 +32,7 @@ class EducationItem(BaseModel):
 
 
 class WorkItem(BaseModel):
+    item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     company: str = ""
     title: str = ""
     start_date: str = ""
@@ -39,6 +41,7 @@ class WorkItem(BaseModel):
 
 
 class ProjectItem(BaseModel):
+    item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     name: str = ""
     role: str = ""
     start_date: str = ""
@@ -81,6 +84,8 @@ class ResumeData(BaseModel):
     experience_section_title: str = ""
     # None 兼容旧简历默认栏目；空列表表示用户移除了全部正文栏目。
     sections: list[ResumeSection] | None = Field(default=None, max_length=30)
+    # 核对状态单独展示，不能被误写入投递正文。
+    verification_notes: list[str] = Field(default_factory=list, max_length=30)
 
     @model_validator(mode="after")
     def unique_sections(self) -> "ResumeData":

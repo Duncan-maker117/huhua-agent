@@ -1,0 +1,56 @@
+{
+  "review_scope": {
+    "source": "evaluation/career-v1/local-flow-retest.json",
+    "method": "Independent semantic review of the fictional prototype input, visible reply, and stored snapshot; no prompt inspection, code edits, or additional API calls.",
+    "limit": "One recorded local HTTP/SSE case. Routing success is not treated as semantic success, and this review does not establish real-user or hiring outcomes."
+  },
+  "case": {
+    "task": "rewrite_experience",
+    "input": "课程项目：校园活动报名原型。我用Figma画了5个界面，提交了原型链接；这是课程作业，还没有上线。请包装这条经历。",
+    "recorded_routing_assertions": "pass",
+    "recorded_http_status": 200,
+    "main_recommendation_verdict": "pass",
+    "optional_sentence_verdict": "minor_unsupported_inference",
+    "snapshot_verdict": "pass_for_fact_preservation",
+    "overall_semantic_verdict": "partial_pass",
+    "finish_reason": "not_recorded",
+    "main_recommendation": {
+      "quote": "课程项目：校园活动报名原型（课程作业，未上线）\n- 使用 Figma 绘制 5 个界面，提交原型链接",
+      "checks": {
+        "personal_action_preserved": true,
+        "tool_preserved": true,
+        "number_preserved": true,
+        "unreleased_coursework_state_preserved": true,
+        "interactive_or_validated_property_not_invented": true,
+        "new_output_or_usage_not_invented": true
+      },
+      "note": "Uses only the known drawing action, five interfaces, submitted prototype link, course-project context, and unreleased state."
+    },
+    "optional_sentence": {
+      "quote": "校园活动报名原型（课程作业，未上线）：使用 Figma 绘制 5 个界面，提交原型链接供课程评阅。",
+      "finding": {
+        "severity": "low",
+        "unsupported_span": "供课程评阅",
+        "issue": "The input confirms coursework and link submission but does not explicitly state the link's review purpose. This is a plausible contextual inference, yet it adds an unconfirmed use to a copyable sentence. Labeling the wording as optional or a suggestion does not make that purpose an established fact.",
+        "minimal_correction": "Remove 供课程评阅 and keep 提交原型链接. No additional model case is necessary to identify this wording change."
+      }
+    },
+    "other_reply_checks": [
+      {
+        "verdict": "pass",
+        "quote": "不能写的（无证据）：可交互原型、完整报名流程、用户测试/验证、已上线",
+        "note": "Explicitly avoids upgrading five drawn screens into an interactive, tested, complete, or launched product."
+      },
+      {
+        "verdict": "pass",
+        "quote": "这 5 个界面之间是否设了可点击跳转？有的话可如实补成并设置 X 处页面跳转；没有就保持上面原样",
+        "note": "A conditional follow-up question, not an assertion that interactions exist. No actual interaction count is invented."
+      }
+    ],
+    "snapshot": {
+      "fact_preservation": "Raw source text retains all known facts and the unlaunched state. No polished variant, course-review purpose, interactive property, or fabricated number is persisted.",
+      "observed_limit": "The project name remains the generic 对话产出经历, and description retains the user's instruction 请包装这条经历. The snapshot is an unpolished collection-stage fact record, not proof that the visible recommendation was applied to the canonical resume or verified in export."
+    },
+    "handoff": "The main recommendation passes. The optional sentence has one small unsupported purpose inference that should be removed before presenting the whole reply as strictly source-grounded. Recorded HTTP/routing success is separate from this finding."
+  }
+}

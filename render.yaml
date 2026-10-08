@@ -6,6 +6,30 @@ services:
     region: singapore
     healthCheckPath: /healthz
     envVars:
+      - key: APP_ENV
+        value: production
+      - key: REQUIRE_ACCOUNT
+        value: "true"
+      - key: AUTH_COOKIE_SECURE
+        value: "true"
+      - key: ALLOW_INSECURE_LOCAL_STORAGE
+        value: "false"
+      - key: APP_ORIGIN
+        sync: false
+      - key: DATA_ENCRYPTION_KEYS
+        sync: false
+      - key: DATA_ENCRYPTION_ACTIVE_KEY
+        sync: false
+      - key: ACCOUNT_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
       - key: LLM_API_KEY
         sync: false
       - key: DATABASE_URL

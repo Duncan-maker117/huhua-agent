@@ -108,6 +108,7 @@
         <div class="header-title">个人简历</div>
         <div class="header-info-grid">
           {% if basic_info.name %}<div class="h-info-row"><span class="lbl">姓　名</span><span data-field-path="/basic_info/name">{{ basic_info.name }}</span></div>{% endif %}
+          {% if basic_info.objective %}<div class="h-info-row"><span class="lbl">求职意向</span><span data-field-path="/basic_info/objective">{{ basic_info.objective }}</span></div>{% endif %}
           {% if basic_info.birthday %}<div class="h-info-row"><span class="lbl">出生年月</span><span data-field-path="/basic_info/birthday">{{ basic_info.birthday }}</span></div>{% endif %}
           {% if basic_info.phone %}<div class="h-info-row"><span class="lbl">电　话</span><span data-field-path="/basic_info/phone">{{ basic_info.phone }}</span></div>{% endif %}
           {% if basic_info.ethnicity %}<div class="h-info-row"><span class="lbl">民　族</span><span data-field-path="/basic_info/ethnicity">{{ basic_info.ethnicity }}</span></div>{% endif %}
@@ -131,7 +132,7 @@
       <div class="item">
         <div class="item-header">
           <span class="item-title"><span data-field-path="/education/{{ edu_index }}/school">{{ edu.school }}</span></span>
-          <span class="item-date"><span data-field-path="/education/{{ edu_index }}/start_date">{{ edu.start_date }}</span> — <span data-field-path="/education/{{ edu_index }}/end_date">{{ edu.end_date }}</span></span>
+          {% if edu.start_date or edu.end_date %}<span class="item-date">{% if edu.start_date %}<span data-field-path="/education/{{ edu_index }}/start_date">{{ edu.start_date }}</span>{% endif %}{% if edu.start_date and edu.end_date %} — {% endif %}{% if edu.end_date %}<span data-field-path="/education/{{ edu_index }}/end_date">{{ edu.end_date }}</span>{% endif %}</span>{% endif %}
         </div>
         {% if edu.major %}<div class="item-sub"><span data-field-path="/education/{{ edu_index }}/major">{{ edu.major }}</span>{% if edu.degree %}（<span data-field-path="/education/{{ edu_index }}/degree">{{ edu.degree }}</span>）{% endif %}</div>{% endif %}
         {% if edu.highlights %}
@@ -146,7 +147,7 @@
       {% for job in work_experience %}{% set job_index = loop.index0 %}
       <div class="item">
         <div class="item-header">
-          <span class="item-title"><span data-field-path="/work_experience/{{ job_index }}/start_date">{{ job.start_date }}</span> — <span data-field-path="/work_experience/{{ job_index }}/end_date">{{ job.end_date }}</span>　<span data-field-path="/work_experience/{{ job_index }}/company">{{ job.company }}</span></span>
+          <span class="item-title">{% if job.start_date or job.end_date %}{% if job.start_date %}<span data-field-path="/work_experience/{{ job_index }}/start_date">{{ job.start_date }}</span>{% endif %}{% if job.start_date and job.end_date %} — {% endif %}{% if job.end_date %}<span data-field-path="/work_experience/{{ job_index }}/end_date">{{ job.end_date }}</span>{% endif %}　{% endif %}<span data-field-path="/work_experience/{{ job_index }}/company">{{ job.company }}</span></span>
           {% if job.title %}<span class="item-date"><span data-field-path="/work_experience/{{ job_index }}/title">{{ job.title }}</span></span>{% endif %}
         </div>
         {% if job.bullets %}
@@ -161,7 +162,7 @@
       {% for p in projects %}{% set p_index = loop.index0 %}
       <div class="item">
         <div class="item-header">
-          <span class="item-title"><span data-field-path="/projects/{{ p_index }}/start_date">{{ p.start_date }}</span> — <span data-field-path="/projects/{{ p_index }}/end_date">{{ p.end_date }}</span>　<span data-field-path="/projects/{{ p_index }}/name">{{ p.name }}</span></span>
+          <span class="item-title">{% if p.start_date or p.end_date %}{% if p.start_date %}<span data-field-path="/projects/{{ p_index }}/start_date">{{ p.start_date }}</span>{% endif %}{% if p.start_date and p.end_date %} — {% endif %}{% if p.end_date %}<span data-field-path="/projects/{{ p_index }}/end_date">{{ p.end_date }}</span>{% endif %}　{% endif %}<span data-field-path="/projects/{{ p_index }}/name">{{ p.name }}</span></span>
           {% if p.role %}<span class="item-date"><span data-field-path="/projects/{{ p_index }}/role">{{ p.role }}</span></span>{% endif %}
         </div>
         {% if p.polished_bullets %}

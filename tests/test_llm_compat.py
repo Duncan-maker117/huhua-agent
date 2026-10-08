@@ -5,6 +5,7 @@ import sys
 import unittest
 from contextlib import asynccontextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import httpx
@@ -18,9 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.agents.editor_chain import run_editor  # noqa: E402
-from app.agents.evaluator_chain import run_evaluator_chain  # noqa: E402
 from app.agents.triage_chain import TriageAction, run_triage  # noqa: E402
 from app.services.llm_compat import with_structured_output  # noqa: E402
+from app.services.resume_suggestions import check_support  # noqa: E402
 
 
 class _Answer(BaseModel):
@@ -281,15 +282,50 @@ class LLMCompatTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(requests), 1)
         self.assert_deepseek_request(requests[0])
 
-    async def test_evaluator_chain_uses_deepseek_tool_call_without_fallback(self):
-        output = {"total_score": 73, "ats_score": {"total": 43}, "hr_score": {"total": 30}}
+    async def test_suggestion_support_uses_deepseek_tool_call(self):
+        source = "参与简历工具调研，整理访谈笔记。"
+        proposed = "整理简历工具调研的访谈笔记。"
+        output = {
+            "supported": True,
+            "reason": "改写保留原句的调研内容与产出",
+            "unsupported_claims": [],
+            "evidence": ["参与简历工具调研", "整理访谈笔记"],
+        }
         async with self.offline_llm(output=output) as (llm, requests):
-            result = await run_evaluator_chain("参与简历工具调研", None, llm)
-        self.assertEqual(result["total_score"], 73)
-        self.assertEqual(result["ats_score"]["total"], 43)
-        self.assertEqual(result["hr_score"]["total"], 30)
+            with patch(
+                "app.services.resume_suggestions.get_settings",
+                return_value=SimpleNamespace(LLM_API_KEY="offline-test-key"),
+            ):
+                result = await check_support(source, proposed, llm)
+        self.assertTrue(result.supported)
+        self.assertEqual(result.reason, output["reason"])
+        self.assertEqual(result.evidence, output["evidence"])
+        self.assertEqual(result.unsupported_claims, [])
         self.assertEqual(len(requests), 1)
         self.assert_deepseek_request(requests[0])
+        self.assertEqual(requests[0]["tools"][0]["function"]["name"], "SupportCheck")
+
+    async def test_suggestion_support_rejects_invalid_tool_call_evidence(self):
+        source = "参与简历工具调研，整理访谈笔记。"
+        proposed = "整理简历工具调研的访谈笔记。"
+        output = {
+            "supported": True,
+            "reason": "模型误判为有依据",
+            "unsupported_claims": [],
+            "evidence": ["完成用户测试"],
+        }
+        async with self.offline_llm(output=output) as (llm, requests):
+            with patch(
+                "app.services.resume_suggestions.get_settings",
+                return_value=SimpleNamespace(LLM_API_KEY="offline-test-key"),
+            ):
+                result = await check_support(source, proposed, llm)
+        self.assertFalse(result.supported)
+        self.assertIn("未找到可定位的原句依据", result.reason)
+        self.assertEqual(result.evidence, output["evidence"])
+        self.assertEqual(len(requests), 1)
+        self.assert_deepseek_request(requests[0])
+        self.assertEqual(requests[0]["tools"][0]["function"]["name"], "SupportCheck")
 
 
 if __name__ == "__main__":

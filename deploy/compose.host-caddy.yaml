@@ -1,0 +1,8 @@
+# Use with: -f compose.yaml -f deploy/compose.host-caddy.yaml
+# Existing host Caddy owns 80/443 and proxies this loopback-only port.
+services:
+  app:
+    ports:
+      - "127.0.0.1:18765:8765"
+  caddy:
+    profiles: ["bundled-proxy"]

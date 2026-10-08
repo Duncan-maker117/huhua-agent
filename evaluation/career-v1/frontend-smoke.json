@@ -1,0 +1,402 @@
+{
+  "metadata": {
+    "verified_at": "2026-10-02T03:18:04.625471+08:00",
+    "status": "passed",
+    "method": "Playwright CLI browser interaction with semantic locators",
+    "scope": "frontend task selection; synthetic messages and mocked business API responses",
+    "isolated_browser": true,
+    "user_browser_or_storage_accessed": false,
+    "real_model_called": false,
+    "real_business_api_called": false,
+    "real_database_write": false,
+    "business_api_interception": "**/api/** route installed before navigation; all routes fulfilled with mocks",
+    "temporary_browsers_closed": true
+  },
+  "verified": [
+    "decode_jd / rewrite_experience / review_resume each appear in the submitted POST payload",
+    "selected task explanation is visible above input and has aria-live=polite",
+    "selected button aria-pressed=true and clears after accepted submission",
+    "HTTP 503 retains task and hint; retry submits same task",
+    "200 mocked SSE completion consumes selection; next submit uses auto",
+    "new chat clears an unsubmitted task selection; subsequent POST uses auto",
+    "new chat clears hint and pressed state after conversations",
+    "no frontend pageerror in successful isolated run"
+  ],
+  "not_verified": [
+    "real model quality, backend skill routing, persistence or database deletion",
+    "real model/SSE failure after HTTP 200",
+    "network disconnect or abort in this browser smoke (HTTP 503 covered)",
+    "screen-reader spoken output (aria-live attribute and visible text covered)",
+    "actual resume rendering, uploads, exports, ATS parsing, mobile layout or recruitment outcomes"
+  ],
+  "known_semantics": [
+    "selection is consumed on accepted HTTP response, so post-200 SSE errors do not restore it",
+    "quick-action chips stay in existing welcome card and become hidden after conversation starts"
+  ],
+  "checks_passed": 35,
+  "request_counts": [
+    {
+      "method": "GET",
+      "path": "/api/resume/templates",
+      "count": 1
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/chat/session/<synthetic-session-id>",
+      "count": 5
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/stream",
+      "count": 8
+    },
+    {
+      "method": "GET",
+      "path": "/api/resume/current",
+      "count": 16
+    }
+  ],
+  "successful_run": {
+    "url": "http://127.0.0.1:8765/",
+    "browser_session": "huhua-task-final-smoke-3",
+    "checks": [
+      {
+        "id": "aria-live",
+        "passed": true,
+        "detail": "任务提示含 aria-live=polite"
+      },
+      {
+        "id": "hint-review_resume",
+        "passed": true,
+        "detail": "输入区显示所选任务"
+      },
+      {
+        "id": "aria-review_resume",
+        "passed": true,
+        "detail": "所选任务按钮 aria-pressed=true"
+      },
+      {
+        "id": "new-chat-reset",
+        "passed": true,
+        "detail": "新对话清除任务提示与按钮选择"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "initial-auto-after-new-chat",
+        "passed": true,
+        "detail": "新对话清除尚未提交的选择"
+      },
+      {
+        "id": "new-chat-reset",
+        "passed": true,
+        "detail": "新对话清除任务提示与按钮选择"
+      },
+      {
+        "id": "hint-decode_jd",
+        "passed": true,
+        "detail": "输入区显示所选任务"
+      },
+      {
+        "id": "aria-decode_jd",
+        "passed": true,
+        "detail": "所选任务按钮 aria-pressed=true"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "payload-decode_jd",
+        "passed": true,
+        "detail": "所选任务值出现在 /api/chat/stream payload"
+      },
+      {
+        "id": "success-clears-decode_jd",
+        "passed": true,
+        "detail": "200 成功响应后清除选择与提示"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "one-turn-decode_jd",
+        "passed": true,
+        "detail": "后续提交恢复 auto"
+      },
+      {
+        "id": "new-chat-reset",
+        "passed": true,
+        "detail": "新对话清除任务提示与按钮选择"
+      },
+      {
+        "id": "hint-rewrite_experience",
+        "passed": true,
+        "detail": "输入区显示所选任务"
+      },
+      {
+        "id": "aria-rewrite_experience",
+        "passed": true,
+        "detail": "所选任务按钮 aria-pressed=true"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "failure-task-forwarded",
+        "passed": true,
+        "detail": "失败请求仍传正确任务"
+      },
+      {
+        "id": "http-failure-retains-choice",
+        "passed": true,
+        "detail": "HTTP 503 后保留任务与提示"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "payload-rewrite_experience",
+        "passed": true,
+        "detail": "所选任务值出现在 /api/chat/stream payload"
+      },
+      {
+        "id": "success-clears-rewrite_experience",
+        "passed": true,
+        "detail": "200 成功响应后清除选择与提示"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "one-turn-rewrite_experience",
+        "passed": true,
+        "detail": "后续提交恢复 auto"
+      },
+      {
+        "id": "new-chat-reset",
+        "passed": true,
+        "detail": "新对话清除任务提示与按钮选择"
+      },
+      {
+        "id": "hint-review_resume",
+        "passed": true,
+        "detail": "输入区显示所选任务"
+      },
+      {
+        "id": "aria-review_resume",
+        "passed": true,
+        "detail": "所选任务按钮 aria-pressed=true"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "payload-review_resume",
+        "passed": true,
+        "detail": "所选任务值出现在 /api/chat/stream payload"
+      },
+      {
+        "id": "success-clears-review_resume",
+        "passed": true,
+        "detail": "200 成功响应后清除选择与提示"
+      },
+      {
+        "id": "request-count",
+        "passed": true,
+        "detail": "一次提交对应一次模拟请求"
+      },
+      {
+        "id": "one-turn-review_resume",
+        "passed": true,
+        "detail": "后续提交恢复 auto"
+      },
+      {
+        "id": "new-chat-reset",
+        "passed": true,
+        "detail": "新对话清除任务提示与按钮选择"
+      },
+      {
+        "id": "no-page-errors",
+        "passed": true,
+        "detail": "[]"
+      }
+    ],
+    "stream_requests": [
+      {
+        "task": "auto",
+        "messages_count": 1
+      },
+      {
+        "task": "decode_jd",
+        "messages_count": 1
+      },
+      {
+        "task": "auto",
+        "messages_count": 3
+      },
+      {
+        "task": "rewrite_experience",
+        "messages_count": 1
+      },
+      {
+        "task": "rewrite_experience",
+        "messages_count": 3
+      },
+      {
+        "task": "auto",
+        "messages_count": 5
+      },
+      {
+        "task": "review_resume",
+        "messages_count": 1
+      },
+      {
+        "task": "auto",
+        "messages_count": 3
+      }
+    ],
+    "intercepted_requests": [
+      {
+        "method": "GET",
+        "path": "/api/resume/templates"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/chat/session/<synthetic-session-id>"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/chat/session/<synthetic-session-id>"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/chat/session/<synthetic-session-id>"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/chat/session/<synthetic-session-id>"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "POST",
+        "path": "/api/chat/stream"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "GET",
+        "path": "/api/resume/current"
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/chat/session/<synthetic-session-id>"
+      }
+    ],
+    "page_errors": []
+  },
+  "test_harness_repairs": [
+    "first temporary harness used unavailable URL global; replaced with string pathname extraction",
+    "new-chat waiter now waits for actual task reset instead of already-visible welcome state",
+    "repeating harness in one disposable session added duplicate dialog listeners; discarded it and completed a new single-run session with clean CLI exit 0"
+  ]
+}

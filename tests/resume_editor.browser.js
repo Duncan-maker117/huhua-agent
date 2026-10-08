@@ -10,6 +10,7 @@ async (page) => {
   const settled = () => page.waitForFunction(() => document.getElementById('render-status').textContent === '已实时更新');
   const templates = page.locator('.tpl-item');
   await page.setViewportSize({width: 1440, height: 960});
+  await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
   await page.goto('http://127.0.0.1:8765/resume');
   await settled();
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));

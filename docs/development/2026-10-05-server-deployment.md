@@ -1,0 +1,154 @@
+# 胡话简历服务器交接 · 2026-10-05
+
+服务器、HTTPS、正式发信域及游客体验版本均已上线，应用健康。未登录可聊天、上传、编辑及预览模板；导出、长期历史和 Agent 记忆需登录。登录接续已在临时加密环境以虚构模型和内存邮件验证，**真实邮件收件与生产账号登录接续仍未验收**。已完成服务器内配对加密备份，异机恢复材料与完整恢复演练仍待完成。运维沿用宿主机 Caddy，使用本文双配置命令。
+
+## 运行位置
+
+| 项目 | 当前值 |
+| --- | --- |
+| SSH | `ssh banzi`，对应 `ubuntu@49.233.252.47` |
+| 主机 | Ubuntu，`x86_64`；Docker Compose `2.40.3` |
+| 项目目录 | `/opt/huhua` |
+| 镜像 / 容器 | `huhua-agent:20261006-4` / `huhua-app-1` |
+| Compose 配置 | `compose.yaml` + `deploy/compose.host-caddy.yaml`；变量文件 `deploy/compose.env` |
+| 应用入口 | 宿主 `127.0.0.1:18765` → 容器 `8765`；单 worker |
+| 公网入口 | <https://resume.yikuaibanz.cn>；现有宿主 Caddy `2.11.4` 提供 HTTPS 并反代 `18765` |
+| Caddy 原配置备份 | `/etc/caddy/Caddyfile.pre-huhua-20261005` |
+| 应用运行配置 | `/opt/huhua/deploy/app.env`，权限 `0600`；使用独立新密钥 |
+| 当前发件地址 | `Huhua <login@resume.yikuaibanz.cn>`；已在运行容器内确认加载 |
+| 数据卷 | `huhua_app_data`，容器挂载到 `/var/lib/huhua` |
+| 配对数据库 | `/var/lib/huhua/huhua.db` 与 `/var/lib/huhua/checkpoints.sqlite3` |
+
+这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
+
+## 2026-10-06 用户反馈修复（最新）
+
+- 镜像 `huhua-agent:20261006-4`，ID `sha256:313774d4f7c5f9cb0bac75bebcca14eefcc77f7aea2a319771a7ba4d7e49d015`，healthy；宿主 Caddy、原密钥与数据卷保留，无新增 schema/依赖。
+- 多附件分别解析合并、情境追问及公开主页/仓库读取已部署。隔离测试本地470/470、镜像470/470；前端33/33。线上独立游客脱敏导入、真实GitHub+模型一轮、经历不变和来源刷新恢复通过，页面错误0。详情见 `2026-10-06-web-tools.md` 与 `evaluation/feedback-fixes-2026-10-06/`。
+- 发布包 `dist/huhua-deploy-20261006-4.tar.gz`，139文件，SHA-256 `3a5e518c30b4aa9fe47a12cef640d512e26a48bf671abed192ffe6a712a02844`；构建目录 `/opt/huhua-validation-20261006-4`，基于-3原依赖复制本次应用/前端。
+- 停写后服务器内配对备份 `/opt/huhua-backups/pre-20261006-4/`（app/checkpoints/privacy）；摘要在本机 `evaluation/feedback-fixes-2026-10-06/server-release.log`。app.env/compose.env仍0600。恢复应结合最新隐私状态；同机备份不是异机灾备。
+- 旧镜像-3保留，发布脚本失败自动切回旧镜像。未发邮件、未获取生产个人对话、未更换运行凭证；资料修复不自动重写旧用户会话。交接文档发布后另行同步，不改变运行代码。
+
+## 2026-10-06 搜索配置启用（历史）
+
+- Tavily凭证已写入受限app.env，权限0600；已按双配置命令仅重建app，镜像仍`huhua-agent:20261006-3`，健康正常。公开能力`read_url=true`、`search=true`。
+- 独立游客浏览器两次真实搜索及模型分析通过，各4条来源；来源恢复与当前JD保持，错误0。相关性/在招状态须逐例核对，详见`evaluation/search-activation-2026-10-06/`。
+- 配置前备份只留服务器`deploy/app.env.pre-tavily-20261006`（含其他运行凭证，不可进入源码或报告）。关搜索只清空单个TAVILY_API_KEY并重建app；原账号密钥及卷保留，未改schema或服务商账单设置。
+
+## 2026-10-06 文档确认后的增量（当前）
+
+- 当前镜像 `huhua-agent:20261006-3`，ID `sha256:f54511951c69940b3a52bce9f7ec04dd031546ee95bba1c4be61b63feca0cc43`。先发布-2修复材料范围与提示，再发布仅更新首页四个资源版本号的-3，解决浏览器继续加载旧JS的问题。
+- 后端/前端范围提示和研究事实约束详见[工具说明](2026-10-06-web-tools.md)；当次发布时搜索未配置；后续已按上节开通。
+- 本地与服务器各422项回归通过，前端静态/状态27项、公网边界11项。最终-3源码与已测-2逐文件对比只改首页资源版本；最终健康检查及线上浏览器新提示验证通过、错误0。
+- 两份中文公开网页读取成功，一份动态页正确回退。真实模型虚构案例4次，前2例发现否定事实表达问题，后2例主要边界通过；搜索供应商仍无真实验收。证据 `evaluation/web-tools-2026-10-06-followup/`。
+- 最新配对备份 `/opt/huhua-backups/pre-20261006-3/`，摘要在本机 `server-cache-release.log`；旧镜像及 `deploy/compose.env.pre-20261006-3` 保留。密钥/卷未变，运行配置仍0600。
+- 实际部署包 `dist/huhua-deploy-20261006-3.tar.gz`，138文件，SHA-256 `4717f8aadbbbb61c74e9838a71a2047d12638dc04a4b964e2a76e54c33adf163`。构建配方 `/opt/huhua-validation-20261006-3/Dockerfile.release`。文档发布后单独同步，运行代码不变。
+
+## 2026-10-06 招聘链接与搜索工具更新（历史）
+
+- 当时镜像 `huhua-agent:20261006-1`，ID `sha256:245bde8ef6311653f75597e05cf31309a66e0c26f50742bba4b27682fdebc1f5`。沿用上一版依赖，无新增 schema，构建配方 `/opt/huhua-validation-20261006-1/Dockerfile.release`。
+- 单招聘链接读取、来源卡片与 JD 解码开放给游客。公司/岗位搜索代码已接入 Tavily；未配置 `TAVILY_API_KEY`，能力接口返回 `search=false`，不能宣称真实搜索已开通。配置说明见 [工具说明](2026-10-06-web-tools.md)。
+- 本地与服务器无网络隔离套件分别 **416/416** 通过；前端静态/纯状态 **20/20**，公网检查 **11/11**。服务器真实公共招聘正文提取成功；生产浏览器与模型验收结果单独记录在 `evaluation/web-tools-2026-10-06/verification.json`。
+- 发布前停写完成 `/opt/huhua-backups/pre-20261006-1/` 下的应用、checkpoint 与隐私状态配对加密备份，摘要独立留证于本机 `evaluation/web-tools-2026-10-06/server-release.log`；原数据卷、密钥、邮件配置与其他站点保留，运行环境文件仍 0600。旧镜像 `20261005-2` 与 `deploy/compose.env.pre-20261006-1` 保留可回退。
+- 实际部署包 `dist/huhua-deploy-20261006-1.tar.gz`，138 文件，SHA-256 `677a8de7c1d81c12676ae96455d04041c5680b17df32c4ad581f66bbde28761e`。交接文档在发布后单独同步，运行代码不变。
+
+## 2026-10-05 游客体验更新（历史）
+
+- 运行镜像 `huhua-agent:20261005-2`，ID `sha256:7a249bdd7a75c906bb3721f4bc23bdabc8f8e03984daf89b88d7bf9db4cc24d2`。沿用 `20261005-1` 已验证依赖，只复制更新的应用、前端与运维脚本。新机仍使用标准 Dockerfile；本次构建配方在服务器 `/opt/huhua-validation-20261005-2/Dockerfile.release`。
+- 服务器镜像隔离回归 **377/377**，无网络、不挂载生产数据，37.289 秒。公网 API **16 项**通过：游客创建、读写、个人预览均 200；历史、档案、Word/PDF 导出要求登录；跨浏览器读 404、跨源写 403；虚构 API 测试稿已删除。
+- `REQUIRE_ACCOUNT=true` 保留；运行值确认 `ALLOW_GUEST_EXPERIENCE=true`、`GUEST_RETENTION_HOURS=24`、`GUEST_DAILY_TURN_LIMIT=20`。只认领当前游客会话，保留 checkpoint 原加密绑定；游客不建立长期档案。正式导出需登录，HTML 预览仍可被浏览器自行打印。
+- 线上未登录浏览器完成一轮虚构资料的真实模型对话，点击 Word 弹出登录提示；全屏模板显示、切换和游客编辑均已验收。未调用真实验证码发送，也没有将虚构资料存进真实账号档案。
+- 本地浏览器真实加密后端验收：首次模板预览、游客聊天、点击 Word 提示登录、原页登录认领、同一会话和未发送输入保留、历史目录、实际 Word 下载与 XML 内容核对通过。模型和邮件为测试替身；不当作真实发信或记忆提取质量验收。
+- 发布前停写取得配对备份，位置 `/opt/huhua-backups/pre-20261005-2-wal-fixed/`：`app.encrypted`、`checkpoints.encrypted`、`privacy.encrypted`；加密备份及隐私摘要在本机 `evaluation/guest-experience-2026-10-05/server-final-switch.log` 独立留证。密钥和原数据卷未更换，运行配置仍为 0600；这些同机文件不代替异机灾备。恢复前还须取得届时最新隐私状态。
+- 初次备份遇到 SQLite WAL 快照反序列化错误，修复只规范化内存副本标记、不修改源库；3 项 WAL 回归与 7 项既有隐私恢复检查通过，包含在最终全套中。另一次发布因只读摘要检查的 shell 展开权限报错自动回滚，修正检查后已成功切换。旧 `20261005-1` 镜像保留。
+- 实际发布包 `dist/huhua-deploy-20261005-2.tar.gz`：134 文件，SHA-256 `3838655075bf7253caaf3c219ab159aaa2053833019ead8cba39184f0c19b5f2`。最终交接文档更新在发布后单独同步，不改变运行代码。
+
+证据：`evaluation/guest-experience-2026-10-05/verification.json`、`public-checks.json`、发布日志、浏览器截图与 `guest-ui-export.docx`。
+
+## 首版部署已验证（历史记录）
+
+- 服务器镜像构建成功；使用禁用网络的临时容器执行 **358 项测试，全部通过，耗时 33.157 秒**。
+- 公网 `/`、`/resume`、`/healthz` 返回 `200`；应用重启后，`healthz`、database 与 checkpoint 检查均正常。
+- Resend 域名总状态及 DKIM、`rsend`、`send` 三项记录均为 `verified`，域名事件显示北京时间 03:02 完成。DNS 服务器查询三项记录正确，网站 A 记录仍为 `49.233.252.47`。
+- 服务器只修改了 `RESEND_FROM` 为 `Huhua <login@resume.yikuaibanz.cn>`，其他运行配置完整保留，`app.env` 仍为 `0600`。双 Compose 配置执行 `--force-recreate --wait` 成功，`huhua-app-1` 为 `Healthy`，容器内已确认新发件地址加载。
+- 切换后公网 `/healthz` 返回 `200`，database/checkpoint 均正常；`/api/account/me` 返回 `200`，`login_available=true`、`require_account=true`。登录入口可用不等于邮件已送达或用户已登录。
+- 首版未登录访问个人档案返回 `401`，跨源写请求返回 `403`，匿名 render/export 为 `401`。游客版现已开放 render 预览，正式导出仍为 `401`，以上更新章节为当前边界。
+- 用一条虚构经历完成真实改写，经过 **2 次模型调用**返回可用候选句；生成没有自动修改保存稿。
+- 原有站点入口状态部署前后相同：首页 `200`、Jev `302`、PandaFlow `302`。
+
+这些检查没有证明真实用户已收到验证码、登录成功或完成聊天 SSE 全流程。本次没有发送任何测试邮件。
+
+验收证据保存在 `evaluation/server-deployment-2026-10-05/`：`verification.json`、`public-checks.json`、`live-rewrite.json`、`deployment-summary.json` 与 `requirements.resolved.txt`。本次邮件域验证与切换证据由主线程汇总到同目录的 `mail-domain-verification.json` 和 `resend-domain-verified.jpg`。本交接文档不替代对应原始记录。
+
+## 当前待办与接手顺序
+
+1. **等待获准测试的收件邮箱，完成真实使用验收。** 已异步询问用户，尚未收到邮箱回复；本次没有发送邮件，也未确认收件或登录。取得邮箱与测试授权后，验证“验证码送达 → 登录 → 刷新保持 → 聊天 SSE → 保存 → 建议采用 → 导出”的完整路径。域名验证和发件地址切换已完成，无需再次要求用户验证域名。
+2. **补齐异机恢复材料与恢复演练。** 服务器内配对加密备份已完成，详见游客更新章节。 自动审批此前拒绝回传完整 `app.env`，该动作已停止；仍等待用户是否授权仅备份 `DATA_ENCRYPTION_KEYS` 与 `ACCOUNT_SECRET` 两项恢复材料到独立受控位置。不要把完整运行配置、模型/邮件凭证或密钥值写进交接文档和聊天。后续还需按 [账号与加密运维说明](security-operations.md) 备份两份数据库、最新隐私状态及独立可信摘要，并完成恢复演练；同机命名卷与单独备份密钥都不能代替完整灾备。
+
+## 已配置的 Resend DNS 记录
+
+以下主机记录均相对阿里云主域 `yikuaibanz.cn`；三项记录已写入阿里云，TTL 均为 10 分钟。原有 7 条 A 记录保留，新增后共 10 条记录。
+
+Resend 域名 ID：`b44ec737-b5dc-46ec-8bd3-d9a480f4ebeb`；[打开域名页面](https://resend.com/domains/b44ec737-b5dc-46ec-8bd3-d9a480f4ebeb)。最终总状态为 `verified`，DKIM、`rsend`、`send` 均为 `verified`；域名事件显示北京时间 2026-10-05 03:02 完成。DNS 服务器查询结果正确，网站 A 记录保持 `49.233.252.47`。
+
+| 类型 | 主机记录 | 记录值 |
+| --- | --- | --- |
+| TXT | `resend._domainkey.resume` | 见下方 DKIM 公钥 |
+| CNAME | `rsend.resume` | `rsend.forge.rmta.net` |
+| CNAME | `send.resume` | `send.forge.rmta.net` |
+
+TXT 记录值（DKIM 公钥，可公开；整段为一条记录）：
+
+```text
+p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCnQwQrcUzXfmfFcy3NACzf4LuVZthJxI9tN1ZGLnprMqqnCuYWb/cDofFLcQErs3v6q+NdzTxHEADz57uDr2xZqt9uSb4Tgd6Dgd0WlstSTrQpyNrXco1bsV7c75AfiyVUkvfe9qo+EUisUOgS0yyRGHBbJDU07Wv08TEIx9toaQIDAQAB
+```
+
+服务器已使用上述验证域的正式发件地址；测试邮件尚未发送。当前发送 key 保持原值，未做密钥轮换；该 key 的发送权限与后台完成域验证不冲突。当前任务不使用 webhook 签名 secret，本文不保存该值。
+
+## 查看、重启与更新
+
+先进入服务器目录。当前 `ubuntu` 用户没有 Docker socket 权限，以下命令使用 `sudo docker compose`；始终包含变量文件与两个配置文件，并只启动或更新应用服务。
+
+```sh
+ssh banzi
+cd /opt/huhua
+
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml ps
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml logs --tail=100 app
+curl --fail https://resume.yikuaibanz.cn/healthz
+```
+
+普通应用重启：
+
+```sh
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml restart app
+```
+
+修改 `deploy/app.env` 后，`restart` 不会重新加载容器环境；需使用以下命令重新创建应用容器，保留命名卷：
+
+```sh
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml config --quiet
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml up -d --no-build --no-deps --force-recreate --wait app
+```
+
+更新代码前先安排维护窗口与配对备份，保留运行配置及 `deploy/compose.host-caddy.yaml`。上传经审核的源码包，把 `deploy/compose.env` 中的 `HUHUA_IMAGE_TAG` 改为新版本标签，再执行：
+
+```sh
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml config --quiet
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml build app
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml up -d --no-build --no-deps app
+sudo docker compose --env-file deploy/compose.env -f compose.yaml -f deploy/compose.host-caddy.yaml ps
+```
+
+使用 `config --quiet`，避免展开打印运行密钥。更新后重新检查健康、登录、保存、导出及原有站点入口；不要运行带 `down -v` 的命令。
+
+## 回滚边界
+
+应用只有在数据库结构兼容时，才能将镜像标签改回已有旧版本，再用上述双配置的 `up -d --no-build --no-deps app` 命令切回。涉及数据库恢复时须使用配对数据库、对应密钥及最新隐私状态，不单独覆盖一份 SQLite。
+
+Caddy 回滚前先比较 `/etc/caddy/Caddyfile` 与备份，确认部署后是否已有其他站点或配置变更；只撤销本次 `resume.yikuaibanz.cn` 相关修改，**不要直接用备份覆盖整份配置**。编辑完成后先验证，验证成功才 reload：
+
+```sh
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```

@@ -1,0 +1,313 @@
+{
+  "verified_at": "2026-10-02T19:29:15.629610+08:00",
+  "status": "passed",
+  "browser": "isolated Playwright CLI Chromium session; standalone fixture loading only local static renderer",
+  "versions": {
+    "marked": "18.0.14",
+    "dompurify": "3.4.16"
+  },
+  "checks_passed": 58,
+  "scope": "renderer DOM, standard formats, streaming fragments, loose strong delimiter, code/literal protection, unsafe HTML/URL/image handling, contained table/code overflow and dependency fallback",
+  "limitations": [
+    "Standalone helper check, not the integrated SSE reader/history persistence or real LLM flow.",
+    "Complex nested unfinished emphasis, unfinished single-star/underscore or links keep standard parser behavior.",
+    "No cross-browser matrix, exhaustive XSS proof, supply-chain signature verification or screen-reader test."
+  ],
+  "result": {
+    "checks": [
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "class-added",
+        "passed": true,
+        "detail": "容器添加排版 class"
+      },
+      {
+        "id": "headings",
+        "passed": true,
+        "detail": "标题解析"
+      },
+      {
+        "id": "strong",
+        "passed": true,
+        "detail": "加粗解析，无完整 **"
+      },
+      {
+        "id": "paragraphs",
+        "passed": true,
+        "detail": "段落解析"
+      },
+      {
+        "id": "lists",
+        "passed": true,
+        "detail": "有序无序列表解析"
+      },
+      {
+        "id": "blockquote",
+        "passed": true,
+        "detail": "引用解析"
+      },
+      {
+        "id": "code",
+        "passed": true,
+        "detail": "行内/块代码解析"
+      },
+      {
+        "id": "table",
+        "passed": true,
+        "detail": "GFM 表格解析"
+      },
+      {
+        "id": "safe-link",
+        "passed": true,
+        "detail": "HTTPS 链接可点击且无 opener"
+      },
+      {
+        "id": "link-click",
+        "passed": true,
+        "detail": "实际点击事件命中正常链接，测试阻止外部导航"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "loose-closing-space",
+        "passed": true,
+        "detail": "关闭前空格容错"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "standard-bold-preserved",
+        "passed": true,
+        "detail": "标准粗体未受容错影响"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "streaming-no-double-star",
+        "passed": true,
+        "detail": "片段 \"**\""
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "streaming-no-double-star",
+        "passed": true,
+        "detail": "片段 \"**标\""
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "streaming-no-double-star",
+        "passed": true,
+        "detail": "片段 \"**标题 \""
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "streaming-no-double-star",
+        "passed": true,
+        "detail": "片段 \"**标题 *\""
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "streaming-no-double-star",
+        "passed": true,
+        "detail": "片段 \"**标题 **\""
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "streaming-no-double-star",
+        "passed": true,
+        "detail": "片段 \"**标题 **：正文\""
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "finalized-bold",
+        "passed": true,
+        "detail": "最终完整文本稳定"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "interrupted-bold",
+        "passed": true,
+        "detail": "中断保留已收片段并视觉补全"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "inline-code-literal",
+        "passed": true,
+        "detail": "行内代码星号原样保留"
+      },
+      {
+        "id": "fenced-code-literal",
+        "passed": true,
+        "detail": "块代码和 HTML 字面量原样保留"
+      },
+      {
+        "id": "no-bold-in-code",
+        "passed": true,
+        "detail": "不在代码内做粗体修复"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "escaped-literal",
+        "passed": true,
+        "detail": "转义 literal 保留"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "intraword-literal",
+        "passed": true,
+        "detail": "ASCII 单词内 literal 保留"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "complete-literal",
+        "passed": true,
+        "detail": "完整非流式的未闭合 literal 保守保留"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":true}"
+      },
+      {
+        "id": "no-active-html",
+        "passed": true,
+        "detail": "危险/加载型 HTML 不进入 DOM"
+      },
+      {
+        "id": "no-event-attributes",
+        "passed": true,
+        "detail": "事件/内联样式不进入 DOM"
+      },
+      {
+        "id": "no-script-execution",
+        "passed": true,
+        "detail": "没有执行注入脚本"
+      },
+      {
+        "id": "safe-protocols-only",
+        "passed": true,
+        "detail": "javascript/data/file 链接不具备 href"
+      },
+      {
+        "id": "image-alt-retained",
+        "passed": true,
+        "detail": "禁自动图片时保留 alt 信息"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "relative-mailto",
+        "passed": true,
+        "detail": "正常相对/邮件链接保留"
+      },
+      {
+        "id": "markdown-mode",
+        "passed": true,
+        "detail": "{\"mode\":\"markdown\",\"streaming\":false}"
+      },
+      {
+        "id": "mobile-contained",
+        "passed": true,
+        "detail": "{\"viewport\":390,\"pageWidth\":390,\"tableWidth\":340,\"tableScroll\":837,\"preWidth\":338,\"preScroll\":5593,\"minWidth\":\"0px\"}"
+      },
+      {
+        "id": "table-local-scroll",
+        "passed": true,
+        "detail": "宽表格在消息内横向滚动"
+      },
+      {
+        "id": "code-local-scroll",
+        "passed": true,
+        "detail": "长代码在消息内横向滚动"
+      },
+      {
+        "id": "min-width-zero",
+        "passed": true,
+        "detail": "flex 内容可收缩"
+      },
+      {
+        "id": "safe-fallback",
+        "passed": true,
+        "detail": "依赖失败时只用 textContent"
+      },
+      {
+        "id": "no-business-requests",
+        "passed": true,
+        "detail": "[]"
+      },
+      {
+        "id": "no-remote-requests",
+        "passed": true,
+        "detail": "[]"
+      },
+      {
+        "id": "no-page-errors",
+        "passed": true,
+        "detail": "[]"
+      }
+    ],
+    "page_errors": [],
+    "business_requests": [],
+    "remote_requests": []
+  }
+}

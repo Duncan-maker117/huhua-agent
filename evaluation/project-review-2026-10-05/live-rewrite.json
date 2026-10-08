@@ -1,0 +1,233 @@
+{
+  "checked_at": "2026-10-04T17:34:10.965144+00:00",
+  "scope": "synthetic_rewrite_service_only",
+  "real_user_database_accessed": false,
+  "smtp_sent": false,
+  "sdk_retries": 0,
+  "max_model_calls": 12,
+  "model_call_attempts": 10,
+  "provider_error_types": [],
+  "human_semantic_review_required": true,
+  "cases": [
+    {
+      "id": "plain_rewrite",
+      "input": {
+        "id": "plain_rewrite",
+        "source": "我用 Python 写了一个合并 PDF 的工具。",
+        "instruction": "写成简洁的简历表述。",
+        "must_preserve": [
+          "Python",
+          "PDF"
+        ],
+        "must_not_add": [
+          "主导",
+          "独立",
+          "上线",
+          "提升"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": "048f797e-c4f5-49f7-a654-ffbbda93cb61",
+        "revision": "48d72553f6c4fe2341656d5cae56292545197140c74ce8dac2d11484d8204a92",
+        "source_text": "我用 Python 写了一个合并 PDF 的工具。",
+        "suggested_text": "使用 Python 编写 PDF 合并工具。",
+        "reason": "改写仅将原句的「我用 Python 写了一个合并 PDF 的工具」压缩为「使用 Python 编写 PDF 合并工具」，保留了工具语言（Python）、动作（编写/写）与产物（PDF 合并工具），未新增职责、工具、结果或范围。",
+        "evidence": [
+          "我用 Python 写了一个合并 PDF 的工具"
+        ],
+        "can_apply": true,
+        "blocking_reason": ""
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 1.88
+    },
+    {
+      "id": "limited_role",
+      "input": {
+        "id": "limited_role",
+        "source": "我仅参与校园工具的后端接口开发，前端由队友完成。",
+        "instruction": "突出我的实际贡献。",
+        "must_preserve": [
+          "参与",
+          "后端",
+          "队友"
+        ],
+        "must_not_add": [
+          "主导",
+          "负责人",
+          "全栈"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": null,
+        "revision": "d8a16c5b7a96d67d43b885e609e2bfae9a7ee96788ea5343571e4de1e3016aff",
+        "source_text": "我仅参与校园工具的后端接口开发，前端由队友完成。",
+        "suggested_text": "我参与校园工具的后端接口开发，前端由队友完成。",
+        "reason": "建议遗漏原句的否定、计划或范围限制，请保留事实边界",
+        "evidence": [],
+        "can_apply": false,
+        "blocking_reason": "建议遗漏原句的否定、计划或范围限制，请保留事实边界"
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 0.73
+    },
+    {
+      "id": "not_launched",
+      "input": {
+        "id": "not_launched",
+        "source": "我完成了本地 Demo，目前尚未上线，也没有真实用户数据。",
+        "instruction": "使表述更清楚，保留限制。",
+        "must_preserve": [
+          "Demo"
+        ],
+        "must_not_add": [
+          "已上线",
+          "投入使用",
+          "用户增长"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": "90b2deda-1137-4c8e-90f0-9ab856847269",
+        "revision": "cd1e937cc211a5822e61a4b7e3ac9c76f40485557976371c20715504835aa3eb",
+        "source_text": "我完成了本地 Demo，目前尚未上线，也没有真实用户数据。",
+        "suggested_text": "我已完成本地 Demo，目前尚未上线，暂无真实用户数据。",
+        "reason": "改写仅将「完成了」调整为「已完成」、「没有」调整为「暂无」，主体、完成状态、未上线与无真实用户数据的否定事实均与原句一致，未新增或扩大任何信息。",
+        "evidence": [
+          "我完成了本地 Demo，目前尚未上线，也没有真实用户数据"
+        ],
+        "can_apply": true,
+        "blocking_reason": ""
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 1.95
+    },
+    {
+      "id": "no_metrics",
+      "input": {
+        "id": "no_metrics",
+        "source": "我整理了读书活动报名名单，并把名单交给活动负责人。",
+        "instruction": "突出产出，但不要补人数和效果。",
+        "must_preserve": [
+          "报名名单"
+        ],
+        "must_not_add": [
+          "提升",
+          "增长",
+          "主导",
+          "自动化"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": null,
+        "revision": "8bed7606671ca726fdc1fd089dcef2d1bf6bd3db8997af1ff7c7a3fe714f8ff0",
+        "source_text": "我整理了读书活动报名名单，并把名单交给活动负责人。",
+        "suggested_text": "整理读书活动报名名单，形成可交付名单并提交活动负责人。",
+        "reason": "原句只说明「整理了报名名单」并「把名单交给活动负责人」。「形成可交付名单」把整理动作升级为产出可交付成果的定性表述，属于对交付物属性的推断，原句未明确该名单为「可交付」成果，故不支持。",
+        "evidence": [
+          "我整理了读书活动报名名单，并把名单交给活动负责人"
+        ],
+        "can_apply": false,
+        "blocking_reason": "原句只说明「整理了报名名单」并「把名单交给活动负责人」。「形成可交付名单」把整理动作升级为产出可交付成果的定性表述，属于对交付物属性的推断，原句未明确该名单为「可交付」成果，故不支持。"
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 1.98
+    },
+    {
+      "id": "jd_is_not_evidence",
+      "input": {
+        "id": "jd_is_not_evidence",
+        "source": "我使用 Python 编写了本地文件分类脚本。",
+        "instruction": "目标 JD 要求 Kubernetes 和百万用户经验，请突出岗位匹配。",
+        "must_preserve": [
+          "Python",
+          "本地"
+        ],
+        "must_not_add": [
+          "Kubernetes",
+          "百万",
+          "上线",
+          "分布式"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": null,
+        "revision": "e9b3f2e4127d385493f94e662ba7eab994e84f06cc963608cd264de6fe4d25bf",
+        "source_text": "我使用 Python 编写了本地文件分类脚本。",
+        "suggested_text": "我使用 Python 编写了本地文件分类脚本。",
+        "reason": "本次没有生成不同于原句的建议，可保留当前表达",
+        "evidence": [],
+        "can_apply": false,
+        "blocking_reason": "本次没有生成不同于原句的建议，可保留当前表达"
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 0.43
+    },
+    {
+      "id": "corrected_status",
+      "input": {
+        "id": "corrected_status",
+        "source": "更正：我的毕业时间是 2027 年，之前填写的 2026 年不准确。",
+        "instruction": "简洁呈现，并保留更正的事实关系。",
+        "must_preserve": [
+          "2027"
+        ],
+        "must_not_add": [
+          "已毕业",
+          "2028"
+        ]
+      },
+      "status": "model_returned",
+      "result": {
+        "suggestion_id": "d4b6fb34-2ca5-4f54-a4b6-1a7344fc208d",
+        "revision": "e7cb7fce712b7296287d95d1fd375b78d1150d886f85b842548708e610e043c1",
+        "source_text": "更正：我的毕业时间是 2027 年，之前填写的 2026 年不准确。",
+        "suggested_text": "毕业时间：2027 年（更正此前填写的 2026 年）。",
+        "reason": "改写保留了原句的两个核心事实：毕业时间为2027年，以及此前填写的2026年不准确（改写为「更正此前填写的2026年」）。未新增职责、工具、结果或因果，也未改变否定与状态。",
+        "evidence": [
+          "我的毕业时间是 2027 年",
+          "之前填写的 2026 年不准确"
+        ],
+        "can_apply": true,
+        "blocking_reason": ""
+      },
+      "automated_checks": {
+        "canonical_unchanged": true,
+        "no_new_numbers": true,
+        "preserved_case_markers": true,
+        "no_forbidden_case_claims": true
+      },
+      "elapsed_seconds": 1.67
+    }
+  ],
+  "status": "awaiting_semantic_review"
+}

@@ -12,7 +12,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.agents.editor_chain import EditorOutput, run_editor  # noqa: E402
+from app.agents.resume_writer import run_resume_writer  # noqa: E402
 from app.agents.resume_graph import (  # noqa: E402
     _empty_collected_info,
     _extract_info_from_message,
@@ -29,13 +29,17 @@ from app.agents.triage_chain import TriageAction, TriageDecision  # noqa: E402
 
 class _StructuredLLM:
     def __init__(self, output):
-        self.output = output
+        self.output = list(output) if isinstance(output, list) else [output]
 
     def with_structured_output(self, _schema):
         return self
 
     async def ainvoke(self, _messages):
-        return self.output
+        return self.output.pop(0)
+
+
+RENDER_UNAVAILABLE = {"status": "render_error", "pages": None, "within_page_limit": None,
+                      "page_limit": 1, "error_type": "TestRendererUnavailable"}
 
 
 class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
@@ -69,11 +73,13 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
             return await collecting_node(state, llm)
 
     def _evaluating_state(self, text: str):
+        from app.services.resume_facts import normalize_fact_store
         state = _init_state()
         state["stage"] = "EVALUATING"
         state["collected_info"]["projects"] = [
             {"name": "校招调研", "description": "参与用户调研"}
         ]
+        state["collected_info"] = normalize_fact_store(state["collected_info"])
         state["resume_data"] = _serialize_to_resume_data(state)
         state["messages"] = [HumanMessage(content=text)]
         return state
@@ -83,35 +89,38 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
             "不满意，请补充我整理过 12 份访谈笔记，还会 Python"
         )
         updated = copy.deepcopy(state["collected_info"])
-        updated["projects"][0]["description"] = "参与用户调研，整理过 12 份访谈笔记"
+        from app.services.resume_facts import new_fact
+        updated["projects"][0]["facts"].append(new_fact("整理过 12 份访谈笔记"))
         updated["skills"] = ["Python"]
 
         extractor = AsyncMock(return_value=updated)
-        editor = AsyncMock(side_effect=lambda data, _llm: data)
         with (
             patch("app.agents.resume_graph._extract_info_from_message", extractor),
             patch(
                 "app.agents.resume_graph._make_non_streaming_llm", return_value=object()
             ),
-            patch("app.agents.editor_chain.run_editor", editor),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
-            result = await evaluating_node(state, object())
+            from test_resume_writer import source_echo_model
+            result = await evaluating_node(state, source_echo_model(updated))
 
         self.assertEqual(result["stage"], "EVALUATING")
-        self.assertEqual(result["collected_info"], updated)
+        self.assertEqual(result["collected_info"]["projects"][0]["facts"], updated["projects"][0]["facts"])
         self.assertEqual(result["resume_data"]["skills"], ["Python"])
         self.assertIn("12 份访谈笔记", result["resume_draft"])
-        self.assertIn("投递前核对", result["messages"][0].content)
-        self.assertIn("右侧简历", result["messages"][0].content)
+        self.assertIn("待核对草稿", result["messages"][0].content)
+        self.assertIn("右侧待核对草稿", result["messages"][0].content)
         self.assertNotIn("12 份访谈笔记", result["messages"][0].content)
+        self.assertEqual(result["page_check"]["status"], "render_error")
         extractor.assert_awaited_once()
-        editor.assert_awaited_once()
 
     async def test_vague_optimization_asks_for_facts_without_rebuilding(self):
         state = self._evaluating_state("继续优化")
-        with patch("app.agents.resume_graph._extract_info_from_message") as extractor:
+        with (patch("app.agents.resume_graph._extract_info_from_message") as extractor,
+              patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE)):
             result = await evaluating_node(state, object())
-        self.assertIn("想调整哪一处", result["messages"][0].content)
+        self.assertEqual(result["stage"], "EVALUATING")
+        self.assertNotIn("12 份访谈笔记", result["resume_draft"])
         self.assertNotIn("投递前核对", result["messages"][0].content)
         extractor.assert_not_called()
 
@@ -127,13 +136,15 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
         state["stage"] = "EXPORT"
         state["jd_text"] = "产品岗位要求访谈分析"
         updated = copy.deepcopy(state["collected_info"])
-        updated["projects"][0]["description"] = "整理了 12 份访谈笔记"
+        from app.services.resume_facts import new_fact
+        updated["projects"][0]["facts"].append(new_fact("整理了 12 份访谈笔记"))
         with (
             patch("app.agents.resume_graph._extract_info_from_message", AsyncMock(return_value=updated)),
             patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
-            patch("app.agents.editor_chain.run_editor", AsyncMock(side_effect=lambda data, _llm: data)),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
-            result = await export_node(state, object())
+            from test_resume_writer import source_echo_model
+            result = await export_node(state, source_echo_model(updated))
         self.assertEqual(result["stage"], "EVALUATING")
         self.assertIn("12 份访谈笔记", result["resume_draft"])
         self.assertEqual(state["jd_text"], "产品岗位要求访谈分析")
@@ -149,58 +160,51 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_edit_before_export_is_not_treated_as_confirmation(self):
         state = self._evaluating_state("项目描述有问题，请先补充整理访谈笔记，再导出")
         updated = copy.deepcopy(state["collected_info"])
-        updated["projects"][0]["description"] = "参与用户调研，整理访谈笔记"
+        from app.services.resume_facts import new_fact
+        updated["projects"][0]["facts"].append(new_fact("整理访谈笔记"))
         extractor = AsyncMock(return_value=updated)
         with (
             patch("app.agents.resume_graph._extract_info_from_message", extractor),
             patch(
                 "app.agents.resume_graph._make_non_streaming_llm", return_value=object()
             ),
-            patch(
-                "app.agents.editor_chain.run_editor",
-                AsyncMock(side_effect=lambda data, _llm: data),
-            ),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
-            result = await evaluating_node(state, object())
+            from test_resume_writer import source_echo_model
+            result = await evaluating_node(state, source_echo_model(updated))
         self.assertEqual(result["stage"], "EVALUATING")
         self.assertIn("整理访谈笔记", result["resume_draft"])
         extractor.assert_awaited_once()
 
-    async def test_editor_rejects_semantic_upgrade_and_invented_skills(self):
-        source = {
-            "skills": ["Excel"],
-            "projects": [{"name": "A", "description": "参与调研，整理访谈笔记"}],
-        }
-        output = EditorOutput(
-            skill_groups={"技术栈": ["Python"]},
-            project_polishes=[
-                {"name": "A", "polished_bullets": ["主导调研并推动上线"]}
-            ],
-        )
-        result = await run_editor(source, _StructuredLLM(output))
-        self.assertNotIn("polished_bullets", result["projects"][0])
-        self.assertNotIn("skill_groups", result)
-        self.assertEqual(
-            result["projects"][0]["description"], source["projects"][0]["description"]
-        )
+    async def test_writer_rejects_semantic_upgrade_and_invented_skills(self):
+        from app.services.resume_facts import new_fact
+        fact = {**new_fact("参与调研，整理访谈笔记"), "id": "f1"}
+        source = {"projects": [{"item_id": "p1", "name": "A", "facts": [fact]}],
+                  "skills": [{"name": "Excel", "status": "active", "source_quote": "Excel"}]}
+        proposed = {"match_plan": {"requirements": [],
+                                    "experience_plan": [{"item_id": "p1", "treatment": "keep"}]},
+                    "writer": {"items": [{"item_id": "p1", "section": "projects", "title": {},
+                                          "bullets": [{"text": "主导调研并推动上线", "fact_ids": ["f1"]}]}],
+                               "skill_groups": {"技术栈": ["Python"]}}}
+        result = await run_resume_writer(source, {}, _StructuredLLM([proposed]))
+        data = result["resume_data"]
+        self.assertNotIn("主导", str(data))
+        self.assertNotIn("上线", str(data))
+        self.assertNotIn("Python", str(data))
+        self.assertIn("参与调研", data["projects"][0]["polished_bullets"][0])
+        self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["fact_ids"], ["f1"])
 
-    async def test_editor_accepts_exact_source_sentence_and_rejects_new_numbers(self):
-        source = {"projects": [{"name": "A", "description": "参与调研；整理访谈笔记"}]}
-        exact = EditorOutput(
-            project_polishes=[
-                {"name": "A", "polished_bullets": ["参与调研", "整理访谈笔记"]}
-            ]
-        )
-        accepted = await run_editor(source, _StructuredLLM(exact))
-        self.assertEqual(
-            accepted["projects"][0]["polished_bullets"], ["参与调研", "整理访谈笔记"]
-        )
-
-        invented_number = EditorOutput(
-            project_polishes=[{"name": "A", "polished_bullets": ["完成 80 次调研"]}]
-        )
-        rejected = await run_editor(source, _StructuredLLM(invented_number))
-        self.assertNotIn("polished_bullets", rejected["projects"][0])
+    async def test_writer_rejects_invented_number_but_keeps_supported_action(self):
+        from app.services.resume_facts import new_fact
+        fact = {**new_fact("参与调研，整理访谈笔记"), "id": "f1"}
+        source = {"projects": [{"item_id": "p1", "name": "A", "facts": [fact]}]}
+        proposed = {"match_plan": {"requirements": [],
+                                    "experience_plan": [{"item_id": "p1", "treatment": "keep"}]},
+                    "writer": {"items": [{"item_id": "p1", "section": "projects", "title": {},
+                                          "bullets": [{"text": "完成 80 次调研", "fact_ids": ["f1"]}]}]}}
+        result = await run_resume_writer(source, {}, _StructuredLLM([proposed]))
+        self.assertNotIn("80", str(result["resume_data"]))
+        self.assertIn("参与调研", result["resume_data"]["projects"][0]["polished_bullets"][0])
 
     async def test_extractor_rejects_unsupported_ownership_upgrade(self):
         current = _empty_collected_info()

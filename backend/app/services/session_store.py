@@ -164,8 +164,8 @@ def save_resume_session(
     stage: str = "",
     archive_event: dict | None = None,
     *, collected_info: dict | None = None, resume_meta: dict | None = None,
-    resume_versions: list | None = None,
-) -> None:
+    resume_versions: list | None = None, session_constraints: dict | None = None,
+) -> dict | None:
     if not session_id or (not resume_data_has_content(resume_data) and not stage):
         return
 
@@ -179,6 +179,7 @@ def save_resume_session(
         if row is None:
             row = ResumeSession(session_id=session_id)
             db.add(row)
+        pre_sanitization_data = copy.deepcopy(resume_data)
         row.resume_data = resume_data
         row.resume_draft = resume_draft or row.resume_draft or ""
         row.stage = stage or row.stage or ""
@@ -202,17 +203,36 @@ def save_resume_session(
             row.resume_state = make_resume_state(
                 collected_info if collected_info is not None else previous_state.get("collected_info"),
                 resume_meta if resume_meta is not None else previous_state.get("resume_meta"),
-                resume_versions if resume_versions is not None else previous_state.get("resume_versions"))
+                resume_versions if resume_versions is not None else previous_state.get("resume_versions"),
+                session_constraints if session_constraints is not None else previous_state.get("session_constraints"))
             protected = protect_data(owner, {**row.resume_state, "resume_data": row.resume_data}, db=db)
             row.resume_data = protected.pop("resume_data")
             row.resume_state = protected
+            from app.services.resume_capacity import revalidate_committed_page_check, resume_data_hash
+            row.resume_state["resume_meta"] = revalidate_committed_page_check(
+                row.resume_data, row.resume_state.get("resume_meta") or {},
+                row.resume_state.get("session_constraints"),
+                content_changed=row.resume_data != pre_sanitization_data,
+                pre_sanitization_hash=resume_data_hash(pre_sanitization_data))
             from app.services.resume_review import resume_to_text
             row.resume_draft = resume_to_text(row.resume_data)
         if archive_event and owner.startswith("account:"):
             from app.services.profile_service import enqueue_archive_event
             enqueue_archive_event(db, account_id=owner.split(":", 1)[1],
                                   session_id=session_id, **archive_event)
+        # Freeze before commit expires ORM attributes. Callers can reconcile
+        # their checkpoint/receipt with exactly what this transaction saved.
+        state = row.resume_state or {}
+        committed = copy.deepcopy({
+            "resume_data": row.resume_data, "resume_draft": row.resume_draft,
+            "stage": row.stage, "collected_info": state.get("collected_info") or {},
+            "resume_meta": state.get("resume_meta") or {},
+            "resume_versions": state.get("resume_versions") or [],
+            "session_constraints": state.get("session_constraints") or {},
+            "has_authoritative_state": bool(state.get("authoritative")),
+        })
         db.commit()
+        return committed
     except Exception:
         db.rollback()
         logger.error("session save failed")
@@ -246,6 +266,7 @@ def load_resume_session(session_id: str) -> dict | None:
             "collected_info": copy.deepcopy(state.get("collected_info") or {}),
             "resume_meta": copy.deepcopy(state.get("resume_meta") or {}),
             "resume_versions": copy.deepcopy(state.get("resume_versions") or []),
+            "session_constraints": copy.deepcopy(state.get("session_constraints") or {}),
             "has_authoritative_state": bool(state.get("authoritative")),
             "stage": row.stage or "",
             "has_data": resume_data_has_content(payload),
@@ -320,7 +341,8 @@ def purge_expired_resume_session(session_id: str, retention_days: int) -> None:
         db.close()
 
 
-def make_resume_state(collected_info, resume_meta=None, resume_versions=None):
+def make_resume_state(collected_info, resume_meta=None, resume_versions=None, session_constraints=None):
     """Facts and document metadata share their document's SQL transaction."""
     return copy.deepcopy({"authoritative": True, "collected_info": collected_info or {},
-                          "resume_meta": resume_meta or {}, "resume_versions": (resume_versions or [])[-10:]})
+                          "resume_meta": resume_meta or {}, "resume_versions": (resume_versions or [])[-10:],
+                          "session_constraints": session_constraints or {}})

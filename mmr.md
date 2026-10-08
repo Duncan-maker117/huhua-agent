@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-09 Tailor PR4：v3候选已合入主工作区，784/784与Ruff/diff通过，尚未真实模型验收。v1编辑0/24；v2编辑11/24（2无diff、3未遵循、6评分错误、2未运行），65版本53已评分/11无稿/1错误；语义疑点9，确认新增事实待Claude。v2末段与补评分遭API失败；独立官方Flash检查HTTP402，官方余额API曾返回is_available=false；Banz随后充值，只读复查is_available=true，准备恢复v3测试。v3修复结构错误一次有界重试、失败保留有效旧稿但执行明确更正/删除、原始引文与主体/动作/负面事实守卫。私有real-01-v2最终1页且无SQL误删，但writer回退导致稿质差，6/8目标满足，不能验收。交付 `evaluation/tailor-bench/pr4/summary.md`、`verification.json`、`fact-review-v2.md`。旧218基线文件哈希不变；所有已跑run保留，v3无run。PR5组件仍未接graph，未push/部署/迁移真实库。
+
 2026-10-08 两份本人历史资料真实生成实测完成：Banz 明确授权 DeepSeek V4.1 Flash（API ID `deepseek-flash`）。在独立临时加密库走真实网页上传 PDF + Markdown、生成、纠错及 PDF/Word 下载；主工作区业务仍为 `a742100`，PR1 未合并。四个真实项目均保留，但联系栏「深圳」误成第五项目；一页要求未执行，默认模板 PDF 为 3 页；mtagent 冲突虽列入核对，正文仍含冲突日期/职责；第二轮明确删改等待约 47.6 秒，data/revision/PDF 完全不变。已只读定位联系栏解析过宽、旧 editor 强制原句保留且未接收篇幅指令、信息提取完整回显与对象数组校验矛盾等原因，未改业务代码或上线。含个人资料的原始 PDF/Word、两轮记录及报告仅保存在 Git 忽略目录 `data/output/tailor-real-materials-20261008/summary.md`；两份原件哈希未变。该结果证明当前应用不能直接产出可投递稿，不代表已单独评估模型写作能力。
 
 2026-10-08 Tailor PR0 R1–R5 修订完成：交付 `evaluation/tailor-bench/runs/20261008-baseline-v2/summary.md`、`cases/README.md` 和 `claude-review-followup-v2.txt`。12 例 approved truth，24 正向要求 + 11 gap；75 项 benchmark 测试、Ruff/diff检查通过。旧代码完整跑 58 轮，32 变化版本（31 可见、1内部）：20 个非空版本统一最终checker评分、12 no_draft；评分0错误/缺失。首稿10/12、两轮内8/12；编辑0/24；要求覆盖 disclosed10/14（71.4%）、truth11/24（45.8%），证据位覆盖12/18及13/46。自动词法/语义疑点0，但7个不可判定字段单列，确认新增经历事实仍待Claude复核，不能借用v1的0。150图调用、10模拟器调用（无回退）、45评分调用含全部旧尝试；首次失败与重评证据保留。旧v1全部103文件逐字哈希一致；业务源码与a742100/v1一致。导入标签未识别和data行动事实落入自评栏已只读定位，留待PR4。PR1独立分支commit `65b06cd`、全套556/556通过，位置 `/Users/yikuaibanz1/.codex/worktrees/tailor-pr1/huhua agent`，未合并到基线、未push、未部署。详见该工作区 `docs/development/2026-10-08-tailor-pr1-verification.md`。
@@ -75,7 +77,7 @@
 
 ## 下一步
 
-PR3 已通过并准备提交，报告 `docs/development/2026-10-08-tailor-pr3-verification.md`。下一步接入 PR4 writer/局部修改/撤销/实际页数校验，再跑逐版本 benchmark；PR5 随后接 router/复合编辑，给 Cursor PR6 API 交接。真实材料旧基线见 `evaluation/tailor-bench/runs-private/20261008-saved-real-01-baseline/summary.md`：两轮均3页，第二轮执行0/8目标、0/14操作，语义事实待复核。本次导入检查识别4项目、联系栏归位，见 runs-private/20261008-pr3-import-check；尚不是新writer实测。公开基线旧结论保持历史归属。
+PR3 已提交 `ecf7a33`。余额已恢复，接下来新开 PR4 v3 全套逐版本验收与 Claude 事实复核，达到编辑≥90%、确认新增事实0后再接 PR5 router/复合编辑。PR6 接口草稿见 `docs/development/2026-10-08-tailor-api-handoff.md`，尚未交付前端验收。真实材料旧基线见 `evaluation/tailor-bench/runs-private/20261008-saved-real-01-baseline/summary.md`：两轮均3页，第二轮执行0/8目标、0/14操作。新旧运行的事实结论分别复核，不相互借用。
 
 先承接 2026-10-08 的核心流程修复：发布需重新构建带 Pango/中文字体的镜像，再用线上独立测试会话核验完整资料、模板恢复及 PDF/Word 下载；本轮没有发布授权或线上验收结果，不把本地浏览器通过写成线上已解决。
 
@@ -95,7 +97,7 @@ PR3 已通过并准备提交，报告 `docs/development/2026-10-08-tailor-pr3-ve
 - `docs/development/docker-deployment.md` / `scripts/package_deploy.py` / `deploy/`：全新单机部署、允许清单打包与运行配置模板。
 - `docs/development/2026-10-05-project-review-and-improvements.md` / `evaluation/project-review-2026-10-05/`：本轮报告与分类验收证据。
 - `backend/app/services/resume_provenance.py` / `tests/test_resume_provenance.py`：稳定条目身份、加密字段映射与回归。
-- `scripts/evaluate_rewrites.py`：默认不调用模型的固定虚构改写验收入口。
+- `evaluation/tailor-bench/run_bench.py`：默认 dry-run 的逐版本简历基准入口；旧 evaluate_rewrites 已在 PR4 移除。
 
 - `docs/development/2026-10-04-product-and-profile-plan.md`：已确认开发报告，保留确认时的现状与方案。
 - `docs/development/2026-10-04-implementation-handoff.md`：本轮交付、验证范围、启用条件。
@@ -105,7 +107,7 @@ PR3 已通过并准备提交，报告 `docs/development/2026-10-08-tailor-pr3-ve
 - `docs/development/profile-archive-contract.md`：档案模型、来源边界、事务事件、API、时间与删除规则。
 - `backend/app/services/account_service.py` / `data_crypto.py` / `secure_checkpoint.py`：账号、认证加密与完整图存储包装。
 - `backend/app/services/profile_service.py` / `profile_bridge.py` / `agents/profile_archivist.py`：跨对话档案、持久任务、当前稿导入及失效传播。
-- `backend/app/services/canonical_resume.py` / `resume_suggestions.py`：版本校验、保存回滚、建议采用与撤销。
+- `backend/app/services/canonical_resume.py` / `resume_versions.py`：版本校验、稿件历史和撤销；旧 resume_suggestions 已在 PR4 移除。
 - `backend/app/services/model_privacy.py`：文本模型请求的联系方式脱敏，映射只留当前调用内存。
 - `backend/app/agents/resume_graph.py` / `career_prompt.py` / `career_tasks.py` / `skills/`：主流程、共同事实规则与三项专业方法。
 - `backend/app/services/resume_workspace.py` / `web/resume-workspace.js`：右侧工作页、追问与快捷回答。

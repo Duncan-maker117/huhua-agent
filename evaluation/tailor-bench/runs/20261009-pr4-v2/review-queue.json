@@ -1,0 +1,1246 @@
+{
+  "status": "pending_claude",
+  "confirmed_new_facts": null,
+  "items": [
+    {
+      "case_id": "ai-pm-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ai-pm-01/scores.json",
+      "resume_source": "ai-pm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ai-pm-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ai-pm-01/scores.json",
+      "resume_source": "ai-pm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ai-pm-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ai-pm-01/scores.json",
+      "resume_source": "ai-pm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ai-pm-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ai-pm-01/scores.json",
+      "resume_source": "ai-pm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u003",
+        "verdict": "truth_only",
+        "observed_quotes": [],
+        "truth_quotes": [
+          "在“叶影识别”中，我用 Python 检查训练集和验证集的文件列表，发现重复文件后调整划分，避免同一图片同时出现在两边。"
+        ],
+        "unsupported_spans": [],
+        "reason": "observed 只披露检查文件列表，未披露核对划分是否一致；truth 中的 fact 2 完整支持检查文件列表并核对划分（发现重复后调整），因此为 truth_only。",
+        "audit_method": "llm",
+        "quote": "检查训练集与验证集的文件列表，核对数据文件与划分是否一致。",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u004",
+        "verdict": "truth_only",
+        "observed_quotes": [],
+        "truth_quotes": [
+          "我整理预测错误的图片，发现模糊图片和背景复杂的图片更容易出错。",
+          "“叶影识别”没有保存可核对的准确率或 F1 数值，没有证据证明性能提升，也没有线上推理数据。"
+        ],
+        "unsupported_spans": [],
+        "reason": "observed 已披露发现模糊/背景复杂图片更易出错，但“作为现象记录，未做量化统计”这一限制性表述未在 observed 中出现；truth 事实 3 和事实 6 支持定性现象与未保存量化指标，因此为 truth_only。",
+        "audit_method": "llm",
+        "quote": "挑出预测错误的图片逐张查看，观察到模糊图片与背景复杂的图片更容易出错，作为现象记录，未做量化统计。",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "algorithm-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "algorithm-01/scores.json",
+      "resume_source": "algorithm-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u002",
+        "verdict": "truth_only",
+        "observed_quotes": [
+          "“叶影识别”是我们课程小组做的叶片图片分类。我检查了训练集和验证集的文件列表，还把预测错的图片挑出来看；训练用的是老师给的 PyTorch 代码，没有部署。",
+          "我整理预测错误的图片，发现模糊图片和背景复杂的图片更容易出错。"
+        ],
+        "truth_quotes": [
+          "“叶影识别”没有保存可核对的准确率或 F1 数值，没有证据证明性能提升，也没有线上推理数据。"
+        ],
+        "unsupported_spans": [],
+        "reason": "训练、检查列表、错例观察、未部署等均有原话支持，但“未做量化统计”这一限制仅由完整事实中无准确率/F1数值推断，原话未直接披露，故判为 truth_only。",
+        "audit_method": "llm",
+        "quote": "课程小组叶片图片分类项目，使用老师提供的 PyTorch 代码完成训练与评估流程；本人检查训练集与验证集文件列表，并挑出预测错误图片逐张查看，观察到模糊图片与背景复杂的图片更易出错（现象记录，未做量化统计）；项目未部署。",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "backend-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "backend-01/scores.json",
+      "resume_source": "backend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "backend-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "backend-01/scores.json",
+      "resume_source": "backend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "backend-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "backend-01/scores.json",
+      "resume_source": "backend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "backend-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "backend-01/scores.json",
+      "resume_source": "backend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "career-switch-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "career-switch-01/scores.json",
+      "resume_source": "career-switch-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "career-switch-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "career-switch-01/scores.json",
+      "resume_source": "career-switch-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "career-switch-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "career-switch-01/scores.json",
+      "resume_source": "career-switch-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "career-switch-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "career-switch-01/scores.json",
+      "resume_source": "career-switch-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u004",
+        "verdict": "unsupported",
+        "observed_quotes": [
+          "把群里反复问的问题放到表格里",
+          "有同学一起提供材料"
+        ],
+        "truth_quotes": [],
+        "unsupported_spans": [
+          "作为需求来源"
+        ],
+        "reason": "整理表格和同学提供材料有原话支持，但“作为需求来源”属于新增推断，无法从 observed 或 truth 中找到依据。",
+        "audit_method": "llm",
+        "quote": "针对群内反复被提问的问题，整理成问题表格，作为需求来源；材料由同学共同提供",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "career-switch-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "career-switch-01/scores.json",
+      "resume_source": "career-switch-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "data-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "data-01/scores.json",
+      "resume_source": "data-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "data-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "data-01/scores.json",
+      "resume_source": "data-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "data-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "data-01/scores.json",
+      "resume_source": "data-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "data-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "data-01/scores.json",
+      "resume_source": "data-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "data-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "data-01/scores.json",
+      "resume_source": "data-01/versions.json",
+      "kind": "version_review",
+      "score_status": "error",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "data-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "data-01/scores.json",
+      "resume_source": "data-01/versions.json",
+      "kind": "evaluation_incomplete",
+      "score_status": "error",
+      "error_type": "APIStatusError",
+      "validation_error": null
+    },
+    {
+      "case_id": "design-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "design-01/scores.json",
+      "resume_source": "design-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "design-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "design-01/scores.json",
+      "resume_source": "design-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "design-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "design-01/scores.json",
+      "resume_source": "design-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "design-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "design-01/scores.json",
+      "resume_source": "design-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "design-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "design-01/scores.json",
+      "resume_source": "design-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "design-01",
+      "version_id": "v007",
+      "turn": 7,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "design-01/scores.json",
+      "resume_source": "design-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u001",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u001",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u001",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u001",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u001",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u001",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u003",
+        "verdict": "unsupported",
+        "observed_quotes": [
+          "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+        ],
+        "truth_quotes": [
+          "使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+        ],
+        "unsupported_spans": [
+          "定位并排查列表数据与接口不一致的问题"
+        ],
+        "reason": "前两句有 observed 和 truth 支持，但“定位并排查列表数据与接口不一致的问题”未在 observed 或 truth 中出现，属于新增主张。",
+        "audit_method": "llm",
+        "quote": "与队友核对列表字段，使用浏览器开发者工具查看请求返回，定位并排查列表数据与接口不一致的问题",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "frontend-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "frontend-01/scores.json",
+      "resume_source": "frontend-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u003",
+        "verdict": "unsupported",
+        "observed_quotes": [
+          "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+        ],
+        "truth_quotes": [],
+        "unsupported_spans": [
+          "排查列表数据与接口不一致的问题"
+        ],
+        "reason": "前半句核对列表字段与开发者工具查看请求返回有 observed 支持，但“排查列表数据与接口不一致的问题”在 observed 与 truth 中均未提及，新增了问题对象与排查动作。",
+        "audit_method": "llm",
+        "quote": "配合队友核对列表字段，用浏览器开发者工具查看请求返回，排查列表数据与接口不一致的问题",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "import-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "import-01/scores.json",
+      "resume_source": "import-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "import-01",
+      "version_id": "v003",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "import-01/scores.json",
+      "resume_source": "import-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "import-01",
+      "version_id": "v004",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "import-01/scores.json",
+      "resume_source": "import-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "import-01",
+      "version_id": "v004",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "import-01/scores.json",
+      "resume_source": "import-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u008",
+        "verdict": "truth_only",
+        "observed_quotes": [],
+        "truth_quotes": [
+          "在“知页索引”中，我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+        ],
+        "unsupported_spans": [],
+        "reason": "旧简历仅提到用 SQLite 保存标题和正文，未提及查询动作；查询动作由完整事实支持。",
+        "audit_method": "llm",
+        "quote": "用 SQLite 存储笔记标题与正文，基于标题字段完成数据查询",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "import-01",
+      "version_id": "v005",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "import-01/scores.json",
+      "resume_source": "import-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "import-01",
+      "version_id": "v005",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "import-01/scores.json",
+      "resume_source": "import-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u008",
+        "verdict": "truth_only",
+        "observed_quotes": [
+          "用 SQLite 保存笔记标题和正文"
+        ],
+        "truth_quotes": [
+          "在“知页索引”中，我用 SQLite 保存笔记标题和正文，使用基础 SQL 查询笔记。"
+        ],
+        "unsupported_spans": [],
+        "reason": "SQLite 存储部分有观察支持，但基于标题字段完成数据查询在观察原文中未直接体现，完整事实库支持使用基础 SQL 查询笔记。",
+        "audit_method": "llm",
+        "quote": "用 SQLite 存储笔记标题与正文，基于标题字段完成数据查询",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v007",
+      "turn": 7,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "minimal-01",
+      "version_id": "v008",
+      "turn": 8,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "minimal-01/scores.json",
+      "resume_source": "minimal-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "project_title_mismatch",
+        "path": "projects[0].name",
+        "quote": "的",
+        "expected_project_names": [
+          "读书角"
+        ],
+        "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+      }
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "project_title_mismatch",
+        "path": "projects[0].name",
+        "quote": "的",
+        "expected_project_names": [
+          "读书角"
+        ],
+        "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+      }
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "project_title_mismatch",
+        "path": "projects[0].name",
+        "quote": "的",
+        "expected_project_names": [
+          "读书角"
+        ],
+        "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+      }
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u004",
+        "verdict": "unsupported",
+        "observed_quotes": [
+          "我将活动后的文字反馈整理到表格，按主题选择和讨论节奏分类。"
+        ],
+        "truth_quotes": [
+          "在“读书角”中，我将活动后的文字反馈整理到表格，按主题选择和讨论节奏分类。"
+        ],
+        "unsupported_spans": [
+          "用于定位参与者反映集中的问题"
+        ],
+        "reason": "整理表格与按主题/节奏分类有 observed 和 truth 支持，但“用于定位参与者反映集中的问题”为目的/结果性新增，未见原文证据，truth 也未记载，故判定 unsupported。",
+        "audit_method": "llm",
+        "quote": "将活动后的文字反馈整理进表格，按主题选择与讨论节奏两类维度分类，用于定位参与者反映集中的问题。",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "project_title_mismatch",
+        "path": "projects[0].name",
+        "quote": "的",
+        "expected_project_names": [
+          "读书角"
+        ],
+        "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+      }
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "ops-01",
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "ops-01/scores.json",
+      "resume_source": "ops-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "project_title_mismatch",
+        "path": "projects[0].name",
+        "quote": "的",
+        "expected_project_names": [
+          "读书角"
+        ],
+        "reason": "项目标题未等于已披露的真实项目名；不是新增经历事实确认。"
+      }
+    }
+  ]
+}

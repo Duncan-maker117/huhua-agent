@@ -87,6 +87,151 @@ class VersionEvidenceTests(unittest.TestCase):
     def test_hidden_body_does_not_count_as_first_draft(self):
         resume = {"projects": [{"name": "项目", "description": "有文字", "hidden": True}]}
         self.assertFalse(runner.has_experience_body(resume))
+        self.record(resume, kind="committed")
+        self.assertFalse(self.recorder.commits[-1]["has_experience"])
+
+    def test_checkpoint_context_is_frozen_and_metadata_change_is_a_version(self):
+        context = {"resume_meta": {"bullets": {"item": [{"flags": ["transferable"]}]}},
+                   "match_plan": {"requirements": [{"req_id": "r1"}]},
+                   "session_constraints": {"page_limit": 1}, "guard_fallbacks": []}
+        first = self.recorder.record(self.data, turn=1, stage="EVALUATING", kind="internal",
+                                     observed=[], acceptance_context=context)
+        context["resume_meta"]["bullets"]["item"][0]["flags"].append("later")
+        self.assertEqual(first["acceptance_context"]["resume_meta"]["bullets"]["item"][0]["flags"], ["transferable"])
+        second = self.recorder.record(self.data, turn=1, stage="EVALUATING", kind="internal",
+                                      observed=[], acceptance_context=context)
+        self.assertNotEqual(first["hash"], second["hash"])
+        self.assertEqual(len(self.recorder.versions), 2)
+
+    def test_committed_snapshot_prefers_durable_metadata_without_rewriting_plan(self):
+        checkpoint = {"resume_meta": {"version_id": "old"}, "match_plan": {"requirements": ["r1"]},
+                      "session_constraints": {"page_limit": 1}, "guard_fallbacks": [{"bullet_id": "b1"}]}
+        stored = {"resume_meta": {"version_id": "saved"}, "resume_versions": [{"version_id": "v1"}],
+                  "session_constraints": {"page_limit": 2}}
+        context = runner.committed_snapshot(stored, checkpoint)
+        self.assertEqual(context["resume_meta"]["version_id"], "saved")
+        self.assertEqual(context["session_constraints"]["page_limit"], 2)
+        self.assertEqual(context["match_plan"]["requirements"], ["r1"])
+        checkpoint["guard_fallbacks"].clear()
+        self.assertEqual(len(context["guard_fallbacks"]), 1)
+
+    def test_writer_diagnostics_counted_per_version_separately_from_guard(self):
+        versions = [
+            {"acceptance_context": {"resume_meta": {
+                "writer_diagnostic": {"status": "model_fallback", "error_type": "ValidationError"},
+                "compression_writer_diagnostics": [{"status": "model_completed"},
+                                                   {"status": "model_fallback"}]},
+                "guard_fallbacks": [{"reason": "compression_preserved_status_limit"}]}},
+            {"acceptance_context": {"resume_meta": {"writer_diagnostic": {"status": "model_completed"},
+                                                     "compression_writer_diagnostics": []}}},
+            {"acceptance_context": {"resume_meta": {"bullets": {}}}},
+        ]
+        counts = runner.writer_diagnostic_counts(versions)
+        self.assertEqual(counts["status"], "observed")
+        self.assertEqual(counts["model_completed"], 1)
+        self.assertEqual(counts["model_fallback"], 1)
+        self.assertEqual(counts["compression_model_completed"], 1)
+        self.assertEqual(counts["compression_model_fallback"], 1)
+        self.assertEqual(counts["versions_with_model_fallback"], 1)
+        self.assertEqual(counts["not_observed_versions"], 1)
+        self.assertEqual(runner.guard_fallbacks_for_version(versions[0]),
+                         [{"reason": "compression_preserved_status_limit"}])
+        self.assertEqual(runner.guard_fallbacks_for_version({"acceptance_context": {
+            "resume_meta": {"guard_fallbacks": [{"reason": "compression_preserved_status_limit"}]}}}),
+            [{"reason": "compression_preserved_status_limit"}])
+
+    def synthetic_facts(self):
+        return {'projects': [{'item_id': 'synthetic-p1', 'name': '合成项目',
+                              'raw_notes': [{'text': '我只完成了原型', 'turn_id': 'synthetic-turn'}],
+                              'facts': [
+                                  {'id': 'f1', 'text': '完成原型', 'source_quote': '我只完成了原型',
+                                   'status': 'active', 'source': 'chat', 'turn_id': 'synthetic-turn',
+                                   'profile_refs': [{'source_id': 'synthetic-source'}]},
+                                  {'id': 'f2', 'text': '旧表述', 'source_quote': '旧表述', 'status': 'superseded'},
+                                  {'id': 'f3', 'text': '删除表述', 'source_quote': '删除表述', 'status': 'deleted'}]}],
+                'skills': [{'name': 'Python', 'source_quote': '用 Python', 'status': 'active'},
+                           {'name': 'Java', 'source_quote': '用 Java', 'status': 'deleted'}]}
+
+    def test_fact_audit_freezes_raw_master_and_active_sources_without_migration(self):
+        facts = self.synthetic_facts()
+        facts['projects'].append({'name': '只有旧字段', 'description': '不能凭审计生成事实'})
+        audit = runner.checkpoint_facts({'collected_info': facts}, 'checkpoint-1')
+        facts['projects'][0]['facts'][0]['status'] = 'deleted'
+        facts['projects'][0]['raw_notes'].clear()
+        self.assertEqual(audit['source'], 'node_checkpoint')
+        self.assertEqual(audit['checkpoint_id'], 'checkpoint-1')
+        self.assertEqual([f['id'] for f in audit['active_facts']], ['f1'])
+        self.assertEqual(audit['active_facts'][0]['item_id'], 'synthetic-p1')
+        self.assertEqual(audit['active_facts'][0]['source_quote'], '我只完成了原型')
+        self.assertEqual(audit['active_facts'][0]['profile_refs'], [{'source_id': 'synthetic-source'}])
+        self.assertEqual(len(audit['collected_info']['projects'][0]['facts']), 3)
+        self.assertTrue(audit['collected_info']['projects'][0]['raw_notes'])
+        self.assertNotIn('facts', audit['collected_info']['projects'][1])
+        self.assertEqual([s['name'] for s in audit['active_skills']], ['Python'])
+
+    def test_sql_fact_snapshot_requires_authoritative_master_not_checkpoint_fallback(self):
+        facts = self.synthetic_facts()
+        for stored in [None, {}, {'collected_info': facts},
+                       {'has_authoritative_state': False, 'collected_info': facts},
+                       {'has_authoritative_state': True}]:
+            with self.subTest(stored=stored):
+                audit = runner.committed_facts(stored)
+                self.assertEqual(audit['status'], 'unknown')
+                self.assertNotIn('collected_info', audit)
+                self.assertNotIn('active_facts', audit)
+        empty = runner.committed_facts({'has_authoritative_state': True, 'collected_info': {}})
+        self.assertEqual(empty['status'], 'observed')
+        self.assertEqual(empty['active_facts'], [])
+        self.assertEqual(runner.checkpoint_facts({})['status'], 'unknown')
+
+    def test_matching_commit_keeps_checkpoint_and_sql_facts_separate(self):
+        facts = self.synthetic_facts()
+        internal = self.recorder.record(self.data, turn=1, stage='EVALUATING', kind='internal', observed=[],
+            acceptance_context={}, fact_snapshot=runner.checkpoint_facts({'collected_info': facts}, 'cp-1'))
+        facts['projects'][0]['facts'][0]['status'] = 'deleted'
+        committed = self.recorder.record(self.data, turn=1, stage='EVALUATING', kind='committed', observed=[],
+            acceptance_context={}, fact_snapshot=runner.committed_facts({'has_authoritative_state': True,
+                                                                        'collected_info': facts}))
+        self.assertIs(internal, committed)
+        self.assertEqual(len(self.recorder.versions), 1)
+        self.assertEqual(internal['fact_snapshot']['active_facts'][0]['id'], 'f1')
+        self.assertEqual(internal['committed_fact_snapshot']['active_facts'], [])
+        self.assertEqual(internal['committed_fact_snapshot']['source'], 'committed_sql')
+        self.assertTrue(internal['user_visible'])
+
+    def test_facts_only_change_does_not_add_version_or_rewrite_earlier_audit(self):
+        facts = self.synthetic_facts()
+        first = self.recorder.record(self.data, turn=1, stage='EVALUATING', kind='committed', observed=[],
+            acceptance_context={}, fact_snapshot=runner.committed_facts({'has_authoritative_state': True,
+                                                                        'collected_info': facts}))
+        facts['projects'][0]['facts'][0]['status'] = 'deleted'
+        second = self.recorder.record(self.data, turn=2, stage='EVALUATING', kind='committed', observed=[],
+            acceptance_context={}, fact_snapshot=runner.committed_facts({'has_authoritative_state': True,
+                                                                        'collected_info': facts}))
+        self.assertIsNone(second)
+        self.assertEqual(len(self.recorder.versions), 1)
+        self.assertEqual(first['fact_snapshot']['active_facts'][0]['id'], 'f1')
+        self.assertEqual(self.recorder.commits[-1]['fact_snapshot']['active_facts'], [])
+        self.assertEqual(self.recorder.commits[0]['hash'], self.recorder.commits[1]['hash'])
+
+    def test_changed_metadata_still_creates_version_despite_identical_fact_audit(self):
+        audit = runner.checkpoint_facts({'collected_info': self.synthetic_facts()}, 'cp-1')
+        for version in ['one', 'two']:
+            self.recorder.record(self.data, turn=1, stage='EVALUATING', kind='internal', observed=[],
+                acceptance_context={'resume_meta': {'version_id': version}}, fact_snapshot=audit)
+        self.assertEqual(len(self.recorder.versions), 2)
+        self.assertNotEqual(self.recorder.versions[0]['hash'], self.recorder.versions[1]['hash'])
+        audit['collected_info'].clear()
+        self.assertTrue(self.recorder.versions[0]['fact_snapshot']['collected_info'])
+
+    def test_unknown_sql_audit_never_promotes_checkpoint_facts_to_committed_sources(self):
+        first = self.recorder.record(self.data, turn=1, stage='EVALUATING', kind='internal', observed=[],
+            fact_snapshot=runner.checkpoint_facts({'collected_info': self.synthetic_facts()}, 'cp-1'))
+        self.recorder.record(self.data, turn=1, stage='EVALUATING', kind='committed', observed=[],
+                             fact_snapshot=runner.committed_facts(None))
+        self.assertEqual(first['fact_snapshot']['status'], 'observed')
+        self.assertEqual(first['committed_fact_snapshot']['status'], 'unknown')
+        self.assertNotIn('collected_info', first['committed_fact_snapshot'])
 
 
 class SimulatorEvidenceTests(unittest.TestCase):

@@ -1,5 +1,6 @@
 """Save editor drafts to the same canonical resume read by the chat graph."""
 
+import asyncio
 import copy
 import hashlib
 import json
@@ -104,7 +105,7 @@ def editor_facts(data: dict, previous: dict | None = None) -> dict:
     return facts
 
 
-async def save_canonical_resume(session_id: str, expected_revision: str, data: dict, graph, serialize, *, after_save=None, archive_facts=False, removed_item_ids=(), provenance_bindings=(), source="editor", collected_info=None, resume_meta=None, resume_versions=None) -> dict:
+async def save_canonical_resume(session_id: str, expected_revision: str, data: dict, graph, serialize, *, after_save=None, archive_facts=False, removed_item_ids=(), provenance_bindings=(), source="editor", collected_info=None, resume_meta=None, resume_versions=None, session_constraints=None) -> dict:
     """Caller holds session_lock, shared with streams/deletion/expiry in this worker.
 
     The stores have separate transactions. A failed row commit restores graph values
@@ -164,10 +165,20 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
             facts = copy.deepcopy(collected_info)
         state = make_resume_state(
             facts, resume_meta if resume_meta is not None else authoritative.get("resume_meta"),
-            resume_versions if resume_versions is not None else authoritative.get("resume_versions"))
+            resume_versions if resume_versions is not None else authoritative.get("resume_versions"),
+            session_constraints if session_constraints is not None else authoritative.get("session_constraints"))
+        from app.services.resume_versions import valid_bullet_metadata
+        if "bullets" in state["resume_meta"]:
+            state["resume_meta"] = valid_bullet_metadata(canonical, state["resume_meta"])
+        pre_sanitization = copy.deepcopy(canonical)
         protected = protect_data(owner, {**state, "resume_data": canonical}, db=db)
         canonical = protected.pop("resume_data")
         state = protected
+        from app.services.resume_capacity import revalidate_committed_page_check, resume_data_hash
+        state["resume_meta"] = await asyncio.to_thread(
+            revalidate_committed_page_check, canonical, state["resume_meta"],
+            state.get("session_constraints"), content_changed=canonical != pre_sanitization,
+            pre_sanitization_hash=resume_data_hash(pre_sanitization))
         draft = resume_to_text(canonical)
         updates = {
             "resume_data": canonical,
@@ -175,6 +186,7 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
             "collected_info": state["collected_info"],
             "resume_meta": state["resume_meta"],
             "resume_versions": state["resume_versions"],
+            "session_constraints": state["session_constraints"],
             "stage": "EVALUATING",
             "requested_task": "auto",
         }
@@ -194,13 +206,15 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
         if after_save is not None:
             after_save(db, current, canonical)
         db.commit()
-        return {"saved": True, "revision": resume_revision(canonical), "data": canonical, "stage": "EVALUATING"}
+        return {"saved": True, "revision": resume_revision(canonical), "data": canonical,
+                "page_check": copy.deepcopy(state["resume_meta"].get("page_check") or {}),
+                "stage": "EVALUATING"}
     except Exception as error:
         db.rollback()
         if checkpoint_written and previous_values is not None:
             try:
                 restored = {key: copy.deepcopy(previous_values.get(key)) for key in (
-                    "resume_data", "resume_draft", "collected_info", "resume_meta", "resume_versions", "stage", "requested_task"
+                    "resume_data", "resume_draft", "collected_info", "resume_meta", "resume_versions", "session_constraints", "stage", "requested_task"
                 )}
                 await graph.aupdate_state(config, restored, as_node="building")
             except Exception:

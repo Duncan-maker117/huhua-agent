@@ -25,7 +25,7 @@ from app.services.jev_match import (
 from app.services.renderer import list_templates, render_resume
 from app.services.resume_pdf import render_resume_pdf
 from app.services.resume_review import review_resume
-from app.services.resume_workspace import build_workspace
+from app.services.resume_workspace import build_workspace, tailor_metadata
 from app.services.canonical_resume import (
     InvalidResumeSession,
     ResumeRevisionConflict,
@@ -127,6 +127,8 @@ async def _current_resume(request: Request, session_id: str):
         stage = vals.get("stage") or "JD_INPUT"
         from app.services.resume_strategy import has_job_description
         has_jd = bool(has_job_description(vals.get("jd_info")) or vals.get("jd_text"))
+    if stored and stored.get("has_authoritative_state"):
+        vals.update({key: stored.get(key) for key in ("collected_info", "resume_meta", "resume_versions", "session_constraints")})
     rd = current_canonical(vals, stored, _serialize_to_resume_data)
     rd = protect_data(owner, rd)
     if not stage and stored:
@@ -143,8 +145,8 @@ async def _current_resume(request: Request, session_id: str):
             raise HTTPException(
                 status_code=503, detail="暂时无法读取简历，请稍后重试"
             )
-        return {"has_data": False, "has_jd": has_jd, "match_enabled": False, "data": None, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace}
-    return {"has_data": True, "has_jd": has_jd, "match_enabled": bool(get_settings().JEV_API_KEY), "data": rd, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace}
+        return {"has_data": False, "has_jd": has_jd, "match_enabled": False, "data": None, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace, **tailor_metadata(vals, rd)}
+    return {"has_data": True, "has_jd": has_jd, "match_enabled": bool(get_settings().JEV_API_KEY), "data": rd, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace, **tailor_metadata(vals, rd)}
 
 
 @router.put("/current")

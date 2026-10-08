@@ -62,6 +62,9 @@ mtagent｜路线优先的旅行规划原型 · [2026.5-2026.7] [黑客松项目]
 计划补齐个人职责，导出 PDF。不要让 AI 编造贡献。
 """
 
+RENDER_UNAVAILABLE = {"status": "render_error", "pages": None, "within_page_limit": None,
+                      "page_limit": 1, "error_type": "TestRendererUnavailable"}
+
 
 class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_two_attachments_reach_current_draft_with_all_sections(self):
@@ -206,10 +209,7 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
         config = {"configurable": {"thread_id": "import-then-generate"}}
         with (
             patch("app.agents.resume_graph._make_non_streaming_llm", return_value=llm),
-            patch(
-                "app.agents.editor_chain.run_editor",
-                AsyncMock(side_effect=lambda data, _llm: data),
-            ),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
             patch(
                 "app.agents.resume_graph.run_triage",
                 AsyncMock(side_effect=AssertionError("triage should be bypassed")),
@@ -256,14 +256,16 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
                 "联系方式待核对。",
             ],
         }
-        with patch(
-            "app.agents.resume_graph._build_canonical_resume_data",
-            AsyncMock(return_value=(data, {})),
-        ):
+        with patch("app.agents.resume_graph._write_resume_update", AsyncMock(return_value={
+            "resume_data": data, "resume_meta": {}, "resume_versions": [],
+            "session_constraints": {"page_limit": 1}, "match_plan": {},
+            "page_check": {"status": "not_rendered", "pages": None},
+            "guard_fallbacks": [], "changed": True, "change_summary": [],
+        })):
             result = await building_node(_init_state(), object())
         public_text = result["messages"][0].content
-        self.assertTrue(public_text.startswith("待核对草稿已更新到右侧"))
-        self.assertIn("4 项待核对信息", public_text)
+        self.assertTrue(public_text.startswith("已按已有事实更新右侧待核对草稿"))
+        self.assertIn("4 项信息待核对", public_text)
         self.assertNotIn("- 个人贡献待核对。", public_text)
         self.assertNotIn("联系方式待核对。", public_text)
         self.assertNotIn("# 徐同学", public_text)
@@ -332,12 +334,10 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
             patch(
                 "app.agents.resume_graph._make_non_streaming_llm", return_value=object()
             ),
-            patch(
-                "app.agents.editor_chain.run_editor",
-                AsyncMock(side_effect=lambda data, _llm: data),
-            ),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
-            result = await evaluating_node(state, object())
+            from test_resume_writer import source_echo_model
+            result = await evaluating_node(state, source_echo_model(updated))
         new_data = result["resume_data"]
         self.assertEqual(new_data["sections"], saved["sections"])
         self.assertEqual(new_data["basic_info"]["photo"], saved["basic_info"]["photo"])

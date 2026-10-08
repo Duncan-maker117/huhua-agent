@@ -1,0 +1,3974 @@
+{
+  "case_id": "import-01",
+  "status": "evaluation_incomplete",
+  "graph_status": "completed",
+  "evaluation_status": "incomplete",
+  "truth_review_status": "approved_by_claude",
+  "turn_count": 6,
+  "followup_count": 2,
+  "version_count": 5,
+  "visible_version_count": 5,
+  "first_draft_turn": 2,
+  "first_draft_version": "v002",
+  "commits": [
+    {
+      "turn": 1,
+      "stage": "COLLECTING",
+      "hash": "289a842f82a62a4ded8cac6da8b241d51020313df57d940f91818b7d3049b7d2",
+      "has_experience": false,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {},
+        "active_facts": [],
+        "active_skills": [],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 2,
+      "stage": "COLLECTING",
+      "hash": "abd290909430fca1a3f33c1d7ce4bb96cfc27d01bc01474f748fbebcbd2beb30",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "苏演舟",
+            "phone": "",
+            "email": "fixture.candidate@example.com",
+            "location": ""
+          },
+          "education": [
+            {
+              "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f",
+              "school": "澄川学院",
+              "facts": [
+                {
+                  "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+                  "kind": "context",
+                  "text": "就读于澄川学院",
+                  "source_quote": "澄川学院",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "澄川学院",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_00227f76d9054446a775153fae334518",
+                  "kind": "context",
+                  "text": "计算机科学与技术，本科在读",
+                  "source_quote": "计算机科学与技术，本科在读",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "计算机科学与技术，本科在读",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "教育：澄川学院，计算机科学与技术，本科在读。",
+                "澄川学院",
+                "计算机科学与技术，本科在读"
+              ]
+            }
+          ],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e",
+              "name": "知页索引",
+              "facts": [
+                {
+                  "id": "f_cc6f0c596691403cb621462c94c82c3f",
+                  "kind": "context",
+                  "text": "课程小组作业",
+                  "source_quote": "课程小组作业",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组作业",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+                  "kind": "deliverable",
+                  "text": "本地知识笔记查询 Demo",
+                  "source_quote": "做本地知识笔记查询 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "做本地知识笔记查询 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+                  "kind": "status_limit",
+                  "text": "没有部署上线",
+                  "source_quote": "没有部署上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有部署上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+                  "kind": "action",
+                  "text": "用 Python 和 Flask 编写笔记标题查询接口",
+                  "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+                  "kind": "method_tool",
+                  "text": "用 SQLite 保存笔记标题和正文",
+                  "source_quote": "用 SQLite 保存笔记标题和正文",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQLite 保存笔记标题和正文",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+                  "kind": "action",
+                  "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+                  "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5a1359acd2be4746ad6bb5b619102322",
+                  "kind": "team",
+                  "text": "登录和页面由队友编写",
+                  "source_quote": "登录和页面是队友写的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "登录和页面是队友写的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+                  "kind": "method_tool",
+                  "text": "用本地请求手动检查结果",
+                  "source_quote": "我用本地请求手动检查结果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用本地请求手动检查结果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+                  "kind": "status_limit",
+                  "text": "没有性能测试或用户数据",
+                  "source_quote": "没有性能测试或用户数据",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有性能测试或用户数据",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。",
+                "我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示。",
+                "登录和页面是队友写的。",
+                "我用本地请求手动检查结果，没有性能测试或用户数据。",
+                "课程小组作业",
+                "做本地知识笔记查询 Demo",
+                "没有部署上线",
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "用 SQLite 保存笔记标题和正文",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "登录和页面是队友写的",
+                "我用本地请求手动检查结果",
+                "没有性能测试或用户数据"
+              ]
+            },
+            {
+              "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212",
+              "name": "影像展招募页",
+              "facts": [
+                {
+                  "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+                  "kind": "context",
+                  "text": "社团影像展的小组筹备工作",
+                  "source_quote": "社团影像展的小组筹备工作",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "社团影像展的小组筹备工作",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_37948470a9dd417ebc0104d1066ebff4",
+                  "kind": "action",
+                  "text": "用 Figma 画招募页草图",
+                  "source_quote": "我用 Figma 画招募页草图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Figma 画招募页草图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+                  "kind": "action",
+                  "text": "整理活动介绍文字",
+                  "source_quote": "整理活动介绍文字",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "整理活动介绍文字",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+                  "kind": "team",
+                  "text": "报名管理和正式海报由队友完成",
+                  "source_quote": "报名管理和正式海报是队友做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "报名管理和正式海报是队友做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+                  "kind": "status_limit",
+                  "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "社团影像展的小组筹备工作。",
+                "我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果。",
+                "社团影像展的小组筹备工作",
+                "我用 Figma 画招募页草图",
+                "整理活动介绍文字",
+                "报名管理和正式海报是队友做的",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果"
+              ]
+            }
+          ],
+          "skills": [
+            {
+              "name": "Python",
+              "source_quote": "Python",
+              "source": "chat",
+              "turn_id": ""
+            },
+            {
+              "name": "Flask",
+              "source_quote": "Flask",
+              "source": "chat",
+              "turn_id": ""
+            },
+            {
+              "name": "SQLite",
+              "source_quote": "SQLite",
+              "source": "chat",
+              "turn_id": ""
+            },
+            {
+              "name": "基础 SQL",
+              "source_quote": "基础 SQL",
+              "source": "chat",
+              "turn_id": ""
+            },
+            {
+              "name": "Figma",
+              "source_quote": "Figma",
+              "source": "chat",
+              "turn_id": ""
+            }
+          ],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_cc6f0c596691403cb621462c94c82c3f",
+            "kind": "context",
+            "text": "课程小组作业",
+            "source_quote": "课程小组作业",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组作业",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+            "kind": "deliverable",
+            "text": "本地知识笔记查询 Demo",
+            "source_quote": "做本地知识笔记查询 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "做本地知识笔记查询 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+            "kind": "status_limit",
+            "text": "没有部署上线",
+            "source_quote": "没有部署上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有部署上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+            "kind": "action",
+            "text": "用 Python 和 Flask 编写笔记标题查询接口",
+            "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+            "kind": "method_tool",
+            "text": "用 SQLite 保存笔记标题和正文",
+            "source_quote": "用 SQLite 保存笔记标题和正文",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQLite 保存笔记标题和正文",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+            "kind": "action",
+            "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+            "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_5a1359acd2be4746ad6bb5b619102322",
+            "kind": "team",
+            "text": "登录和页面由队友编写",
+            "source_quote": "登录和页面是队友写的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "登录和页面是队友写的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+            "kind": "method_tool",
+            "text": "用本地请求手动检查结果",
+            "source_quote": "我用本地请求手动检查结果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用本地请求手动检查结果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+            "kind": "status_limit",
+            "text": "没有性能测试或用户数据",
+            "source_quote": "没有性能测试或用户数据",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有性能测试或用户数据",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+            "kind": "context",
+            "text": "社团影像展的小组筹备工作",
+            "source_quote": "社团影像展的小组筹备工作",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "社团影像展的小组筹备工作",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_37948470a9dd417ebc0104d1066ebff4",
+            "kind": "action",
+            "text": "用 Figma 画招募页草图",
+            "source_quote": "我用 Figma 画招募页草图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Figma 画招募页草图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+            "kind": "action",
+            "text": "整理活动介绍文字",
+            "source_quote": "整理活动介绍文字",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "整理活动介绍文字",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+            "kind": "team",
+            "text": "报名管理和正式海报由队友完成",
+            "source_quote": "报名管理和正式海报是队友做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "报名管理和正式海报是队友做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+            "kind": "status_limit",
+            "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+            "kind": "context",
+            "text": "就读于澄川学院",
+            "source_quote": "澄川学院",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "澄川学院",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          },
+          {
+            "id": "f_00227f76d9054446a775153fae334518",
+            "kind": "context",
+            "text": "计算机科学与技术，本科在读",
+            "source_quote": "计算机科学与技术，本科在读",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "计算机科学与技术，本科在读",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          }
+        ],
+        "active_skills": [
+          {
+            "name": "Python",
+            "source_quote": "Python",
+            "source": "chat",
+            "turn_id": ""
+          },
+          {
+            "name": "Flask",
+            "source_quote": "Flask",
+            "source": "chat",
+            "turn_id": ""
+          },
+          {
+            "name": "SQLite",
+            "source_quote": "SQLite",
+            "source": "chat",
+            "turn_id": ""
+          },
+          {
+            "name": "基础 SQL",
+            "source_quote": "基础 SQL",
+            "source": "chat",
+            "turn_id": ""
+          },
+          {
+            "name": "Figma",
+            "source_quote": "Figma",
+            "source": "chat",
+            "turn_id": ""
+          }
+        ],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 3,
+      "stage": "COLLECTING",
+      "hash": "abd290909430fca1a3f33c1d7ce4bb96cfc27d01bc01474f748fbebcbd2beb30",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "苏演舟",
+            "phone": "",
+            "email": "fixture.candidate@example.com",
+            "location": ""
+          },
+          "education": [
+            {
+              "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f",
+              "school": "澄川学院",
+              "facts": [
+                {
+                  "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+                  "kind": "context",
+                  "text": "就读于澄川学院",
+                  "source_quote": "澄川学院",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "澄川学院",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_00227f76d9054446a775153fae334518",
+                  "kind": "context",
+                  "text": "计算机科学与技术，本科在读",
+                  "source_quote": "计算机科学与技术，本科在读",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "计算机科学与技术，本科在读",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "教育：澄川学院，计算机科学与技术，本科在读。",
+                "澄川学院",
+                "计算机科学与技术，本科在读"
+              ]
+            }
+          ],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e",
+              "name": "知页索引",
+              "facts": [
+                {
+                  "id": "f_cc6f0c596691403cb621462c94c82c3f",
+                  "kind": "context",
+                  "text": "课程小组作业",
+                  "source_quote": "课程小组作业",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组作业",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+                  "kind": "deliverable",
+                  "text": "本地知识笔记查询 Demo",
+                  "source_quote": "做本地知识笔记查询 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "做本地知识笔记查询 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+                  "kind": "status_limit",
+                  "text": "没有部署上线",
+                  "source_quote": "没有部署上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有部署上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+                  "kind": "action",
+                  "text": "用 Python 和 Flask 编写笔记标题查询接口",
+                  "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+                  "kind": "method_tool",
+                  "text": "用 SQLite 保存笔记标题和正文",
+                  "source_quote": "用 SQLite 保存笔记标题和正文",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQLite 保存笔记标题和正文",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+                  "kind": "action",
+                  "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+                  "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5a1359acd2be4746ad6bb5b619102322",
+                  "kind": "team",
+                  "text": "登录和页面由队友编写",
+                  "source_quote": "登录和页面是队友写的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "登录和页面是队友写的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+                  "kind": "method_tool",
+                  "text": "用本地请求手动检查结果",
+                  "source_quote": "我用本地请求手动检查结果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用本地请求手动检查结果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+                  "kind": "status_limit",
+                  "text": "没有性能测试或用户数据",
+                  "source_quote": "没有性能测试或用户数据",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有性能测试或用户数据",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。",
+                "我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示。",
+                "登录和页面是队友写的。",
+                "我用本地请求手动检查结果，没有性能测试或用户数据。",
+                "课程小组作业",
+                "做本地知识笔记查询 Demo",
+                "没有部署上线",
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "用 SQLite 保存笔记标题和正文",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "登录和页面是队友写的",
+                "我用本地请求手动检查结果",
+                "没有性能测试或用户数据"
+              ]
+            },
+            {
+              "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212",
+              "name": "影像展招募页",
+              "facts": [
+                {
+                  "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+                  "kind": "context",
+                  "text": "社团影像展的小组筹备工作",
+                  "source_quote": "社团影像展的小组筹备工作",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "社团影像展的小组筹备工作",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_37948470a9dd417ebc0104d1066ebff4",
+                  "kind": "action",
+                  "text": "用 Figma 画招募页草图",
+                  "source_quote": "我用 Figma 画招募页草图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Figma 画招募页草图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+                  "kind": "action",
+                  "text": "整理活动介绍文字",
+                  "source_quote": "整理活动介绍文字",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "整理活动介绍文字",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+                  "kind": "team",
+                  "text": "报名管理和正式海报由队友完成",
+                  "source_quote": "报名管理和正式海报是队友做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "报名管理和正式海报是队友做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+                  "kind": "status_limit",
+                  "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "社团影像展的小组筹备工作。",
+                "我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果。",
+                "社团影像展的小组筹备工作",
+                "我用 Figma 画招募页草图",
+                "整理活动介绍文字",
+                "报名管理和正式海报是队友做的",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果"
+              ]
+            }
+          ],
+          "skills": [
+            {
+              "name": "Python",
+              "source_quote": "Python",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Flask",
+              "source_quote": "Flask",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "SQLite",
+              "source_quote": "SQLite",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "基础 SQL",
+              "source_quote": "基础 SQL",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Figma",
+              "source_quote": "Figma",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            }
+          ],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_cc6f0c596691403cb621462c94c82c3f",
+            "kind": "context",
+            "text": "课程小组作业",
+            "source_quote": "课程小组作业",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组作业",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+            "kind": "deliverable",
+            "text": "本地知识笔记查询 Demo",
+            "source_quote": "做本地知识笔记查询 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "做本地知识笔记查询 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+            "kind": "status_limit",
+            "text": "没有部署上线",
+            "source_quote": "没有部署上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有部署上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+            "kind": "action",
+            "text": "用 Python 和 Flask 编写笔记标题查询接口",
+            "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+            "kind": "method_tool",
+            "text": "用 SQLite 保存笔记标题和正文",
+            "source_quote": "用 SQLite 保存笔记标题和正文",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQLite 保存笔记标题和正文",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+            "kind": "action",
+            "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+            "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_5a1359acd2be4746ad6bb5b619102322",
+            "kind": "team",
+            "text": "登录和页面由队友编写",
+            "source_quote": "登录和页面是队友写的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "登录和页面是队友写的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+            "kind": "method_tool",
+            "text": "用本地请求手动检查结果",
+            "source_quote": "我用本地请求手动检查结果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用本地请求手动检查结果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+            "kind": "status_limit",
+            "text": "没有性能测试或用户数据",
+            "source_quote": "没有性能测试或用户数据",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有性能测试或用户数据",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+            "kind": "context",
+            "text": "社团影像展的小组筹备工作",
+            "source_quote": "社团影像展的小组筹备工作",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "社团影像展的小组筹备工作",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_37948470a9dd417ebc0104d1066ebff4",
+            "kind": "action",
+            "text": "用 Figma 画招募页草图",
+            "source_quote": "我用 Figma 画招募页草图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Figma 画招募页草图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+            "kind": "action",
+            "text": "整理活动介绍文字",
+            "source_quote": "整理活动介绍文字",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "整理活动介绍文字",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+            "kind": "team",
+            "text": "报名管理和正式海报由队友完成",
+            "source_quote": "报名管理和正式海报是队友做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "报名管理和正式海报是队友做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+            "kind": "status_limit",
+            "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+            "kind": "context",
+            "text": "就读于澄川学院",
+            "source_quote": "澄川学院",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "澄川学院",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          },
+          {
+            "id": "f_00227f76d9054446a775153fae334518",
+            "kind": "context",
+            "text": "计算机科学与技术，本科在读",
+            "source_quote": "计算机科学与技术，本科在读",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "计算机科学与技术，本科在读",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          }
+        ],
+        "active_skills": [
+          {
+            "name": "Python",
+            "source_quote": "Python",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Flask",
+            "source_quote": "Flask",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "SQLite",
+            "source_quote": "SQLite",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "基础 SQL",
+            "source_quote": "基础 SQL",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Figma",
+            "source_quote": "Figma",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 4,
+      "stage": "COLLECTING",
+      "hash": "fed18d94ce35094649baaab282a05d8d4b5bd7cb7df1591f136c2771ca154f82",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "苏演舟",
+            "phone": "",
+            "email": "fixture.candidate@example.com",
+            "location": ""
+          },
+          "education": [
+            {
+              "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f",
+              "school": "澄川学院",
+              "facts": [
+                {
+                  "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+                  "kind": "context",
+                  "text": "就读于澄川学院",
+                  "source_quote": "澄川学院",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "澄川学院",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_00227f76d9054446a775153fae334518",
+                  "kind": "context",
+                  "text": "计算机科学与技术，本科在读",
+                  "source_quote": "计算机科学与技术，本科在读",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "计算机科学与技术，本科在读",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "教育：澄川学院，计算机科学与技术，本科在读。",
+                "澄川学院",
+                "计算机科学与技术，本科在读"
+              ]
+            }
+          ],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e",
+              "name": "知页索引",
+              "facts": [
+                {
+                  "id": "f_cc6f0c596691403cb621462c94c82c3f",
+                  "kind": "context",
+                  "text": "课程小组作业",
+                  "source_quote": "课程小组作业",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组作业",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+                  "kind": "deliverable",
+                  "text": "本地知识笔记查询 Demo",
+                  "source_quote": "做本地知识笔记查询 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "做本地知识笔记查询 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+                  "kind": "status_limit",
+                  "text": "没有部署上线",
+                  "source_quote": "没有部署上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有部署上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+                  "kind": "action",
+                  "text": "用 Python 和 Flask 编写笔记标题查询接口",
+                  "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+                  "kind": "method_tool",
+                  "text": "用 SQLite 保存笔记标题和正文",
+                  "source_quote": "用 SQLite 保存笔记标题和正文",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQLite 保存笔记标题和正文",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+                  "kind": "action",
+                  "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+                  "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5a1359acd2be4746ad6bb5b619102322",
+                  "kind": "team",
+                  "text": "登录和页面由队友编写",
+                  "source_quote": "登录和页面是队友写的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "登录和页面是队友写的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+                  "kind": "method_tool",
+                  "text": "用本地请求手动检查结果",
+                  "source_quote": "我用本地请求手动检查结果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用本地请求手动检查结果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+                  "kind": "status_limit",
+                  "text": "没有性能测试或用户数据",
+                  "source_quote": "没有性能测试或用户数据",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有性能测试或用户数据",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。",
+                "我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示。",
+                "登录和页面是队友写的。",
+                "我用本地请求手动检查结果，没有性能测试或用户数据。",
+                "课程小组作业",
+                "做本地知识笔记查询 Demo",
+                "没有部署上线",
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "用 SQLite 保存笔记标题和正文",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "登录和页面是队友写的",
+                "我用本地请求手动检查结果",
+                "没有性能测试或用户数据"
+              ]
+            },
+            {
+              "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212",
+              "name": "影像展招募页",
+              "facts": [
+                {
+                  "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+                  "kind": "context",
+                  "text": "社团影像展的小组筹备工作",
+                  "source_quote": "社团影像展的小组筹备工作",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "社团影像展的小组筹备工作",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_37948470a9dd417ebc0104d1066ebff4",
+                  "kind": "action",
+                  "text": "用 Figma 画招募页草图",
+                  "source_quote": "我用 Figma 画招募页草图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Figma 画招募页草图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+                  "kind": "action",
+                  "text": "整理活动介绍文字",
+                  "source_quote": "整理活动介绍文字",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "整理活动介绍文字",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+                  "kind": "team",
+                  "text": "报名管理和正式海报由队友完成",
+                  "source_quote": "报名管理和正式海报是队友做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "报名管理和正式海报是队友做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+                  "kind": "status_limit",
+                  "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_e79ea33ecfd04d3c8bbfb8039aebadd2",
+                  "kind": "status_limit",
+                  "text": "没有可核对的量化成绩或获奖记录",
+                  "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "社团影像展的小组筹备工作。",
+                "我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果。",
+                "社团影像展的小组筹备工作",
+                "我用 Figma 画招募页草图",
+                "整理活动介绍文字",
+                "报名管理和正式海报是队友做的",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "“影像展招募页”没有统计报名效果；我没有可核对的量化成绩或获奖记录。",
+                "我没有可核对的量化成绩或获奖记录。"
+              ]
+            }
+          ],
+          "skills": [
+            {
+              "name": "Python",
+              "source_quote": "Python",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Flask",
+              "source_quote": "Flask",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "SQLite",
+              "source_quote": "SQLite",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "基础 SQL",
+              "source_quote": "基础 SQL",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Figma",
+              "source_quote": "Figma",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            }
+          ],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_cc6f0c596691403cb621462c94c82c3f",
+            "kind": "context",
+            "text": "课程小组作业",
+            "source_quote": "课程小组作业",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组作业",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+            "kind": "deliverable",
+            "text": "本地知识笔记查询 Demo",
+            "source_quote": "做本地知识笔记查询 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "做本地知识笔记查询 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+            "kind": "status_limit",
+            "text": "没有部署上线",
+            "source_quote": "没有部署上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有部署上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+            "kind": "action",
+            "text": "用 Python 和 Flask 编写笔记标题查询接口",
+            "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+            "kind": "method_tool",
+            "text": "用 SQLite 保存笔记标题和正文",
+            "source_quote": "用 SQLite 保存笔记标题和正文",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQLite 保存笔记标题和正文",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+            "kind": "action",
+            "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+            "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_5a1359acd2be4746ad6bb5b619102322",
+            "kind": "team",
+            "text": "登录和页面由队友编写",
+            "source_quote": "登录和页面是队友写的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "登录和页面是队友写的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+            "kind": "method_tool",
+            "text": "用本地请求手动检查结果",
+            "source_quote": "我用本地请求手动检查结果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用本地请求手动检查结果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+            "kind": "status_limit",
+            "text": "没有性能测试或用户数据",
+            "source_quote": "没有性能测试或用户数据",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有性能测试或用户数据",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+            "kind": "context",
+            "text": "社团影像展的小组筹备工作",
+            "source_quote": "社团影像展的小组筹备工作",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "社团影像展的小组筹备工作",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_37948470a9dd417ebc0104d1066ebff4",
+            "kind": "action",
+            "text": "用 Figma 画招募页草图",
+            "source_quote": "我用 Figma 画招募页草图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Figma 画招募页草图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+            "kind": "action",
+            "text": "整理活动介绍文字",
+            "source_quote": "整理活动介绍文字",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "整理活动介绍文字",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+            "kind": "team",
+            "text": "报名管理和正式海报由队友完成",
+            "source_quote": "报名管理和正式海报是队友做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "报名管理和正式海报是队友做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+            "kind": "status_limit",
+            "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_e79ea33ecfd04d3c8bbfb8039aebadd2",
+            "kind": "status_limit",
+            "text": "没有可核对的量化成绩或获奖记录",
+            "source_quote": "我没有可核对的量化成绩或获奖记录。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+            "kind": "context",
+            "text": "就读于澄川学院",
+            "source_quote": "澄川学院",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "澄川学院",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          },
+          {
+            "id": "f_00227f76d9054446a775153fae334518",
+            "kind": "context",
+            "text": "计算机科学与技术，本科在读",
+            "source_quote": "计算机科学与技术，本科在读",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "计算机科学与技术，本科在读",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          }
+        ],
+        "active_skills": [
+          {
+            "name": "Python",
+            "source_quote": "Python",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Flask",
+            "source_quote": "Flask",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "SQLite",
+            "source_quote": "SQLite",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "基础 SQL",
+            "source_quote": "基础 SQL",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Figma",
+            "source_quote": "Figma",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 5,
+      "stage": "EVALUATING",
+      "hash": "a0eaf3114041ce0e5e7d04639529706723381f7dfaacb899794d2b1aa925ee61",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "苏演舟",
+            "phone": "",
+            "email": "fixture.candidate@example.com",
+            "location": ""
+          },
+          "education": [
+            {
+              "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f",
+              "school": "澄川学院",
+              "facts": [
+                {
+                  "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+                  "kind": "context",
+                  "text": "就读于澄川学院",
+                  "source_quote": "澄川学院",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "澄川学院",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_00227f76d9054446a775153fae334518",
+                  "kind": "context",
+                  "text": "计算机科学与技术，本科在读",
+                  "source_quote": "计算机科学与技术，本科在读",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "计算机科学与技术，本科在读",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "教育：澄川学院，计算机科学与技术，本科在读。",
+                "澄川学院",
+                "计算机科学与技术，本科在读"
+              ]
+            }
+          ],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e",
+              "name": "知页索引",
+              "facts": [
+                {
+                  "id": "f_cc6f0c596691403cb621462c94c82c3f",
+                  "kind": "context",
+                  "text": "课程小组作业",
+                  "source_quote": "课程小组作业",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组作业",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+                  "kind": "deliverable",
+                  "text": "本地知识笔记查询 Demo",
+                  "source_quote": "做本地知识笔记查询 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "做本地知识笔记查询 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+                  "kind": "status_limit",
+                  "text": "没有部署上线",
+                  "source_quote": "没有部署上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有部署上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+                  "kind": "action",
+                  "text": "用 Python 和 Flask 编写笔记标题查询接口",
+                  "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+                  "kind": "method_tool",
+                  "text": "用 SQLite 保存笔记标题和正文",
+                  "source_quote": "用 SQLite 保存笔记标题和正文",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQLite 保存笔记标题和正文",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+                  "kind": "action",
+                  "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+                  "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5a1359acd2be4746ad6bb5b619102322",
+                  "kind": "team",
+                  "text": "登录和页面由队友编写",
+                  "source_quote": "登录和页面是队友写的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "登录和页面是队友写的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+                  "kind": "method_tool",
+                  "text": "用本地请求手动检查结果",
+                  "source_quote": "我用本地请求手动检查结果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用本地请求手动检查结果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+                  "kind": "status_limit",
+                  "text": "没有性能测试或用户数据",
+                  "source_quote": "没有性能测试或用户数据",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有性能测试或用户数据",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。",
+                "我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示。",
+                "登录和页面是队友写的。",
+                "我用本地请求手动检查结果，没有性能测试或用户数据。",
+                "课程小组作业",
+                "做本地知识笔记查询 Demo",
+                "没有部署上线",
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "用 SQLite 保存笔记标题和正文",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "登录和页面是队友写的",
+                "我用本地请求手动检查结果",
+                "没有性能测试或用户数据"
+              ]
+            },
+            {
+              "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212",
+              "name": "影像展招募页",
+              "facts": [
+                {
+                  "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+                  "kind": "context",
+                  "text": "社团影像展的小组筹备工作",
+                  "source_quote": "社团影像展的小组筹备工作",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "社团影像展的小组筹备工作",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_37948470a9dd417ebc0104d1066ebff4",
+                  "kind": "action",
+                  "text": "用 Figma 画招募页草图",
+                  "source_quote": "我用 Figma 画招募页草图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Figma 画招募页草图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+                  "kind": "action",
+                  "text": "整理活动介绍文字",
+                  "source_quote": "整理活动介绍文字",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "整理活动介绍文字",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+                  "kind": "team",
+                  "text": "报名管理和正式海报由队友完成",
+                  "source_quote": "报名管理和正式海报是队友做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "报名管理和正式海报是队友做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+                  "kind": "status_limit",
+                  "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_e79ea33ecfd04d3c8bbfb8039aebadd2",
+                  "kind": "status_limit",
+                  "text": "没有可核对的量化成绩或获奖记录",
+                  "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "社团影像展的小组筹备工作。",
+                "我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果。",
+                "社团影像展的小组筹备工作",
+                "我用 Figma 画招募页草图",
+                "整理活动介绍文字",
+                "报名管理和正式海报是队友做的",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "“影像展招募页”没有统计报名效果；我没有可核对的量化成绩或获奖记录。",
+                "我没有可核对的量化成绩或获奖记录。"
+              ]
+            }
+          ],
+          "skills": [
+            {
+              "name": "Python",
+              "source_quote": "Python",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Flask",
+              "source_quote": "Flask",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "SQLite",
+              "source_quote": "SQLite",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "基础 SQL",
+              "source_quote": "基础 SQL",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Figma",
+              "source_quote": "Figma",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            }
+          ],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_cc6f0c596691403cb621462c94c82c3f",
+            "kind": "context",
+            "text": "课程小组作业",
+            "source_quote": "课程小组作业",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组作业",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+            "kind": "deliverable",
+            "text": "本地知识笔记查询 Demo",
+            "source_quote": "做本地知识笔记查询 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "做本地知识笔记查询 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+            "kind": "status_limit",
+            "text": "没有部署上线",
+            "source_quote": "没有部署上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有部署上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+            "kind": "action",
+            "text": "用 Python 和 Flask 编写笔记标题查询接口",
+            "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+            "kind": "method_tool",
+            "text": "用 SQLite 保存笔记标题和正文",
+            "source_quote": "用 SQLite 保存笔记标题和正文",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQLite 保存笔记标题和正文",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+            "kind": "action",
+            "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+            "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_5a1359acd2be4746ad6bb5b619102322",
+            "kind": "team",
+            "text": "登录和页面由队友编写",
+            "source_quote": "登录和页面是队友写的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "登录和页面是队友写的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+            "kind": "method_tool",
+            "text": "用本地请求手动检查结果",
+            "source_quote": "我用本地请求手动检查结果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用本地请求手动检查结果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+            "kind": "status_limit",
+            "text": "没有性能测试或用户数据",
+            "source_quote": "没有性能测试或用户数据",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有性能测试或用户数据",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+            "kind": "context",
+            "text": "社团影像展的小组筹备工作",
+            "source_quote": "社团影像展的小组筹备工作",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "社团影像展的小组筹备工作",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_37948470a9dd417ebc0104d1066ebff4",
+            "kind": "action",
+            "text": "用 Figma 画招募页草图",
+            "source_quote": "我用 Figma 画招募页草图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Figma 画招募页草图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+            "kind": "action",
+            "text": "整理活动介绍文字",
+            "source_quote": "整理活动介绍文字",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "整理活动介绍文字",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+            "kind": "team",
+            "text": "报名管理和正式海报由队友完成",
+            "source_quote": "报名管理和正式海报是队友做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "报名管理和正式海报是队友做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+            "kind": "status_limit",
+            "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_e79ea33ecfd04d3c8bbfb8039aebadd2",
+            "kind": "status_limit",
+            "text": "没有可核对的量化成绩或获奖记录",
+            "source_quote": "我没有可核对的量化成绩或获奖记录。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+            "kind": "context",
+            "text": "就读于澄川学院",
+            "source_quote": "澄川学院",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "澄川学院",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          },
+          {
+            "id": "f_00227f76d9054446a775153fae334518",
+            "kind": "context",
+            "text": "计算机科学与技术，本科在读",
+            "source_quote": "计算机科学与技术，本科在读",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "计算机科学与技术，本科在读",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          }
+        ],
+        "active_skills": [
+          {
+            "name": "Python",
+            "source_quote": "Python",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Flask",
+            "source_quote": "Flask",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "SQLite",
+            "source_quote": "SQLite",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "基础 SQL",
+            "source_quote": "基础 SQL",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Figma",
+            "source_quote": "Figma",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    },
+    {
+      "turn": 6,
+      "stage": "EVALUATING",
+      "hash": "46e2e37ccab4d46e3739dea175ecd7b57978b66937caf72b14aa5816b9c2e9a6",
+      "has_experience": true,
+      "fact_snapshot": {
+        "status": "observed",
+        "source": "committed_sql",
+        "checkpoint_id": null,
+        "collected_info": {
+          "basic_info": {
+            "name": "苏演舟",
+            "phone": "",
+            "email": "fixture.candidate@example.com",
+            "location": ""
+          },
+          "education": [
+            {
+              "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f",
+              "school": "澄川学院",
+              "facts": [
+                {
+                  "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+                  "kind": "context",
+                  "text": "就读于澄川学院",
+                  "source_quote": "澄川学院",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "澄川学院",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_00227f76d9054446a775153fae334518",
+                  "kind": "context",
+                  "text": "计算机科学与技术，本科在读",
+                  "source_quote": "计算机科学与技术，本科在读",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "计算机科学与技术，本科在读",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "教育：澄川学院，计算机科学与技术，本科在读。",
+                "澄川学院",
+                "计算机科学与技术，本科在读"
+              ]
+            }
+          ],
+          "work_experience": [],
+          "internship": [],
+          "projects": [
+            {
+              "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e",
+              "name": "知页索引",
+              "facts": [
+                {
+                  "id": "f_cc6f0c596691403cb621462c94c82c3f",
+                  "kind": "context",
+                  "text": "课程小组作业",
+                  "source_quote": "课程小组作业",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "课程小组作业",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+                  "kind": "deliverable",
+                  "text": "本地知识笔记查询 Demo",
+                  "source_quote": "做本地知识笔记查询 Demo",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "做本地知识笔记查询 Demo",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+                  "kind": "status_limit",
+                  "text": "没有部署上线",
+                  "source_quote": "没有部署上线",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有部署上线",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+                  "kind": "action",
+                  "text": "用 Python 和 Flask 编写笔记标题查询接口",
+                  "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+                  "kind": "method_tool",
+                  "text": "用 SQLite 保存笔记标题和正文",
+                  "source_quote": "用 SQLite 保存笔记标题和正文",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "用 SQLite 保存笔记标题和正文",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+                  "kind": "action",
+                  "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+                  "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_5a1359acd2be4746ad6bb5b619102322",
+                  "kind": "team",
+                  "text": "登录和页面由队友编写",
+                  "source_quote": "登录和页面是队友写的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "登录和页面是队友写的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+                  "kind": "method_tool",
+                  "text": "用本地请求手动检查结果",
+                  "source_quote": "我用本地请求手动检查结果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用本地请求手动检查结果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+                  "kind": "status_limit",
+                  "text": "没有性能测试或用户数据",
+                  "source_quote": "没有性能测试或用户数据",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "没有性能测试或用户数据",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "课程小组作业，做本地知识笔记查询 Demo，没有部署上线。",
+                "我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示。",
+                "登录和页面是队友写的。",
+                "我用本地请求手动检查结果，没有性能测试或用户数据。",
+                "课程小组作业",
+                "做本地知识笔记查询 Demo",
+                "没有部署上线",
+                "我用 Python 和 Flask 写笔记标题查询接口",
+                "用 SQLite 保存笔记标题和正文",
+                "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "登录和页面是队友写的",
+                "我用本地请求手动检查结果",
+                "没有性能测试或用户数据"
+              ]
+            },
+            {
+              "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212",
+              "name": "影像展招募页",
+              "facts": [
+                {
+                  "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+                  "kind": "context",
+                  "text": "社团影像展的小组筹备工作",
+                  "source_quote": "社团影像展的小组筹备工作",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "社团影像展的小组筹备工作",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_37948470a9dd417ebc0104d1066ebff4",
+                  "kind": "action",
+                  "text": "用 Figma 画招募页草图",
+                  "source_quote": "我用 Figma 画招募页草图",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我用 Figma 画招募页草图",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+                  "kind": "action",
+                  "text": "整理活动介绍文字",
+                  "source_quote": "整理活动介绍文字",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "整理活动介绍文字",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+                  "kind": "team",
+                  "text": "报名管理和正式海报由队友完成",
+                  "source_quote": "报名管理和正式海报是队友做的",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "报名管理和正式海报是队友做的",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+                  "kind": "status_limit",
+                  "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                      "turn_id": ""
+                    }
+                  ]
+                },
+                {
+                  "id": "f_e79ea33ecfd04d3c8bbfb8039aebadd2",
+                  "kind": "status_limit",
+                  "text": "没有可核对的量化成绩或获奖记录",
+                  "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                  "turn_id": "",
+                  "status": "active",
+                  "source": "chat",
+                  "sources": [
+                    {
+                      "source": "chat",
+                      "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                      "turn_id": ""
+                    }
+                  ]
+                }
+              ],
+              "raw_notes": [
+                "社团影像展的小组筹备工作。",
+                "我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果。",
+                "社团影像展的小组筹备工作",
+                "我用 Figma 画招募页草图",
+                "整理活动介绍文字",
+                "报名管理和正式海报是队友做的",
+                "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "“影像展招募页”没有统计报名效果；我没有可核对的量化成绩或获奖记录。",
+                "我没有可核对的量化成绩或获奖记录。"
+              ]
+            }
+          ],
+          "skills": [
+            {
+              "name": "Python",
+              "source_quote": "Python",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Flask",
+              "source_quote": "Flask",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "SQLite",
+              "source_quote": "SQLite",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "基础 SQL",
+              "source_quote": "基础 SQL",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            },
+            {
+              "name": "Figma",
+              "source_quote": "Figma",
+              "source": "chat",
+              "turn_id": "",
+              "status": "active"
+            }
+          ],
+          "personal_summary": "",
+          "verification_notes": []
+        },
+        "active_facts": [
+          {
+            "id": "f_cc6f0c596691403cb621462c94c82c3f",
+            "kind": "context",
+            "text": "课程小组作业",
+            "source_quote": "课程小组作业",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "课程小组作业",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_4a0a1e6e208742758d6bbffa525c1935",
+            "kind": "deliverable",
+            "text": "本地知识笔记查询 Demo",
+            "source_quote": "做本地知识笔记查询 Demo",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "做本地知识笔记查询 Demo",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_6267a2cbf0734731bde1a8dc4bc3d876",
+            "kind": "status_limit",
+            "text": "没有部署上线",
+            "source_quote": "没有部署上线",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有部署上线",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7c3a15ec5e9b4cfca83a327349e0e8ba",
+            "kind": "action",
+            "text": "用 Python 和 Flask 编写笔记标题查询接口",
+            "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Python 和 Flask 写笔记标题查询接口",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_7d40d4631f4d482791cfdd90d2c6fd1f",
+            "kind": "method_tool",
+            "text": "用 SQLite 保存笔记标题和正文",
+            "source_quote": "用 SQLite 保存笔记标题和正文",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "用 SQLite 保存笔记标题和正文",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_c0205186c5ce42aa8858e5611c085eb6",
+            "kind": "action",
+            "text": "检查空关键词和没有匹配项的请求，并补充对应提示",
+            "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我检查过空关键词和没有匹配项的请求，补了对应提示",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_5a1359acd2be4746ad6bb5b619102322",
+            "kind": "team",
+            "text": "登录和页面由队友编写",
+            "source_quote": "登录和页面是队友写的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "登录和页面是队友写的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_171ee9f03cbf43e98c3c646fc923813f",
+            "kind": "method_tool",
+            "text": "用本地请求手动检查结果",
+            "source_quote": "我用本地请求手动检查结果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用本地请求手动检查结果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_2661a1dae5154f1ba6f369f1a3c2318b",
+            "kind": "status_limit",
+            "text": "没有性能测试或用户数据",
+            "source_quote": "没有性能测试或用户数据",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "没有性能测试或用户数据",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "1f59db8a-ae0b-45a4-97f3-7adc8fe4ec2e"
+          },
+          {
+            "id": "f_b11fb1f1b412490f9605d169f488fcc1",
+            "kind": "context",
+            "text": "社团影像展的小组筹备工作",
+            "source_quote": "社团影像展的小组筹备工作",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "社团影像展的小组筹备工作",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_37948470a9dd417ebc0104d1066ebff4",
+            "kind": "action",
+            "text": "用 Figma 画招募页草图",
+            "source_quote": "我用 Figma 画招募页草图",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我用 Figma 画招募页草图",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_1b233ad78d994a23b2e8cc7bc452f7a3",
+            "kind": "action",
+            "text": "整理活动介绍文字",
+            "source_quote": "整理活动介绍文字",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "整理活动介绍文字",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_2bc13b0ff23d4be0bccbfe3bb92dc63c",
+            "kind": "team",
+            "text": "报名管理和正式海报由队友完成",
+            "source_quote": "报名管理和正式海报是队友做的",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "报名管理和正式海报是队友做的",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_c460b64298d54e028a5ea1adbbca87b2",
+            "kind": "status_limit",
+            "text": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "草图只在社团内部讨论，没有开发上线，也没统计报名效果",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_e79ea33ecfd04d3c8bbfb8039aebadd2",
+            "kind": "status_limit",
+            "text": "没有可核对的量化成绩或获奖记录",
+            "source_quote": "我没有可核对的量化成绩或获奖记录。",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "我没有可核对的量化成绩或获奖记录。",
+                "turn_id": ""
+              }
+            ],
+            "section": "projects",
+            "item_id": "c8e10392-6102-4247-b0a8-3019ae7cb212"
+          },
+          {
+            "id": "f_b462acfa678a48bea4e1556e5142b5e5",
+            "kind": "context",
+            "text": "就读于澄川学院",
+            "source_quote": "澄川学院",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "澄川学院",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          },
+          {
+            "id": "f_00227f76d9054446a775153fae334518",
+            "kind": "context",
+            "text": "计算机科学与技术，本科在读",
+            "source_quote": "计算机科学与技术，本科在读",
+            "turn_id": "",
+            "status": "active",
+            "source": "chat",
+            "sources": [
+              {
+                "source": "chat",
+                "source_quote": "计算机科学与技术，本科在读",
+                "turn_id": ""
+              }
+            ],
+            "section": "education",
+            "item_id": "9c07c1df-1086-4086-a1a6-c6480eb5436f"
+          }
+        ],
+        "active_skills": [
+          {
+            "name": "Python",
+            "source_quote": "Python",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Flask",
+            "source_quote": "Flask",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "SQLite",
+            "source_quote": "SQLite",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "基础 SQL",
+            "source_quote": "基础 SQL",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          },
+          {
+            "name": "Figma",
+            "source_quote": "Figma",
+            "source": "chat",
+            "turn_id": "",
+            "status": "active"
+          }
+        ],
+        "projection": "stored_fact_rows_only_no_legacy_inference"
+      }
+    }
+  ],
+  "stage_first_draft_turn": 5,
+  "stage_first_draft_version": "v004",
+  "final_has_body": true,
+  "content_outcome": "has_experience_body",
+  "final_version": "v005",
+  "mean_turn_latency_seconds": 14.948,
+  "graph_usage": {
+    "input_tokens": 55191,
+    "output_tokens": 20283,
+    "total_tokens": 75474,
+    "logical_model_calls": 17,
+    "calls_with_usage": 17,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.012335,
+      "upper_bound": 0.040897,
+      "priced_calls": 17,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "judge_usage": {
+    "input_tokens": 10497,
+    "output_tokens": 34179,
+    "total_tokens": 44676,
+    "logical_model_calls": 8,
+    "calls_with_usage": 4,
+    "calls_without_usage": 4,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 0.067905,
+      "upper_bound": 0.149205,
+      "priced_calls": 4,
+      "unpriced_calls": 4,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "model_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-01af-78f2-938c-0bc5515e5bbf",
+      "started_at": "2026-10-09T01:00:58.159430+08:00",
+      "usage": {
+        "input_tokens": 2027,
+        "output_tokens": 4942,
+        "total_tokens": 6969
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-5122-7d33-b80d-72456841170f",
+      "started_at": "2026-10-09T01:01:18.499143+08:00",
+      "usage": {
+        "input_tokens": 1825,
+        "output_tokens": 82,
+        "total_tokens": 1907
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-545a-7fc3-9310-4121cd8e0119",
+      "started_at": "2026-10-09T01:01:19.322590+08:00",
+      "usage": {
+        "input_tokens": 605,
+        "output_tokens": 4147,
+        "total_tokens": 4752
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-90c7-7e52-a256-ffc2c241509d",
+      "started_at": "2026-10-09T01:01:34.791904+08:00",
+      "usage": {
+        "input_tokens": 1537,
+        "output_tokens": 643,
+        "total_tokens": 2180
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-98f7-7870-83ca-684f18d9b3ef",
+      "started_at": "2026-10-09T01:01:36.887327+08:00",
+      "usage": {
+        "input_tokens": 4908,
+        "output_tokens": 1745,
+        "total_tokens": 6653
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-c203-7a61-b532-dad2f8bf96f5",
+      "started_at": "2026-10-09T01:01:47.395563+08:00",
+      "usage": {
+        "input_tokens": 1552,
+        "output_tokens": 136,
+        "total_tokens": 1688
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-c6e3-77c3-acf8-4d8bfbab8fa9",
+      "started_at": "2026-10-09T01:01:48.643186+08:00",
+      "usage": {
+        "input_tokens": 1082,
+        "output_tokens": 244,
+        "total_tokens": 1326
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-cd38-7ce3-a2eb-3cb0c983f224",
+      "started_at": "2026-10-09T01:01:50.264783+08:00",
+      "usage": {
+        "input_tokens": 7738,
+        "output_tokens": 356,
+        "total_tokens": 8094
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-d934-7d92-9184-11097e00520f",
+      "started_at": "2026-10-09T01:01:53.332089+08:00",
+      "usage": {
+        "input_tokens": 1558,
+        "output_tokens": 151,
+        "total_tokens": 1709
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-def6-7013-ae9b-2306613f7278",
+      "started_at": "2026-10-09T01:01:54.806744+08:00",
+      "usage": {
+        "input_tokens": 1088,
+        "output_tokens": 1997,
+        "total_tokens": 3085
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-00ea-7043-a3a5-7fba439ab782",
+      "started_at": "2026-10-09T01:02:03.498245+08:00",
+      "usage": {
+        "input_tokens": 1152,
+        "output_tokens": 110,
+        "total_tokens": 1262
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-045c-7192-ba2a-5e467556807d",
+      "started_at": "2026-10-09T01:02:04.380101+08:00",
+      "usage": {
+        "input_tokens": 7982,
+        "output_tokens": 685,
+        "total_tokens": 8667
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-13c0-75d1-a103-7dbff6d3918a",
+      "started_at": "2026-10-09T01:02:08.320900+08:00",
+      "usage": {
+        "input_tokens": 7745,
+        "output_tokens": 2473,
+        "total_tokens": 10218
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-3af2-7f33-8ed2-fc8dbe83e795",
+      "started_at": "2026-10-09T01:02:18.354366+08:00",
+      "usage": {
+        "input_tokens": 1364,
+        "output_tokens": 206,
+        "total_tokens": 1570
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-3f11-7c30-9712-347c484126da",
+      "started_at": "2026-10-09T01:02:19.409586+08:00",
+      "usage": {
+        "input_tokens": 4057,
+        "output_tokens": 121,
+        "total_tokens": 4178
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-432a-71c3-9321-b0f7f15b9443",
+      "started_at": "2026-10-09T01:02:20.458698+08:00",
+      "usage": {
+        "input_tokens": 7739,
+        "output_tokens": 2153,
+        "total_tokens": 9892
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c77-63da-7803-bd4f-d08f4cb6f95b",
+      "started_at": "2026-10-09T01:02:28.827131+08:00",
+      "usage": {
+        "input_tokens": 1232,
+        "output_tokens": 92,
+        "total_tokens": 1324
+      }
+    }
+  ],
+  "judge_calls": [
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11c77-6723-7c60-ac8b-6f748924dfed",
+      "started_at": "2026-10-09T01:02:29.667574+08:00",
+      "usage": {
+        "input_tokens": 2524,
+        "output_tokens": 7123,
+        "total_tokens": 9647
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11c78-5f71-76c0-a3e6-75850cbed0cd",
+      "started_at": "2026-10-09T01:03:33.233492+08:00",
+      "usage": {
+        "input_tokens": 2577,
+        "output_tokens": 8074,
+        "total_tokens": 10651
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11c79-868d-7890-87fc-ed1813979e61",
+      "started_at": "2026-10-09T01:04:48.781508+08:00",
+      "usage": {
+        "input_tokens": 2682,
+        "output_tokens": 10418,
+        "total_tokens": 13100
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "completed",
+      "run_id": "01a11c7a-f88a-7f81-95e3-18c5ccc741a2",
+      "started_at": "2026-10-09T01:06:23.498834+08:00",
+      "usage": {
+        "input_tokens": 2714,
+        "output_tokens": 8564,
+        "total_tokens": 11278
+      }
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "error",
+      "run_id": "01a11c7c-24da-79d1-a394-48424ff47536",
+      "started_at": "2026-10-09T01:07:40.378156+08:00",
+      "error_type": "APIStatusError"
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "error",
+      "run_id": "01a11c7c-2692-7280-8362-9380877dacc7",
+      "started_at": "2026-10-09T01:07:40.818251+08:00",
+      "error_type": "APIStatusError"
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "error",
+      "run_id": "01a11c7d-01f2-7223-ad72-503f9ff0991e",
+      "started_at": "2026-10-09T01:08:36.981408+08:00",
+      "error_type": "APIStatusError"
+    },
+    {
+      "model": "deepseek-v4-pro",
+      "status": "error",
+      "run_id": "01a11c7d-042f-7a91-8756-055fe6f00d6c",
+      "started_at": "2026-10-09T01:08:37.551522+08:00",
+      "error_type": "APIStatusError"
+    }
+  ],
+  "simulator_calls": [
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-beaf-75e1-a80f-ac587bf07bc9",
+      "started_at": "2026-10-09T01:01:46.543576+08:00",
+      "usage": {
+        "input_tokens": 286,
+        "output_tokens": 7,
+        "total_tokens": 293
+      }
+    },
+    {
+      "model": "deepseek-flash",
+      "status": "completed",
+      "run_id": "01a11c76-d5a4-7d61-8b09-74d55e1da8ff",
+      "started_at": "2026-10-09T01:01:52.420954+08:00",
+      "usage": {
+        "input_tokens": 266,
+        "output_tokens": 7,
+        "total_tokens": 273
+      }
+    }
+  ],
+  "simulator_usage": {
+    "input_tokens": 552,
+    "output_tokens": 14,
+    "total_tokens": 566,
+    "logical_model_calls": 2,
+    "calls_with_usage": 2,
+    "calls_without_usage": 0,
+    "cost": null,
+    "cost_status": "reported_tokens_range_only",
+    "reported_token_cost_usd": {
+      "lower_bound": 1e-05,
+      "upper_bound": 0.000182,
+      "priced_calls": 2,
+      "unpriced_calls": 0,
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    "sdk_http_attempts": null
+  },
+  "simulator_fallbacks": 0,
+  "guard_fallbacks": 4,
+  "guard_fallbacks_status": "observed",
+  "writer_diagnostics": {
+    "status": "observed",
+    "model_completed": 2,
+    "model_fallback": 0,
+    "compression_model_completed": 0,
+    "compression_model_fallback": 0,
+    "versions_with_model_fallback": 0,
+    "not_observed_versions": 3
+  },
+  "safety_gate": "pending_claude_review",
+  "session_id": "48b8c5eb-2970-40f6-b81f-e6b711b13592"
+}

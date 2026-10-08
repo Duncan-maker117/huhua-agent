@@ -1,12 +1,10 @@
 """Tool integration on real encrypted ownership/storage; no network or live LLM."""
 import copy
-import json
 import unittest
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 import httpx
 from fastapi import HTTPException
-from pydantic import ValidationError
 
 import test_product_security_flow as harness
 from app.api import chat
@@ -184,7 +182,11 @@ class WebToolAPI(unittest.IsolatedAsyncioTestCase):
         snapshot = (await self.graph.aget_state({"configurable":{"thread_id":sid}})).values
         self.assertEqual(snapshot["web_sources"][0]["url"], SOURCE["url"])
         self.assertNotIn("Kubernetes", str(snapshot.get("collected_info")))
-        self.assertEqual(snapshot["resume_data"], data)
+        self.assertEqual(snapshot['resume_data']['basic_info']['name'], data['basic_info']['name'])
+        from app.services.resume_review import resume_to_text
+        self.assertNotIn('Kubernetes', resume_to_text(snapshot['resume_data']))
+        self.assertEqual(snapshot['resume_data']['projects'][0]['description'], data['projects'][0]['description'])
+        self.assertTrue(snapshot.get('version_id'))
         imported = snapshot["messages"][-2]
         self.assertEqual(imported.additional_kwargs["career_material_type"], "jd")
         account = await self.login(visitor, "research-claim@example.test")

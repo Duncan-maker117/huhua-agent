@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.agents.career_prompt import career_messages  # noqa: E402
 from app.agents.decoder_chain import run_decoder_chain  # noqa: E402
-from app.agents.editor_chain import EditorOutput, run_editor  # noqa: E402
+from app.agents.resume_writer import run_resume_writer  # noqa: E402
 from app.agents.public_reply import stream_public_reply  # noqa: E402
 from app.services.model_privacy import (  # noqa: E402
     CONTACT_PRIVACY_NOTICE,
@@ -156,21 +156,26 @@ class ModelPrivacyTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stream.finish(), "（电话已提供）")
         self.assertEqual(stream.feed("⟦电话:unknown:A⟧"), "⟦电话:unknown:A⟧")
 
-    async def test_editor_restores_exact_bullets_before_source_check(self):
-        source = {"basic_info": {"email": "test@example.invalid"}, "skills": [], "projects": [{"name": "通讯记录", "description": "配置收件邮箱test@example.invalid。"}]}
+    async def test_writer_restores_exact_bullets_before_source_check(self):
+        from app.services.resume_facts import normalize_fact_store
+        source = normalize_fact_store({"basic_info": {"email": "test@example.invalid"}, "skills": [],
+                  "projects": [{"name": "通讯记录", "description": "配置收件邮箱test@example.invalid。"}]})
         before = copy.deepcopy(source)
 
         async def answer(messages):
             self.assertNotIn("test@example.invalid", str(messages))
-            data = json.loads(messages[1].content.split("\n", 1)[1])
-            return EditorOutput(project_polishes=[{"name": "通讯记录", "polished_bullets": [data["projects"][0]["description"]]}])
+            data = json.loads(messages[1].content)
+            item = data['evidence']['projects'][0]
+            fact = item['facts'][0]
+            return {'match_plan': {}, 'writer': {'items': [{'item_id': item['item_id'], 'section': 'projects',
+                    'bullets': [{'text': fact['text'], 'fact_ids': [fact['id']]}]}]}}
 
         model = SimpleNamespace(ainvoke=AsyncMock(side_effect=answer))
-        with patch("app.agents.editor_chain.with_structured_output", return_value=model):
-            result = await run_editor(source, object())
+        with patch("app.agents.resume_writer.with_structured_output", return_value=model):
+            result = await run_resume_writer(source, {}, object(), current_data=source)
         self.assertEqual(source, before)
-        self.assertEqual(result["projects"][0]["polished_bullets"], [source["projects"][0]["description"]])
-        self.assertEqual(result["basic_info"], source["basic_info"])
+        self.assertEqual(result['resume_data']["projects"][0]["polished_bullets"], [source["projects"][0]["description"]])
+        self.assertEqual(result['resume_data']["basic_info"], source["basic_info"])
 
     async def test_decoder_restores_quotes_before_source_validation(self):
         source = "请发简历至test@example.invalid"

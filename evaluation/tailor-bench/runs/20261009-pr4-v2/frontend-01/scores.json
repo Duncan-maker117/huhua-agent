@@ -1,0 +1,1651 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 列表组件与完整交互状态",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 联调及键盘操作检查",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo",
+                "我用 Vue 3 和 TypeScript 写书籍搜索列表",
+                "网站没上线"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u002中的四项主张——课程小组项目产出“书架角”网页Demo、使用Vue 3和TypeScript、实现书籍搜索列表、网站未上线——均有observed原文直接支持。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 2,
+          "results_impact": 1,
+          "professional_expression": 3,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 列表组件与完整交互状态",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 联调及键盘操作检查",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 1,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 1,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 1,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 1790,
+          "output_tokens": 1915,
+          "total_tokens": 3705
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c72-7bf7-7433-9c32-47973ee128d1",
+          "started_at": "2026-10-09T00:57:07.319244+08:00",
+          "usage": {
+            "input_tokens": 1790,
+            "output_tokens": 1915,
+            "total_tokens": 3705
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元的所有断言均能在 observed_facts 中找到直接原文支持：项目背景、技术栈、实现内容、未上线状态及职责划分均与观察事实一致。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 列表组件与完整交互状态",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 联调及键盘操作检查",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 1,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 1,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 1,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 1827,
+          "output_tokens": 3545,
+          "total_tokens": 5372
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c72-ccc0-7d21-8db8-0aea3435fdb7",
+          "started_at": "2026-10-09T00:57:28.000269+08:00",
+          "usage": {
+            "input_tokens": 1827,
+            "output_tokens": 3545,
+            "total_tokens": 5372
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文各句均有 observed 原文支持：课程小组项目与 Demo、使用 Vue 3 和 TypeScript 实现书籍搜索列表、网站未上线、只负责搜索列表相关页面、后端由队友完成、使用浏览器开发者工具查看请求返回并配合核对字段，均可在 observed_facts 中找到对应连续原文。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 列表组件与完整交互状态",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 联调及键盘操作检查",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 2,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 2,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 1865,
+          "output_tokens": 6301,
+          "total_tokens": 8166
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c73-4558-7f61-921f-25796597feea",
+          "started_at": "2026-10-09T00:57:58.872699+08:00",
+          "usage": {
+            "input_tokens": 1865,
+            "output_tokens": 6301,
+            "total_tokens": 8166
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "网站没上线。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "全部主张均有 observed 原文支持：项目、技术栈、负责范围、未上线状态均来自披露原话。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "unsupported",
+              "observed_quotes": [
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "truth_quotes": [
+                "使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "unsupported_spans": [
+                "定位并排查列表数据与接口不一致的问题"
+              ],
+              "reason": "前两句有 observed 和 truth 支持，但“定位并排查列表数据与接口不一致的问题”未在 observed 或 truth 中出现，属于新增主张。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。",
+                "网站没上线。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。",
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "所有陈述均可在 observed_facts 中找到原文支持，没有额外主张。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [
+            {
+              "unit_id": "u003",
+              "verdict": "unsupported",
+              "observed_quotes": [
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "truth_quotes": [
+                "使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "unsupported_spans": [
+                "定位并排查列表数据与接口不一致的问题"
+              ],
+              "reason": "前两句有 observed 和 truth 支持，但“定位并排查列表数据与接口不一致的问题”未在 observed 或 truth 中出现，属于新增主张。",
+              "audit_method": "llm",
+              "quote": "与队友核对列表字段，使用浏览器开发者工具查看请求返回，定位并排查列表数据与接口不一致的问题",
+              "review_status": "pending"
+            }
+          ],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 列表组件与完整交互状态",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "与队友核对列表字段，使用浏览器开发者工具查看请求返回",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 联调及键盘操作检查",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 2,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "与队友核对列表字段，使用浏览器开发者工具查看请求返回",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "与队友核对列表字段，使用浏览器开发者工具查看请求返回",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 2,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 2011,
+          "output_tokens": 6937,
+          "total_tokens": 8948
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c74-443b-79d0-a6ec-fa3ae311fb62",
+          "started_at": "2026-10-09T00:59:04.123379+08:00",
+          "usage": {
+            "input_tokens": 2011,
+            "output_tokens": 6937,
+            "total_tokens": 8948
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 3,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+                "后端接口和登录页面由队友完成，我只负责搜索列表相关页面。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "项目名称、技术栈、本人负责搜索列表相关页面、队友负责后端登录、网站未上线均有 observed 原文直接支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "unsupported",
+              "observed_quotes": [
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "排查列表数据与接口不一致的问题"
+              ],
+              "reason": "前半句核对列表字段与开发者工具查看请求返回有 observed 支持，但“排查列表数据与接口不一致的问题”在 observed 与 truth 中均未提及，新增了问题对象与排查动作。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [
+            {
+              "unit_id": "u003",
+              "verdict": "unsupported",
+              "observed_quotes": [
+                "我使用浏览器开发者工具查看请求返回，配合队友核对列表字段。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "排查列表数据与接口不一致的问题"
+              ],
+              "reason": "前半句核对列表字段与开发者工具查看请求返回有 observed 支持，但“排查列表数据与接口不一致的问题”在 observed 与 truth 中均未提及，新增了问题对象与排查动作。",
+              "audit_method": "llm",
+              "quote": "配合队友核对列表字段，用浏览器开发者工具查看请求返回，排查列表数据与接口不一致的问题",
+              "review_status": "pending"
+            }
+          ],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 列表组件与完整交互状态",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "配合队友核对列表字段，用浏览器开发者工具查看请求返回",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 联调及键盘操作检查",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 2,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "配合队友核对列表字段，用浏览器开发者工具查看请求返回",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 列表组件与完整交互状态",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "配合队友核对列表字段，用浏览器开发者工具查看请求返回",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 联调及键盘操作检查",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 前端性能优化或线上监测经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 2,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 1946,
+          "output_tokens": 4366,
+          "total_tokens": 6312
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c75-29a6-7810-8b11-76ef0decdfe8",
+          "started_at": "2026-10-09T01:00:02.854570+08:00",
+          "usage": {
+            "input_tokens": 1946,
+            "output_tokens": 4366,
+            "total_tokens": 6312
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 5,
+      "instruction": "按 JD 再改“书架角”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "after 中新增了“定位并排查列表数据与接口不一致的问题”，该内容未在用户提供的材料中出现，属于补充新经历，违反“不补新经历”；且保留了原冗余内容，未按要求突出与岗位最相关的本人工作。",
+        "evidence": [
+          {
+            "before_quote": "",
+            "after_quote": "定位并排查列表数据与接口不一致的问题"
+          }
+        ],
+        "usage": {
+          "input_tokens": 931,
+          "output_tokens": 2020,
+          "total_tokens": 2951
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c75-d346-7b33-8cf3-d492fe3d5683",
+          "started_at": "2026-10-09T01:00:46.278723+08:00",
+          "usage": {
+            "input_tokens": 931,
+            "output_tokens": 2020,
+            "total_tokens": 2951
+          }
+        }
+      ]
+    },
+    {
+      "turn": 6,
+      "instruction": "把“书架角”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "指令要求把“书架角”的描述精简成一条，但 after 中仍保留了 u002 和 u003 两个独立的断言项，只是删除了 u004 并对两段文字做了少量措辞调整，没有合并为一条描述。",
+        "evidence": [
+          {
+            "before_quote": "课程小组项目「书架角」网页 Demo 中负责搜索列表相关页面，使用 Vue 3 + TypeScript 实现书籍搜索列表的展示与搜索交互；后端接口与登录页面由队友完成，网站未上线",
+            "after_quote": "课程小组项目「书架角」网页 Demo 中负责搜索列表相关页面，用 Vue 3 + TypeScript 实现书籍搜索列表的展示与搜索交互；后端接口与登录页面由队友完成，网站未上线"
+          },
+          {
+            "before_quote": "与队友核对列表字段，使用浏览器开发者工具查看请求返回，定位并排查列表数据与接口不一致的问题",
+            "after_quote": "配合队友核对列表字段，用浏览器开发者工具查看请求返回，排查列表数据与接口不一致的问题"
+          }
+        ],
+        "usage": {
+          "input_tokens": 977,
+          "output_tokens": 2438,
+          "total_tokens": 3415
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c76-2628-7822-acbb-2c808e6da214",
+          "started_at": "2026-10-09T01:01:07.496644+08:00",
+          "usage": {
+            "input_tokens": 977,
+            "output_tokens": 2438,
+            "total_tokens": 3415
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

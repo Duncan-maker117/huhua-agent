@@ -61,6 +61,13 @@ class ResumeState(TypedDict):
     resume_meta: dict  # Bullet evidence and verification metadata, distinct from the draft.
     resume_versions: list[dict]  # Last ten document snapshots; never fact-master snapshots.
     session_constraints: dict
+    match_plan: dict
+    guard_fallbacks: list
+    page_check: dict
+    change_summary: list
+    diff: list
+    version_id: str
+    questions: list
     resume_strategy: dict  # 简历策略：JD 匹配型 / 能力展示型
     eval_result: dict
     # ── Triage 相关字段 ─────────────────────────────────────────────
@@ -99,6 +106,13 @@ def _init_state() -> ResumeState:
         "resume_meta": {},
         "resume_versions": [],
         "session_constraints": {},
+        "match_plan": {},
+        "guard_fallbacks": [],
+        "page_check": {},
+        "change_summary": [],
+        "diff": [],
+        "version_id": "",
+        "questions": [],
         "resume_strategy": {},
         "eval_result": {},
         "jd_skipped": False,
@@ -730,8 +744,15 @@ def _explicit_generate_requested(text: str) -> bool:
     return False
 
 
-def _generation_contains_facts(text: str) -> bool:
-    """Skip extraction only for a build command without accompanying facts."""
+def _generation_contains_facts(text: str, *, editing_existing: bool = False) -> bool:
+    """Detect candidate statements, not quoted actions in an edit command."""
+    if editing_existing:
+        text = _re.sub(r'[“‘「"\'][^”’」"\']*[”’」"\']', '', text)
+        clauses = [_re.sub(r'^\s*(?:请|帮我|给我)(?:先|再)?(?=补充|新增)', '', clause)
+                   for clause in _re.split(r'[\n。；;，,]', text)]
+        text = '。'.join(clause for clause in clauses
+                        if not _re.match(r'\s*(?:请|帮我|给我|把|将|按|突出|保留|不要|删除|删掉|去掉|'
+                                         r'改写|修改|优化|精简|压缩|调整|写成|改成|改为)', clause))
     if _re.search(
         rf"(?:我(?!们|司)|本人).{{0,30}}(?:叫|就读|毕业|会|掌握|熟悉|{_EXPERIENCE_ACTIONS})"
         r"|(?:^|[\n，,；;])\s*(?:姓名|教育背景|教育经历|项目经历|工作经历|技能|奖项|电话|邮箱)[:：]",
@@ -740,9 +761,14 @@ def _generation_contains_facts(text: str) -> bool:
         return True
     # A named-project supplement does not need a first-person pronoun.
     for clause in _re.split(r"[\n。；;]", text):
+        if editing_existing:
+            if not _re.search(r"补充|新增", clause) or _re.search(
+                r"简历|文稿|正文|条目|表述|措辞|写|改|删|隐藏|精简|突出|调整|排序|合并|压缩|一页|两页", clause,
+            ):
+                continue
         if not _explicit_generate_requested(clause) and _re.search(
             rf"{_EXPERIENCE_ACTIONS}|补充|新增", clause,
-        ) and len(clause.strip()) > 8:
+        ) and (len(clause.strip()) > 8 or (editing_existing and _re.search(_EXPERIENCE_ACTIONS, clause))):
             return True
     return False
 
@@ -1226,6 +1252,10 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    # A visible draft may still carry the legacy COLLECTING checkpoint stage.
+    # Editing it belongs to the writer regardless of that historical label.
+    if _visible_draft_edit_requested(state):
+        return await evaluating_node(state, llm)
     collected = await _recover_candidate_history(state, llm)
     latest_message = next((m for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), None)
     profile_update = (_direction_profile_update(state, latest_message.content, collected)
@@ -1487,84 +1517,87 @@ def _user_explicitly_asks(text: str) -> bool:
     return any(kw in text for kw in keywords)
 
 
-async def _build_canonical_resume_data(
-    state: ResumeState, llm: ChatOpenAI
-) -> tuple[dict, dict]:
-    """Build one canonical resume from collected facts, at most one editor call."""
-    collected = state.get("collected_info") or _empty_collected_info()
-    jd_info = state.get("jd_info", {})
-    resume_strategy = state.get("resume_strategy") or build_resume_strategy(
-        jd_info=jd_info or None,
-        jd_keywords=state.get("jd_keywords") or [],
-        has_jd=has_job_description(jd_info),
-    )
-    # 所有下游输出都从 ResumeData 生成，避免三份内容逐渐分叉。
-    serialized = _serialize_to_resume_data(
-        {
-            **state,
-            "collected_info": collected,
-            "jd_info": jd_info,
-            "resume_strategy": resume_strategy,
-        }
-    )
-    # Only a genuinely absent facts snapshot needs the legacy draft fallback.
-    # Empty/experience-free facts can be an intentional edit or deletion.
-    if state.get("collected_info") is None:
-        from app.services.session_store import resume_data_has_content
+def _make_writer_llm(llm: ChatOpenAI):
+    from app.config import get_settings
+    settings = get_settings()
+    # Model doubles keep their explicit structured behavior in isolated tests.
+    if not isinstance(llm, ChatOpenAI):
+        return llm
+    return ChatOpenAI(model=llm.model_name, api_key=llm.openai_api_key,
+                      base_url=llm.openai_api_base, streaming=False,
+                      temperature=settings.LLM_WRITER_TEMPERATURE,
+                      max_tokens=settings.LLM_MAX_TOKENS or 4000)
 
-        saved = state.get("resume_data") or {}
-        if resume_data_has_content(saved):
-            serialized = dict(saved)
 
-    # 编辑 agent：技能分组 + description 压缩 + section 命名
-    # 用非流式 LLM 走结构化输出；失败则原样返回 serialized
-    from app.agents.editor_chain import run_editor
+async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='whole', targets=()) -> dict:
+    from app.agents.tailor_pipeline import run_tailor_pipeline
+    from app.services.resume_facts import normalize_fact_store
+    from app.config import get_settings
+    collected = normalize_fact_store(state.get("collected_info") or _empty_collected_info())
+    working = {**state, "collected_info": collected}
+    serialized = _serialize_to_resume_data(working)
+    current = state.get("resume_data") or {}
+    # Targeted rewrites retain unrelated manually edited content exactly.
+    base = copy.deepcopy(current) if scope != 'whole' and current else serialized
+    latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
+    writer = _make_writer_llm(llm)
+    structured = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+    result = await run_tailor_pipeline(working, base, writer, structured_llm=structured,
+                                      instruction=latest, scope=scope, targets=targets,
+                                      mode=get_settings().LLM_WRITER_MODE)
+    result['collected_info'] = collected
+    result['resume_strategy'] = state.get('resume_strategy') or serialized.get('resume_strategy') or {}
+    return result
 
-    editor_llm = _make_non_streaming_llm(llm, temperature=0)
-    polished = await run_editor(serialized, editor_llm)
-    polished = _preserve_saved_resume_metadata(polished, state.get("resume_data") or {})
-    return polished, resume_strategy
+
+
+def _writer_reply(result: dict) -> str:
+    data = result['resume_data']
+    counts = []
+    for key, label in (("projects", "段项目"), ("work_experience", "段工作/实习"),
+                       ("education", "条教育经历"), ("skills", "条技能"), ("certificates", "条奖项/活动")):
+        rows = [item for item in data.get(key) or [] if not isinstance(item, dict) or not item.get('hidden')]
+        if rows:
+            counts.append(f"{len(rows)} {label}")
+    if not counts:
+        reply = "目前只整理到基本信息，尚未生成包含经历的完整草稿。请补充教育或项目/工作经历。"
+    elif not result.get('changed'):
+        reply = "本轮没有形成可保存的正文修改，当前草稿保留。"
+    else:
+        reply = "已按已有事实更新右侧待核对草稿。"
+    diagnostic = result.get('writer_diagnostic') or {}
+    preserved_existing = diagnostic.get('fallback_action') == 'preserved_existing_draft'
+    if diagnostic.get('status') == 'model_fallback':
+        if preserved_existing:
+            reply += "\n\n本轮文字改写未完成，已保留上一版仍有效的正文；已收到的资料仍保留。"
+        else:
+            reply += "\n\n本轮自动改写未完成；已保留可核对的事实原文，尚未完成你要求的润色。"
+    if counts:
+        reply += "\n\n当前草稿包含：" + "、".join(counts) + "。"
+    if result.get('changed') and result.get('change_summary'):
+        reply += "\n\n本次修改：\n" + "\n".join('· ' + text for text in result['change_summary'])
+    page = result.get('page_check') or {}
+    if page.get('status') == 'rendered':
+        reply += f"\n\n所选模板实际为 {page['pages']} 页。"
+        if page.get('within_page_limit') is False and preserved_existing:
+            reply += f"当前稿仍超过 {page['page_limit']} 页要求，本轮尚未完成压缩。"
+        elif page.get('within_page_limit') is False:
+            rows = [item.get('name') or item.get('company') for section in ('projects', 'work_experience')
+                    for item in data.get(section) or [] if not item.get('hidden')]
+            candidate = rows[-1] if rows else '部分经历'
+            reply += f"按 {page['page_limit']} 页约束压缩后仍超页；进一步压缩可能需要省略「{candidate}」，请确认是否删减。"
+    elif page.get('status') == 'render_error':
+        reply += "\n\n本轮未能完成 PDF 页数校验，暂不能确认满足篇幅要求。"
+    if data.get('verification_notes'):
+        reply += f"\n\n另有 {len(data['verification_notes'])} 项信息待核对，详见右侧「核对」。"
+    return reply
 
 
 async def building_node(state: ResumeState, llm: ChatOpenAI) -> dict:
-    """阶段3：从同一份结构化数据生成预览、聊天文本和导出源。"""
-    polished, resume_strategy = await _build_canonical_resume_data(state, llm)
-    canonical_text = resume_to_text(polished)
-    notes = [
-        note.strip()
-        for note in polished.get("verification_notes") or []
-        if isinstance(note, str) and note.strip()
-    ]
-    changed = polished != (state.get("resume_data") or {})
-    counts = []
-    for key, label in (("projects", "段项目"), ("work_experience", "段工作/实习"),
-                       ("education", "条教育经历"), ("skills", "条技能"),
-                       ("certificates", "条奖项/活动")):
-        if polished.get(key):
-            counts.append(f"{len(polished[key])} {label}")
-    if not changed:
-        public_text = "当前草稿与已有资料一致，本轮没有新增内容。可在右侧查看或继续编辑。"
-    elif not counts:
-        public_text = "目前只整理到基本信息，尚未生成包含经历的完整草稿。请补充教育或项目/工作经历；如果已经提供，请重新粘贴未写入的部分。"
-    elif notes:
-        public_text = f"待核对草稿已更新到右侧「写简历」，{len(notes)} 项待核对信息在「核对」中，核对后再投递。"
-    else:
-        public_text = "已按已有资料更新右侧草稿。"
-    if counts:
-        public_text += "\n\n当前草稿包含：" + "、".join(counts) + "。可直接查看、局部修改或导出。"
-    logger.info(
-        f"[building/return] resume_data projects={len(polished.get('projects', []))} "
-        f"skill_groups={len(polished.get('skill_groups', {}))} "
-        "completed"
-    )
-
-    return {
-        "messages": [AIMessage(content=public_text)],
-        "stage": "EVALUATING",
-        "resume_draft": canonical_text,
-        "resume_data": polished,
-        "resume_strategy": resume_strategy,
-    }
+    result = await _write_resume_update(state, llm)
+    result.update(messages=[AIMessage(content=_writer_reply(result))], stage='EVALUATING',
+                  resume_draft=resume_to_text(result['resume_data']))
+    return result
 
 
 def _user_wants_export(text: str) -> bool:
@@ -1620,97 +1653,53 @@ async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
-    """阶段4：接收修订、重建唯一简历数据并做投递前核对。"""
-    resume_data = state.get("resume_data") or _serialize_to_resume_data(state)
-    messages = state["messages"]
-
-    last_human = next(
-        (m.content for m in reversed(messages) if isinstance(m, HumanMessage)), ""
-    )
-    if _user_wants_export(last_human):
+    """A draft edit always invokes the writer, even when it adds no new facts."""
+    from app.agents.tailor_pipeline import infer_edit_scope
+    from app.services.resume_versions import restore_payload
+    data = state.get("resume_data") or _serialize_to_resume_data(state)
+    message = next((m for m in reversed(state.get('messages', [])) if isinstance(m, HumanMessage)), HumanMessage(content=''))
+    text = message.content
+    if _user_wants_export(text):
         return {"stage": "EXPORT", **(await export_node(state, llm))}
-
-    source_message = next((m for m in reversed(messages) if isinstance(m, HumanMessage)), HumanMessage(content=""))
-    if _explicit_generate_requested(last_human) and _candidate_source_allowed(source_message):
-        # A generation request may include new material; ingest it before building.
-        result = await collecting_node(state, llm)
-        if result.get("stage") == "BUILDING":
-            return {**result, **(await building_node({**state, **result}, llm))}
-        return result
-
-    if last_human.strip() in {"上面", "以上", "前面", "刚才", "用上面的", "按上面的", "?", "？"}:
-        update = _live_resume_update(state, state.get("collected_info") or _empty_collected_info())
-        return {
-            **update,
-            "messages": [AIMessage(content=(
-                "我会沿用这段对话里你已经提供的资料，右侧展示的是当前简历。"
-                "\n\n你是想生成现有资料的草稿，还是补充某个项目？可在输入框上方选择下一步。"
-            ))],
-        }
-
-    if last_human.strip() in {"继续优化", "优化", "继续补充", "补充", "修改"}:
-        return {
-            "messages": [
-                AIMessage(
-                    content="想调整哪一处？请直接告诉我需要补充或更正的真实经历、技能或联系方式。"
-                )
-            ]
-        }
-
-    if not _user_asks_review(last_human):
-        collected = state.get("collected_info") or _empty_collected_info()
-        if not _candidate_source_allowed(source_message):
-            if source_message.additional_kwargs.get("career_material_type") == "jd" or _re.search(r"任职要求|职位要求|岗位职责|工作职责", last_human):
-                result = await _collecting_turn_node(state, llm)
-                return {"stage": "EVALUATING", **result}
-            return {"messages": [AIMessage(content="这段属于参考或检查材料，未当作你的经历写入。请直接补充你本人做过的动作，或选择生成已有资料的草稿。") ]}
-        if last_human.strip():
-            extract_llm = _make_non_streaming_llm(llm, temperature=0)
-            imported = parse_existing_resume(last_human)
-            updated = (_merge_imported_candidate(collected, imported) if imported else
-                       await _extract_info_from_message(last_human, collected, extract_llm))
-            if updated == collected:
-                updated = _keep_unextracted_experience(updated, collected, source_message)
-            updated = _apply_explicit_project_removals(updated, last_human)
-            if updated != collected:
-                revised_state = {**state, "collected_info": updated}
-                rebuilt, strategy = await _build_canonical_resume_data(
-                    revised_state, llm
-                )
-                canonical_text = resume_to_text(rebuilt)
-                _, checks = _review_reply(
-                    rebuilt, state.get("jd_info") or None
-                )
-                return {
-                    "messages": [
-                        AIMessage(content=(
-                            ("已根据你补充的内容更新右侧简历。投递前核对也已同步，可在「核对」查看缺项。"
-                             if rebuilt != resume_data else
-                             "这次补充与当前稿内容一致，简历正文没有变化。可在右侧继续核对。")
-                        ))
-                    ],
-                    "stage": "EVALUATING",
-                    "collected_info": updated,
-                    "resume_data": rebuilt,
-                    "resume_draft": canonical_text,
-                    "resume_strategy": strategy,
-                    "eval_result": {"checks": checks},
-                }
-            return {
-                "messages": [
-                    AIMessage(
-                        content="这句话还不足以确定要修改哪一项，已有内容会保留。\n\n**需要你补充**：说一下项目名称和你本人做的一个具体动作；也可以在输入框上方选择先整理已有资料。"
-                    )
-                ]
-            }
-
-    reply, checks = _review_reply(resume_data, state.get("jd_info") or None)
-    return {
-        "messages": [AIMessage(content=reply)],
-        "resume_data": resume_data,
-        "resume_draft": resume_to_text(resume_data),
-        "eval_result": {"checks": checks},
-    }
+    if _user_asks_review(text):
+        reply, checks = _review_reply(data, state.get('jd_info'))
+        return {'messages': [AIMessage(content=reply)], 'eval_result': {'checks': checks}}
+    if _re.fullmatch(r'\s*(?:撤销|撤回|回到上一版|恢复上一版)(?:刚才的修改|这次修改|上次修改|上一版|一下)?[。！!\s]*', text):
+        try:
+            restored = restore_payload(state)
+        except ValueError as error:
+            return {'messages': [AIMessage(content=str(error))]}
+        return {**restored, 'stage': 'EVALUATING', 'resume_draft': resume_to_text(restored['resume_data']),
+                'messages': [AIMessage(content='已恢复上一版文稿；本轮新提供的事实仍保留。')],
+                'change_summary': ['恢复上一版文稿']}
+    if not _candidate_source_allowed(message):
+        if message.additional_kwargs.get('career_material_type') == 'jd' or _re.search(r'任职要求|职位要求|岗位职责|工作职责', text):
+            info, reply = await _run_decoder_and_build_reply(text, llm)
+            if not info:
+                return {'messages': [AIMessage(content=reply)]}
+            updated = {'jd_info': info, 'jd_text': text, 'non_candidate_message_ids': _exclude_latest_source(state),
+                       'resume_strategy': build_resume_strategy(jd_info=info, has_jd=True)}
+            return {**updated, **(await building_node({**state, **updated}, llm))}
+        return {'messages': [AIMessage(content='这段参考材料未作为本人事实写入，请说明要怎样修改当前稿。')]}
+    collected = state.get('collected_info') or _empty_collected_info()
+    imported = parse_existing_resume(text)
+    updated = collected
+    if imported:
+        updated = _merge_imported_candidate(collected, imported)
+    elif _generation_contains_facts(text, editing_existing=True):
+        extract_llm = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+        updated = await _extract_info_from_message(text, collected, extract_llm)
+        updated = _keep_unextracted_experience(updated, collected, message)
+    direction = _direction_profile_update(state, text, updated)
+    scope, targets = infer_edit_scope(data, text)
+    if imported or updated != collected or direction:
+        scope, targets = 'whole', []
+    if scope == 'item' and not targets:
+        return {'messages': [AIMessage(content='没有找到你指定序号的经历，当前正文保留。请提供该经历的名称。')]}
+    result = await _write_resume_update({**state, **direction, 'collected_info': updated}, llm, scope=scope, targets=targets)
+    return {**direction, **result, 'stage': 'EVALUATING',
+            'resume_draft': resume_to_text(result['resume_data']),
+            'messages': [AIMessage(content=_writer_reply(result))]}
 
 
 async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
@@ -1741,6 +1730,36 @@ async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 # ── 路由逻辑 ──────────────────────────────────────────────────────────────────
 
 
+def _visible_draft_edit_requested(state: ResumeState) -> bool:
+    from app.agents.tailor_pipeline import turn_instruction
+    data = state.get('resume_data') or {}
+    has_body = any(not item.get('hidden') and (item.get('polished_bullets') or item.get('bullets') or item.get('description'))
+                   for section in ('projects', 'work_experience') for item in data.get(section) or []
+                   if isinstance(item, dict))
+    if not has_body:
+        return False
+    latest = next((m for m in reversed(state.get('messages', [])) if isinstance(m, HumanMessage)), None)
+    if latest is None or not _candidate_source_allowed(latest):
+        return False
+    instruction = turn_instruction(latest.content)
+    edit_words = r'改|调|优化|突出|精简|换|删除|删掉|压缩|去掉|移除|撤销|撤回|回到上一版|恢复上一版'
+    for clause in _re.split(r'[。；;\n]', instruction):
+        if not _re.search(edit_words, clause):
+            continue
+        clause = clause.strip()
+        for section in ('projects', 'work_experience'):
+            for item in data.get(section) or []:
+                name = item.get('name') or item.get('company') or ''
+                if name:
+                    clause = _re.sub(r'^[“"「]?' + _re.escape(name) + r'[”"」]?[：:，,\s]*', '', clause)
+        # Past/negated actions are experience evidence, not draft commands.
+        directive = _re.match(r'\s*(?:请|帮我|麻烦|我想|我要|把|将|按|对|再|直接|现在|先|撤销|撤回|回到|恢复)', clause)
+        directive = directive or _re.search(r'(?:再|请|帮我|需要)(?:改|调|优化|突出|精简|换|压缩)', clause)
+        if directive or (not _generation_contains_facts(clause) and _re.match(r'\s*(?:' + edit_words + ')', clause)):
+            return True
+    return False
+
+
 def route_by_stage(state: ResumeState) -> str:
     if state.get("requested_task", "auto") != "auto":
         return "skill_task"
@@ -1754,6 +1773,8 @@ def route_by_stage(state: ResumeState) -> str:
     )
     if isinstance(latest, str) and _is_review_intent(latest):
         return "skill_task"
+    if _visible_draft_edit_requested(state):
+        return "evaluating"
     stage = state.get("stage", "JD_INPUT")
     return stage.lower()
 
@@ -1777,14 +1798,13 @@ async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         info, reply = await _run_decoder_and_build_reply(latest, llm)
         if not info:
             return {"messages": [AIMessage(content=reply)], "requested_task": "auto"}
-        return {
-            "messages": [AIMessage(content=reply)],
-            "jd_text": latest,
-            "jd_info": info,
-            "resume_strategy": build_resume_strategy(jd_info=info, has_jd=bool(info)),
-            "stage": "COLLECTING",
-            "requested_task": "auto",
-        }
+        update = {"messages": [AIMessage(content=reply)], "jd_text": latest, "jd_info": info,
+                  "resume_strategy": build_resume_strategy(jd_info=info, has_jd=True),
+                  "stage": "COLLECTING", "requested_task": "auto",
+                  "non_candidate_message_ids": _exclude_latest_source(state)}
+        if state.get('resume_data'):
+            return {**update, **(await building_node({**state, **update}, llm))}
+        return update
     if task == "rewrite_experience":
         result = await collecting_node(
             {
@@ -2044,7 +2064,7 @@ async def stream_agent(
             resume_data = state.values.get("resume_data") or {}
             if not resume_data and task != "research_job":
                 resume_data = _serialize_to_resume_data(state.values)
-            save_resume_session(
+            committed = save_resume_session(
                 session_id=session_id,
                 resume_data=resume_data,
                 resume_draft=state.values.get("resume_draft", ""),
@@ -2053,6 +2073,7 @@ async def stream_agent(
                 collected_info=state.values.get("collected_info") or {},
                 resume_meta=state.values.get("resume_meta") or {},
                 resume_versions=state.values.get("resume_versions") or [],
+                session_constraints=state.values.get("session_constraints") or {},
             )
     except Exception as e:
         logger.error("final state save error: %s", type(e).__name__)
@@ -2070,5 +2091,47 @@ async def stream_agent(
             except Exception:
                 logger.warning("Unable to mark failed save in conversation history")
         raise
+    # SQL has committed at this point. Checkpoint reconciliation is best-effort
+    # and must never turn a successful save into an "unsaved" receipt.
+    if isinstance(committed, dict):
+        canonical_data = committed.get("resume_data") or {}
+        canonical_meta = committed.get("resume_meta") or {}
+        data_changed = canonical_data != resume_data
+        page_changed = canonical_meta.get("page_check") != (state.values.get("resume_meta") or {}).get("page_check")
+        repair_values = {key: committed[key] for key in (
+            "resume_data", "resume_draft", "stage", "collected_info", "resume_meta",
+            "resume_versions", "session_constraints") if key in committed}
+        repair_values["page_check"] = copy.deepcopy(canonical_meta.get("page_check") or {})
+        writer_meta = canonical_meta.get("writer_diagnostic") or canonical_meta.get("page_check")
+        corrected_messages = []
+        if writer_meta and (data_changed or page_changed):
+            # Only buffered deterministic writer receipts are replaced; ordinary
+            # public guidance that has already streamed remains untouched.
+            receipt_prefixes = ("已按已有事实更新右侧待核对草稿。", "本轮没有形成可保存的正文修改，当前草稿保留。",
+                                "目前只整理到基本信息，尚未生成包含经历的完整草稿。")
+            for reply in turn_replies:
+                if reply.id in streamed_reply_ids or not reply.content.startswith(receipt_prefixes):
+                    continue
+                summary = (["保存时事实校验调整了正文，请以右侧已保存内容为准。"] if data_changed
+                           else canonical_meta.get("change_summary") or [])
+                corrected = _writer_reply({**state.values, **repair_values,
+                    "changed": bool(data_changed or reply.content.startswith(receipt_prefixes[0])),
+                    "change_summary": summary,
+                    "writer_diagnostic": canonical_meta.get("writer_diagnostic") or {}})
+                if data_changed:
+                    corrected += "\n\n正文在保存时经过事实校验调整；上述页数对应实际保存稿，不代表原改写稿已成功压缩。"
+                pending_replies = [corrected if text == reply.content else text for text in pending_replies]
+                if reply.id:
+                    corrected_messages.append(AIMessage(id=reply.id, content=corrected,
+                                                         additional_kwargs=reply.additional_kwargs))
+        if corrected_messages:
+            repair_values["messages"] = corrected_messages
+        repair = getattr(graph, "aupdate_state", None)
+        if callable(repair) and (corrected_messages or any(
+                state.values.get(key) != value for key, value in repair_values.items())):
+            try:
+                await repair(config, repair_values)
+            except Exception:
+                logger.warning("Resume committed; checkpoint reconciliation failed")
     for reply in pending_replies:
         yield reply

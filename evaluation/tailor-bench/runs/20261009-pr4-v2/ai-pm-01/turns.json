@@ -1,0 +1,2391 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：AI 产品实习生\n岗位职责：参与旅游规划助手的需求梳理，设计原型及评测用例，分析模型回答错误并跟进迭代。\n任职要求：能区分模型能力与产品承诺；能清楚描述本人完成的原型和评测工作；了解大模型应用，重视事实准确性。加分项：有真实用户验证或上线经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T00:42:08.024395+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {},
+      "active_facts": [],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已解析「AI 产品实习生」，岗位要求和原文依据已放到右侧「读岗位」。\n\n接下来先补一段相关经历：你做的是什么项目、本人具体负责哪一步？",
+    "elapsed_seconds": 15.035,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c64-c320-7ec3-be7e-874dea735327",
+        "started_at": "2026-10-09T00:42:08.032401+08:00",
+        "usage": {
+          "input_tokens": 2091,
+          "output_tokens": 3684,
+          "total_tokens": 5775
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 2091,
+      "output_tokens": 3684,
+      "total_tokens": 5775,
+      "logical_model_calls": 1,
+      "calls_with_usage": 1,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.002217,
+        "upper_bound": 0.005048,
+        "priced_calls": 1,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1
+    ],
+    "started_at": "2026-10-09T00:42:23.064736+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "kind": "action",
+                "text": "做过一个名为“路线笔记”的旅游 Agent。",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+                "kind": "context",
+                "text": "“路线笔记”是课程小组的 Demo。",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_461e980ff829487ab49eca2f97da4be3",
+                "kind": "action",
+                "text": "用自己写的出行问题测试“路线笔记”。",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_874d711897ca458395f3d427bba19c89",
+                "kind": "result_qualitative",
+                "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+                "kind": "status_limit",
+                "text": "项目还没上线。",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+          "kind": "action",
+          "text": "做过一个名为“路线笔记”的旅游 Agent。",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+          "kind": "context",
+          "text": "“路线笔记”是课程小组的 Demo。",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_461e980ff829487ab49eca2f97da4be3",
+          "kind": "action",
+          "text": "用自己写的出行问题测试“路线笔记”。",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_874d711897ca458395f3d427bba19c89",
+          "kind": "result_qualitative",
+          "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+          "kind": "status_limit",
+          "text": "项目还没上线。",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别本轮补充的「路线笔记」资料，正在同步到草稿，保存尚未完成。\n\n**需要你补充**：这个课程小组里你具体负责哪部分——原型、测试提问，还是别的工作？这决定该写「参与」还是「负责某一环节」。",
+    "elapsed_seconds": 9.85,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c64-fde0-78a3-90ba-1d695fde9792",
+        "started_at": "2026-10-09T00:42:23.072802+08:00",
+        "usage": {
+          "input_tokens": 1580,
+          "output_tokens": 144,
+          "total_tokens": 1724
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-0137-7090-8922-c5b47b45b880",
+        "started_at": "2026-10-09T00:42:23.927238+08:00",
+        "usage": {
+          "input_tokens": 347,
+          "output_tokens": 1310,
+          "total_tokens": 1657
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-17aa-7132-a931-c029abd860d3",
+        "started_at": "2026-10-09T00:42:29.674609+08:00",
+        "usage": {
+          "input_tokens": 1327,
+          "output_tokens": 333,
+          "total_tokens": 1660
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-1c7f-7bb1-be0e-f6e80a41163f",
+        "started_at": "2026-10-09T00:42:30.911560+08:00",
+        "usage": {
+          "input_tokens": 5307,
+          "output_tokens": 314,
+          "total_tokens": 5621
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 8561,
+      "output_tokens": 2101,
+      "total_tokens": 10662,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001286,
+        "upper_bound": 0.005089,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v002"
+    ]
+  },
+  {
+    "turn": 3,
+    "phase": "followup",
+    "user": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+    "task": "auto",
+    "simulation": {
+      "text": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+      "fact_indices": [
+        2,
+        3
+      ],
+      "reason": "model_selected_truth",
+      "selector_status": "completed",
+      "model_calls": [
+        {
+          "model": "deepseek-flash",
+          "status": "completed",
+          "run_id": "01a11c65-245d-7a60-864b-39ff7bd07e9f",
+          "started_at": "2026-10-09T00:42:32.926104+08:00",
+          "usage": {
+            "input_tokens": 388,
+            "output_tokens": 9,
+            "total_tokens": 397
+          }
+        }
+      ],
+      "usage": {
+        "input_tokens": 388,
+        "output_tokens": 9,
+        "total_tokens": 397,
+        "logical_model_calls": 1,
+        "calls_with_usage": 1,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 7e-06,
+          "upper_bound": 0.000127,
+          "priced_calls": 1,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      }
+    },
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "started_at": "2026-10-09T00:42:33.615684+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "kind": "action",
+                "text": "做过一个名为“路线笔记”的旅游 Agent。",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+                "kind": "context",
+                "text": "“路线笔记”是课程小组的 Demo。",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_461e980ff829487ab49eca2f97da4be3",
+                "kind": "action",
+                "text": "用自己写的出行问题测试“路线笔记”。",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_874d711897ca458395f3d427bba19c89",
+                "kind": "result_qualitative",
+                "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+                "kind": "status_limit",
+                "text": "项目还没上线。",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5cfbb690fae441f0a05f4604f05962cf",
+                "kind": "action",
+                "text": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3ad8db2075e74cd28ab395aea59f07ac",
+                "kind": "method_tool",
+                "text": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线",
+              "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+              "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+          "kind": "action",
+          "text": "做过一个名为“路线笔记”的旅游 Agent。",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+          "kind": "context",
+          "text": "“路线笔记”是课程小组的 Demo。",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_461e980ff829487ab49eca2f97da4be3",
+          "kind": "action",
+          "text": "用自己写的出行问题测试“路线笔记”。",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_874d711897ca458395f3d427bba19c89",
+          "kind": "result_qualitative",
+          "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+          "kind": "status_limit",
+          "text": "项目还没上线。",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_5cfbb690fae441f0a05f4604f05962cf",
+          "kind": "action",
+          "text": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+          "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_3ad8db2075e74cd28ab395aea59f07ac",
+          "kind": "method_tool",
+          "text": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+          "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已识别本轮资料，正在同步草稿，保存尚未完成。\n\n**我的建议**：这条写成「记录测试错误，按虚构地点、时间冲突分类成表，并据此改提示词限定地点仅从给定清单选取」——错误分类、表格和改法都要出现，项目未上线照实保留。",
+    "elapsed_seconds": 7.278,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-271d-7932-8b6b-e51c841c1419",
+        "started_at": "2026-10-09T00:42:33.629873+08:00",
+        "usage": {
+          "input_tokens": 1573,
+          "output_tokens": 147,
+          "total_tokens": 1720
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-2ba3-77f2-9665-0c3086ce5330",
+        "started_at": "2026-10-09T00:42:34.787861+08:00",
+        "usage": {
+          "input_tokens": 589,
+          "output_tokens": 811,
+          "total_tokens": 1400
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-39b2-71f2-9dbc-e6aabbd48168",
+        "started_at": "2026-10-09T00:42:38.386464+08:00",
+        "usage": {
+          "input_tokens": 1242,
+          "output_tokens": 184,
+          "total_tokens": 1426
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-3d3e-7983-bb1d-a92cf27974d3",
+        "started_at": "2026-10-09T00:42:39.294613+08:00",
+        "usage": {
+          "input_tokens": 5724,
+          "output_tokens": 217,
+          "total_tokens": 5941
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 9128,
+      "output_tokens": 1359,
+      "total_tokens": 10487,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.000843,
+        "upper_bound": 0.004369,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "COLLECTING",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v003"
+    ]
+  },
+  {
+    "turn": 4,
+    "phase": "edit",
+    "user": "按 JD 再改“路线笔记”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "started_at": "2026-10-09T00:42:40.903635+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "kind": "action",
+                "text": "做过一个名为“路线笔记”的旅游 Agent。",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+                "kind": "context",
+                "text": "“路线笔记”是课程小组的 Demo。",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_461e980ff829487ab49eca2f97da4be3",
+                "kind": "action",
+                "text": "用自己写的出行问题测试“路线笔记”。",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_874d711897ca458395f3d427bba19c89",
+                "kind": "result_qualitative",
+                "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+                "kind": "status_limit",
+                "text": "项目还没上线。",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5cfbb690fae441f0a05f4604f05962cf",
+                "kind": "action",
+                "text": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3ad8db2075e74cd28ab395aea59f07ac",
+                "kind": "method_tool",
+                "text": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线",
+              "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+              "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+          "kind": "action",
+          "text": "做过一个名为“路线笔记”的旅游 Agent。",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+          "kind": "context",
+          "text": "“路线笔记”是课程小组的 Demo。",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_461e980ff829487ab49eca2f97da4be3",
+          "kind": "action",
+          "text": "用自己写的出行问题测试“路线笔记”。",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_874d711897ca458395f3d427bba19c89",
+          "kind": "result_qualitative",
+          "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+          "kind": "status_limit",
+          "text": "项目还没上线。",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_5cfbb690fae441f0a05f4604f05962cf",
+          "kind": "action",
+          "text": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+          "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_3ad8db2075e74cd28ab395aea59f07ac",
+          "kind": "method_tool",
+          "text": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+          "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 11.272,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-4395-75e3-904d-a647d41caa48",
+        "started_at": "2026-10-09T00:42:40.918092+08:00",
+        "usage": {
+          "input_tokens": 6216,
+          "output_tokens": 1931,
+          "total_tokens": 8147
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-6307-7ec2-bda3-a9970f9e3383",
+        "started_at": "2026-10-09T00:42:48.967609+08:00",
+        "usage": {
+          "input_tokens": 1253,
+          "output_tokens": 149,
+          "total_tokens": 1402
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-666f-70c2-b074-b68cfc365c83",
+        "started_at": "2026-10-09T00:42:49.839627+08:00",
+        "usage": {
+          "input_tokens": 3686,
+          "output_tokens": 207,
+          "total_tokens": 3893
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-6be1-7fe2-8fb8-24d8497341d5",
+        "started_at": "2026-10-09T00:42:51.233271+08:00",
+        "usage": {
+          "input_tokens": 1253,
+          "output_tokens": 92,
+          "total_tokens": 1345
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 12408,
+      "output_tokens": 2379,
+      "total_tokens": 14787,
+      "logical_model_calls": 4,
+      "calls_with_usage": 4,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001465,
+        "upper_bound": 0.006577,
+        "priced_calls": 4,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "84b92f03-27f2-46a5-9d22-9219e0cc33f7": [
+            {
+              "fact_ids": [
+                "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "f_d96a0423af0e4f85bad855e7d736b71c",
+                "f_461e980ff829487ab49eca2f97da4be3",
+                "f_874d711897ca458395f3d427bba19c89",
+                "f_547bb561a2d3458eb053f0c6eedc58ea"
+              ],
+              "req_ids": [],
+              "flags": [],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "c38ad1660391aebd67151b4e2ea47f8ca62e266c11fe885897a76242ba59558f"
+            },
+            {
+              "fact_ids": [
+                "f_5cfbb690fae441f0a05f4604f05962cf"
+              ],
+              "req_ids": [
+                "r4"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": false,
+              "metric_question": "",
+              "text_hash": "b695f8829ddba49f215ed2a18ccd55dd30b86785c1ee52b571210d46bfb8c8ac"
+            },
+            {
+              "fact_ids": [
+                "f_3ad8db2075e74cd28ab395aea59f07ac"
+              ],
+              "req_ids": [
+                "r1",
+                "r4"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": true,
+              "metric_question": "改完提示词后复测过吗？虚构地点这类错误大概还剩多少（或从几条降到几条）？",
+              "text_hash": "4869a504c2b83df3ffb68b0c3fe4be294a1003e4e65373f49c64628c26c017f1"
+            }
+          ]
+        },
+        "version_id": "face48b9-a174-428c-b050-1f60c787c160",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "transferable",
+              "fact_ids": [
+                "f_3ad8db2075e74cd28ab395aea59f07ac",
+                "f_547bb561a2d3458eb053f0c6eedc58ea"
+              ],
+              "angle": "面对模型会编造地点的问题，没有继续依赖模型自由生成，而是把地点来源限制在给定清单内，属于对模型能力边界的判断；但材料中没有对外承诺相关的取舍，只能作为相近事实迁移表达"
+            },
+            {
+              "req_id": "r2",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r3",
+              "status": "direct",
+              "fact_ids": [
+                "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "f_3ad8db2075e74cd28ab395aea59f07ac"
+              ],
+              "angle": "做过旅游 Agent，并动手改过提示词约束模型输出，属于大模型应用的真实接触"
+            },
+            {
+              "req_id": "r4",
+              "status": "direct",
+              "fact_ids": [
+                "f_461e980ff829487ab49eca2f97da4be3",
+                "f_874d711897ca458395f3d427bba19c89",
+                "f_5cfbb690fae441f0a05f4604f05962cf",
+                "f_3ad8db2075e74cd28ab395aea59f07ac"
+              ],
+              "angle": "自己写出行问题测试，记录虚构地点与时间冲突并分类整理，再据此改提示词限制地点来源，是事实准确性意识的直接证据"
+            },
+            {
+              "req_id": "r5",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": "项目未上线、无真实用户验证，材料中也没有用户反馈，不写"
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "treatment": "lead",
+              "reason": "唯一一段经历，且直接命中 JD 的「分析模型回答错误并跟进迭代」「重视事实准确性」「了解大模型应用」；按 lead 展开 3 条，覆盖：项目定位与课程小组 Demo 状态、自测与错误分类、据错误样例改提示词约束地点来源",
+              "target_bullets": 3
+            }
+          ],
+          "section_order": [
+            "projects",
+            "education",
+            "work_experience",
+            "skills",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：仅一段课程小组 Demo，无跨背景或可一句话概括的强匹配结论",
+          "questions": [
+            {
+              "q": "改完提示词、让模型只能从给定地点清单里选之后，你复测过吗？虚构地点这类错误大概还剩多少、或从几条降到几条？",
+              "why": "现在只能写到「根据错误样例修改提示词」，没有复测结果，无法证明迭代闭环真的有效；这是 JD 最看重的「跟进迭代」证据",
+              "improves": {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "req_id": "r4"
+              },
+              "options": [
+                "复测了，虚构地点基本不再出现",
+                "复测了，还有少量，大概 X 条里剩 Y 条",
+                "没系统复测，只是自己又试了几次"
+              ],
+              "value": 5
+            },
+            {
+              "q": "你一共测了多少条出行问题？错误记录表格里大概记了多少条 bad case、分成几类？",
+              "why": "能给出测试规模与错误条数，这条 bullet 就从「记录过错误」升级为可量化的评测动作，是学生简历里最稀缺的信号",
+              "improves": {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "req_id": "r4"
+              },
+              "options": [
+                "大概测了十几条问题，记了十几条错误",
+                "测了几十条，表格里按两类整理",
+                "没数过，就是随手记的"
+              ],
+              "value": 4
+            },
+            {
+              "q": "这个课程小组 Demo 里，Agent 的哪部分是你自己做的？比如提示词、地点清单、对话流程、界面，你具体负责哪块？",
+              "why": "目前只能写「做过」，无法区分个人贡献与小组产出，面试官一定会追问；说清自己负责的部分才能把动作写实",
+              "improves": {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "req_id": "r3"
+              },
+              "options": [
+                "提示词和地点清单是我弄的，界面是队友做的",
+                "整个 Agent 流程我一个人搭的",
+                "大家一起做，我主要负责测试和改提示词"
+              ],
+              "value": 5
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "6cf3e96f5a6ebb0cb8dedb62f77aead2bdb4a2e8741ab49776b1746270f0c0e2",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass"
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "e8eaf75c-79ef-4b78-9698-0f707d0649f0",
+          "label": "修改前",
+          "created_at": "2026-10-08T16:42:52.170017+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "name": "路线笔记",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "做过一个名为“路线笔记”的旅游 Agent。\n“路线笔记”是课程小组的 Demo。\n用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。\n项目还没上线。\n将错误回答分为虚构地点和行程时间冲突，并整理到表格。\n根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "AI 产品实习生",
+              "recruiter_priorities": [
+                "本人独立完成的原型设计与产出物（对应「设计原型及评测用例」）",
+                "评测用例的设计与使用过程（对应「设计原型及评测用例」）",
+                "模型回答错误的分析过程与迭代跟进（对应「分析模型回答错误并跟进迭代」）",
+                "对模型能力边界的判断与取舍（对应「能区分模型能力与产品承诺」）",
+                "事实准确性相关的处理动作（对应「重视事实准确性」）",
+                "真实用户验证或上线经历（对应加分项「有真实用户验证或上线经验」，有才写，未上线保持未上线）"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "transferable",
+            "fact_ids": [
+              "f_3ad8db2075e74cd28ab395aea59f07ac",
+              "f_547bb561a2d3458eb053f0c6eedc58ea"
+            ],
+            "angle": "面对模型会编造地点的问题，没有继续依赖模型自由生成，而是把地点来源限制在给定清单内，属于对模型能力边界的判断；但材料中没有对外承诺相关的取舍，只能作为相近事实迁移表达"
+          },
+          {
+            "req_id": "r2",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r3",
+            "status": "direct",
+            "fact_ids": [
+              "f_a6a7fb2e48de445a8ae5151f171c71c2",
+              "f_3ad8db2075e74cd28ab395aea59f07ac"
+            ],
+            "angle": "做过旅游 Agent，并动手改过提示词约束模型输出，属于大模型应用的真实接触"
+          },
+          {
+            "req_id": "r4",
+            "status": "direct",
+            "fact_ids": [
+              "f_461e980ff829487ab49eca2f97da4be3",
+              "f_874d711897ca458395f3d427bba19c89",
+              "f_5cfbb690fae441f0a05f4604f05962cf",
+              "f_3ad8db2075e74cd28ab395aea59f07ac"
+            ],
+            "angle": "自己写出行问题测试，记录虚构地点与时间冲突并分类整理，再据此改提示词限制地点来源，是事实准确性意识的直接证据"
+          },
+          {
+            "req_id": "r5",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": "项目未上线、无真实用户验证，材料中也没有用户反馈，不写"
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+            "treatment": "lead",
+            "reason": "唯一一段经历，且直接命中 JD 的「分析模型回答错误并跟进迭代」「重视事实准确性」「了解大模型应用」；按 lead 展开 3 条，覆盖：项目定位与课程小组 Demo 状态、自测与错误分类、据错误样例改提示词约束地点来源",
+            "target_bullets": 3
+          }
+        ],
+        "section_order": [
+          "projects",
+          "education",
+          "work_experience",
+          "skills",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：仅一段课程小组 Demo，无跨背景或可一句话概括的强匹配结论",
+        "questions": [
+          {
+            "q": "改完提示词、让模型只能从给定地点清单里选之后，你复测过吗？虚构地点这类错误大概还剩多少、或从几条降到几条？",
+            "why": "现在只能写到「根据错误样例修改提示词」，没有复测结果，无法证明迭代闭环真的有效；这是 JD 最看重的「跟进迭代」证据",
+            "improves": {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "req_id": "r4"
+            },
+            "options": [
+              "复测了，虚构地点基本不再出现",
+              "复测了，还有少量，大概 X 条里剩 Y 条",
+              "没系统复测，只是自己又试了几次"
+            ],
+            "value": 5
+          },
+          {
+            "q": "你一共测了多少条出行问题？错误记录表格里大概记了多少条 bad case、分成几类？",
+            "why": "能给出测试规模与错误条数，这条 bullet 就从「记录过错误」升级为可量化的评测动作，是学生简历里最稀缺的信号",
+            "improves": {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "req_id": "r4"
+            },
+            "options": [
+              "大概测了十几条问题，记了十几条错误",
+              "测了几十条，表格里按两类整理",
+              "没数过，就是随手记的"
+            ],
+            "value": 4
+          },
+          {
+            "q": "这个课程小组 Demo 里，Agent 的哪部分是你自己做的？比如提示词、地点清单、对话流程、界面，你具体负责哪块？",
+            "why": "目前只能写「做过」，无法区分个人贡献与小组产出，面试官一定会追问；说清自己负责的部分才能把动作写实",
+            "improves": {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "req_id": "r3"
+            },
+            "options": [
+              "提示词和地点清单是我弄的，界面是队友做的",
+              "整个 Agent 流程我一个人搭的",
+              "大家一起做，我主要负责测试和改提示词"
+            ],
+            "value": 5
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v004"
+    ]
+  },
+  {
+    "turn": 5,
+    "phase": "edit",
+    "user": "把“路线笔记”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "started_at": "2026-10-09T00:42:52.185437+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "observed",
+      "source": "committed_sql",
+      "checkpoint_id": null,
+      "collected_info": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "internship": [],
+        "projects": [
+          {
+            "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+            "name": "路线笔记",
+            "facts": [
+              {
+                "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "kind": "action",
+                "text": "做过一个名为“路线笔记”的旅游 Agent。",
+                "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+                "kind": "context",
+                "text": "“路线笔记”是课程小组的 Demo。",
+                "source_quote": "是课程小组的 Demo",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "是课程小组的 Demo",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_461e980ff829487ab49eca2f97da4be3",
+                "kind": "action",
+                "text": "用自己写的出行问题测试“路线笔记”。",
+                "source_quote": "我拿自己写的出行问题试它",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我拿自己写的出行问题试它",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_874d711897ca458395f3d427bba19c89",
+                "kind": "result_qualitative",
+                "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+                "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+                "kind": "status_limit",
+                "text": "项目还没上线。",
+                "source_quote": "项目还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "项目还没上线",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_5cfbb690fae441f0a05f4604f05962cf",
+                "kind": "action",
+                "text": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                    "turn_id": ""
+                  }
+                ]
+              },
+              {
+                "id": "f_3ad8db2075e74cd28ab395aea59f07ac",
+                "kind": "method_tool",
+                "text": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                    "turn_id": ""
+                  }
+                ]
+              }
+            ],
+            "raw_notes": [
+              "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。",
+              "我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+              "我做过一个叫“路线笔记”的旅游 Agent",
+              "是课程小组的 Demo",
+              "我拿自己写的出行问题试它",
+              "把回答里乱编地点和时间冲突的情况记下来了",
+              "项目还没上线",
+              "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+              "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+            ]
+          }
+        ],
+        "skills": [],
+        "personal_summary": "",
+        "verification_notes": []
+      },
+      "active_facts": [
+        {
+          "id": "f_a6a7fb2e48de445a8ae5151f171c71c2",
+          "kind": "action",
+          "text": "做过一个名为“路线笔记”的旅游 Agent。",
+          "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我做过一个叫“路线笔记”的旅游 Agent",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_d96a0423af0e4f85bad855e7d736b71c",
+          "kind": "context",
+          "text": "“路线笔记”是课程小组的 Demo。",
+          "source_quote": "是课程小组的 Demo",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "是课程小组的 Demo",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_461e980ff829487ab49eca2f97da4be3",
+          "kind": "action",
+          "text": "用自己写的出行问题测试“路线笔记”。",
+          "source_quote": "我拿自己写的出行问题试它",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我拿自己写的出行问题试它",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_874d711897ca458395f3d427bba19c89",
+          "kind": "result_qualitative",
+          "text": "测试中记录下回答里乱编地点和时间冲突的情况。",
+          "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "把回答里乱编地点和时间冲突的情况记下来了",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_547bb561a2d3458eb053f0c6eedc58ea",
+          "kind": "status_limit",
+          "text": "项目还没上线。",
+          "source_quote": "项目还没上线",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "项目还没上线",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_5cfbb690fae441f0a05f4604f05962cf",
+          "kind": "action",
+          "text": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+          "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        },
+        {
+          "id": "f_3ad8db2075e74cd28ab395aea59f07ac",
+          "kind": "method_tool",
+          "text": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+          "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+          "turn_id": "",
+          "status": "active",
+          "source": "chat",
+          "sources": [
+            {
+              "source": "chat",
+              "source_quote": "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+              "turn_id": ""
+            }
+          ],
+          "section": "projects",
+          "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7"
+        }
+      ],
+      "active_skills": [],
+      "projection": "stored_fact_rows_only_no_legacy_inference"
+    },
+    "assistant": "已按已有事实更新右侧待核对草稿。\n\n当前草稿包含：1 段项目。\n\n本次修改：\n· 调整了 1 段经历的表述或顺序。\n\n所选模板实际为 1 页。",
+    "elapsed_seconds": 8.859,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-6fa3-70a2-b796-4f7e6cc1a9cf",
+        "started_at": "2026-10-09T00:42:52.195631+08:00",
+        "usage": {
+          "input_tokens": 6323,
+          "output_tokens": 1762,
+          "total_tokens": 8085
+        }
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "completed",
+        "run_id": "01a11c65-8dda-73d2-b70c-dd12a54415d7",
+        "started_at": "2026-10-09T00:42:59.931090+08:00",
+        "usage": {
+          "input_tokens": 1347,
+          "output_tokens": 92,
+          "total_tokens": 1439
+        }
+      }
+    ],
+    "usage": {
+      "input_tokens": 7670,
+      "output_tokens": 1854,
+      "total_tokens": 9524,
+      "logical_model_calls": 2,
+      "calls_with_usage": 2,
+      "calls_without_usage": 0,
+      "cost": null,
+      "cost_status": "reported_tokens_range_only",
+      "reported_token_cost_usd": {
+        "lower_bound": 0.001135,
+        "upper_bound": 0.004526,
+        "priced_calls": 2,
+        "unpriced_calls": 0,
+        "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+      },
+      "sdk_http_attempts": null
+    },
+    "stage": "EVALUATING",
+    "acceptance_context": {
+      "resume_meta": {
+        "bullets": {
+          "84b92f03-27f2-46a5-9d22-9219e0cc33f7": [
+            {
+              "fact_ids": [
+                "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "f_d96a0423af0e4f85bad855e7d736b71c",
+                "f_461e980ff829487ab49eca2f97da4be3",
+                "f_874d711897ca458395f3d427bba19c89",
+                "f_5cfbb690fae441f0a05f4604f05962cf",
+                "f_3ad8db2075e74cd28ab395aea59f07ac",
+                "f_547bb561a2d3458eb053f0c6eedc58ea"
+              ],
+              "req_ids": [
+                "r3",
+                "r4",
+                "r1"
+              ],
+              "flags": [
+                "transferable"
+              ],
+              "needs_metric": true,
+              "metric_question": "改完提示词后复测过吗？虚构地点这类错误大概减少了多少（原来多少条里出现几条，改后剩几条）？测试一共用了多少条出行问题？",
+              "text_hash": "6905d93fd132df3157cbfaa0757474ac5a02bfe047e1fb71f819dc6a77e9a339"
+            }
+          ]
+        },
+        "version_id": "6e01d8c0-3083-42df-a2d2-48233d9914d7",
+        "label": "局部修改",
+        "match_plan": {
+          "requirements": [
+            {
+              "req_id": "r1",
+              "status": "transferable",
+              "fact_ids": [
+                "f_3ad8db2075e74cd28ab395aea59f07ac",
+                "f_5cfbb690fae441f0a05f4604f05962cf"
+              ],
+              "angle": "没有对外承诺层面的取舍事实，但有「模型会编造地点 → 用提示词把选择范围限定在给定地点清单」的边界约束动作，可迁移表达为对模型能力边界的处理"
+            },
+            {
+              "req_id": "r2",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": ""
+            },
+            {
+              "req_id": "r3",
+              "status": "direct",
+              "fact_ids": [
+                "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                "f_3ad8db2075e74cd28ab395aea59f07ac"
+              ],
+              "angle": "做过旅游规划 Agent，并实际改过提示词约束模型输出"
+            },
+            {
+              "req_id": "r4",
+              "status": "direct",
+              "fact_ids": [
+                "f_461e980ff829487ab49eca2f97da4be3",
+                "f_874d711897ca458395f3d427bba19c89",
+                "f_5cfbb690fae441f0a05f4604f05962cf",
+                "f_3ad8db2075e74cd28ab395aea59f07ac"
+              ],
+              "angle": "自测中记录虚构地点、时间冲突并据此改提示词，直接体现事实准确性意识"
+            },
+            {
+              "req_id": "r5",
+              "status": "gap",
+              "fact_ids": [],
+              "angle": "项目未上线、无真实用户验证事实，保持未上线状态不美化"
+            }
+          ],
+          "experience_plan": [
+            {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "treatment": "lead",
+              "reason": "唯一经历，且直接命中错误分析与迭代、事实准确性两个核心信号；按用户指令压成一条，合并本人动作（自测、记录、分类、改提示词）、团队分工（课程小组 Demo）与状态限制（未上线）",
+              "target_bullets": 1
+            }
+          ],
+          "section_order": [
+            "projects",
+            "education",
+            "work_experience",
+            "skills",
+            "certificates"
+          ],
+          "summary_angle": "不写个人总结：仅一段课程小组 Demo，无跨背景或强匹配一句话可概括",
+          "questions": [
+            {
+              "q": "改完提示词之后，你复测过吗？虚构地点这类错误大概减少了多少（比如原来 10 条里有几条，改后剩几条）？",
+              "why": "现在只能写到「修改提示词」，补上复测结果就能形成「效果不好 → 定位 → 改 → 复测」的闭环，这是本岗位最强信号",
+              "improves": {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "req_id": "r4"
+              },
+              "options": [
+                "又拿同一批问题复测了一遍，虚构地点基本没有了",
+                "复测后仍有少量编造，但比之前少",
+                "改完没有再系统复测，只是自己又试了几条"
+              ],
+              "value": 5
+            },
+            {
+              "q": "测试时一共用了多少条出行问题、覆盖哪些场景（比如几天行程、多城市）？错误分类表格里大概记了多少条 bad case？",
+              "why": "给评测动作一个规模口径，把「自己试了试」变成可量化的评测记录",
+              "improves": {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "req_id": "r2"
+              },
+              "options": [
+                "大概十几条问题，覆盖 2–3 天行程",
+                "几十条，包含多城市和单城市",
+                "记不清条数，就是自己想到的问题都试了"
+              ],
+              "value": 4
+            },
+            {
+              "q": "这个 Demo 里你具体负责哪部分？原型/界面是你画的吗，还是只做了测试和提示词这块？",
+              "why": "JD 明确要求能描述本人完成的原型与评测工作，需要确认原型是否属于本人产出，才能决定要不要写进简历",
+              "improves": {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "req_id": "r2"
+              },
+              "options": [
+                "原型是我画的，测试和提示词也是我做的",
+                "原型是组里其他人画的，我负责测试和提示词",
+                "没有正式原型，只有能跑起来的 Demo"
+              ],
+              "value": 4
+            }
+          ]
+        },
+        "omitted": [],
+        "page_check": {
+          "status": "rendered",
+          "pages": 1,
+          "page_limit": 1,
+          "within_page_limit": true,
+          "template_id": "t001-jianyue",
+          "data_hash": "f5e8805ab8fbb1e0bf01a4ed4c6ac04079879f6d127fb489add562502e974397",
+          "source": "production_render_resume_pdf"
+        },
+        "writer_diagnostic": {
+          "status": "model_completed",
+          "mode": "one_pass"
+        },
+        "compression_writer_diagnostics": [],
+        "guard_fallbacks": [],
+        "change_summary": [
+          "调整了 1 段经历的表述或顺序。"
+        ]
+      },
+      "resume_versions": [
+        {
+          "version_id": "e8eaf75c-79ef-4b78-9698-0f707d0649f0",
+          "label": "修改前",
+          "created_at": "2026-10-08T16:42:52.170017+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "name": "路线笔记",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "做过一个名为“路线笔记”的旅游 Agent。\n“路线笔记”是课程小组的 Demo。\n用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。\n项目还没上线。\n将错误回答分为虚构地点和行程时间冲突，并整理到表格。\n根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "AI 产品实习生",
+              "recruiter_priorities": [
+                "本人独立完成的原型设计与产出物（对应「设计原型及评测用例」）",
+                "评测用例的设计与使用过程（对应「设计原型及评测用例」）",
+                "模型回答错误的分析过程与迭代跟进（对应「分析模型回答错误并跟进迭代」）",
+                "对模型能力边界的判断与取舍（对应「能区分模型能力与产品承诺」）",
+                "事实准确性相关的处理动作（对应「重视事实准确性」）",
+                "真实用户验证或上线经历（对应加分项「有真实用户验证或上线经验」，有才写，未上线保持未上线）"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {}
+        },
+        {
+          "version_id": "face48b9-a174-428c-b050-1f60c787c160",
+          "label": "局部修改",
+          "created_at": "2026-10-08T16:43:01.038679+00:00",
+          "resume_data": {
+            "basic_info": {
+              "name": "",
+              "phone": "",
+              "email": "",
+              "location": "",
+              "objective": "",
+              "gender": "",
+              "age": "",
+              "birthday": "",
+              "hometown": "",
+              "political": "",
+              "ethnicity": "",
+              "height": ""
+            },
+            "education": [],
+            "work_experience": [],
+            "projects": [
+              {
+                "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                "name": "路线笔记",
+                "role": "",
+                "start_date": "",
+                "end_date": "",
+                "description": "做过一个名为“路线笔记”的旅游 Agent。\n“路线笔记”是课程小组的 Demo。\n用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。\n项目还没上线。\n将错误回答分为虚构地点和行程时间冲突，并整理到表格。\n根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                "polished_bullets": [
+                  "参与课程小组旅游规划 Agent「路线笔记」（Demo，未上线），用自己写的出行问题做测试，记录回答中虚构地点、行程时间冲突两类错误",
+                  "将错误回答按虚构地点、行程时间冲突分类整理到表格，作为后续调整的依据",
+                  "针对模型编造地点的问题，根据错误样例修改提示词，约束模型只能从给定地点清单中选择地点"
+                ],
+                "hidden": false
+              }
+            ],
+            "skills": [],
+            "certificates": [],
+            "self_evaluation": "",
+            "resume_strategy": {
+              "mode": "jd_match",
+              "industry": "",
+              "target_role": "AI 产品实习生",
+              "recruiter_priorities": [
+                "本人独立完成的原型设计与产出物（对应「设计原型及评测用例」）",
+                "评测用例的设计与使用过程（对应「设计原型及评测用例」）",
+                "模型回答错误的分析过程与迭代跟进（对应「分析模型回答错误并跟进迭代」）",
+                "对模型能力边界的判断与取舍（对应「能区分模型能力与产品承诺」）",
+                "事实准确性相关的处理动作（对应「重视事实准确性」）",
+                "真实用户验证或上线经历（对应加分项「有真实用户验证或上线经验」，有才写，未上线保持未上线）"
+              ],
+              "section_order": [
+                "基本信息",
+                "工作与实习经历",
+                "项目经历",
+                "教育经历",
+                "技能"
+              ]
+            },
+            "verification_notes": []
+          },
+          "resume_meta": {
+            "bullets": {
+              "84b92f03-27f2-46a5-9d22-9219e0cc33f7": [
+                {
+                  "fact_ids": [
+                    "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                    "f_d96a0423af0e4f85bad855e7d736b71c",
+                    "f_461e980ff829487ab49eca2f97da4be3",
+                    "f_874d711897ca458395f3d427bba19c89",
+                    "f_547bb561a2d3458eb053f0c6eedc58ea"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "c38ad1660391aebd67151b4e2ea47f8ca62e266c11fe885897a76242ba59558f"
+                },
+                {
+                  "fact_ids": [
+                    "f_5cfbb690fae441f0a05f4604f05962cf"
+                  ],
+                  "req_ids": [
+                    "r4"
+                  ],
+                  "flags": [
+                    "transferable"
+                  ],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "text_hash": "b695f8829ddba49f215ed2a18ccd55dd30b86785c1ee52b571210d46bfb8c8ac"
+                },
+                {
+                  "fact_ids": [
+                    "f_3ad8db2075e74cd28ab395aea59f07ac"
+                  ],
+                  "req_ids": [
+                    "r1",
+                    "r4"
+                  ],
+                  "flags": [
+                    "transferable"
+                  ],
+                  "needs_metric": true,
+                  "metric_question": "改完提示词后复测过吗？虚构地点这类错误大概还剩多少（或从几条降到几条）？",
+                  "text_hash": "4869a504c2b83df3ffb68b0c3fe4be294a1003e4e65373f49c64628c26c017f1"
+                }
+              ]
+            },
+            "version_id": "face48b9-a174-428c-b050-1f60c787c160",
+            "label": "局部修改",
+            "match_plan": {
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "transferable",
+                  "fact_ids": [
+                    "f_3ad8db2075e74cd28ab395aea59f07ac",
+                    "f_547bb561a2d3458eb053f0c6eedc58ea"
+                  ],
+                  "angle": "面对模型会编造地点的问题，没有继续依赖模型自由生成，而是把地点来源限制在给定清单内，属于对模型能力边界的判断；但材料中没有对外承诺相关的取舍，只能作为相近事实迁移表达"
+                },
+                {
+                  "req_id": "r2",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                },
+                {
+                  "req_id": "r3",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_a6a7fb2e48de445a8ae5151f171c71c2",
+                    "f_3ad8db2075e74cd28ab395aea59f07ac"
+                  ],
+                  "angle": "做过旅游 Agent，并动手改过提示词约束模型输出，属于大模型应用的真实接触"
+                },
+                {
+                  "req_id": "r4",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_461e980ff829487ab49eca2f97da4be3",
+                    "f_874d711897ca458395f3d427bba19c89",
+                    "f_5cfbb690fae441f0a05f4604f05962cf",
+                    "f_3ad8db2075e74cd28ab395aea59f07ac"
+                  ],
+                  "angle": "自己写出行问题测试，记录虚构地点与时间冲突并分类整理，再据此改提示词限制地点来源，是事实准确性意识的直接证据"
+                },
+                {
+                  "req_id": "r5",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": "项目未上线、无真实用户验证，材料中也没有用户反馈，不写"
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                  "treatment": "lead",
+                  "reason": "唯一一段经历，且直接命中 JD 的「分析模型回答错误并跟进迭代」「重视事实准确性」「了解大模型应用」；按 lead 展开 3 条，覆盖：项目定位与课程小组 Demo 状态、自测与错误分类、据错误样例改提示词约束地点来源",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "education",
+                "work_experience",
+                "skills",
+                "certificates"
+              ],
+              "summary_angle": "不写个人总结：仅一段课程小组 Demo，无跨背景或可一句话概括的强匹配结论",
+              "questions": [
+                {
+                  "q": "改完提示词、让模型只能从给定地点清单里选之后，你复测过吗？虚构地点这类错误大概还剩多少、或从几条降到几条？",
+                  "why": "现在只能写到「根据错误样例修改提示词」，没有复测结果，无法证明迭代闭环真的有效；这是 JD 最看重的「跟进迭代」证据",
+                  "improves": {
+                    "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "复测了，虚构地点基本不再出现",
+                    "复测了，还有少量，大概 X 条里剩 Y 条",
+                    "没系统复测，只是自己又试了几次"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "你一共测了多少条出行问题？错误记录表格里大概记了多少条 bad case、分成几类？",
+                  "why": "能给出测试规模与错误条数，这条 bullet 就从「记录过错误」升级为可量化的评测动作，是学生简历里最稀缺的信号",
+                  "improves": {
+                    "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                    "req_id": "r4"
+                  },
+                  "options": [
+                    "大概测了十几条问题，记了十几条错误",
+                    "测了几十条，表格里按两类整理",
+                    "没数过，就是随手记的"
+                  ],
+                  "value": 4
+                },
+                {
+                  "q": "这个课程小组 Demo 里，Agent 的哪部分是你自己做的？比如提示词、地点清单、对话流程、界面，你具体负责哪块？",
+                  "why": "目前只能写「做过」，无法区分个人贡献与小组产出，面试官一定会追问；说清自己负责的部分才能把动作写实",
+                  "improves": {
+                    "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+                    "req_id": "r3"
+                  },
+                  "options": [
+                    "提示词和地点清单是我弄的，界面是队友做的",
+                    "整个 Agent 流程我一个人搭的",
+                    "大家一起做，我主要负责测试和改提示词"
+                  ],
+                  "value": 5
+                }
+              ]
+            },
+            "omitted": [],
+            "page_check": {
+              "status": "rendered",
+              "pages": 1,
+              "page_limit": 1,
+              "within_page_limit": true,
+              "template_id": "t001-jianyue",
+              "data_hash": "6cf3e96f5a6ebb0cb8dedb62f77aead2bdb4a2e8741ab49776b1746270f0c0e2",
+              "source": "production_render_resume_pdf"
+            },
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass"
+            },
+            "compression_writer_diagnostics": [],
+            "guard_fallbacks": [],
+            "change_summary": [
+              "调整了 1 段经历的表述或顺序。"
+            ]
+          }
+        }
+      ],
+      "match_plan": {
+        "requirements": [
+          {
+            "req_id": "r1",
+            "status": "transferable",
+            "fact_ids": [
+              "f_3ad8db2075e74cd28ab395aea59f07ac",
+              "f_5cfbb690fae441f0a05f4604f05962cf"
+            ],
+            "angle": "没有对外承诺层面的取舍事实，但有「模型会编造地点 → 用提示词把选择范围限定在给定地点清单」的边界约束动作，可迁移表达为对模型能力边界的处理"
+          },
+          {
+            "req_id": "r2",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": ""
+          },
+          {
+            "req_id": "r3",
+            "status": "direct",
+            "fact_ids": [
+              "f_a6a7fb2e48de445a8ae5151f171c71c2",
+              "f_3ad8db2075e74cd28ab395aea59f07ac"
+            ],
+            "angle": "做过旅游规划 Agent，并实际改过提示词约束模型输出"
+          },
+          {
+            "req_id": "r4",
+            "status": "direct",
+            "fact_ids": [
+              "f_461e980ff829487ab49eca2f97da4be3",
+              "f_874d711897ca458395f3d427bba19c89",
+              "f_5cfbb690fae441f0a05f4604f05962cf",
+              "f_3ad8db2075e74cd28ab395aea59f07ac"
+            ],
+            "angle": "自测中记录虚构地点、时间冲突并据此改提示词，直接体现事实准确性意识"
+          },
+          {
+            "req_id": "r5",
+            "status": "gap",
+            "fact_ids": [],
+            "angle": "项目未上线、无真实用户验证事实，保持未上线状态不美化"
+          }
+        ],
+        "experience_plan": [
+          {
+            "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+            "treatment": "lead",
+            "reason": "唯一经历，且直接命中错误分析与迭代、事实准确性两个核心信号；按用户指令压成一条，合并本人动作（自测、记录、分类、改提示词）、团队分工（课程小组 Demo）与状态限制（未上线）",
+            "target_bullets": 1
+          }
+        ],
+        "section_order": [
+          "projects",
+          "education",
+          "work_experience",
+          "skills",
+          "certificates"
+        ],
+        "summary_angle": "不写个人总结：仅一段课程小组 Demo，无跨背景或强匹配一句话可概括",
+        "questions": [
+          {
+            "q": "改完提示词之后，你复测过吗？虚构地点这类错误大概减少了多少（比如原来 10 条里有几条，改后剩几条）？",
+            "why": "现在只能写到「修改提示词」，补上复测结果就能形成「效果不好 → 定位 → 改 → 复测」的闭环，这是本岗位最强信号",
+            "improves": {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "req_id": "r4"
+            },
+            "options": [
+              "又拿同一批问题复测了一遍，虚构地点基本没有了",
+              "复测后仍有少量编造，但比之前少",
+              "改完没有再系统复测，只是自己又试了几条"
+            ],
+            "value": 5
+          },
+          {
+            "q": "测试时一共用了多少条出行问题、覆盖哪些场景（比如几天行程、多城市）？错误分类表格里大概记了多少条 bad case？",
+            "why": "给评测动作一个规模口径，把「自己试了试」变成可量化的评测记录",
+            "improves": {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "req_id": "r2"
+            },
+            "options": [
+              "大概十几条问题，覆盖 2–3 天行程",
+              "几十条，包含多城市和单城市",
+              "记不清条数，就是自己想到的问题都试了"
+            ],
+            "value": 4
+          },
+          {
+            "q": "这个 Demo 里你具体负责哪部分？原型/界面是你画的吗，还是只做了测试和提示词这块？",
+            "why": "JD 明确要求能描述本人完成的原型与评测工作，需要确认原型是否属于本人产出，才能决定要不要写进简历",
+            "improves": {
+              "item_id": "84b92f03-27f2-46a5-9d22-9219e0cc33f7",
+              "req_id": "r2"
+            },
+            "options": [
+              "原型是我画的，测试和提示词也是我做的",
+              "原型是组里其他人画的，我负责测试和提示词",
+              "没有正式原型，只有能跑起来的 Demo"
+            ],
+            "value": 4
+          }
+        ]
+      },
+      "session_constraints": {
+        "page_limit": 1,
+        "language": "zh-CN",
+        "template_id": "t001-jianyue"
+      },
+      "guard_fallbacks": []
+    },
+    "new_versions": [
+      "v005"
+    ]
+  }
+]

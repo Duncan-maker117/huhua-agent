@@ -5,7 +5,6 @@ import sys
 import unittest
 from contextlib import asynccontextmanager
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import httpx
@@ -18,10 +17,10 @@ from pydantic import BaseModel
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-from app.agents.editor_chain import run_editor  # noqa: E402
+from app.agents.resume_writer import run_resume_writer  # noqa: E402
 from app.agents.triage_chain import TriageAction, run_triage  # noqa: E402
 from app.services.llm_compat import with_structured_output  # noqa: E402
-from app.services.resume_suggestions import check_support  # noqa: E402
+from app.services.fact_guard import verify_semantics  # noqa: E402
 
 
 class _Answer(BaseModel):
@@ -262,70 +261,39 @@ class LLMCompatTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(requests), 1)
         self.assert_deepseek_request(requests[0])
 
-    async def test_editor_chain_uses_deepseek_tool_call(self):
-        source = {
-            "skills": ["Python"],
-            "projects": [{"name": "简历工具", "description": "参与调研；整理访谈笔记"}],
-        }
-        output = {
-            "skill_groups": {"技术栈": ["Python"]},
-            "experience_section_title": "项目经历",
-            "project_polishes": [
-                {"name": "简历工具", "polished_bullets": ["整理访谈笔记", "参与调研"]}
-            ],
-        }
+    async def test_writer_uses_deepseek_tool_call(self):
+        from app.services.resume_facts import normalize_fact_store
+        source = normalize_fact_store({'projects': [{'name': '简历工具', 'description': '整理访谈笔记'}]})
+        item = source['projects'][0]
+        output = {'match_plan': {'experience_plan': [{'item_id': item['item_id'], 'treatment': 'keep', 'target_bullets': 1}]},
+                  'writer': {'items': [{'item_id': item['item_id'], 'section': 'projects',
+                             'bullets': [{'text': '整理访谈笔记', 'fact_ids': [item['facts'][0]['id']]}]}]}}
         async with self.offline_llm(output=output) as (llm, requests):
-            result = await run_editor(source, llm)
-        self.assertEqual(result["skill_groups"], output["skill_groups"])
-        self.assertEqual(result["experience_section_title"], "项目经历")
-        self.assertEqual(result["projects"][0]["polished_bullets"], ["整理访谈笔记", "参与调研"])
+            result = await run_resume_writer(source, {}, llm, current_data=source)
+        self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'], ['整理访谈笔记'])
         self.assertEqual(len(requests), 1)
         self.assert_deepseek_request(requests[0])
 
-    async def test_suggestion_support_uses_deepseek_tool_call(self):
-        source = "参与简历工具调研，整理访谈笔记。"
-        proposed = "整理简历工具调研的访谈笔记。"
-        output = {
-            "supported": True,
-            "reason": "改写保留原句的调研内容与产出",
-            "unsupported_claims": [],
-            "evidence": ["参与简历工具调研", "整理访谈笔记"],
-        }
-        async with self.offline_llm(output=output) as (llm, requests):
-            with patch(
-                "app.services.resume_suggestions.get_settings",
-                return_value=SimpleNamespace(LLM_API_KEY="offline-test-key"),
-            ):
-                result = await check_support(source, proposed, llm)
-        self.assertTrue(result.supported)
-        self.assertEqual(result.reason, output["reason"])
-        self.assertEqual(result.evidence, output["evidence"])
-        self.assertEqual(result.unsupported_claims, [])
+    async def test_semantic_guard_uses_deepseek_tool_call(self):
+        row = {'id': 'b1', 'subject_ok': True, 'actions_supported': True, 'objects_supported': True,
+               'results_supported': True, 'limits_kept': True, 'unsupported_spans': [], 'verdict': 'pass'}
+        async with self.offline_llm(output={'decisions': [row]}) as (llm, requests):
+            result = await verify_semantics([{'id': 'b1', 'text': '分类整理反馈', 'source_quotes': ['整理反馈并分类']}], llm)
+        self.assertEqual(result['b1']['verdict'], 'pass')
         self.assertEqual(len(requests), 1)
         self.assert_deepseek_request(requests[0])
-        self.assertEqual(requests[0]["tools"][0]["function"]["name"], "SupportCheck")
+        self.assertEqual(requests[0]['tools'][0]['function']['name'], 'SemanticBatch')
 
-    async def test_suggestion_support_rejects_invalid_tool_call_evidence(self):
-        source = "参与简历工具调研，整理访谈笔记。"
-        proposed = "整理简历工具调研的访谈笔记。"
-        output = {
-            "supported": True,
-            "reason": "模型误判为有依据",
-            "unsupported_claims": [],
-            "evidence": ["完成用户测试"],
-        }
-        async with self.offline_llm(output=output) as (llm, requests):
-            with patch(
-                "app.services.resume_suggestions.get_settings",
-                return_value=SimpleNamespace(LLM_API_KEY="offline-test-key"),
-            ):
-                result = await check_support(source, proposed, llm)
-        self.assertFalse(result.supported)
-        self.assertIn("未找到可定位的原句依据", result.reason)
-        self.assertEqual(result.evidence, output["evidence"])
+    async def test_semantic_guard_rejects_inconsistent_tool_call_evidence(self):
+        row = {'id': 'b1', 'subject_ok': True, 'actions_supported': False, 'objects_supported': True,
+               'results_supported': True, 'limits_kept': True, 'unsupported_spans': ['清理'], 'verdict': 'pass'}
+        async with self.offline_llm(output={'decisions': [row]}) as (llm, requests):
+            result = await verify_semantics([{'id': 'b1', 'text': '清理重复记录', 'source_quotes': ['核对重复记录']}], llm)
+        self.assertEqual(result['b1']['verdict'], 'fail')
+        self.assertEqual(result['b1']['unsupported_spans'], ['清理'])
         self.assertEqual(len(requests), 1)
         self.assert_deepseek_request(requests[0])
-        self.assertEqual(requests[0]["tools"][0]["function"]["name"], "SupportCheck")
+        self.assertEqual(requests[0]['tools'][0]['function']['name'], 'SemanticBatch')
 
 
 if __name__ == "__main__":

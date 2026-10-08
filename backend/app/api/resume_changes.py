@@ -7,81 +7,59 @@ from app.agents.resume_graph import _serialize_to_resume_data
 from app.api.resume import _llm_for_graph, get_graph
 from app.database import SessionLocal
 from app.services.access_control import authorize_session
-from app.services.canonical_resume import ResumeRevisionConflict, resume_revision, save_canonical_resume
+from app.services.canonical_resume import InvalidResumeSession, ResumeSaveUnavailable, ResumeRevisionConflict, resume_revision, save_canonical_resume
 from app.services.profile_bridge import account_id, protect_data, protect_state
 from app.services.profile_service import context_to_collected_info, get_context, merge_job_version_import, ProfileRevisionConflict
-from app.services.resume_suggestions import apply_suggestion, generate_suggestion, preview_suggestion
+from app.services.resume_versions import restore_payload, document_diff
 from app.services.resume_workspace import build_workspace
-from app.services.session_store import load_resume_session, session_lock
+from app.services.session_store import load_resume_session, session_lock, SessionStorageUnavailable
 
 router = APIRouter()
 
 
-class SuggestionPreview(BaseModel):
-    source_text: str = Field(min_length=1, max_length=4000)
-    suggested_text: str = Field(min_length=1, max_length=4000)
-
-
-class SuggestionGenerate(BaseModel):
-    source_text: str = Field(min_length=1, max_length=4000)
+class VersionUndo(BaseModel):
     expected_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
-    instruction: str | None = Field(default=None, max_length=1000)
-
-
-class SuggestionApply(BaseModel):
-    suggestion_id: str = Field(min_length=1, max_length=64)
-    expected_revision: str = Field(min_length=64, max_length=64)
-
-
-class SuggestionUndo(BaseModel):
-    change_id: str = Field(min_length=1, max_length=64)
-    expected_revision: str = Field(min_length=64, max_length=64)
+    version_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class ProfileImport(BaseModel):
     fact_ids: list[str] = Field(min_length=1, max_length=100)
 
 
-@router.post("/session/{session_id}/suggestions/preview")
-async def preview(session_id: str, body: SuggestionPreview, request: Request):
-    owner = authorize_session(request, session_id)
-    protect_data(owner, body.model_dump(), reject=True)
+@router.post("/session/{session_id}/versions/undo")
+async def undo_version(session_id: str, body: VersionUndo, request: Request):
+    authorize_session(request, session_id)
     async with session_lock(session_id):
-        owner = authorize_session(request, session_id)
-        return await preview_suggestion(owner, session_id, body.source_text, body.suggested_text, _llm_for_graph())
-
-
-@router.post("/session/{session_id}/suggestions/generate")
-async def generate(session_id: str, body: SuggestionGenerate, request: Request):
-    owner = authorize_session(request, session_id)
-    protect_data(owner, body.model_dump(), reject=True)
-    async with session_lock(session_id):
-        owner = authorize_session(request, session_id)
-        return await generate_suggestion(owner, session_id, body.source_text, body.expected_revision,
-                                         body.instruction, _llm_for_graph())
-
-
-async def _apply(request, session_id, change_id, revision, undo=False):
-    owner = authorize_session(request, session_id)
-    async with session_lock(session_id):
-        owner = authorize_session(request, session_id)
+        authorize_session(request, session_id)
         try:
-            result = await apply_suggestion(owner, session_id, change_id, revision,
-                                            get_graph(_llm_for_graph()), _serialize_to_resume_data, undo=undo)
-            result["workspace"] = build_workspace({}, result["data"])
-            return result
+            stored = load_resume_session(session_id)
+        except SessionStorageUnavailable:
+            raise HTTPException(503, "版本暂时无法读取，请稍后重试") from None
+        if stored is None:
+            raise HTTPException(404, "会话不存在或已清除")
+        if resume_revision(stored["resume_data"]) != body.expected_revision:
+            raise HTTPException(409, "简历已变化，请载入最新版本")
+        try:
+            proposal = restore_payload(stored, body.version_id)
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from None
+        try:
+            saved = await save_canonical_resume(
+                session_id, body.expected_revision, proposal["resume_data"],
+                get_graph(_llm_for_graph()), _serialize_to_resume_data, source="restore",
+                resume_meta=proposal["resume_meta"], resume_versions=proposal["resume_versions"],
+            )
         except ResumeRevisionConflict:
             raise HTTPException(409, "简历已变化，请载入最新版本") from None
-
-
-@router.post("/session/{session_id}/suggestions/apply")
-async def apply(session_id: str, body: SuggestionApply, request: Request):
-    return await _apply(request, session_id, body.suggestion_id, body.expected_revision)
-
-
-@router.post("/session/{session_id}/suggestions/undo")
-async def undo(session_id: str, body: SuggestionUndo, request: Request):
-    return await _apply(request, session_id, body.change_id, body.expected_revision, undo=True)
+        except InvalidResumeSession:
+            raise HTTPException(404, "会话不存在或已清除") from None
+        except ResumeSaveUnavailable:
+            raise HTTPException(503, "撤销保存失败，当前版本未更改，请重试") from None
+        return {**saved, "version_id": proposal["version_id"],
+                "diff": document_diff(stored["resume_data"], saved["data"]),
+                "change_summary": ["已恢复到所选历史版本，事实资料和当前编辑要求保持不变。"],
+                "workspace": build_workspace({**stored, "resume_meta": proposal["resume_meta"],
+                                              "resume_versions": proposal["resume_versions"]}, saved["data"])}
 
 
 @router.post("/session/{session_id}/profile-facts")

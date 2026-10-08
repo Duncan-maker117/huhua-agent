@@ -1,0 +1,1561 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 模型错误分析与评测意识",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u002 中所有主张均能在 observed 原文中找到直接对应的表述：项目名称、课程 Demo、自己编写出行问题测试、记录错误类型及未上线状态，无未披露事实。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 3,
+          "results_impact": 1,
+          "professional_expression": 3,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 模型错误分析与评测意识",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 1,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 1,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 1,
+          "ratio": 0.0
+        },
+        "usage": {
+          "input_tokens": 1848,
+          "output_tokens": 5050,
+          "total_tokens": 6898
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c65-9246-7903-93a6-26d03018c83a",
+          "started_at": "2026-10-09T00:43:01.063031+08:00",
+          "usage": {
+            "input_tokens": 1848,
+            "output_tokens": 5050,
+            "total_tokens": 6898
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u002全部主张均可在observed_facts中找到原文支持：项目为课程小组Demo、自行编写出行问题测试、记录乱编地点与时间冲突、未上线、错误分类整理、修改提示词限制地点。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 5,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。",
+                  "fact_indices": [
+                    1
+                  ]
+                },
+                {
+                  "unit_id": "u002",
+                  "quote": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 模型错误分析与评测意识",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1,
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                1,
+                2
+              ],
+              "covered_truth_fact_indices": [
+                1,
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。",
+                    "fact_indices": [
+                      1
+                    ]
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1,
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。",
+                    "fact_indices": [
+                      1
+                    ]
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1,
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1933,
+          "output_tokens": 3467,
+          "total_tokens": 5400
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c66-7ebc-73b3-b44f-53a2c7a1a59c",
+          "started_at": "2026-10-09T00:44:01.596939+08:00",
+          "usage": {
+            "input_tokens": 1933,
+            "output_tokens": 3467,
+            "total_tokens": 5400
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed fact directly covers participation, project name, demo/not online, writing own travel questions, testing, and recording fabricated location and time conflict errors.",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed fact shows the classification and table organization, and the subsequent prompt adjustment, supporting the claim of using classified errors as basis for later adjustment.",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed fact directly states modifying prompt based on error samples and restricting model to select from given location list.",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 5,
+          "selection_length": 5
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "将错误回答按虚构地点、行程时间冲突分类整理到表格，作为后续调整的依据",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 模型错误分析与评测意识",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1,
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "针对模型编造地点的问题，根据错误样例修改提示词，约束模型只能从给定地点清单中选择地点",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 3,
+            "fact_ratio": 0.6666666666666666,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "将错误回答按虚构地点、行程时间冲突分类整理到表格，作为后续调整的依据",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1,
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "针对模型编造地点的问题，根据错误样例修改提示词，约束模型只能从给定地点清单中选择地点",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "将错误回答按虚构地点、行程时间冲突分类整理到表格，作为后续调整的依据",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1,
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "针对模型编造地点的问题，根据错误样例修改提示词，约束模型只能从给定地点清单中选择地点",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1990,
+          "output_tokens": 5889,
+          "total_tokens": 7879
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c67-1d62-73a0-9f59-88e8c201b335",
+          "started_at": "2026-10-09T00:44:42.210716+08:00",
+          "usage": {
+            "input_tokens": 1990,
+            "output_tokens": 5889,
+            "total_tokens": 7879
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过一个叫“路线笔记”的旅游 Agent，是课程小组的 Demo。我拿自己写的出行问题试它，把回答里乱编地点和时间冲突的情况记下来了，项目还没上线。",
+                "我把错误回答分为虚构地点和行程时间冲突，并整理到表格。\n我根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "单元中的所有主张均可在 observed_facts 中找到原文支持：项目为课程小组旅游 Agent Demo 且未上线、自写出行问题测试、记录并归类两类错误、据错误样例修改提示词、约束模型从给定地点清单选择地点。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 4,
+          "selection_length": 5
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "用自写出行问题测试",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 模型错误分析与评测意识",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1,
+                2
+              ],
+              "truth_fact_indices": [
+                1,
+                2,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "据错误样例修改提示词，约束模型只能从给定地点清单中选择地点",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 围绕模型边界调整原型方案",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 3,
+            "fact_ratio": 0.6666666666666666,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用自写出行问题测试",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1,
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "据错误样例修改提示词，约束模型只能从给定地点清单中选择地点",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用自写出行问题测试",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1,
+                  2
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "据错误样例修改提示词，约束模型只能从给定地点清单中选择地点",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 真实用户验证或上线经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1940,
+          "output_tokens": 4406,
+          "total_tokens": 6346
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c68-2ab5-7c31-ae76-8a249a206d00",
+          "started_at": "2026-10-09T00:45:51.157718+08:00",
+          "usage": {
+            "input_tokens": 1940,
+            "output_tokens": 4406,
+            "total_tokens": 6346
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按 JD 再改“路线笔记”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 将原本成段描述拆成三条，保留并突出本人完成的测试、错误分类和提示词修改，内容与 before/truth facts 对应，未新增项目履历、他人工作或商业数据。",
+        "evidence": [
+          {
+            "before_quote": "做过一个名为“路线笔记”的旅游 Agent。\n“路线笔记”是课程小组的 Demo。\n用自己写的出行问题测试“路线笔记”。\n测试中记录下回答里乱编地点和时间冲突的情况。\n项目还没上线。",
+            "after_quote": "参与课程小组旅游规划 Agent「路线笔记」（Demo，未上线），用自己写的出行问题做测试，记录回答中虚构地点、行程时间冲突两类错误"
+          },
+          {
+            "before_quote": "将错误回答分为虚构地点和行程时间冲突，并整理到表格。",
+            "after_quote": "将错误回答按虚构地点、行程时间冲突分类整理到表格，作为后续调整的依据"
+          },
+          {
+            "before_quote": "根据错误样例修改了提示词，让模型只能从给定地点清单中选地点。",
+            "after_quote": "针对模型编造地点的问题，根据错误样例修改提示词，约束模型只能从给定地点清单中选择地点"
+          }
+        ],
+        "usage": {
+          "input_tokens": 921,
+          "output_tokens": 2975,
+          "total_tokens": 3896
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c68-f6b9-7971-866f-1dcf9bff896a",
+          "started_at": "2026-10-09T00:46:43.385419+08:00",
+          "usage": {
+            "input_tokens": 921,
+            "output_tokens": 2975,
+            "total_tokens": 3896
+          }
+        }
+      ]
+    },
+    {
+      "turn": 5,
+      "instruction": "把“路线笔记”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 将原本三条断言合并为一条，保留了 Demo 未上线状态与本人测试、归类错误、修改提示词等工作，并删除了重复条目，符合精简要求；团队分工在原可见正文中未明确出现，未额外新增。",
+        "evidence": [
+          {
+            "before_quote": "参与课程小组旅游规划 Agent「路线笔记」（Demo，未上线），用自己写的出行问题做测试，记录回答中虚构地点、行程时间冲突两类错误",
+            "after_quote": "课程小组旅游规划 Agent「路线笔记」（Demo，未上线）：用自写出行问题测试，记录并归类虚构地点、行程时间冲突两类错误，据错误样例修改提示词，约束模型只能从给定地点清单中选择地点"
+          }
+        ],
+        "usage": {
+          "input_tokens": 897,
+          "output_tokens": 4101,
+          "total_tokens": 4998
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c69-7657-75e1-8d2f-e942cd57dbf0",
+          "started_at": "2026-10-09T00:47:16.055874+08:00",
+          "usage": {
+            "input_tokens": 897,
+            "output_tokens": 4101,
+            "total_tokens": 4998
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

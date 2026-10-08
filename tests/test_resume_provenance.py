@@ -13,13 +13,12 @@ from sqlalchemy import select
 
 import test_product_security_flow as fixtures
 from app.agents.resume_graph import _serialize_to_resume_data
-from app.models.models import ResumeSession
 from app.models.profile import ProfileJobVersion
 from app.schemas.editor import ResumeData
-from app.services.canonical_resume import resume_revision, save_canonical_resume
+from app.services.canonical_resume import save_canonical_resume
 from app.services.profile_bridge import prepare_graph_context
-from app.services.profile_service import _open, context_to_collected_info, get_context
-from app.services.session_store import save_resume_session, SessionStorageUnavailable
+from app.services.profile_service import _open
+from app.services.session_store import save_resume_session
 
 
 class ResumeProvenanceTests(unittest.IsolatedAsyncioTestCase):
@@ -315,20 +314,17 @@ class ResumeProvenanceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(rebuilt[group][0]["item_id"], item_id)
             self.assertNotIn(item_id, resume_to_text(rebuilt))
 
-    async def test_suggestion_apply_undo_preserve_sidecar_and_later_erasure(self):
+    async def test_version_undo_preserves_sidecar_and_later_erasure(self):
+        from app.services.resume_versions import prepare_version
         sid, fact, view = await self.imported(field="description", value="参与整理需求。")
         before = self.mapping(sid)
-        preview = await self.a.post(f"/api/resume/session/{sid}/suggestions/preview", json={
-            "source_text": "参与整理需求。", "suggested_text": "参与整理需求；",
-        })
-        self.assertEqual(preview.status_code, 200, preview.text)
-        applied = await self.a.post(f"/api/resume/session/{sid}/suggestions/apply", json={
-            "suggestion_id": preview.json()["suggestion_id"], "expected_revision": preview.json()["revision"],
-        })
-        self.assertEqual(applied.status_code, 200, applied.text)
-        undone = await self.a.post(f"/api/resume/session/{sid}/suggestions/undo", json={
-            "change_id": preview.json()["suggestion_id"], "expected_revision": applied.json()["revision"],
-        })
+        changed = copy.deepcopy(view["data"])
+        self.linked(changed)["description"] = "参与整理需求；"
+        proposal = prepare_version(view["data"], {}, [], changed, {})
+        applied = await save_canonical_resume(sid, view["revision"], changed, self.graph,
+                    _serialize_to_resume_data, source="writer", resume_meta=proposal["resume_meta"],
+                    resume_versions=proposal["resume_versions"])
+        undone = await self.a.post(f"/api/resume/session/{sid}/versions/undo", json={"expected_revision": applied["revision"]})
         self.assertEqual(undone.status_code, 200, undone.text)
         self.assertEqual(self.mapping(sid), before)
         await self.a.delete(f"/api/profile/facts/{fact['id']}?expected_revision={fact['revision']}")

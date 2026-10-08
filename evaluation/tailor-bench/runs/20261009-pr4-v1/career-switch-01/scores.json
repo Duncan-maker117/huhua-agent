@@ -1,0 +1,3146 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": false,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "观察到原话直接支持“之前主要做社团运营”。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该叙述的每个部分都在观察到的原话中有对应表述。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 4,
+            "fact_ratio": 0.25,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1966,
+          "output_tokens": 5068,
+          "total_tokens": 7034
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c47-15a2-73a1-b2cb-393435f200fb",
+          "started_at": "2026-10-09T00:09:43.074710+08:00",
+          "usage": {
+            "input_tokens": 1966,
+            "output_tokens": 5068,
+            "total_tokens": 7034
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句与已披露原话一致，未新增主张。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "整段描述均有观察到的原话支持，无未证实的新增事实。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 3,
+          "results_impact": 1,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "用 GPT 试着分类。\n再人工检查。",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": true,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": true,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1966,
+          "output_tokens": 4870,
+          "total_tokens": 6836
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c48-03ed-7c53-a8af-09c738fb6fa7",
+          "started_at": "2026-10-09T00:10:44.083766+08:00",
+          "usage": {
+            "input_tokens": 1966,
+            "output_tokens": 4870,
+            "total_tokens": 6836
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 3,
+      "user_visible": false,
+      "score": {
+        "status": "error",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                3,
+                5
+              ],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 3,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 4,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": null,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": null,
+          "total": 2,
+          "ratio": null
+        },
+        "usage": {},
+        "error_type": "JudgeSchemaError",
+        "validation_error": "ungrounded evidence quote",
+        "unvalidated_result": {
+          "audits": [
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "主张与已披露原文一致。"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。",
+                "我用 GPT 给问题试做分类，再逐条人工检查分类是否贴合原意。\n我保留了分类前后的例子和自己的检查备注，但没有正式评测集或准确率统计。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "所有主张均有已披露原文支持。"
+            }
+          ],
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 3,
+            "results_impact": 2,
+            "professional_expression": 3,
+            "selection_length": 2
+          },
+          "coverage": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "用 GPT 试着分类。再人工检查。",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u004",
+                  "quote": "逐条人工检查分类是否贴合原意。",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u004",
+                  "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": []
+            }
+          ]
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c48-ea22-7d72-84fc-2634d0cbf823",
+          "started_at": "2026-10-09T00:11:43.010945+08:00",
+          "usage": {
+            "input_tokens": 2047,
+            "output_tokens": 6372,
+            "total_tokens": 8419
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文仅说明之前主要做社团运营，与原话一致，无新增或夸大。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。",
+                "我用 GPT 给问题试做分类，再逐条人工检查分类是否贴合原意。\n我保留了分类前后的例子和自己的检查备注，但没有正式评测集或准确率统计。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文逐句对应 observed_facts 中的活动问答整理描述，未增加未披露事实；明确未上线产品，并注明无评测集和准确率统计。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u004",
+                  "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                5
+              ],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                5
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2047,
+          "output_tokens": 6490,
+          "total_tokens": 8537
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c49-fe4e-7cb1-badb-c94621a2f3fc",
+          "started_at": "2026-10-09T00:12:53.711093+08:00",
+          "usage": {
+            "input_tokens": 2047,
+            "output_tokens": 6490,
+            "total_tokens": 8537
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v006",
+      "turn": 4,
+      "user_visible": false,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句与观察事实中“我之前主要做社团运营”一致，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。",
+                "逐条人工检查分类是否贴合原意。\n我保留了分类前后的例子和自己的检查备注，但没有正式评测集或准确率统计。",
+                "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "整段包含的事实性陈述（本人整理、收集问题到表格、GPT 分类、人工检查、同学提供材料、未上线、保留检查备注、无正式评测集）均可在已披露观察原文中找到对应；最后一句为编辑说明，与事实核验无关。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 4,
+          "results_impact": 1,
+          "professional_expression": 1,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u004",
+                  "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                5
+              ],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                5
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2105,
+          "output_tokens": 8758,
+          "total_tokens": 10863
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c4b-3114-7d70-a927-a06b0cb68029",
+          "started_at": "2026-10-09T00:14:12.244392+08:00",
+          "usage": {
+            "input_tokens": 2105,
+            "output_tokens": 8758,
+            "total_tokens": 10863
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v007",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该断言在观察事实中有直接原文支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。",
+                "我用 GPT 给问题试做分类，再逐条人工检查分类是否贴合原意。\n我保留了分类前后的例子和自己的检查备注，但没有正式评测集或准确率统计。",
+                "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元所有主张均能在观察事实中找到原文支持。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。\n用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u004",
+                  "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                5
+              ],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                5
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。\n用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。\n用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2105,
+          "output_tokens": 10056,
+          "total_tokens": 12161
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c4c-c0a4-7633-9465-4366afbfcbcd",
+          "started_at": "2026-10-09T00:15:54.532468+08:00",
+          "usage": {
+            "input_tokens": 2105,
+            "output_tokens": 10056,
+            "total_tokens": 12161
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v008",
+      "turn": 5,
+      "user_visible": false,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [
+                "从社团运营经历"
+              ],
+              "unsupported_spans": [],
+              "reason": "正文陈述“之前主要做社团运营”得到 observed_facts 中原话支持，且 truth_facts 中亦有对应事实，无新增或夸大。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理",
+                "把群里反复问的问题放到表格里",
+                "用 GPT 试着分类",
+                "再人工检查",
+                "有同学一起提供材料",
+                "没做成上线产品",
+                "逐条人工检查分类是否贴合原意",
+                "保留了分类前后的例子和自己的检查备注",
+                "没有正式评测集或准确率统计",
+                "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+                "把“活动问答整理”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。"
+              ],
+              "truth_quotes": [
+                "“活动问答整理”是社团的一次内部整理尝试，没有开发成产品，也没有上线。",
+                "在“活动问答整理”中，我把群里重复出现的活动问题整理到表格。",
+                "在“活动问答整理”中，我用 GPT 给问题试做分类，再逐条人工检查分类是否贴合原意。",
+                "在“活动问答整理”中，我保留了分类前后的例子和自己的检查备注，但没有正式评测集或准确率统计。",
+                "在“活动问答整理”中，同学协助提供群内问题；整理表格和尝试 GPT 分类是我做的，我没有领导团队。"
+              ],
+              "unsupported_spans": [],
+              "reason": "u004 中所有事实性陈述均在 observed_facts 中有原文对应，且关键动作与 truth_facts 一致；最后两句为修改指令，虽有 observed 原文但不属于事实经历，不影响 supported 判定。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 1,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                5
+              ],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                5
+              ],
+              "covered_truth_fact_indices": [
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 3,
+            "fact_ratio": 0.6666666666666666,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2157,
+          "output_tokens": 10532,
+          "total_tokens": 12689
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c4e-8371-73d0-a72b-dd0e996b88bd",
+          "started_at": "2026-10-09T00:17:49.937502+08:00",
+          "usage": {
+            "input_tokens": 2157,
+            "output_tokens": 10532,
+            "total_tokens": 12689
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v009",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句与已披露原话一致，无新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "“活动问答整理”是我做的一次整理",
+                "把群里反复问的问题放到表格里",
+                "用 GPT 试着分类",
+                "再人工检查",
+                "有同学一起提供材料",
+                "但没做成上线产品",
+                "再逐条人工检查分类是否贴合原意",
+                "我保留了分类前后的例子和自己的检查备注",
+                "但没有正式评测集或准确率统计",
+                "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+                "把“活动问答整理”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "各句均可对应到已披露的原话片段，虽末尾两句为编辑指令，但确实曾出现在 observed_facts 中，不构成事实编造。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 3,
+          "results_impact": 1,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "把群里反复问的问题放到表格里。",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 从用户问题形成需求材料",
+              "expected_status": "transferable",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u004",
+                  "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r2 通过人工检查识别模型分类边界",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                5
+              ],
+              "truth_fact_indices": [
+                3,
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                5
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                5
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "把群里反复问的问题放到表格里。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 从用户问题形成需求材料",
+                "expected_status": "transferable",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u004",
+                    "quote": "保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r2 通过人工检查识别模型分类边界",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  5
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  5
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 RAG、工作流工具或线上 AI 产品经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2157,
+          "output_tokens": 11247,
+          "total_tokens": 13404
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c50-5b4e-75b2-87a6-7d4410d09a52",
+          "started_at": "2026-10-09T00:19:50.734395+08:00",
+          "usage": {
+            "input_tokens": 2157,
+            "output_tokens": 11247,
+            "total_tokens": 13404
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "after 仅将用户指令原文追加到“活动问答整理”文本末尾，没有按 JD 重新表述或突出与岗位相关的本人工作，也未体现不补新经历前提下的实质修改。",
+        "evidence": [
+          {
+            "before_quote": "“活动问答整理”是我做的一次整理。\n把群里反复问的问题放到表格里。\n用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。\n保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。",
+            "after_quote": "“活动问答整理”是我做的一次整理。\n把群里反复问的问题放到表格里。\n用 GPT 试着分类。\n再人工检查。\n有同学一起提供材料。\n没做成上线产品。\n逐条人工检查分类是否贴合原意。\n保留了分类前后的例子和自己的检查备注。\n没有正式评测集或准确率统计。\n按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1039,
+          "output_tokens": 1055,
+          "total_tokens": 2094
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c52-5c68-7b61-a783-3ab472288217",
+          "started_at": "2026-10-09T00:22:02.088212+08:00",
+          "usage": {
+            "input_tokens": 1039,
+            "output_tokens": 1055,
+            "total_tokens": 2094
+          }
+        }
+      ]
+    },
+    {
+      "turn": 5,
+      "instruction": "把“活动问答整理”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "after 中“活动问答整理”描述并未精简成一条，只是原样保留 before 的多行描述并在末尾追加了指令本身，未按要求重构为一条精简描述。",
+        "evidence": [
+          {
+            "before_quote": "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+            "after_quote": "按 JD 再改“活动问答整理”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。\n把“活动问答整理”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1117,
+          "output_tokens": 717,
+          "total_tokens": 1834
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c52-8e4d-7e02-8b0e-638da9cb5058",
+          "started_at": "2026-10-09T00:22:14.861922+08:00",
+          "usage": {
+            "input_tokens": 1117,
+            "output_tokens": 717,
+            "total_tokens": 1834
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

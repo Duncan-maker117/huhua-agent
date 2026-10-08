@@ -59,8 +59,9 @@ class Settings(BaseSettings):
         default=0.7, ge=0, le=2,
         validation_alias=AliasChoices("LLM_CHAT_TEMPERATURE", "LLM_TEMPERATURE"),
     )
-    # Reserved for the later writer node; the current editor keeps its settings.
+    # Writer uses the primary model; structured verification stays at zero.
     LLM_WRITER_TEMPERATURE: float = Field(default=0.4, ge=0, le=2)
+    LLM_WRITER_MODE: Literal["one_pass", "two_pass"] = "one_pass"
     # None preserves the provider default; opt in to an explicit output limit.
     LLM_MAX_TOKENS: int | None = Field(default=None, gt=0)
     # 简历审查需要读完整份材料；此值覆盖整段公开输出流。

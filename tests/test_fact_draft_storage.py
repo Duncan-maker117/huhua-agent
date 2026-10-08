@@ -2,13 +2,11 @@
 import copy
 import hashlib
 import unittest
-from unittest.mock import patch
 
 from sqlalchemy import create_engine, inspect, text
 
 import test_product_security_flow as fixtures
 from app.agents.resume_graph import _serialize_to_resume_data
-from app.models.models import ResumeSession
 from app.services.canonical_resume import ResumeSaveUnavailable, resume_revision, save_canonical_resume
 from app.services.profile_bridge import prepare_graph_context, sanitize_fact_history
 from app.services.resume_facts import normalize_fact_store
@@ -207,6 +205,45 @@ class FactHistoryTests(unittest.TestCase):
         self.assertNotIn('Old College', cleaned['resume_draft'])
         self.assertEqual(cleaned['resume_data']['projects'][0]['polished_bullets'], ['整理接口测试'])
         self.assertEqual(cleaned['resume_data']['education'][0]['major'], '计算机')
+
+    def test_summary_citation_invalidation_clears_current_and_history(self):
+        summary = '具备独立负责整体架构交付的经验'
+        fact = {'id': 'f1', 'text': '主导系统架构', 'source_quote': '主导系统架构', 'status': 'superseded'}
+        meta = {'summary': {'fact_ids': ['f1'], 'text_hash': hashlib.sha256(summary.encode()).hexdigest()}}
+        state = {'collected_info': {'projects': [{'item_id': 'p1', 'facts': [fact]}]},
+                 'resume_data': {'self_evaluation': summary}, 'resume_meta': meta,
+                 'resume_draft': summary,
+                 'resume_versions': [{'resume_data': {'self_evaluation': summary}, 'resume_meta': copy.deepcopy(meta)}]}
+        cleaned = sanitize_fact_history(state)
+        self.assertEqual(cleaned['resume_data']['self_evaluation'], '')
+        self.assertNotIn('summary', cleaned['resume_meta'])
+        self.assertNotIn(summary, cleaned['resume_draft'])
+        self.assertEqual(cleaned['resume_versions'][0]['resume_data']['self_evaluation'], '')
+
+    def test_legacy_summary_and_master_copy_cannot_revive_deleted_claim(self):
+        fact = {'id': 'f1', 'text': '上线PaperTool并获得100万用户',
+                'source_quote': '上线PaperTool并获得100万用户', 'status': 'deleted'}
+        summary = '上线了PaperTool并获得100万用户'
+        state = {'collected_info': {'projects': [{'item_id': 'p1', 'facts': [fact]}],
+                                   'personal_summary': summary, 'self_evaluation': summary},
+                 'resume_data': {'self_evaluation': summary}, 'resume_meta': {},
+                 'resume_versions': [{'resume_data': {'self_evaluation': summary}, 'resume_meta': {}}]}
+        cleaned = sanitize_fact_history(state)
+        self.assertEqual(cleaned['collected_info']['personal_summary'], '')
+        self.assertEqual(cleaned['collected_info']['self_evaluation'], '')
+        self.assertEqual(cleaned['resume_data']['self_evaluation'], '')
+        self.assertEqual(cleaned['resume_versions'][0]['resume_data']['self_evaluation'], '')
+
+    def test_manual_summary_rewrite_invalidates_metadata_without_deleting_independent_text(self):
+        current = '整理用户反馈并分类'
+        original = '负责旧系统架构'
+        state = {'collected_info': {'projects': [{'item_id': 'p1', 'facts': [
+                    {'id': 'f1', 'text': original, 'source_quote': original, 'status': 'deleted'}]}]},
+                 'resume_data': {'self_evaluation': current},
+                 'resume_meta': {'summary': {'fact_ids': ['f1'], 'text_hash': hashlib.sha256(original.encode()).hexdigest()}}}
+        cleaned = sanitize_fact_history(state)
+        self.assertEqual(cleaned['resume_data']['self_evaluation'], current)
+        self.assertNotIn('summary', cleaned['resume_meta'])
 
     def test_edited_text_invalidates_only_its_old_metadata(self):
         old = '原文'

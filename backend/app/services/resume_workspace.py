@@ -240,6 +240,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
                 missing.append("经历时间")
             items.append({
                 "name": str(name), "kind": kind, "role": str(role),
+                "item_id": item.get("item_id"), "hidden": bool(item.get("hidden")),
                 "period": " — ".join(str(item.get(k)) for k in ("start_date", "end_date") if item.get(k)),
                 "bullets": bullets, "missing": missing,
             })
@@ -334,6 +335,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     groups = source.get("skill_groups") or {}
     skills = [skill for values in groups.values() for skill in _strings(values)] if groups else _strings(source.get("skills"))
     return {
+        "tailor": tailor_metadata(values, canonical),
         "web_sources": bounded_web_sources(values.get("web_sources")),
         "jd": {"info": copy.deepcopy(jd), "keywords": _strings(values.get("jd_keywords")), "raw_text": values.get("jd_text") or ""},
         "experiences": {"items": items, "basic_info": basic, "skills": skills,
@@ -344,3 +346,35 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
         "review": {"items": review_resume(canonical, jd) if has_data else [], "reply": reply if material == "review" else ""},
         "guidance": guidance, "suggestions": suggestions, "focus": focus,
     }
+
+
+def tailor_metadata(values: dict, canonical: dict) -> dict:
+    """UI contract uses sanitized committed snapshots, never an ahead checkpoint diff."""
+    from app.services.resume_versions import document_diff, valid_bullet_metadata
+    meta = valid_bullet_metadata(canonical, values.get('resume_meta') or {})
+    page = meta.get('page_check') or {}
+    if page:
+        from app.services.resume_capacity import normalize_session_constraints, resume_data_hash
+        try:
+            constraints = normalize_session_constraints(values.get('session_constraints'))
+            stale = (page.get('data_hash') != resume_data_hash(canonical)
+                     or page.get('template_id') != constraints['template_id']
+                     or page.get('page_limit') != constraints['page_limit'])
+        except (TypeError, ValueError):
+            stale = True
+        if stale:
+            # GET never renders PDFs. Do not present a stale count/fit verdict
+            # as a measurement of the current sanitized document.
+            meta['page_check'] = {**page, 'status': 'stale', 'pages': None,
+                                  'within_page_limit': None,
+                                  'reason': 'document_or_page_constraints_changed'}
+    history = values.get('resume_versions') or []
+    plan = meta.get('match_plan') or values.get('match_plan') or {}
+    previous = history[-1].get('resume_data') or {} if history else {}
+    diff = document_diff(previous, canonical) if meta.get('version_id') else []
+    return {'version_id': meta.get('version_id'), 'diff': diff,
+            'change_summary': copy.deepcopy(meta.get('change_summary') or []),
+            'match_plan': copy.deepcopy(plan), 'questions': copy.deepcopy(plan.get('questions') or [])[:3],
+            'resume_meta': meta, 'session_constraints': copy.deepcopy(values.get('session_constraints') or {}),
+            'page_check': copy.deepcopy(meta.get('page_check') or {}),
+            'can_undo': bool(history)}

@@ -21,7 +21,8 @@ with patch("app.config.get_settings", return_value=Settings(_env_file=None, DATA
     from app.database import Base
     from app.models import account, models, profile  # noqa: F401
     from app.services.data_crypto import DataCrypto, DataDecryptionError
-    from app.services import profile_bridge, resume_suggestions, runtime_limits  # noqa: F401
+    from app.models import legacy_suggestions  # noqa: F401
+    from app.services import profile_bridge, runtime_limits  # noqa: F401
 
 spec = importlib.util.spec_from_file_location("privacy_recovery_operations", ROOT / "backend/scripts/security_migrate.py")
 operations = importlib.util.module_from_spec(spec)

@@ -1,6 +1,5 @@
 """Saved editor choices must survive the next conversation-driven rebuild."""
 
-import copy
 import sys
 import unittest
 from pathlib import Path
@@ -12,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.agents.resume_graph import (  # noqa: E402
-    _build_canonical_resume_data,
+    _write_resume_update,
     _init_state,
     _serialize_to_resume_data,
 )
@@ -29,7 +28,8 @@ def saved_resume(**overrides):
 
 
 class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
-    async def rebuild(self, saved, facts, *, editor_update=None, **state_updates):
+    async def rebuild(self, saved, facts, *, model=None, **state_updates):
+        model = model or object()
         state = {
             **_init_state(),
             "resume_data": saved,
@@ -37,15 +37,14 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
             **state_updates,
         }
 
-        async def edit(data, _llm):
-            return {**copy.deepcopy(data), **(editor_update or {})}
-
         with (
-            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
-            patch("app.agents.editor_chain.run_editor", side_effect=edit),
+            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=model),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value={
+                "status": "render_error", "pages": None, "within_page_limit": None,
+                "page_limit": 1, "error_type": "TestRendererUnavailable"}),
         ):
-            result, _ = await _build_canonical_resume_data(state, object())
-        return result
+            result = await _write_resume_update(state, model)
+        return result["resume_data"]
 
     async def test_saved_basic_fields_and_explicit_blanks_survive_new_fact(self):
         saved = saved_resume(basic_info={
@@ -85,9 +84,21 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
         facts = editor_facts(saved)
         self.assertEqual(facts["skills"], ["Excel"])
         facts["certificates"].append("虚构证书")
-        result = await self.rebuild(saved, facts)
+        from test_resume_writer import FakeModel
+        from app.services.resume_facts import normalize_fact_store
+        facts = normalize_fact_store(facts)
+        project = facts['projects'][0]
+        model = FakeModel([('OnePassOutput', {'match_plan': {}, 'writer': {
+            'items': [{'item_id': project['item_id'], 'section': 'projects',
+                       'bullets': [{'text': fact['text'], 'fact_ids': [fact['id']]}
+                                   for fact in project['facts']]}],
+            'skill_groups': {'自定义工具': ['Excel']}}})])
+        result = await self.rebuild(saved, facts, model=model)
+        self.assertEqual([schema for schema, _ in model.calls], ['OnePassOutput'])
         self.assertEqual(result["skills"], ["Excel"])
-        self.assertEqual(result["skill_groups"], {"自定义工具": ["Excel"]})
+        # Custom headings have no authenticated provenance in an old draft;
+        # retain the active skill while using a neutral display heading.
+        self.assertEqual(result["skill_groups"], {"其他": ["Excel"]})
         self.assertEqual(result["certificates"], ["虚构证书"])
 
     async def test_group_only_edits_survive_and_new_chat_skill_is_added(self):
@@ -112,11 +123,9 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["skills"], [])
         self.assertEqual(result["skill_groups"], {})
 
-    async def test_explicit_ungrouped_choice_and_blank_title_survive_editor(self):
+    async def test_explicit_ungrouped_choice_and_blank_title_survive_rebuild(self):
         saved = saved_resume(skills=["Excel"], skill_groups={}, experience_section_title="")
-        result = await self.rebuild(saved, editor_facts(saved), editor_update={
-            "skill_groups": {"其他": ["Excel"]}, "experience_section_title": "项目经历",
-        })
+        result = await self.rebuild(saved, editor_facts(saved))
         self.assertEqual(result["skill_groups"], {})
         self.assertEqual(result["experience_section_title"], "")
 
@@ -139,10 +148,12 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["projects"], [])
         self.assertEqual(result["basic_info"]["name"], "虚构候选人")
 
-    async def test_missing_legacy_facts_can_still_use_existing_draft(self):
+    async def test_missing_fact_master_does_not_promote_old_draft_to_source(self):
         saved = saved_resume()
         result = await self.rebuild(saved, None)
-        self.assertEqual(result, saved)
+        self.assertEqual(result["projects"], [])
+        self.assertEqual(result["basic_info"]["name"], "")
+        self.assertNotIn("完成五个静态界面", str(result))
 
 
 if __name__ == "__main__":

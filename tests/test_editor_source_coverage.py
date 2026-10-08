@@ -1,93 +1,62 @@
-"""Model formatting must not hide source facts from the draft or editor save."""
+"""The current writer reads active evidence without changing the fact master."""
 
 import copy
 from pathlib import Path
 import sys
-from types import SimpleNamespace
 import unittest
-from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
-from app.agents.editor_chain import (  # noqa: E402
-    EditorOutput,
-    _source_supported_bullets,
-    run_editor,
-)
-from app.services.canonical_resume import editor_facts  # noqa: E402
+from app.agents.resume_writer import run_resume_writer  # noqa: E402
+from app.services.resume_facts import active_facts_for_writer  # noqa: E402
 from app.services.resume_review import resume_to_text  # noqa: E402
 
 
+def fact(identifier, text, *, status="active", kind="action"):
+    return {"id": identifier, "text": text, "source_quote": text,
+            "kind": kind, "status": status, "source": "chat"}
+
+
+def source():
+    return {"projects": [{"item_id": "p1", "name": "纸页工具",
+                          "description": "过时文稿：上线服务百万用户",
+                          "raw_notes": ["内部编辑备注：准备上线"],
+                          "facts": [fact("f1", "实现页面拆分，向一位同学演示，收集到2条反馈；尚未上线。",
+                                         kind="status_limit"),
+                                    fact("f2", "服务百万用户", status="deleted")]},
+                         {"item_id": "p2", "name": "访谈整理器",
+                          "facts": [fact("f3", "整理访谈笔记。")]}],
+            "skills": [{"name": "Python", "status": "active"},
+                       {"name": "Kubernetes", "status": "deleted"}]}
+
+
 class EditorSourceCoverageTest(unittest.IsolatedAsyncioTestCase):
-    def source(self):
-        return {
-            "projects": [{
-                "name": "纸页工具",
-                "description": "实现页面拆分。向一位同学演示，收集到2条反馈。尚未上线。",
-            }],
-            "education": [{"school": "示例大学"}],
-            "skills": ["Python"],
-        }
+    async def test_model_failure_writes_active_source_with_its_limit(self):
+        collected = source()
+        before = copy.deepcopy(collected)
+        result = await run_resume_writer(collected, {}, object())
+        self.assertEqual(collected, before)
+        data = result["resume_data"]
+        draft = resume_to_text(data)
+        for statement in ("实现页面拆分", "收集到2条反馈", "尚未上线"):
+            self.assertIn(statement, draft)
+        for unsupported in ("百万用户", "准备上线", "Kubernetes"):
+            self.assertNotIn(unsupported, draft)
+        self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["fact_ids"], ["f1"])
 
-    async def polish(self, source, bullets):
-        response = EditorOutput(project_polishes=[{
-            "name": "纸页工具", "polished_bullets": bullets,
-        }])
-        model = SimpleNamespace(ainvoke=AsyncMock(return_value=response))
-        with patch("app.agents.editor_chain.with_structured_output", return_value=model):
-            return await run_editor(source, object())
+    async def test_tailoring_cannot_erase_unselected_source_facts(self):
+        collected = source()
+        result = await run_resume_writer(collected, {}, object())
+        self.assertEqual([row["id"] for row in collected["projects"][0]["facts"]], ["f1", "f2"])
+        self.assertEqual([row["id"] for row in active_facts_for_writer(collected)["projects"][0]["facts"]], ["f1"])
+        self.assertIn("整理访谈笔记", resume_to_text(result["resume_data"]))
 
-    async def test_partial_polish_keeps_feedback_and_limitations_visible_and_saved(self):
-        source = self.source()
-        before = copy.deepcopy(source)
-        for bullets in (
-            ["实现页面拆分"],
-            ["实现页面拆分", "向一位同学演示，收集到2条反馈"],
-            ["实现页面拆分", "尚未上线"],
-        ):
-            with self.subTest(bullets=bullets):
-                result = await self.polish(source, bullets)
-                self.assertEqual(result, before)
-                self.assertEqual(source, before)
-                draft = resume_to_text(result)
-                saved_facts = editor_facts(result)
-                for fact in ("实现页面拆分", "收集到2条反馈", "尚未上线"):
-                    self.assertIn(fact, draft)
-                    self.assertIn(fact, saved_facts["projects"][0]["description"])
-
-    async def test_complete_reordering_retains_all_facts_and_other_sections(self):
-        source = self.source()
-        before = copy.deepcopy(source)
-        bullets = ["尚未上线。", "实现页面拆分。", "向一位同学演示，收集到2条反馈。"]
-        result = await self.polish(source, bullets)
-        self.assertEqual(result["projects"][0]["polished_bullets"], bullets)
-        self.assertEqual(result["education"], source["education"])
-        self.assertEqual(result["skills"], source["skills"])
-        self.assertEqual(source, before)
-        for fact in bullets:
-            self.assertIn(fact, resume_to_text(result))
-            self.assertIn(fact, editor_facts(result)["projects"][0]["description"])
-
-    def test_repeated_bullet_cannot_replace_a_missing_sentence(self):
-        self.assertFalse(_source_supported_bullets(
-            "参与调研。效果未验证。", ["参与调研", "参与调研"],
-        ))
-
-    def test_omitting_a_repeated_source_sentence_is_not_lossless(self):
-        self.assertFalse(_source_supported_bullets(
-            "完成演示。完成演示。", ["完成演示"],
-        ))
-
-    def test_whitespace_and_source_sentence_separators_allow_reordering(self):
-        self.assertTrue(_source_supported_bullets(
-            "- 参与调研；整理 2 份笔记。\n• 尚未上线。",
-            ["尚未上线", "整理2份笔记", "参与调研"],
-        ))
-
-    def test_rewording_or_adding_claims_is_rejected(self):
-        for bullets in (["主导调研", "尚未上线"], ["参与调研", "尚未上线", "用户增长50%"]):
-            with self.subTest(bullets=bullets):
-                self.assertFalse(_source_supported_bullets("参与调研。尚未上线。", bullets))
+    async def test_deleted_only_item_is_not_displayed(self):
+        collected = source()
+        collected["projects"][0]["facts"][0]["status"] = "deleted"
+        result = await run_resume_writer(collected, {}, object())
+        self.assertNotIn("纸页工具", resume_to_text(result["resume_data"]))
+        self.assertIn("访谈整理器", resume_to_text(result["resume_data"]))
 
 
 if __name__ == "__main__":

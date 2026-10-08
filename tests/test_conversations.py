@@ -23,17 +23,17 @@ os.environ.update({"APP_ENV": "local", "ALLOW_INSECURE_LOCAL_STORAGE": "true",
                    "REQUIRE_ACCOUNT": "false", "LLM_API_KEY": "", "ENABLE_RAG": "false",
                    "DATABASE_URL": f"sqlite:///{Path(_IMPORT_DIRECTORY.name) / 'unused.sqlite3'}",
                    "CHECKPOINT_DB_PATH": str(Path(_IMPORT_DIRECTORY.name) / "unused-checkpoints.sqlite3")})
-from app.config import get_settings
+from app.config import get_settings  # noqa: E402
 get_settings.cache_clear()
 
-from app.agents.resume_graph import _init_state, build_graph
-from app.api import chat, conversations
-from app.database import Base
-from app.models.models import Conversation, ResumeSession
-from app.services.resume_suggestions import ResumeSuggestion  # Register cleanup table for this isolated fixture.
-from app.schemas.editor import ResumeData
-from app.services.conversation_store import WORKSPACE_COOKIE, touch_conversation
-from app.services.session_store import DELETED_STAGE, load_resume_session
+from app.agents.resume_graph import _init_state, build_graph  # noqa: E402
+from app.api import chat, conversations  # noqa: E402
+from app.database import Base  # noqa: E402
+from app.models.models import Conversation, ResumeSession  # noqa: E402
+from app.models.legacy_suggestions import ResumeSuggestion  # noqa: E402,F401 - register the isolated cleanup table
+from app.schemas.editor import ResumeData  # noqa: E402
+from app.services.conversation_store import WORKSPACE_COOKIE, touch_conversation  # noqa: E402
+from app.services.session_store import DELETED_STAGE, load_resume_session  # noqa: E402
 
 
 class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):

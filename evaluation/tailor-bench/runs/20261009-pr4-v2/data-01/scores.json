@@ -1,0 +1,1937 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 SQL 汇总与数据质量核对",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 口径差异说明与问题交付",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该单元的全部主张均可在 observed_quotes 中找到连续原文支持：小组作业、SQL 查流水、表格核对重复、标记疑似、未删原数据、未给真实商家用。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 2,
+          "results_impact": 1,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 SQL 汇总与数据质量核对",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 口径差异说明与问题交付",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {
+          "input_tokens": 1829,
+          "output_tokens": 2915,
+          "total_tokens": 4744
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c6b-7f0b-7111-a93a-1e2f928316f9",
+          "started_at": "2026-10-09T00:49:29.355345+08:00",
+          "usage": {
+            "input_tokens": 1829,
+            "output_tokens": 2915,
+            "total_tokens": 4744
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。",
+                "我用 SQL 按商品和日期汇总采购流水。\n队友制作了可视化图表；我只负责 SQL 汇总、记录核对和口径说明。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u002 各句均可在 observed_facts 中找到原文或同义表达（如“小组的数据分析作业”“用 SQL 查采购流水”“把疑似重复的地方标了出来”“用 SQL 按商品和日期汇总采购流水”“队友制作了可视化图表”“只负责 SQL 汇总、记录核对和口径说明”），没有超出已披露事实。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "用 SQL 按商品和日期汇总采购流水",
+                  "fact_indices": [
+                    1
+                  ]
+                },
+                {
+                  "unit_id": "u002",
+                  "quote": "到表格里核对重复记录\n把疑似重复的地方标了出来\n没有删原数据",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 SQL 汇总与数据质量核对",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1,
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 口径差异说明与问题交付",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用 SQL 按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "到表格里核对重复记录\n把疑似重复的地方标了出来\n没有删原数据",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1,
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用 SQL 按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "到表格里核对重复记录\n把疑似重复的地方标了出来\n没有删原数据",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1896,
+          "output_tokens": 5737,
+          "total_tokens": 7633
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c6b-ff7e-7ad1-a444-9b592ac53512",
+          "started_at": "2026-10-09T00:50:02.238707+08:00",
+          "usage": {
+            "input_tokens": 1896,
+            "output_tokens": 5737,
+            "total_tokens": 7633
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。",
+                "我用 SQL 按商品和日期汇总采购流水。\n队友制作了可视化图表；我只负责 SQL 汇总、记录核对和口径说明。",
+                "我发现按下单日期和入库日期统计会得到不同结果，把口径差异记在说明文档中。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u002 中所有叙述均能在 observed_facts 原文中找到连续对应，未出现无证据的新增事实或扩大表述。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "用 SQL 按商品和日期汇总采购流水",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 SQL 汇总与数据质量核对",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 口径差异说明与问题交付",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用 SQL 按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用 SQL 按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1945,
+          "output_tokens": 7480,
+          "total_tokens": 9425
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c6d-0a4d-7d00-a247-ec02565e14c4",
+          "started_at": "2026-10-09T00:51:10.541372+08:00",
+          "usage": {
+            "input_tokens": 1945,
+            "output_tokens": 7480,
+            "total_tokens": 9425
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。",
+                "我用 SQL 按商品和日期汇总采购流水。\n队友制作了可视化图表；我只负责 SQL 汇总、记录核对和口径说明。",
+                "我发现按下单日期和入库日期统计会得到不同结果，把口径差异记在说明文档中。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u002 正文中的各项表述均可在 observed_facts 中找到对应的原文证据，未出现超出已披露内容的新增事实。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 3,
+          "professional_expression": 4,
+          "selection_length": 4
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "用 SQL 按商品和日期汇总采购流水",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 SQL 汇总与数据质量核对",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u002",
+                  "quote": "发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 口径差异说明与问题交付",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用 SQL 按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用 SQL 按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1974,
+          "output_tokens": 5778,
+          "total_tokens": 7752
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c6e-5b1e-7372-8c32-8b84a4ae6676",
+          "started_at": "2026-10-09T00:52:36.766718+08:00",
+          "usage": {
+            "input_tokens": 1974,
+            "output_tokens": 5778,
+            "total_tokens": 7752
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "score": {
+        "status": "error",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 SQL 汇总与数据质量核对",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 口径差异说明与问题交付",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 2,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 4,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 业务指标改善验证经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": null,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": null,
+          "total": 2,
+          "ratio": null
+        },
+        "usage": {},
+        "error_type": "APIStatusError",
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "error",
+          "run_id": "01a11c7d-01e4-7762-ad02-5d072dd8d5c0",
+          "started_at": "2026-10-09T01:08:36.981328+08:00",
+          "error_type": "APIStatusError"
+        }
+      ],
+      "previous_attempts": [
+        {
+          "status": "error",
+          "deterministic": {
+            "status": "completed",
+            "candidate_unit_count": 2,
+            "statement_unit_count": 1,
+            "flags": [],
+            "suspected_count": 0,
+            "confirmed_fabrications": null,
+            "safe": null,
+            "human_review_required": true
+          },
+          "quality_checks": [],
+          "factuality": {
+            "status": "not_run",
+            "safe": null,
+            "confirmed_fabrications": null,
+            "audits": [
+              {
+                "unit_id": "u001",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家用。"
+                ],
+                "direction_quotes": [],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "字段级确定性规范化匹配。",
+                "audit_method": "deterministic_field",
+                "field_type": "label"
+              }
+            ],
+            "statement_unit_count": 1,
+            "suspicions": [],
+            "unverifiable_units": [],
+            "human_review_required": true
+          },
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 SQL 汇总与数据质量核对",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 口径差异说明与问题交付",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 业务指标改善验证经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 2,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 SQL 汇总与数据质量核对",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 口径差异说明与问题交付",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    3
+                  ],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 4,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 SQL 汇总与数据质量核对",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 口径差异说明与问题交付",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    3
+                  ],
+                  "truth_fact_indices": [
+                    3,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 业务指标改善验证经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 2,
+            "ratio": null
+          },
+          "usage": {},
+          "error_type": "JudgeSchemaError",
+          "validation_error": "ungrounded evidence quote",
+          "unvalidated_result": {
+            "audits": [
+              {
+                "unit_id": "u002",
+                "verdict": "supported",
+                "observed_quotes": [
+                  "我参加过小组的数据分析作业“菜篮账”，用 SQL 查采购流水，再到表格里核对重复记录。我只是把疑似重复的地方标了出来，没有删原数据，也没有给真实商家使用。",
+                  "我用 SQL 按商品和日期汇总采购流水。\n队友制作了可视化图表；我只负责 SQL 汇总、记录核对和口径说明。",
+                  "我发现按下单日期和入库日期统计会得到不同结果，把口径差异记在说明文档中。"
+                ],
+                "truth_quotes": [],
+                "unsupported_spans": [],
+                "reason": "简历正文的每项主张均有已披露原话支持：SQL 汇总按商品和日期、表格核对标注疑似重复且未删原数据、口径差异写入说明文档、可视化由队友完成且未给真实商家使用。"
+              }
+            ],
+            "quality": {
+              "jd_relevance": 5,
+              "personal_contribution": 5,
+              "results_impact": 4,
+              "professional_expression": 5,
+              "selection_length": 5
+            },
+            "coverage": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "小组数据分析作业中负责 SQL 汇总与记录核对：按商品和日期汇总采购流水",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "发现按下单日期与入库日期统计结果不一致，将口径差异写入说明文档",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ]
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": []
+              }
+            ]
+          },
+          "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+        }
+      ],
+      "previous_review_calls": [
+        [
+          {
+            "model": "deepseek-v4-pro",
+            "status": "completed",
+            "run_id": "01a11c6f-5b3f-7e50-a1c0-bae7a20f9102",
+            "started_at": "2026-10-09T00:53:42.335588+08:00",
+            "usage": {
+              "input_tokens": 1979,
+              "output_tokens": 10704,
+              "total_tokens": 12683
+            }
+          }
+        ]
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 5,
+      "instruction": "按 JD 再改“菜篮账”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {},
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": []
+    },
+    {
+      "turn": 6,
+      "instruction": "把“菜篮账”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "已将原本多行的“菜篮账”描述合并并精简为一条连续表述，保留了本人 SQL 汇总、表格核对、标注疑似、口径差异说明，保留了队友可视化分工以及未删原数据、未给真实商家使用等状态限制。",
+        "evidence": [
+          {
+            "before_quote": "小组的数据分析作业\n用 SQL 查采购流水\n到表格里核对重复记录\n把疑似重复的地方标了出来\n没有删原数据\n没有给真实商家用\n用 SQL 按商品和日期汇总采购流水\n队友制作了可视化图表\n只负责 SQL 汇总、记录核对和口径说明\n发现按下单日期和入库日期统计会得到不同结果\n把口径差异记在说明文档中",
+            "after_quote": "小组数据分析作业中负责 SQL 汇总与记录核对：按商品和日期汇总采购流水，在表格中核对重复记录并标注疑似重复项（未删原数据）；发现按下单日期与入库日期统计结果不一致，将口径差异写入说明文档；可视化由队友完成，未给真实商家使用。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 913,
+          "output_tokens": 1304,
+          "total_tokens": 2217
+        },
+        "judge_code_sha256": "125e78024acc09554820e74c6b65c0270cc88b96c40223dc122f74985753be34"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4-pro",
+          "status": "completed",
+          "run_id": "01a11c71-39ad-75a3-a74f-4a91224887cd",
+          "started_at": "2026-10-09T00:55:44.814082+08:00",
+          "usage": {
+            "input_tokens": 913,
+            "output_tokens": 1304,
+            "total_tokens": 2217
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

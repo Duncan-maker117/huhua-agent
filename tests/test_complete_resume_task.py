@@ -43,6 +43,9 @@ RouteLab｜旅行规划原型　2026.05—2026.07
 请现在生成完整简历。
 """
 
+RENDER_UNAVAILABLE = {'status': 'render_error', 'pages': None, 'within_page_limit': None,
+                      'page_limit': 1, 'error_type': 'TestRendererUnavailable'}
+
 
 class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
     def test_generation_request_at_end_and_negation(self):
@@ -62,7 +65,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         with (
             patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
             patch('app.agents.resume_graph.run_triage', AsyncMock(side_effect=AssertionError('完整资料不应再采访'))),
-            patch('app.agents.editor_chain.run_editor', AsyncMock(side_effect=lambda data, llm: data)),
+            patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
         ):
             return await graph.ainvoke(state, {'configurable': {'thread_id': 'complete-' + stage}})
 
@@ -77,7 +80,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(data['certificates']), 2)
         self.assertIn('尚未上线', data['projects'][0]['description'])
         self.assertIn('3 段项目', result['messages'][-1].content)
-        self.assertIn('已更新', result['messages'][-1].content)
+        self.assertIn('已按已有事实更新', result['messages'][-1].content)
         self.assertNotIn('先从哪一段', result['messages'][-1].content)
         view = build_workspace(result, data)
         self.assertEqual(view['focus'], 'resume')
@@ -91,32 +94,45 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn('已有项目', result['resume_draft'])
 
     async def test_generate_command_with_supplement_extracts_new_facts(self):
+        from app.services.resume_facts import new_fact, normalize_fact_store
         for supplement in ("补充：我在纸页工具编写了12条接口测试。", "我给一位同学演示了纸页工具，收集到2条反馈，并修改了文件选择提示。", "补充纸页工具：新增2条反馈。"):
             with self.subTest(supplement=supplement):
                 state = {**_init_state(), 'stage': 'EVALUATING', 'candidate_history_reconciled': True,
                          'messages': [HumanMessage(content=supplement + '请生成简历。')]}
                 state['collected_info']['projects'] = [{'name': '纸页工具', 'description': '实现页面拆分。'}]
+                state['collected_info'] = normalize_fact_store(state['collected_info'])
                 updated = copy.deepcopy(state['collected_info'])
-                updated['projects'][0]['description'] += supplement
+                updated['projects'][0]['facts'].append(new_fact(supplement))
                 with (
                     patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
                     patch('app.agents.resume_graph._extract_info_from_message', AsyncMock(return_value=updated)) as extract,
-                    patch('app.agents.editor_chain.run_editor', AsyncMock(side_effect=lambda data, llm: data)),
+                    patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
                 ):
                     result = await evaluating_node(state, object())
                 extract.assert_awaited_once()
-                self.assertIn(supplement, result['resume_data']['projects'][0]['description'])
+                self.assertIn(supplement, result['resume_draft'])
+                self.assertEqual(result['collected_info']['projects'][0]['facts'][-1]['text'], supplement)
 
     async def test_repeated_build_does_not_claim_a_change(self):
         data = {'basic_info': {'name': '林同学'}, 'projects': [{'name': 'ResumeLab', 'description': '本地原型。'}]}
-        with patch('app.agents.resume_graph._build_canonical_resume_data', AsyncMock(return_value=(copy.deepcopy(data), {}))):
+        with patch('app.agents.resume_graph._write_resume_update', AsyncMock(return_value={
+            'resume_data': copy.deepcopy(data), 'resume_meta': {}, 'resume_versions': [],
+            'session_constraints': {'page_limit': 1}, 'match_plan': {},
+            'page_check': {'status': 'not_rendered', 'pages': None},
+            'guard_fallbacks': [], 'changed': False, 'change_summary': [],
+        })):
             result = await building_node({'resume_data': data}, object())
-        self.assertIn('没有新增内容', result['messages'][0].content)
+        self.assertIn('没有形成可保存的正文修改', result['messages'][0].content)
         self.assertNotIn('已更新', result['messages'][0].content)
 
     async def test_basic_only_build_names_its_limitation(self):
         data = {'basic_info': {'name': '林同学'}, 'projects': []}
-        with patch('app.agents.resume_graph._build_canonical_resume_data', AsyncMock(return_value=(data, {}))):
+        with patch('app.agents.resume_graph._write_resume_update', AsyncMock(return_value={
+            'resume_data': data, 'resume_meta': {}, 'resume_versions': [],
+            'session_constraints': {'page_limit': 1}, 'match_plan': {},
+            'page_check': {'status': 'not_rendered', 'pages': None},
+            'guard_fallbacks': [], 'changed': True, 'change_summary': [],
+        })):
             result = await building_node(_init_state(), object())
         self.assertIn('只整理到基本信息', result['messages'][0].content)
         self.assertNotIn('已更新', result['messages'][0].content)
@@ -143,7 +159,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         with (
             patch('app.agents.resume_graph.get_graph', return_value=graph),
             patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
-            patch('app.agents.editor_chain.run_editor', AsyncMock(side_effect=lambda data, llm: data)),
+            patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
             patch('app.services.session_store.save_resume_session', side_effect=RuntimeError('storage unavailable')),
         ):
             with self.assertRaises(RuntimeError):

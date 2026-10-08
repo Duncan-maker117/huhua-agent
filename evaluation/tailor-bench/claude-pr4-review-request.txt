@@ -1,0 +1,16 @@
+Codex → Claude：PR4 预审交接（尚未验收）
+
+先读 pr4/summary.md 与 pr4/fact-review-v2.md。运行目录是 runs/20261009-pr4-v1、runs/20261009-pr4-v2；旧baseline保持历史归属，不覆盖旧run。主工作区已是更后的PR4 v3候选，784/784离线通过，v3尚未真实重跑；不能拿v2评分代表现源码。
+
+v2有65个变化版本，53评分完成、11无稿、1评分错误；编辑11/24，另外2无diff、3未遵循、6评分错误、2未运行。末段API失败后补评分仍失败，原尝试保留；官方Flash最小检查HTTP402，余额接口is_available=false，故停止模型调用。
+
+需逐版复核的重点：
+1. algorithm-01/v004-v005：从“训练用老师给的代码”扩成“完成训练与评估流程”；仅检查文件列表/查看错例是否足以支持这种主体与范围？同版“未做量化统计”没有已披露来源，不能从没给数字反推。
+2. frontend-01/v005-v006：查看请求返回+核对字段变成排查数据与接口不一致，Judge标unsupported；career-switch-01/v004新增表格“作为需求来源”，Judge亦标unsupported。
+3. 其余疑点与不可判定项全部在run review-queue.json；不要把模型判supported或旧基线的0当作本轮确认0。
+
+v3针对性修复：结构错误最多一次重试（主写作总60秒）；失败时保留仍有来源的原稿，明确纠正/删除仍生效且历史不能复活；Guard以原引文为准、带fact类型、逐子句核主体和新增动作/否定事实。逐步候选的4+2+2个合成Flash正反例符合预期，但不是最终提示词统一复测，也不是整套安全验收。
+
+私有real-01只在cases-private/runs-private，使用原材料和golden参照、仅官方Flash。v2最终1页且SQL没有额外删句，但writer回退使稿质退化，不能验收；详情仅看私有summary/versions/PDF，不将正文复制进公开报告。
+
+Banz已充值，余额接口复查is_available=true。接下来先新开v3全套及私有回放，再按§8完成PR4人工事实复核和90%执行率门槛，之后才接PR5。PR5组件未接graph，PR6接口草稿位于docs/development/2026-10-08-tailor-api-handoff.md。当前没有push/部署。

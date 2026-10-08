@@ -191,9 +191,7 @@ async def security_headers(request: Request, call_next):
 
             return JSONResponse(status_code=413, content={"detail": "文件超过 10MB 上限"})
     paid_path = request.url.path
-    if paid_path.startswith("/api/resume/session/") and paid_path.endswith(("/suggestions/generate", "/suggestions/preview")):
-        paid_path = "/api/resume/suggestions"
-    if paid_path in {"/api/chat/stream", "/api/resume/match", "/api/chat/upload", "/api/resume/suggestions"} and request.method == "POST":
+    if paid_path in {"/api/chat/stream", "/api/resume/match", "/api/chat/upload"} and request.method == "POST":
         # Uvicorn may rewrite request.client only for proxies it explicitly
         # trusts. Never use an arbitrary X-Forwarded-For header here.
         client_ip = request.client.host if request.client else "unknown"
@@ -208,7 +206,6 @@ async def security_headers(request: Request, call_next):
             "/api/chat/stream": CHAT_REQUEST_LIMIT,
             "/api/resume/match": MATCH_REQUEST_LIMIT,
             "/api/chat/upload": UPLOAD_REQUEST_LIMIT,
-            "/api/resume/suggestions": MATCH_REQUEST_LIMIT,
         }[paid_path]
         if len(timestamps) >= limit or len(_all_paid_requests) >= GLOBAL_REQUEST_LIMIT:
             from fastapi.responses import JSONResponse

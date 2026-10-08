@@ -155,6 +155,85 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(case["formal_first_quality"]["jd_relevance"], 2)
         self.assertEqual((case["visible_version_count"], case["internal_only_version_count"]), (2, 1))
 
+    def test_hidden_backup_does_not_create_first_draft_or_coverage(self):
+        self.manifest()
+        hidden = version("v001", 1)
+        hidden["resume_data"] = {"projects": [{"item_id": "hidden", "name": "备份项目",
+                                                "description": "上线 999 次。", "hidden": True}]}
+        self.fixture(versions=[hidden], version_scores=[{"version_id": "v001", "score": {"status": "no_draft"}}],
+                     meta={"first_draft_turn": None, "first_draft_version": None})
+        result = report.build_report(self.output)
+        case = result["cases"][0]
+        self.assertIsNone(case["first_draft_turn"])
+        self.assertFalse(case["versions"][0]["has_displayed_content"])
+        self.assertEqual(case["final_coverage"]["covered"], 0)
+        self.assertEqual(result["totals"]["first_draft"]["drafted_cases"], 0)
+
+    def test_pr4_report_preserves_per_version_page_guard_and_visible_flags(self):
+        self.manifest()
+        manifest = json.loads((self.output / "manifest.json").read_text())
+        manifest["phase"] = "PR4"
+        dump(self.output / "manifest.json", manifest)
+        row = version()
+        row["resume_data"]["projects"][0]["item_id"] = "visible"
+        row["resume_data"]["projects"].append({"item_id": "backup", "hidden": True,
+                                                   "description": "隐藏备份。"})
+        row["acceptance_context"] = {
+            "resume_meta": {"bullets": {"visible": [{"flags": ["transferable"]}],
+                                        "backup": [{"flags": ["unsupported"]}]},
+                            "writer_diagnostic": {"status": "model_fallback", "mode": "one_pass",
+                                                  "stage": "one_pass", "error_type": "ValidationError"},
+                            "compression_writer_diagnostics": [
+                                {"status": "model_completed", "mode": "one_pass"},
+                                {"status": "model_fallback", "mode": "two_pass",
+                                 "stage": "write", "error_type": "TimeoutError"}]},
+            "guard_fallbacks": [{"bullet_id": "b1", "reason": "compression_preserved_status_limit"}],
+            "session_constraints": {"page_limit": 1}}
+        row["render"] = {"status": "rendered", "pages": 2, "within_page_limit": False}
+        self.fixture(versions=[row])
+        result = report.build_report(self.output)
+        self.assertEqual(result["totals"]["pages"]["over_limit"], 1)
+        self.assertEqual(result["totals"]["guard"]["fallbacks"], 1)
+        self.assertEqual(result["totals"]["guard"]["reasons"], {"compression_preserved_status_limit": 1})
+        self.assertEqual(result["totals"]["writer"]["model_fallback"], 1)
+        self.assertEqual(result["totals"]["writer"]["compression_model_fallback"], 1)
+        self.assertEqual(result["totals"]["writer"]["compression_model_completed"], 1)
+        self.assertEqual(result["totals"]["writer"]["model_completed"], 0)
+        self.assertEqual(result["totals"]["writer_flags"], {"transferable": 1})
+        self.assertEqual(result["cases"][0]["versions"][0]["pages"], 2)
+        self.assertEqual(result["cases"][0]["versions"][0]["writer_diagnostics"]["main"]["error_type"], "ValidationError")
+        summary = (self.output / "detailed-summary.md").read_text()
+        self.assertIn("Writer 模型回退 | 2", summary)
+        self.assertIn("事实限制保护回退 | 1", summary)
+        title = summary.splitlines()[0]
+        self.assertEqual(title, "# Tailor PR4 · 逐版本评估")
+
+    def test_frozen_baseline_without_phase_keeps_legacy_report_contract(self):
+        self.manifest()
+        self.fixture()
+        result = report.build_report(self.output)
+        self.assertEqual(result["totals"]["pages"]["unknown"], 1)
+        self.assertIsNone(result["totals"]["guard"]["fallbacks"])
+        self.assertEqual(result["totals"]["writer"]["status"], "not_observed")
+        self.assertEqual(result["totals"]["writer"]["not_observed_versions"], 1)
+        self.assertIn("Writer 模型回退 | 未观测", (self.output / "detailed-summary.md").read_text())
+        self.assertEqual((self.output / "detailed-summary.md").read_text().splitlines()[0],
+                         "# Tailor PR0 · 旧链路逐版本基线")
+
+    def test_writer_diagnostic_does_not_publish_exception_message(self):
+        self.manifest()
+        row = version()
+        row["acceptance_context"] = {"resume_meta": {
+            "writer_diagnostic": {"status": "model_fallback", "stage": "write",
+                                  "error_type": "provider rejected private@example.com"},
+            "compression_writer_diagnostics": []}}
+        self.fixture(versions=[row])
+        result = report.build_report(self.output)
+        diagnostic = result["cases"][0]["versions"][0]["writer_diagnostics"]["main"]
+        self.assertEqual(diagnostic, {"status": "model_fallback", "stage": "write"})
+        self.assertEqual(result["totals"]["writer"]["model_fallback"], 1)
+        self.assertNotIn("private@example.com", (self.output / "aggregate.json").read_text())
+
     def test_manifest_missing_cases_remain_in_twenty_four_denominators(self):
         ids = [f"case-{index:02}" for index in range(1, 13)]
         self.manifest(ids)

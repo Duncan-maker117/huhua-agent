@@ -125,7 +125,7 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
         values["resume_data"] = canonical
         values["resume_draft"] = resume_to_text(canonical)
         if stored_state.get("authoritative"):
-            for key, default in (("collected_info", {}), ("resume_meta", {}), ("resume_versions", [])):
+            for key, default in (("collected_info", {}), ("resume_meta", {}), ("resume_versions", []), ("session_constraints", {})):
                 values[key] = copy.deepcopy(stored_state.get(key, default))
         if context is None:
             context = get_context(db, account, subject_ids=fact_ids, limit=100, include_contacts=False) if account else {"facts": [], "fact_refs": []}
@@ -192,6 +192,8 @@ def sanitize_fact_history(state, *, original=None):
     obsolete = {item.get("item_id"): [fact for fact in item.get("facts", []) if fact.get("id") not in active]
                 for section in sections for item in (original.get("collected_info") or {}).get(section, [])}
 
+    all_obsolete = [fact for rows in obsolete.values() for fact in rows]
+
     def normalized(text):
         return re.sub(r"[\W_]+", "", text).casefold()
 
@@ -202,7 +204,7 @@ def sanitize_fact_history(state, *, original=None):
         for fact in facts:
             # Dates and scalar identity fields are scoped to their original slot;
             # all prose fields can contain literal or near-literal copies.
-            if field not in {"description", "raw_description", "bullets", "polished_bullets", "highlights"}:
+            if field not in {"description", "raw_description", "bullets", "polished_bullets", "highlights", "self_evaluation", "personal_summary"}:
                 if fact.get("field") and fact["field"] != field:
                     continue
             for quote in (fact.get("text"), fact.get("source_quote")):
@@ -221,6 +223,17 @@ def sanitize_fact_history(state, *, original=None):
         draft = version.get("resume_data") or {}
         before = copy.deepcopy(draft)
         hashes = {}
+        summary = draft.get("self_evaluation") or ""
+        summary_meta = meta.get("summary") or {}
+        summary_refs = summary_meta.get("fact_ids") or []
+        summary_hash = hashlib.sha256(summary.encode("utf-8")).hexdigest()
+        summary_matches = bool(summary_meta) and summary_meta.get("text_hash") == summary_hash
+        stale_summary = bool(summary_meta) and (not summary_refs or bool(set(summary_refs) - active))
+        if unsupported(summary, all_obsolete, "self_evaluation") or (summary_matches and stale_summary):
+            draft["self_evaluation"] = ""
+        if summary_meta and (stale_summary or ("resume_data" in version and (
+                not summary_matches or draft.get("self_evaluation") != summary))):
+            meta.pop("summary", None)
         for section in sections:
             for item in draft.get(section) or []:
                 item_id = item.get("item_id")
@@ -243,6 +256,12 @@ def sanitize_fact_history(state, *, original=None):
         if draft != before and "resume_draft" in version:
             from app.services.resume_review import resume_to_text
             version["resume_draft"] = resume_to_text(draft)
+    # Legacy summaries may also survive in the fact-master compatibility slots;
+    # removing these copies prevents the serializer from recreating old prose.
+    collected = result.get("collected_info") or {}
+    for field in ("personal_summary", "self_evaluation"):
+        if unsupported(collected.get(field), all_obsolete, field):
+            collected[field] = ""
     clean_version(result)
     for version in result.get("resume_versions") or []:
         clean_version(version)

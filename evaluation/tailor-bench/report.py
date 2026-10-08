@@ -1,4 +1,4 @@
-"""Build a fail-closed PR0 report from frozen run artifacts, without model calls.
+"""Build a fail-closed version report from frozen run artifacts, without model calls.
 
 The report never turns an AI judgment into a human safety confirmation. Missing
 cases, edits and reviews stay in the denominators and are reported explicitly.
@@ -36,6 +36,35 @@ def _read(path: Path, default: Any, problems: list[str]) -> Any:
     except (OSError, ValueError):
         problems.append(path.name)
         return default
+
+
+def _writer_diagnostics(metadata: dict) -> dict:
+    """Use only bounded status/type fields from the frozen writer diagnostics."""
+    main = metadata.get("writer_diagnostic")
+    compression = metadata.get("compression_writer_diagnostics")
+
+    def clean(value: Any) -> dict | None:
+        if not isinstance(value, dict) or value.get("status") not in {"model_completed", "model_fallback"}:
+            return None
+        result = {"status": value["status"]}
+        for key in ("mode", "stage", "error_type"):
+            field = value.get(key)
+            if isinstance(field, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,79}", field):
+                result[key] = field
+        return result
+
+    main = clean(main)
+    compression = [item for row in (compression if isinstance(compression, list) else [])
+                   if (item := clean(row)) is not None]
+    observed = bool(main or compression)
+    return {"status": "observed" if observed else "not_observed",
+            "main": main, "compression": compression,
+            "model_completed": int(bool(main and main["status"] == "model_completed")),
+            "model_fallback": int(bool(main and main["status"] == "model_fallback")),
+            "compression_model_completed": sum(row["status"] == "model_completed" for row in compression),
+            "compression_model_fallback": sum(row["status"] == "model_fallback" for row in compression),
+            "has_model_fallback": bool((main and main["status"] == "model_fallback") or
+                                       any(row["status"] == "model_fallback" for row in compression))}
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
@@ -290,6 +319,21 @@ def _case_report(folder: Path, queue: list[dict]) -> dict:
         audits = factuality.get("audits", []) if status == "completed" else []
         unverifiable = factuality.get("unverifiable_units", []) if status == "completed" else []
         quality_checks = score.get("quality_checks", [])
+        context = version.get("acceptance_context") or {}
+        metadata = context.get("resume_meta") or {}
+        bullet_metadata = metadata.get("bullets") or {} if isinstance(metadata, dict) else {}
+        visible_ids = {item.get("item_id") for section in ("projects", "work_experience", "internship", "education")
+                       for item in (version.get("resume_data") or {}).get(section, [])
+                       if isinstance(item, dict) and item.get("hidden") is not True and item.get("item_id")}
+        flags = [flag for item_id in visible_ids for bullet in (bullet_metadata.get(item_id) or [])
+                 if isinstance(bullet, dict) for flag in (bullet.get("flags") or [])]
+        fallbacks = context.get("guard_fallbacks")
+        if not isinstance(fallbacks, list) and isinstance(metadata, dict):
+            fallbacks = metadata.get("guard_fallbacks")
+        guard_reasons = Counter(row.get("reason") for row in fallbacks
+                                if isinstance(row, dict) and isinstance(row.get("reason"), str)) if isinstance(fallbacks, list) else Counter()
+        diagnostics = _writer_diagnostics(metadata if isinstance(metadata, dict) else {})
+        render = version.get("render") or {}
         entry = {"version_id": vid, "turn": version.get("turn"), "stage": version.get("stage"),
                  "user_visible": visible, "score_status": status,
                  "has_displayed_content": bool(_judge.candidate_units(version.get("resume_data"))),
@@ -302,6 +346,12 @@ def _case_report(folder: Path, queue: list[dict]) -> dict:
                  "semantic_verdicts": dict(Counter(row.get("verdict", "unknown") for row in audits)),
                  "quality": _quality(score) if status == "completed" else None,
                  "coverage": score.get("coverage"),
+                 "render": render, "page_status": render.get("status", "not_observed"),
+                 "pages": render.get("pages"), "within_page_limit": render.get("within_page_limit"),
+                 "writer_flags": dict(Counter(flags)),
+                 "guard_fallbacks": len(fallbacks) if isinstance(fallbacks, list) else None,
+                 "guard_fallback_reasons": dict(guard_reasons),
+                 "writer_diagnostics": diagnostics,
                  "error_type": score.get("error_type"), "validation_error": score.get("validation_error")}
         version_rows.append(entry)
         location = {"case_id": cid, "version_id": vid, "turn": version.get("turn"),
@@ -437,14 +487,16 @@ def _usage_text(value: dict) -> str:
 
 
 def _render_private(aggregate: dict) -> str:
-    """Keep saved private evidence separate from synthetic PR0 score claims."""
+    """Keep private evidence separate from public synthetic scores."""
     run = aggregate["run"]
-    lines = ["# Tailor · real-01 私有真实材料基线", "",
+    phase = aggregate["run"].get("phase") or "PR0"
+    lines = [f"# Tailor {phase} · real-01 私有真实材料回放", "",
              f"状态：**{aggregate['status']}**；历史源码 `{_cell(run.get('git_commit', 'unknown'))}`；新模型调用见 manifest.json。",
              "这是已保存 UI 两轮材料的导入和确定性检查。语义事实、质量与覆盖率未评分，不能把待审当作通过。",
              "", "## 页数与复合修改", "",
              "目标共 8 项，拆为 14 个可观察操作。`already_satisfied` 表示修改前已经满足，不能算第二轮执行。",
-             "估算行数只用于诊断；页数只取对应 PDF 的 `pdfinfo` 实测结果。", "",
+             "估算行数只用于诊断；页数只取对应 PDF 的 `pdfinfo` 实测结果。",
+             f"Writer 模型回退：{aggregate['totals']['writer']['model_fallback'] + aggregate['totals']['writer']['compression_model_fallback'] if aggregate['totals']['writer']['status'] == 'observed' else '未观测'}（含压缩轮次 {aggregate['totals']['writer']['compression_model_fallback']}）；与 Guard 回退分开统计。", "",
              "| 用例 | 第一轮页数 | 第二轮页数 | 最终目标通过 | 第二轮目标执行 | 第二轮操作执行 | 原已满足 | 未知 |",
              "|---|---:|---:|---:|---:|---:|---:|---:|"]
     for case in aggregate["cases"]:
@@ -471,7 +523,7 @@ def _render_private(aggregate: dict) -> str:
                       "估算/可定位行数、冲突与事实限制的人工复核清单。", ""])
     lines.extend(["## 仍待复核", "",
                   "- 事实边界与已知冲突：原型、Stub、目标数值、日期及职责，需要逐来源核对。",
-                  "- 旧链路语义评分未执行；公开合成用例的评分和历史结论不能移到 real-01。",
+                  "- 私有回放的语义评分未执行；公开合成用例的评分和历史结论不能移到 real-01。",
                   "- [manifest.json](manifest.json) 保存源文件哈希；[review-queue.json](review-queue.json) 保存待审入口。", ""])
     return "\n".join(lines)
 
@@ -486,7 +538,9 @@ def _render(aggregate: dict) -> str:
     private = aggregate.get("private", False)
     if private:
         truth_label = "真实材料有已知冲突；golden 只作验收参照，语义事实仍待复核"
-    lines = ["# Tailor · 私有真实材料回放" if private else "# Tailor PR0 · 旧链路逐版本基线", "",
+    phase = run.get("phase") or "PR0"
+    title = "# Tailor PR0 · 旧链路逐版本基线" if phase == "PR0" else f"# Tailor {phase} · 逐版本评估"
+    lines = ["# Tailor · 私有真实材料回放" if private else title, "",
              f"运行：{_cell(run.get('started_at', 'unknown'))}；源码快照 `{_cell(run.get('git_commit', 'unknown'))}`。",
              f"写作模型 `{_cell(run.get('writer_model', 'unknown'))}`；评审模型 `{_cell(run.get('judge_model', 'unknown'))}`。", "",
              f"本报告状态：**{aggregate['status']}**。{totals['cases']} 个{'用例（含私有真实材料）' if private else '合成用例'}，{totals['versions']} 个变化版本（可见 {totals['visible_versions']}，仅内部 {totals['internal_only_versions']}）。",
@@ -506,12 +560,16 @@ def _render(aggregate: dict) -> str:
         f"| unverifiable_unit | {facts['unverifiable_units']} | uncertain 单独统计，不计新增事实疑点。标题、技能等质量检查也单列。 |",
         f"| 平均轮延迟 | {totals['latency']['mean_seconds'] if totals['latency']['mean_seconds'] is not None else 'unknown'} 秒 | 基于 {totals['latency']['observed_turns']} 个实际记录轮。 |",
         f"| Graph / Judge / 模拟器 tokens | {_usage_text(totals['usage']['graph'])} / {_usage_text(totals['usage']['judge'])} / {_usage_text(totals['usage']['simulator'])} | 三类分开统计，合计费用包含模拟器；HTTP 重试次数未知。 |",
-        "| Pairwise 新版胜率 | N/A | 旧链路基线没有新版对手。 |",
-        "| Guard 回退 / 误杀 | 未观测 | 旧链路没有新语义 guard，不能记为零。 |", "",
+        "| Pairwise 新版胜率 | N/A | 本轮没有独立对手运行。 |",
+        f"| Guard 回退 | {totals['guard']['fallbacks'] if totals['guard']['fallbacks'] is not None else '未观测'} | 按逐版本证据统计；误杀需人工复核。 |",
+        f"| Writer 模型回退 | {totals['writer']['model_fallback'] + totals['writer']['compression_model_fallback'] if totals['writer']['status'] == 'observed' else '未观测'} | 主写作 {totals['writer']['model_fallback']}；压缩轮次 {totals['writer']['compression_model_fallback']}；{totals['writer']['not_observed_versions']} 版未观测。模型回退不计为正常写作或 Guard 回退。 |",
+        f"| 事实限制保护回退 | {totals['guard']['reasons'].get('compression_preserved_status_limit', 0) if totals['guard']['status'] == 'observed' else '未观测'} | Guard reason=compression_preserved_status_limit 的逐版本观察数；不属于 Writer 模型回退。 |",
+        f"| 页面实测 | {totals['pages']['within_limit']}/{totals['pages']['rendered']} 版合规 | 渲染缺失 {totals['pages']['unknown']} 版记未知。 |",
+        f"| Writer flags | {totals['writer_flags']} | 仅统计可见条目元数据，不含 hidden backup。 |", "",
         f"正向要求分母共 {truth['total']} 条；{totals['gap_requirements']} 条 gap 要求不进正向覆盖分母。disclosed 只计截至该版已有证据的要求；全部证据未披露的要求记 N/A。truth 衡量追问加写作。",
         "没有任何可见断言正文的已运行用例覆盖记 0；有断言正文但评分缺失记 unknown。覆盖不限经历栏，不能替代首稿指标：已披露行动句即使被放入自评栏仍可形成事实覆盖，但不满足经历栏首稿定义；只有标题或技能词不能充当覆盖证据。比例在评分不齐时仅为已观测下界，不用于宣称验收通过。", "",
         "## 首稿口径与五维质量", "",
-        "首稿轮数与质量统一取首个用户可见、且至少一段经历的 bullet 或 description 非空的版本。只有项目名称不计首稿。"
+        "首稿轮数与质量统一取首个用户可见、且至少一段可见经历的 bullet 或 description 非空的版本。只有项目名称或 hidden backup 不计首稿。"
         "stage 口径已废弃，仅保留在 aggregate.json 的 diagnostic_stage_first_draft_* 中作诊断；COLLECTING 的可见正文按同一规则评分。",
         "五维顺序：JD 相关性 / 个人贡献 / 结果产出 / 专业表达 / 取舍篇幅（1–5 分）。原话粘贴即使满足可见首稿条件，也不等于写作质量合格。", "",
         "| 用例 | Graph / 评估 | 首稿五维 | 终稿五维 | 最终覆盖 disclosed / truth | 编辑执行 | 首稿轮 | 可见/仅内部版本 |",
@@ -603,7 +661,7 @@ def _render(aggregate: dict) -> str:
                   f"- [review-queue.json](review-queue.json)：{aggregate['review_queue_count']} 项待审任务；事实疑点、不可判定单元、质量检查分别标注。",
                   "- [aggregate.json](aggregate.json)：双覆盖分母、unknown、编辑分类、逐版状态、stage 诊断和使用量。",
                   "- [manifest.json](manifest.json)：源码、模型与隔离配置；逐例 transcript / versions / scores 都是相对链接。",
-                  "- v1 复核结论只归属 v1，本轮待差异复核。PR1 进度另见项目 mmr，不属于本次旧链路基线。", ""])
+                  "- v1 复核结论只归属 v1；本轮须逐版本复核事实疑点，终稿不能代替中间版本验收。", ""])
     return "\n".join(lines)
 
 
@@ -663,18 +721,31 @@ def build_report(output: Path) -> dict:
     usage["all_models"] = _sum_usage([case.get(f"{kind}_usage") for case in cases for kind in ("graph", "judge", "simulator")])
     aggregate = {
         "report_version": 2, "private": private, "status": "evaluated_pending_claude" if complete else "incomplete",
-        "run": {key: manifest.get(key) for key in ("started_at", "finished_at", "git_commit", "git_branch", "writer_model", "structured_model", "judge_model", "status", "backend_unchanged")},
+        "run": {key: manifest.get(key) for key in ("phase", "scope", "started_at", "finished_at", "git_commit", "git_branch", "writer_model", "structured_model", "judge_model", "status", "backend_unchanged")},
         "manifest_problems": problems, "truth_review_status": "approved_by_claude" if cases and all(case["truth_review_status"] == "approved_by_claude" for case in cases) else "pending_claude",
         "historical_review": {"run_id": "20261008-baseline", "reviewer": "Claude", "source": "../../claude-review-response.txt",
                               "confirmed_new_experience_facts": 0, "unsupported_objective_expansion_cases": 1,
                               "scope": "v1 only; does not confirm the current run"},
         "limitations": manifest.get("limitations", []),
-        "pairwise": {"status": "not_applicable_baseline_has_no_comparator", "win_rate": None},
+        "pairwise": {"status": "not_run_without_comparator", "win_rate": None},
         "totals": {
             "cases": len(cases), "versions": len(versions),
             "visible_versions": sum(row["user_visible"] for row in versions),
             "internal_only_versions": sum(not row["user_visible"] for row in versions),
             "version_score_statuses": dict(Counter(row["score_status"] for row in versions)),
+            "pages": {"rendered": sum(row["page_status"] == "rendered" for row in versions),
+                      "within_limit": sum(row["within_page_limit"] is True for row in versions),
+                      "over_limit": sum(row["within_page_limit"] is False for row in versions),
+                      "unknown": sum(row["within_page_limit"] is None for row in versions),
+                      "statuses": dict(Counter(row["page_status"] for row in versions))},
+            "writer_flags": dict(sum((Counter(row["writer_flags"]) for row in versions), Counter())),
+            "writer": {"status": "observed" if any(row["writer_diagnostics"]["status"] == "observed" for row in versions) else "not_observed",
+                       "model_completed": sum(row["writer_diagnostics"]["model_completed"] for row in versions),
+                       "model_fallback": sum(row["writer_diagnostics"]["model_fallback"] for row in versions),
+                       "compression_model_completed": sum(row["writer_diagnostics"]["compression_model_completed"] for row in versions),
+                       "compression_model_fallback": sum(row["writer_diagnostics"]["compression_model_fallback"] for row in versions),
+                       "versions_with_model_fallback": sum(row["writer_diagnostics"]["has_model_fallback"] for row in versions),
+                       "not_observed_versions": sum(row["writer_diagnostics"]["status"] == "not_observed" for row in versions)},
             "graph_statuses": dict(Counter(case["graph_status"] for case in cases)),
             "evaluation_statuses": dict(Counter(case["evaluation_status"] for case in cases)),
             "facts": total_facts,
@@ -691,7 +762,12 @@ def build_report(output: Path) -> dict:
                                          "mean_turns_drafted_cases_only": round(statistics.mean(visible_drafted), 3) if visible_drafted else None},
             "latency": {"observed_turns": len(latencies), "mean_seconds": round(statistics.mean(latencies), 3) if latencies else None},
             "usage": usage, "product_findings": product,
-            "guard": {"fallbacks": None, "false_positive_rate": None, "status": "not_observed_in_old_chain"},
+            "guard": {"fallbacks": sum(row["guard_fallbacks"] or 0 for row in versions)
+                       if any(row["guard_fallbacks"] is not None for row in versions) else None,
+                      "reasons": dict(sum((Counter(row["guard_fallback_reasons"]) for row in versions), Counter())),
+                      "false_positive_rate": None,
+                      "status": "observed" if any(row["guard_fallbacks"] is not None for row in versions)
+                      else "not_observed"},
         },
         "failures": [{"case_id": case["case_id"], "reasons": case["failures"], "source": case["links"]["meta.json"]} for case in cases if case["failures"]],
         "cases": cases, "review_queue_count": len(queue),

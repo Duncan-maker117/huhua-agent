@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the unchanged resume graph on synthetic cases; dry run by default.
+"""Run the current resume graph on frozen benchmark cases; dry run by default.
 
 Every distinct node-boundary resume and committed resume is retained and judged.
 Only committed versions count as user-visible. Never imports app storage until
@@ -86,12 +86,22 @@ class VersionRecorder:
 
     def record(self, resume: dict, *, turn: int, stage: str, kind: str,
                observed: list[str], checkpoint_id: str | None = None,
-               disclosed_fact_indices: list[int] | None = None) -> dict | None:
-        current_hash = digest(resume)
+               disclosed_fact_indices: list[int] | None = None,
+               acceptance_context: dict | None = None,
+               fact_snapshot: dict | None = None) -> dict | None:
+        # A document with changed evidence/constraints is a distinct revision even
+        # if its displayed wording is unchanged. Legacy callers retain old hashes.
+        context = copy.deepcopy(acceptance_context) if acceptance_context is not None else None
+        # Audit facts never participate in revision identity. A facts-only update
+        # must not inflate the existing document/metadata version statistics.
+        fact_evidence = copy.deepcopy(fact_snapshot) if fact_snapshot is not None else {
+            "status": "unknown", "source": "not_observed", "reason": "fact_snapshot_not_supplied"}
+        current_hash = digest({"resume_data": resume, "acceptance_context": context}) if context is not None else digest(resume)
         if kind == "committed":
             # A stage change is a generation event even if wording is identical.
             self.commits.append({"turn": turn, "stage": stage, "hash": current_hash,
-                                 "has_experience": bool(resume.get("projects") or resume.get("work_experience"))})
+                                 "has_experience": has_experience_body(resume),
+                                 "fact_snapshot": copy.deepcopy(fact_evidence)})
         previous = self.previous_committed if kind == "committed" else self.previous_internal
         if current_hash == previous:
             return None
@@ -102,6 +112,9 @@ class VersionRecorder:
                 if version["turn"] == turn and version["hash"] == current_hash:
                     version["user_visible"] = True
                     version["committed_stage"] = stage
+                    # Preserve the node-boundary master and the SQL master as
+                    # separate observations; one must not overwrite the other.
+                    version["committed_fact_snapshot"] = copy.deepcopy(fact_evidence)
                     return version
         else:
             self.previous_internal = current_hash
@@ -110,9 +123,117 @@ class VersionRecorder:
                    "user_visible": kind == "committed", "checkpoint_id": checkpoint_id,
                    "observed_facts": list(observed),
                    "disclosed_fact_indices": list(disclosed_fact_indices or []),
-                   "resume_data": copy.deepcopy(resume)}
+                   "resume_data": copy.deepcopy(resume),
+                   "fact_snapshot": fact_evidence}
+        if context is not None:
+            version["acceptance_context"] = context
         self.versions.append(version)
         return version
+
+
+CONTEXT_KEYS = ("resume_meta", "resume_versions", "versions", "match_plan",
+                "session_constraints", "field_conflicts", "guard_fallbacks",
+                "page_measurement", "page_fit")
+
+
+def snapshot_context(values: dict | None) -> dict:
+    """Freeze acceptance evidence at its checkpoint; never backfill from a later turn."""
+    if not isinstance(values, dict):
+        return {}
+    return {key: copy.deepcopy(values[key]) for key in CONTEXT_KEYS if key in values}
+
+
+def committed_snapshot(stored: dict | None, checkpoint: dict | None) -> dict:
+    """SQL owns persisted metadata; the checkpoint owns transient plan/guard data."""
+    context = snapshot_context(checkpoint)
+    if isinstance(stored, dict):
+        expected = {"resume_meta": dict, "resume_versions": list, "session_constraints": dict}
+        for key, kind in expected.items():
+            if isinstance(stored.get(key), kind):
+                context[key] = copy.deepcopy(stored[key])
+    return context
+
+
+def _freeze_fact_master(collected: dict, *, source: str, checkpoint_id: str | None = None) -> dict:
+    """Read stored fact rows verbatim, without migrating or inventing legacy facts."""
+    master = copy.deepcopy(collected)
+    active = []
+    for section in ("projects", "work_experience", "internship", "education"):
+        for item in master.get(section) or []:
+            if not isinstance(item, dict):
+                continue
+            for fact in item.get("facts") or []:
+                if isinstance(fact, dict) and fact.get("status", "active") == "active":
+                    active.append({**copy.deepcopy(fact), "section": section,
+                                   "item_id": item.get("item_id")})
+    return {"status": "observed", "source": source, "checkpoint_id": checkpoint_id,
+            "collected_info": master, "active_facts": active,
+            "active_skills": [copy.deepcopy(skill) for skill in master.get("skills") or []
+                              if not isinstance(skill, dict) or skill.get("status", "active") == "active"],
+            "projection": "stored_fact_rows_only_no_legacy_inference"}
+
+
+def checkpoint_facts(values: dict | None, checkpoint_id: str | None = None) -> dict:
+    if not isinstance(values, dict) or not isinstance(values.get("collected_info"), dict):
+        return {"status": "unknown", "source": "node_checkpoint", "checkpoint_id": checkpoint_id,
+                "reason": "checkpoint_fact_master_unavailable"}
+    return _freeze_fact_master(values["collected_info"], source="node_checkpoint", checkpoint_id=checkpoint_id)
+
+
+def committed_facts(stored: dict | None) -> dict:
+    """Only the authoritative SQL state can attest to the committed fact master."""
+    if not isinstance(stored, dict) or stored.get("has_authoritative_state") is not True:
+        return {"status": "unknown", "source": "committed_sql",
+                "reason": "authoritative_sql_fact_master_unavailable"}
+    if not isinstance(stored.get("collected_info"), dict):
+        return {"status": "unknown", "source": "committed_sql",
+                "reason": "sql_fact_master_missing_or_invalid"}
+    return _freeze_fact_master(stored["collected_info"], source="committed_sql")
+
+
+def writer_diagnostic_counts(versions: list[dict]) -> dict:
+    """Count observed model outcomes separately from deterministic guard repairs."""
+    counts = {"status": "not_observed", "model_completed": 0, "model_fallback": 0,
+              "compression_model_completed": 0, "compression_model_fallback": 0,
+              "versions_with_model_fallback": 0, "not_observed_versions": 0}
+    for version in versions:
+        context = version.get("acceptance_context") or {}
+        meta = context.get("resume_meta") if isinstance(context, dict) else None
+        if not isinstance(meta, dict):
+            counts["not_observed_versions"] += 1
+            continue
+        main = meta.get("writer_diagnostic")
+        compression = meta.get("compression_writer_diagnostics")
+        observed = False
+        fallback = False
+        for diagnostic, prefix in [(main, ""),
+                                   *[(row, "compression_") for row in
+                                     (compression if isinstance(compression, list) else [])]]:
+            if not isinstance(diagnostic, dict):
+                continue
+            status = diagnostic.get("status")
+            if status not in {"model_completed", "model_fallback"}:
+                continue
+            observed = True
+            counts[f"{prefix}{status}"] += 1
+            fallback |= status == "model_fallback"
+        if observed:
+            counts["status"] = "observed"
+        else:
+            counts["not_observed_versions"] += 1
+        counts["versions_with_model_fallback"] += int(fallback)
+    return counts
+
+
+def guard_fallbacks_for_version(version: dict) -> list[dict] | None:
+    context = version.get("acceptance_context") or {}
+    if not isinstance(context, dict):
+        return None
+    fallbacks = context.get("guard_fallbacks")
+    if not isinstance(fallbacks, list):
+        meta = context.get("resume_meta")
+        fallbacks = meta.get("guard_fallbacks") if isinstance(meta, dict) else None
+    return fallbacks if isinstance(fallbacks, list) else None
 
 
 def has_experience_body(resume: dict) -> bool:
@@ -151,7 +272,7 @@ def usage_total(records: list[dict]) -> dict:
 
 
 def transcript_text(case: dict, turns: list[dict]) -> str:
-    label = "私有真实材料固定回放" if is_private(case) else "合成资料基线"
+    label = "私有真实材料固定回放" if is_private(case) else "合成用例回放"
     lines = [f"# {case['id']} — {label}", "", f"Truth 审定状态：{case.get('truth_review_status', 'unknown')}；本次输出仍待 Claude 差异复核。", ""]
     for turn in turns:
         lines.extend([f"## 第 {turn['turn']} 轮 · {turn['phase']}", "", "### 用户", "", turn["user"],
@@ -267,7 +388,8 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             disclosed.update(index for index, fact in enumerate(case["truth_facts"]) if fact in text)
         record = {"turn": number, "phase": phase, "user": text, "task": task,
                   "simulation": simulation, "disclosed_fact_indices": sorted(disclosed),
-                  "started_at": timestamp(), "status": "running"}
+                  "started_at": timestamp(), "status": "running",
+                  "committed_fact_snapshot": committed_facts(None)}
         counter = counter_type()
         token = counter_context.set(counter)
         started = time.monotonic()
@@ -300,21 +422,20 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
                     recorder.record(snap.values["resume_data"], turn=number,
                                     stage=snap.values.get("stage", ""), kind="internal",
                                     observed=observed, checkpoint_id=checkpoint_id,
-                                    disclosed_fact_indices=sorted(disclosed))
+                                    disclosed_fact_indices=sorted(disclosed),
+                                    acceptance_context=snapshot_context(snap.values),
+                                    fact_snapshot=checkpoint_facts(snap.values, checkpoint_id))
             stored = load_resume_session(sid)
             committed = (stored or {}).get("resume_data") or {}
             stage = (stored or {}).get("stage", "")
+            current = history[-1].values if history else {}
+            committed_context = committed_snapshot(stored, current)
             recorder.record(committed, turn=number, stage=stage, kind="committed", observed=observed,
-                            disclosed_fact_indices=sorted(disclosed))
+                            disclosed_fact_indices=sorted(disclosed),
+                            acceptance_context=committed_context, fact_snapshot=committed_facts(stored))
             record["stage"] = stage
-            if is_private(case):
-                current = history[-1].values if history else {}
-                committed_context = {key: copy.deepcopy(current[key]) for key in
-                                     ("session_constraints", "field_conflicts") if key in current}
-                record["acceptance_context"] = copy.deepcopy(committed_context)
-                for version in recorder.versions:
-                    if version["turn"] == number:
-                        version["acceptance_context"] = copy.deepcopy(committed_context)
+            record["acceptance_context"] = copy.deepcopy(committed_context)
+            record["committed_fact_snapshot"] = committed_facts(stored)
         except Exception as exc:
             record.update(status="error", state_error_type=type(exc).__name__)
             failed = True
@@ -365,11 +486,11 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
         edit_inputs.append({"turn": result["turn"], "instruction": instruction, "before": before,
                             "after": copy.deepcopy(committed), "observed_facts": list(observed),
                             "turn_status": result["status"],
-                            **({"before_context": before_context, "after_context": copy.deepcopy(committed_context)}
-                               if is_private(case) else {})})
+                            "before_context": before_context,
+                            "after_context": copy.deepcopy(committed_context)})
     write_json(folder / "resume.json", committed)
 
-    scores = {"versions": [], "edits": [], "pairwise": {"status": "not_applicable_baseline_has_no_comparator"},
+    scores = {"versions": [], "edits": [], "pairwise": {"status": "not_run_without_comparator"},
               "human_review": {"status": "pending_claude", "confirmed_new_facts": None}}
     # Scores are durable after each version, so interrupted reviews can resume.
     for version in recorder.versions:
@@ -433,6 +554,20 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             "golden_reference": case.get("golden_reference"),
             "versions": private_versions, "edits": private_edits,
             "final": evaluate_real01(committed, rendered=render(committed), context=committed_context)})
+    # The same renderer provides measured page evidence for every public revision.
+    # A failed render remains unknown; it never becomes a passing estimate.
+    for version in recorder.versions:
+        if is_private(case):
+            version["render"] = render(version["resume_data"])
+        else:
+            constraints = (version.get("acceptance_context") or {}).get("session_constraints") or {}
+            if not isinstance(constraints, dict):
+                constraints = {}
+            limit = constraints.get("page_limit", 1)
+            limit = limit if type(limit) is int and limit in (1, 2) else 1
+            template = constraints.get("template_id", "t001-jianyue")
+            version["render"] = measure_rendered_resume(version["resume_data"], template, page_limit=limit)
+    write_json(folder / "versions.json", recorder.versions)
     draft_commits = [c for c in recorder.commits if c["stage"] in {"EVALUATING", "DRAFTED", "EXPORT"} and c["has_experience"]]
     first_draft = first_draft_version(recorder.versions)
     first_version = first_draft["version_id"] if first_draft else None
@@ -456,7 +591,12 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             "model_calls": model_calls, "judge_calls": review_calls,
             "simulator_calls": simulator_calls, "simulator_usage": usage_total(simulator_calls),
             "simulator_fallbacks": sum((t.get("simulation") or {}).get("selector_status") == "fallback" for t in turns),
-            "guard_fallbacks": None, "guard_fallbacks_status": "not_instrumented_in_old_chain",
+            "guard_fallbacks": sum(len(rows) for v in recorder.versions
+                                   if (rows := guard_fallbacks_for_version(v)) is not None)
+            if any(guard_fallbacks_for_version(v) is not None for v in recorder.versions) else None,
+            "guard_fallbacks_status": "observed" if any(guard_fallbacks_for_version(v) is not None
+                                                           for v in recorder.versions) else "not_observed",
+            "writer_diagnostics": writer_diagnostic_counts(recorder.versions),
             "safety_gate": "pending_claude_review", "session_id": sid}
     if not failed and not evaluation_complete:
         meta["status"] = "evaluation_incomplete"
@@ -518,7 +658,7 @@ async def run_live(cases, args, output, manifest):
     assert_private_model_policy(cases, args, settings)
     if not args.graph_only and args.judge_model in {settings.LLM_MODEL, settings.LLM_STRUCTURED_MODEL}:
         raise ValueError("Judge model must differ from both graph models")
-    # Exactly mirrors the existing chat entry point. Do not tune the baseline.
+    # Mirror the chat entry point; preserve model settings across benchmark runs.
     llm = ChatOpenAI(model=settings.LLM_MODEL, api_key=settings.LLM_API_KEY,
                      base_url=settings.LLM_BASE_URL, temperature=0.7, streaming=True)
     judge_llm = None if args.graph_only else ChatOpenAI(model=args.judge_model, api_key=settings.LLM_API_KEY,
@@ -539,6 +679,8 @@ async def run_live(cases, args, output, manifest):
                                                           "rejudge_versions": args.rejudge_versions})
     else:
         manifest.update(writer_model=settings.LLM_MODEL, structured_model=settings.LLM_STRUCTURED_MODEL,
+                        writer_mode=settings.LLM_WRITER_MODE, writer_temperature=settings.LLM_WRITER_TEMPERATURE,
+                        writer_max_tokens=settings.LLM_MAX_TOKENS or 4000,
                     judge_model=None if args.graph_only else args.judge_model, judge_temperature=0, judge_reasoning_effort="high",
                     graph_temperature=0.7, concurrency=args.concurrency,
                     max_followups=args.max_followups, turn_timeout_seconds=args.turn_timeout,
@@ -578,7 +720,8 @@ async def run_live(cases, args, output, manifest):
 
 
 def summarize(output: Path, results: list[dict], manifest: dict) -> None:
-    write_json(output / "summary.json", {"cases": results, "human_review_status": "pending_claude", "phase": "PR0"})
+    write_json(output / "summary.json", {"cases": results, "human_review_status": "pending_claude",
+                                         "phase": manifest.get("phase", "PR0")})
     from report import build_report
     build_report(output)
 
@@ -618,7 +761,7 @@ def main() -> int:
         raise ValueError("No cases found")
     private = any(is_private(case) for case in cases)
     output = safe_output(cases, args.rescore or args.output,
-                         datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d-%H%M%S") + "-baseline")
+                         datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d-%H%M%S") + "-pr4")
     if private and args.live and not args.graph_only:
         parser.error("Private cases currently require --graph-only; semantic review stays explicitly pending")
     if not args.live:
@@ -634,7 +777,7 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
     manifest = (json.loads((output / "manifest.json").read_text()) if args.rescore else
                 {**source_manifest(), "started_at": timestamp(), "case_hashes": {case['id']: digest(case) for case in cases},
-                 "phase": "PR0", "scope": "private_fixed_replay" if private else "synthetic_old_stream_agent_baseline",
+                 "phase": "PR4", "scope": "private_fixed_replay" if private else "synthetic_current_graph",
                  "private": private,
                  "private_case_ids": [case['id'] for case in cases if is_private(case)]})
     if args.rescore:

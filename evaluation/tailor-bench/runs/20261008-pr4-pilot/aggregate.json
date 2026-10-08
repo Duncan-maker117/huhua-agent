@@ -1,0 +1,2594 @@
+{
+  "report_version": 2,
+  "private": false,
+  "status": "incomplete",
+  "run": {
+    "phase": "PR4",
+    "scope": "synthetic_current_graph",
+    "started_at": "2026-10-08T23:48:11.317783+08:00",
+    "finished_at": "2026-10-08T23:57:51.042229+08:00",
+    "git_commit": "ecf7a334f3610b5e4a8a5697f3934420bc80230a",
+    "git_branch": "overhaul/tailor",
+    "writer_model": "deepseek-flash",
+    "structured_model": "deepseek-flash",
+    "judge_model": "deepseek-v4-pro",
+    "status": "partial",
+    "backend_unchanged": false
+  },
+  "manifest_problems": [],
+  "truth_review_status": "approved_by_claude",
+  "historical_review": {
+    "run_id": "20261008-baseline",
+    "reviewer": "Claude",
+    "source": "../../claude-review-response.txt",
+    "confirmed_new_experience_facts": 0,
+    "unsupported_objective_expansion_cases": 1,
+    "scope": "v1 only; does not confirm the current run"
+  },
+  "limitations": [],
+  "pairwise": {
+    "status": "not_run_without_comparator",
+    "win_rate": null
+  },
+  "totals": {
+    "cases": 1,
+    "versions": 8,
+    "visible_versions": 6,
+    "internal_only_versions": 2,
+    "version_score_statuses": {
+      "no_draft": 1,
+      "completed": 6,
+      "error": 1
+    },
+    "pages": {
+      "rendered": 8,
+      "within_limit": 8,
+      "over_limit": 0,
+      "unknown": 0,
+      "statuses": {
+        "rendered": 8
+      }
+    },
+    "writer_flags": {},
+    "graph_statuses": {
+      "completed": 1
+    },
+    "evaluation_statuses": {
+      "incomplete": 1
+    },
+    "facts": {
+      "confirmed_new_facts": null,
+      "safe": null,
+      "status": "pending_claude_review",
+      "lexical_flags": 0,
+      "lexical_statuses": {
+        "no_draft": 1,
+        "completed": 7
+      },
+      "semantic_suspicions": 0,
+      "unverifiable_units": 0,
+      "quality_check_counts": {},
+      "semantic_completed_versions": 6,
+      "semantic_unscored_content_versions": 1,
+      "semantic_statuses": {
+        "not_run": 2,
+        "completed_pending_claude": 6
+      },
+      "semantic_verdicts": {
+        "supported": 17
+      },
+      "visible_lexical_flags": 0,
+      "visible_semantic_suspicions": 0,
+      "internal_lexical_flags": 0,
+      "internal_semantic_suspicions": 0
+    },
+    "coverage": {
+      "total": 2,
+      "covered": 1,
+      "known_uncovered": 1,
+      "unknown": 0,
+      "not_applicable": 0,
+      "observed_lower_bound": 0.5,
+      "possible_upper_bound": 0.5,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null,
+      "fact_total": 4,
+      "fact_covered": 2,
+      "fact_unknown": 0,
+      "fact_observed_lower_bound": 0.5,
+      "cases_without_fact_denominator": 0
+    },
+    "coverage_of_truth": {
+      "total": 2,
+      "covered": 1,
+      "known_uncovered": 1,
+      "unknown": 0,
+      "not_applicable": 0,
+      "observed_lower_bound": 0.5,
+      "possible_upper_bound": 0.5,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null,
+      "fact_total": 4,
+      "fact_covered": 2,
+      "fact_unknown": 0,
+      "fact_observed_lower_bound": 0.5,
+      "cases_without_fact_denominator": 0
+    },
+    "coverage_of_disclosed": {
+      "total": 1,
+      "covered": 1,
+      "known_uncovered": 0,
+      "unknown": 0,
+      "not_applicable": 1,
+      "observed_lower_bound": 1.0,
+      "possible_upper_bound": 1.0,
+      "status": "complete_model_scores_pending_claude",
+      "human_confirmed_covered": null,
+      "fact_total": 1,
+      "fact_covered": 1,
+      "fact_unknown": 0,
+      "fact_observed_lower_bound": 1.0,
+      "cases_without_fact_denominator": 0
+    },
+    "gap_requirements": 1,
+    "edits": {
+      "expected": 2,
+      "executed": 1,
+      "no_diff": 1,
+      "error": 0,
+      "not_run": 0,
+      "unscored": 0,
+      "no_draft": 0,
+      "not_followed": 0,
+      "uncertain": 0,
+      "observed_lower_bound": 0.5
+    },
+    "quality": {
+      "dimensions": [
+        "jd_relevance",
+        "personal_contribution",
+        "results_impact",
+        "professional_expression",
+        "selection_length"
+      ],
+      "first": {
+        "scored_cases": 1,
+        "missing_cases": 0,
+        "means": {
+          "jd_relevance": 2,
+          "personal_contribution": 2,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 2
+        }
+      },
+      "final": {
+        "scored_cases": 1,
+        "missing_cases": 0,
+        "means": {
+          "jd_relevance": 2,
+          "personal_contribution": 4,
+          "results_impact": 1,
+          "professional_expression": 3,
+          "selection_length": 4
+        }
+      }
+    },
+    "first_draft": {
+      "drafted_cases": 1,
+      "missing_cases": 0,
+      "within_two_turns": 1,
+      "mean_turns_drafted_cases_only": 2
+    },
+    "first_visible_experience": {
+      "drafted_cases": 1,
+      "missing_cases": 0,
+      "within_two_turns": 1,
+      "mean_turns_drafted_cases_only": 2
+    },
+    "latency": {
+      "observed_turns": 6,
+      "mean_seconds": 13.024
+    },
+    "usage": {
+      "graph": {
+        "cases_with_usage": 1,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 47932,
+        "input_tokens_complete": true,
+        "output_tokens": 16289,
+        "output_tokens_complete": true,
+        "total_tokens": 64221,
+        "total_tokens_complete": true,
+        "logical_model_calls": 16,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 16,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.009917,
+          "upper_bound": 0.033926,
+          "priced_calls": 16,
+          "unpriced_calls": 0,
+          "cases_with_range": 1,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "judge": {
+        "cases_with_usage": 1,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 14298,
+        "input_tokens_complete": true,
+        "output_tokens": 40312,
+        "output_tokens_complete": true,
+        "total_tokens": 54610,
+        "total_tokens_complete": true,
+        "logical_model_calls": 8,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 8,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.080132,
+          "upper_bound": 0.178509,
+          "priced_calls": 8,
+          "unpriced_calls": 0,
+          "cases_with_range": 1,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "simulator": {
+        "cases_with_usage": 1,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 710,
+        "input_tokens_complete": true,
+        "output_tokens": 16,
+        "output_tokens_complete": true,
+        "total_tokens": 726,
+        "total_tokens_complete": true,
+        "logical_model_calls": 2,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 2,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 1.2e-05,
+          "upper_bound": 0.000232,
+          "priced_calls": 2,
+          "unpriced_calls": 0,
+          "cases_with_range": 1,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      },
+      "all_models": {
+        "cases_with_usage": 3,
+        "cases_missing_usage": 0,
+        "actual_cost_usd": null,
+        "sdk_http_attempts": null,
+        "input_tokens": 62940,
+        "input_tokens_complete": true,
+        "output_tokens": 56617,
+        "output_tokens_complete": true,
+        "total_tokens": 119557,
+        "total_tokens_complete": true,
+        "logical_model_calls": 26,
+        "logical_model_calls_complete": true,
+        "calls_with_usage": 26,
+        "calls_with_usage_complete": true,
+        "calls_without_usage": 0,
+        "calls_without_usage_complete": true,
+        "reported_token_cost_usd": {
+          "lower_bound": 0.090061,
+          "upper_bound": 0.212667,
+          "priced_calls": 26,
+          "unpriced_calls": 0,
+          "cases_with_range": 3,
+          "cases_without_range": 0,
+          "sources": [
+            "https://api-docs.deepseek.com/quick_start/pricing/"
+          ],
+          "status": "reported_token_estimate_not_invoice"
+        }
+      }
+    },
+    "product_findings": {
+      "drafted_cases": 1,
+      "no_draft_cases": [],
+      "title_error_cases": [],
+      "duplicate_project_cases": [],
+      "drafts_without_education": [
+        "ai-pm-01"
+      ],
+      "disclosed_education_cases": [],
+      "disclosed_education_missing_cases": [],
+      "first_person_cases": [],
+      "verbatim_body_cases": [],
+      "duplicate_body_cases": [],
+      "duplicate_sentence_cases": []
+    },
+    "guard": {
+      "fallbacks": 0,
+      "false_positive_rate": null,
+      "status": "observed"
+    }
+  },
+  "failures": [
+    {
+      "case_id": "ai-pm-01",
+      "reasons": [
+        "evaluation_incomplete",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "source": "ai-pm-01/meta.json"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "ai-pm-01",
+      "role_family": "ai_pm",
+      "truth_review_status": "approved_by_claude",
+      "graph_status": "completed",
+      "evaluation_status": "incomplete",
+      "artifact_problems": [],
+      "denominator_source": "case",
+      "first_draft_turn": 2,
+      "first_draft_version": "v003",
+      "diagnostic_stage_first_draft_turn": 4,
+      "diagnostic_stage_first_draft_version": "v006",
+      "formal_first_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 3,
+        "results_impact": 1,
+        "professional_expression": 3,
+        "selection_length": 2
+      },
+      "formal_first_score_status": "completed",
+      "first_visible_experience_version": "v003",
+      "first_visible_experience_turn": 2,
+      "first_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 2,
+        "results_impact": 2,
+        "professional_expression": 3,
+        "selection_length": 2
+      },
+      "first_score_status": "completed",
+      "final_version": "v008",
+      "final_quality": {
+        "jd_relevance": 2,
+        "personal_contribution": 4,
+        "results_impact": 1,
+        "professional_expression": 3,
+        "selection_length": 4
+      },
+      "final_score_status": "completed",
+      "has_visible_content": true,
+      "final_coverage": {
+        "total": 2,
+        "covered": 1,
+        "known_uncovered": 1,
+        "unknown": 0,
+        "not_applicable": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 0.5,
+        "fact_total": 4,
+        "fact_covered": 2,
+        "fact_unknown": 0,
+        "fact_ratio": 0.5,
+        "applicability_unknown": false
+      },
+      "final_coverage_of_truth": {
+        "total": 2,
+        "covered": 1,
+        "known_uncovered": 1,
+        "unknown": 0,
+        "not_applicable": 0,
+        "status": "model_scored_pending_claude",
+        "ratio": 0.5,
+        "fact_total": 4,
+        "fact_covered": 2,
+        "fact_unknown": 0,
+        "fact_ratio": 0.5,
+        "applicability_unknown": false
+      },
+      "final_coverage_of_disclosed": {
+        "total": 1,
+        "covered": 1,
+        "known_uncovered": 0,
+        "unknown": 0,
+        "not_applicable": 1,
+        "status": "model_scored_pending_claude",
+        "ratio": 1.0,
+        "fact_total": 1,
+        "fact_covered": 1,
+        "fact_unknown": 0,
+        "fact_ratio": 1.0,
+        "applicability_unknown": false
+      },
+      "product_observations": {
+        "has_experience_body": true,
+        "body_unit_count": 1,
+        "self_evaluation_assertions": [],
+        "title_errors": [],
+        "duplicate_projects": [],
+        "education_checks": [],
+        "education_disclosed": false,
+        "education_present": false,
+        "first_person_body_units": 0,
+        "verbatim_body_units": 0,
+        "duplicate_body_units": 0,
+        "duplicate_sentences": 0
+      },
+      "private_acceptance": null,
+      "gap_requirements": [
+        {
+          "id": "r3",
+          "text": "真实用户验证或上线经验",
+          "evidence_fact_indices": [],
+          "keywords": [
+            "真实用户",
+            "上线"
+          ],
+          "expected_status": "gap"
+        }
+      ],
+      "expected_edits": 2,
+      "edits": [
+        {
+          "edit_index": 1,
+          "instruction": "按 JD 再改“路线笔记”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+          "turn": 5,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "no_diff",
+          "substantive_diff": false,
+          "followed": false,
+          "executed": false,
+          "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+          "error_type": null
+        },
+        {
+          "edit_index": 2,
+          "instruction": "把“路线笔记”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+          "turn": 6,
+          "turn_status": "completed",
+          "score_status": "completed",
+          "category": "executed",
+          "substantive_diff": true,
+          "followed": true,
+          "executed": true,
+          "reason": "已将“路线笔记”的描述合并为一条（u003），并保留已有材料中的本人工作、团队分工与未上线状态；同时删除了原来的第二条断言（u004），符合“精简成一条”的要求。",
+          "error_type": null
+        }
+      ],
+      "edit_counts": {
+        "no_diff": 1,
+        "executed": 1
+      },
+      "versions": [
+        {
+          "version_id": "v001",
+          "turn": 1,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "no_draft",
+          "has_displayed_content": false,
+          "has_experience_body": false,
+          "lexical_status": "no_draft",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 0,
+              "total": 0,
+              "ratio": null,
+              "fact_covered": 0,
+              "fact_total": 0,
+              "fact_ratio": null,
+              "requirements": []
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 0,
+              "total": 2,
+              "ratio": 0.0,
+              "fact_covered": 0,
+              "fact_total": 4,
+              "fact_ratio": 0.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 0,
+            "total": 0,
+            "ratio": null
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [],
+            "pdf_sha256": "b0548c85a48d59bde2d8a5e45c099202adbd30a1847977fb85efe352035a1d8e",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "completed"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v002",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": false,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 4,
+            "results_impact": 2,
+            "professional_expression": 3,
+            "selection_length": 3
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用自己写的出行问题测试该旅游 Agent",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 1,
+              "total": 1,
+              "ratio": 1.0,
+              "fact_covered": 1,
+              "fact_total": 1,
+              "fact_ratio": 1.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u002",
+                      "quote": "用自己写的出行问题测试该旅游 Agent",
+                      "fact_indices": [
+                        1
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1
+                  ]
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 1,
+              "total": 2,
+              "ratio": 0.5,
+              "fact_covered": 1,
+              "fact_total": 4,
+              "fact_ratio": 0.25,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u002",
+                      "quote": "用自己写的出行问题测试该旅游 Agent",
+                      "fact_indices": [
+                        1
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1
+                  ]
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 1,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 2,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 3,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 4,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 5,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 6,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              }
+            ],
+            "pdf_sha256": "25a83ca44ec17d9c5189dce4981b57e9d07f3aa3c117c429715411ea28a84fb9",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "partial"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v003",
+          "turn": 2,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 2,
+            "results_impact": 2,
+            "professional_expression": 3,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 0,
+              "total": 1,
+              "ratio": 0.0,
+              "fact_covered": 0,
+              "fact_total": 1,
+              "fact_ratio": 0.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": false,
+                  "truth_covered": false,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 0,
+              "total": 2,
+              "ratio": 0.0,
+              "fact_covered": 0,
+              "fact_total": 4,
+              "fact_ratio": 0.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": false,
+                  "truth_covered": false,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 0,
+            "total": 1,
+            "ratio": 0.0
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 1,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 2,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 3,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 4,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 5,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 6,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              }
+            ],
+            "pdf_sha256": "25a83ca44ec17d9c5189dce4981b57e9d07f3aa3c117c429715411ea28a84fb9",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "partial"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v004",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": false,
+          "score_status": "error",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "not_run",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {},
+          "quality": null,
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "not_run",
+              "covered": null,
+              "total": 1,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 1,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "not_run",
+              "covered": null,
+              "total": 2,
+              "ratio": null,
+              "fact_covered": null,
+              "fact_total": 4,
+              "fact_ratio": null,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence": [],
+                  "evidence_supported": null,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": null,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": null,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": null,
+            "total": 1,
+            "ratio": null
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 1,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 2,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 3,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 4,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 5,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 6,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 7,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 8,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 9,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 10,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 11,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              }
+            ],
+            "pdf_sha256": "5aff6e2f3ec07037e6e99d57a86c053e760b24a8b8a78267a3a56ec28dfa264d",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "partial"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": null,
+          "error_type": "JudgeSchemaError",
+          "validation_error": "ungrounded evidence quote"
+        },
+        {
+          "version_id": "v005",
+          "turn": 3,
+          "stage": "COLLECTING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {
+            "supported": 2
+          },
+          "quality": {
+            "jd_relevance": 3,
+            "personal_contribution": 4,
+            "results_impact": 2,
+            "professional_expression": 2,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u002",
+                    "quote": "用自己写的出行问题测试该旅游 Agent。",
+                    "fact_indices": [
+                      1
+                    ]
+                  },
+                  {
+                    "unit_id": "u002",
+                    "quote": "记录回答中乱编地点和时间冲突的情况。\n回答中存在乱编地点和时间冲突的情况。\n项目还没上线。\n队友编写了页面和接口。\n我没有承担页面和接口的开发。\n我没有担任组长。\n完成手动测试及错误记录。\n使用 GPT 和表格完成手动测试及错误记录。",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 1,
+              "total": 1,
+              "ratio": 1.0,
+              "fact_covered": 1,
+              "fact_total": 1,
+              "fact_ratio": 1.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u002",
+                      "quote": "用自己写的出行问题测试该旅游 Agent。",
+                      "fact_indices": [
+                        1
+                      ]
+                    },
+                    {
+                      "unit_id": "u002",
+                      "quote": "记录回答中乱编地点和时间冲突的情况。\n回答中存在乱编地点和时间冲突的情况。\n项目还没上线。\n队友编写了页面和接口。\n我没有承担页面和接口的开发。\n我没有担任组长。\n完成手动测试及错误记录。\n使用 GPT 和表格完成手动测试及错误记录。",
+                      "fact_indices": [
+                        2
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1,
+                    2
+                  ]
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 1,
+              "total": 2,
+              "ratio": 0.5,
+              "fact_covered": 2,
+              "fact_total": 4,
+              "fact_ratio": 0.5,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u002",
+                      "quote": "用自己写的出行问题测试该旅游 Agent。",
+                      "fact_indices": [
+                        1
+                      ]
+                    },
+                    {
+                      "unit_id": "u002",
+                      "quote": "记录回答中乱编地点和时间冲突的情况。\n回答中存在乱编地点和时间冲突的情况。\n项目还没上线。\n队友编写了页面和接口。\n我没有承担页面和接口的开发。\n我没有担任组长。\n完成手动测试及错误记录。\n使用 GPT 和表格完成手动测试及错误记录。",
+                      "fact_indices": [
+                        2
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 1,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 2,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 3,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 4,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 5,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 6,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 7,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 8,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 9,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 10,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 11,
+                "actual_lines": null,
+                "status": "unresolved_pdf_text"
+              }
+            ],
+            "pdf_sha256": "5aff6e2f3ec07037e6e99d57a86c053e760b24a8b8a78267a3a56ec28dfa264d",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "partial"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": null,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v006",
+          "turn": 4,
+          "stage": "EVALUATING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {
+            "supported": 4
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 3,
+            "results_impact": 1,
+            "professional_expression": 3,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 0,
+              "total": 1,
+              "ratio": 0.0,
+              "fact_covered": 0,
+              "fact_total": 1,
+              "fact_ratio": 0.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": false,
+                  "truth_covered": false,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 0,
+              "total": 2,
+              "ratio": 0.0,
+              "fact_covered": 0,
+              "fact_total": 4,
+              "fact_ratio": 0.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": false,
+                  "truth_covered": false,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 0,
+            "total": 1,
+            "ratio": 0.0
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": 1,
+                "status": "matched_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 1,
+                "actual_lines": 1,
+                "status": "matched_pdf_text"
+              }
+            ],
+            "pdf_sha256": "add863372b82b1c01d5e205a20dd18b8506c610c7bd9a8514553022f7cca8f1a",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "completed"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": 0,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v007",
+          "turn": 5,
+          "stage": "EVALUATING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {
+            "supported": 4
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 2,
+            "results_impact": 1,
+            "professional_expression": 3,
+            "selection_length": 2
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "用自己写的出行问题测试该旅游 Agent。",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 1,
+              "total": 1,
+              "ratio": 1.0,
+              "fact_covered": 1,
+              "fact_total": 1,
+              "fact_ratio": 1.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u004",
+                      "quote": "用自己写的出行问题测试该旅游 Agent。",
+                      "fact_indices": [
+                        1
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1
+                  ]
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 1,
+              "total": 2,
+              "ratio": 0.5,
+              "fact_covered": 1,
+              "fact_total": 4,
+              "fact_ratio": 0.25,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u004",
+                      "quote": "用自己写的出行问题测试该旅游 Agent。",
+                      "fact_indices": [
+                        1
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1
+                  ]
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": 1,
+                "status": "matched_pdf_text"
+              },
+              {
+                "project_index": 0,
+                "bullet_index": 1,
+                "actual_lines": 1,
+                "status": "matched_pdf_text"
+              }
+            ],
+            "pdf_sha256": "add863372b82b1c01d5e205a20dd18b8506c610c7bd9a8514553022f7cca8f1a",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "completed"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": 0,
+          "error_type": null,
+          "validation_error": null
+        },
+        {
+          "version_id": "v008",
+          "turn": 6,
+          "stage": "EVALUATING",
+          "user_visible": true,
+          "score_status": "completed",
+          "has_displayed_content": true,
+          "has_experience_body": true,
+          "lexical_status": "completed",
+          "lexical_flags": 0,
+          "semantic_status": "completed_pending_claude",
+          "semantic_suspicions": 0,
+          "unverifiable_units": 0,
+          "quality_checks": [],
+          "semantic_verdicts": {
+            "supported": 3
+          },
+          "quality": {
+            "jd_relevance": 2,
+            "personal_contribution": 4,
+            "results_impact": 1,
+            "professional_expression": 3,
+            "selection_length": 4
+          },
+          "coverage": {
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用自写出行问题做手动测试，使用 GPT 与表格记录回答中乱编地点、时间冲突的错误。",
+                    "fact_indices": [
+                      1,
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 模型错误分析与评测意识",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1,
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 围绕模型边界调整原型方案",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ],
+            "coverage_of_disclosed": {
+              "status": "completed",
+              "covered": 1,
+              "total": 1,
+              "ratio": 1.0,
+              "fact_covered": 1,
+              "fact_total": 1,
+              "fact_ratio": 1.0,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u003",
+                      "quote": "用自写出行问题做手动测试，使用 GPT 与表格记录回答中乱编地点、时间冲突的错误。",
+                      "fact_indices": [
+                        1,
+                        2
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1,
+                    2
+                  ]
+                }
+              ]
+            },
+            "coverage_of_truth": {
+              "status": "completed",
+              "covered": 1,
+              "total": 2,
+              "ratio": 0.5,
+              "fact_covered": 2,
+              "fact_total": 4,
+              "fact_ratio": 0.5,
+              "requirements": [
+                {
+                  "requirement_id": "r1",
+                  "covered": true,
+                  "evidence": [
+                    {
+                      "unit_id": "u003",
+                      "quote": "用自写出行问题做手动测试，使用 GPT 与表格记录回答中乱编地点、时间冲突的错误。",
+                      "fact_indices": [
+                        1,
+                        2
+                      ]
+                    }
+                  ],
+                  "requirement": "r1 模型错误分析与评测意识",
+                  "expected_status": "direct",
+                  "evidence_supported": true,
+                  "disclosed_applicable": true,
+                  "disclosed_covered": true,
+                  "truth_covered": true,
+                  "available_fact_indices": [
+                    1
+                  ],
+                  "truth_fact_indices": [
+                    1,
+                    2,
+                    4
+                  ],
+                  "covered_disclosed_fact_indices": [
+                    1
+                  ],
+                  "covered_truth_fact_indices": [
+                    1,
+                    2
+                  ]
+                },
+                {
+                  "requirement_id": "r2",
+                  "covered": false,
+                  "evidence": [],
+                  "requirement": "r2 围绕模型边界调整原型方案",
+                  "expected_status": "direct",
+                  "evidence_supported": false,
+                  "disclosed_applicable": false,
+                  "disclosed_covered": null,
+                  "truth_covered": false,
+                  "available_fact_indices": [],
+                  "truth_fact_indices": [
+                    3
+                  ],
+                  "covered_disclosed_fact_indices": [],
+                  "covered_truth_fact_indices": []
+                }
+              ]
+            },
+            "gap_requirements": [
+              {
+                "requirement_id": "r3",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r3 真实用户验证或上线经验",
+                "expected_status": "gap",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": [],
+                "leaked_into_resume": false,
+                "positive_coverage_applicable": false
+              }
+            ],
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0
+          },
+          "render": {
+            "status": "rendered",
+            "template_id": "t001-jianyue",
+            "page_limit": 1,
+            "pages": 1,
+            "within_page_limit": true,
+            "bullet_lines": [
+              {
+                "project_index": 0,
+                "bullet_index": 0,
+                "actual_lines": 2,
+                "status": "matched_pdf_text"
+              }
+            ],
+            "pdf_sha256": "4df68bdff860dc328c59fb1b68941528b4888b3e7bad5359de8baa9464276cd0",
+            "renderer": "production_render_resume_pdf/weasyprint+pdfinfo",
+            "source_pdf": null,
+            "actual_line_status": "completed"
+          },
+          "page_status": "rendered",
+          "pages": 1,
+          "within_page_limit": true,
+          "writer_flags": {},
+          "guard_fallbacks": 0,
+          "error_type": null,
+          "validation_error": null
+        }
+      ],
+      "version_count": 8,
+      "visible_version_count": 6,
+      "internal_only_version_count": 2,
+      "turn_count": 6,
+      "turn_latencies_seconds": [
+        16.191,
+        20.157,
+        16.762,
+        5.373,
+        9.532,
+        10.132
+      ],
+      "graph_usage": {
+        "input_tokens": 47932,
+        "output_tokens": 16289,
+        "total_tokens": 64221,
+        "logical_model_calls": 16,
+        "calls_with_usage": 16,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.009917,
+          "upper_bound": 0.033926,
+          "priced_calls": 16,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 14298,
+        "output_tokens": 40312,
+        "total_tokens": 54610,
+        "logical_model_calls": 8,
+        "calls_with_usage": 8,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 0.080132,
+          "upper_bound": 0.178509,
+          "priced_calls": 8,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "simulator_usage": {
+        "input_tokens": 710,
+        "output_tokens": 16,
+        "total_tokens": 726,
+        "logical_model_calls": 2,
+        "calls_with_usage": 2,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "reported_tokens_range_only",
+        "reported_token_cost_usd": {
+          "lower_bound": 1.2e-05,
+          "upper_bound": 0.000232,
+          "priced_calls": 2,
+          "unpriced_calls": 0,
+          "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+        },
+        "sdk_http_attempts": null
+      },
+      "simulator_fallbacks": 0,
+      "guard_fallbacks": 0,
+      "guard_fallbacks_status": "observed",
+      "failures": [
+        "evaluation_incomplete",
+        "edit_not_executed",
+        "coverage_below_80_percent"
+      ],
+      "links": {
+        "case.json": "ai-pm-01/case.json",
+        "meta.json": "ai-pm-01/meta.json",
+        "scores.json": "ai-pm-01/scores.json",
+        "versions.json": "ai-pm-01/versions.json",
+        "turns.json": "ai-pm-01/turns.json",
+        "transcript.md": "ai-pm-01/transcript.md",
+        "resume.json": "ai-pm-01/resume.json"
+      }
+    }
+  ],
+  "review_queue_count": 8
+}

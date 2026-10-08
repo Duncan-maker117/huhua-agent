@@ -53,10 +53,10 @@ class PrivacyRegressionTest(unittest.TestCase):
         self.factory = sessionmaker(bind=self.engine)
         patches = [patch("app.database.engine", self.engine), patch.object(main, "engine", self.engine)]
         for module in ("app.database", "app.services.session_store", "app.services.conversation_store",
-                       "app.services.profile_bridge", "app.services.runtime_limits", "app.services.resume_suggestions", "main"):
+                       "app.services.profile_bridge", "app.services.runtime_limits", "main"):
             patches.append(patch(module + ".SessionLocal", self.factory))
         for module in ("app.config", "app.database", "app.services.session_store", "app.services.runtime_limits",
-                       "app.services.resume_suggestions", "app.api.chat", "app.api.conversations", "app.api.resume", "main"):
+                       "app.api.chat", "app.api.conversations", "app.api.resume", "main"):
             patches.append(patch(module + ".get_settings", return_value=self.settings))
         for item in patches:
             item.start()

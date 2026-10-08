@@ -164,8 +164,14 @@ class ResearchGraphTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(parts)
         values = (await graph.aget_state(config)).values
         self.assertEqual(values["jd_text"], material)
-        self.assertEqual(values["collected_info"], state["collected_info"])
-        self.assertEqual(values["resume_data"], state["resume_data"])
+        # JD retargets an existing draft, while the candidate fact master is
+        # only upgraded to the new schema; external requirements add no facts.
+        self.assertEqual(values['collected_info']['projects'][0]['description'],
+                         state['collected_info']['projects'][0]['description'])
+        self.assertNotIn('主导支付', str(values['collected_info']))
+        self.assertNotIn('Python', str(values['collected_info']))
+        self.assertNotIn('主导支付', str(values['resume_data']))
+        self.assertTrue(values.get('version_id'))
         latest = next(item for item in reversed(values["messages"]) if isinstance(item, HumanMessage))
         self.assertEqual(latest.additional_kwargs["career_material_type"], "jd")
         self.assertEqual(save.call_args.kwargs["archive_event"]["payload"]["source_kind"], "jd")

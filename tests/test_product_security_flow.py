@@ -61,10 +61,10 @@ class ProductSecurityFlow(unittest.IsolatedAsyncioTestCase):
         self.patches = []
         for name in ("app.database", "app.services.session_store", "app.services.conversation_store",
                      "app.services.canonical_resume", "app.services.profile_bridge", "app.services.runtime_limits",
-                     "app.services.resume_suggestions", "app.api.resume_changes"):
+                     "app.api.resume_changes"):
             self.patches.append(patch(name + ".SessionLocal", self.factory))
         for name in ("app.config", "app.services.session_store", "app.services.runtime_limits",
-                     "app.services.resume_suggestions", "app.api.conversations", "app.api.chat", "app.api.resume"):
+                     "app.api.conversations", "app.api.chat", "app.api.resume"):
             self.patches.append(patch(name + ".get_settings", return_value=self.settings))
         for p in self.patches:
             p.start()
@@ -162,27 +162,31 @@ class ProductSecurityFlow(unittest.IsolatedAsyncioTestCase):
         loaded = await self.a.get(f"/api/chat/conversations/{sid}")
         self.assertEqual(loaded.json()["resume_data"]["basic_info"]["name"], data["basic_info"]["name"])
 
-    async def test_apply_and_undo_are_idempotent_revision_bound_and_not_facts(self):
+    async def test_version_undo_is_revision_bound_and_never_changes_facts(self):
+        from app.services.resume_versions import prepare_version
+        from app.services.canonical_resume import save_canonical_resume
+        from app.agents.resume_graph import _serialize_to_resume_data
         sid, data = await self.fixture()
-        preview = await self.a.post(f"/api/resume/session/{sid}/suggestions/preview", json={"source_text": "参与需求整理。", "suggested_text": "参与需求整理；"})
-        self.assertEqual(preview.status_code, 200, preview.text)
-        self.assertTrue(preview.json()["can_apply"])
-        body = {"suggestion_id": preview.json()["suggestion_id"], "expected_revision": preview.json()["revision"]}
-        applied = await self.a.post(f"/api/resume/session/{sid}/suggestions/apply", json=body)
-        self.assertEqual(applied.status_code, 200, applied.text)
-        self.assertEqual(applied.json()["data"]["projects"][0]["description"], "参与需求整理；")
-        self.assertEqual((await self.a.post(f"/api/resume/session/{sid}/suggestions/apply", json=body)).status_code, 409)
-        undo = await self.a.post(f"/api/resume/session/{sid}/suggestions/undo", json={"change_id": applied.json()["change_id"], "expected_revision": applied.json()["revision"]})
+        changed = copy.deepcopy(data)
+        changed["projects"][0]["description"] = "参与需求整理；"
+        proposal = prepare_version(data, {}, [], changed, {})
+        applied = await save_canonical_resume(sid, resume_revision(data), changed, self.graph,
+                    _serialize_to_resume_data, source="writer", resume_meta=proposal["resume_meta"],
+                    resume_versions=proposal["resume_versions"])
+        body = {"expected_revision": applied["revision"]}
+        undo = await self.a.post(f"/api/resume/session/{sid}/versions/undo", json=body)
         self.assertEqual(undo.status_code, 200, undo.text)
         self.assertEqual(undo.json()["data"]["projects"][0]["description"], "参与需求整理。")
+        self.assertEqual((await self.a.post(f"/api/resume/session/{sid}/versions/undo", json=body)).status_code, 409)
         self.assertEqual((await self.a.get("/api/profile")).json()["facts"], [])
 
-    async def test_numbers_and_strengthened_roles_cannot_be_adopted(self):
-        sid, _ = await self.fixture()
+    async def test_numbers_and_strengthened_roles_fail_the_writer_guard(self):
+        from app.services.fact_guard import guard_bullets
+        facts = [{"id": "f1", "text": "参与需求整理。", "source_quote": "参与需求整理。", "status": "active"}]
         for proposed in ("主导需求整理。", "参与需求整理，效率提升50%。"):
-            result = await self.a.post(f"/api/resume/session/{sid}/suggestions/preview", json={"source_text": "参与需求整理。", "suggested_text": proposed})
-            self.assertEqual(result.status_code, 200, result.text)
-            self.assertFalse(result.json()["can_apply"])
+            result = await guard_bullets([{"text": proposed, "fact_ids": ["f1"]}], facts)
+            self.assertEqual(result[0]["verdict"], "fail")
+            self.assertTrue(result[0]["lexical_errors"])
 
     async def test_profile_facts_are_scoped_and_explicitly_imported(self):
         added = await self.a.post("/api/profile/facts", json={"category": "project", "subject": "课程工具", "field": "description", "value": "参与需求整理"})

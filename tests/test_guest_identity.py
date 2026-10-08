@@ -38,7 +38,7 @@ with patch("app.config.get_settings", return_value=Settings(_env_file=None, DATA
     from app.services.data_crypto import crypto_from_settings
     from app.services.profile_bridge import ClaimedHistoryImport, import_claimed_history
     from app.services.runtime_limits import reserve_turn
-    from app.services.resume_suggestions import ResumeSuggestion
+    from app.models.legacy_suggestions import ResumeSuggestion
     from app.services.secure_checkpoint import SecureCheckpointSaver
     from app.services.session_store import (
         list_sessions_needing_checkpoint_cleanup, load_resume_session,

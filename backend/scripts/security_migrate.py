@@ -193,7 +193,8 @@ def application_migrate(source: Path, destination: Path, owners: dict, crypto):
     from sqlalchemy import create_engine
     from app.database import Base
     from app.models import account, models, profile  # noqa: F401 — register tables
-    from app.services import profile_bridge, resume_suggestions, runtime_limits  # noqa: F401 — register tables
+    from app.models import legacy_suggestions  # noqa: F401
+    from app.services import profile_bridge, runtime_limits  # noqa: F401 — register tables
     from app.services.schema_migrations import migrate_schema
 
     if not crypto.enabled:

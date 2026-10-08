@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 
 from app.database import SessionLocal
+from app.models.legacy_suggestions import ResumeSuggestion
 from app.models.models import Conversation, ResumeSession
 from app.services.session_store import DELETED_STAGE, _is_expired, resume_data_has_content
 
@@ -237,7 +238,6 @@ async def claim_guest(old_owner: str | None, new_owner: str, session_id: str) ->
         raise ConversationNotFound()
     from app.services.session_store import session_lock
     from app.services.profile_bridge import ClaimedHistoryImport
-    from app.services.resume_suggestions import ResumeSuggestion
 
     async with session_lock(session_id):
         with SessionLocal() as db:
@@ -268,7 +268,6 @@ def assert_session_owner(owner: str | None, session_id: str) -> None:
 
 def remove_conversation(session_id: str) -> None:
     with SessionLocal() as db:
-        from app.services.resume_suggestions import ResumeSuggestion
         db.query(ResumeSuggestion).filter_by(session_id=session_id).delete(synchronize_session=False)
         row = db.get(Conversation, session_id)
         if row is not None:

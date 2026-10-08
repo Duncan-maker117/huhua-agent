@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from main import app  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
-from app.agents.editor_chain import _numbers  # noqa: E402
+from app.services.fact_guard import extract_numbers as _numbers  # noqa: E402
 from app.services.resume_review import review_resume  # noqa: E402
 
 

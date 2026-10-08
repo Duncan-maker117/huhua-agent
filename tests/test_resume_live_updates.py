@@ -41,6 +41,9 @@ CodeWiz｜开源贡献 · 2026.06
 完成 Skill 接口实现；个人职责待核对。
 """
 
+RENDER_UNAVAILABLE = {"status": "render_error", "pages": None, "within_page_limit": None,
+                      "page_limit": 1, "error_type": "TestRendererUnavailable"}
+
 
 class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
     def test_short_role_answer_does_not_create_another_generic_experience(self):
@@ -131,7 +134,7 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         with (
             patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
             patch("app.agents.resume_graph._extract_info_from_message", side_effect=extract),
-            patch("app.agents.editor_chain.run_editor", AsyncMock(side_effect=lambda data, model: data)),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
             result = await evaluating_node(state, object())
         names = [item["name"] for item in result["resume_data"]["projects"]]
@@ -157,7 +160,7 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         with patch("app.agents.resume_graph._extract_info_from_message") as extract:
             result = await evaluating_node(state, object())
         extract.assert_not_called()
-        self.assertNotIn("resume_data", result)
+        self.assertEqual(result["resume_data"]["projects"], [])
         self.assertNotIn("林同学", str(result))
 
     async def test_manual_editor_snapshot_blocks_history_resurrection(self):
@@ -179,7 +182,7 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         with (
             patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
             patch("app.agents.resume_graph._extract_info_from_message", AsyncMock(side_effect=lambda text, current, model: current)),
-            patch("app.agents.editor_chain.run_editor", AsyncMock(side_effect=lambda data, model: data)),
+            patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
             result = await export_node(state, object())
         self.assertEqual(result["stage"], "EVALUATING")
@@ -193,10 +196,11 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         for phrase in ("上面", "？", "?"):
             with self.subTest(phrase=phrase):
                 state = {**_init_state(), "stage": "EVALUATING", "messages": [HumanMessage(content=phrase)]}
-                with patch("app.agents.resume_graph._extract_info_from_message") as extract:
+                with (patch("app.agents.resume_graph._extract_info_from_message") as extract,
+                      patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE)):
                     result = await evaluating_node(state, object())
                 extract.assert_not_called()
-                self.assertIn("选择下一步", result["messages"][0].content)
+                self.assertIn("请补充教育或项目/工作经历", result["messages"][0].content)
                 self.assertNotIn("新事实", result["messages"][0].content)
 
     async def test_jd_analysis_is_kept_in_card_data_and_chat_is_short(self):

@@ -257,7 +257,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("专业内容检查暂时不可用", response.content)
         self.assertTrue(model.closed.is_set())
 
-    async def test_validated_draft_waits_for_editor_and_remains_one_canonical_reply(
+    async def test_validated_draft_waits_for_writer_and_remains_one_canonical_reply(
         self,
     ):
         model = GatedPublicModel()
@@ -269,14 +269,15 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
         async def build(_state, _model):
             editor_started.set()
             await editor_release.wait()
-            return draft, {}
+            return {"resume_data": draft, "resume_meta": {}, "resume_versions": [], "changed": True,
+                    "change_summary": [], "page_check": {"status": "render_error"}, "resume_strategy": {}}
 
         config = {"configurable": {"thread_id": "safe-draft"}}
         await graph.aupdate_state(config, {**_init_state(), "stage": "BUILDING"})
         with (
             patch("app.agents.resume_graph.get_graph", return_value=graph),
             patch(
-                "app.agents.resume_graph._build_canonical_resume_data",
+                "app.agents.resume_graph._write_resume_update",
                 side_effect=build,
             ),
             patch("app.services.session_store.save_resume_session") as save,
@@ -289,7 +290,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
             first = await asyncio.wait_for(pending, timeout=1)
             rest = [chunk async for chunk in stream]
             state = await graph.aget_state(config)
-        self.assertIn("更新右侧草稿", first)
+        self.assertIn("更新右侧待核对草稿", first)
         self.assertNotIn("整理访谈笔记", first)
         self.assertEqual(rest, [])
         self.assertEqual(state.values["resume_data"], draft)

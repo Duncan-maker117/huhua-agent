@@ -169,7 +169,10 @@ async def _session_meta(session_id: str, llm: ChatOpenAI) -> dict:
         owner = session_owner(session_id)
         vals = protect_state(owner, (state.values if state else {}) or {})
         stage = vals.get("stage") or "JD_INPUT"
-        rd = protect_data(owner, current_canonical(vals, load_resume_session(session_id), _serialize_to_resume_data))
+        stored = load_resume_session(session_id)
+        if stored and stored.get('has_authoritative_state'):
+            vals.update({key: stored.get(key) for key in ('collected_info', 'resume_meta', 'resume_versions', 'session_constraints')})
+        rd = protect_data(owner, current_canonical(vals, stored, _serialize_to_resume_data))
         has_data = resume_data_has_content(rd)
     except Exception as e:
         logger.warning("session meta graph read failed: %s", type(e).__name__)
@@ -178,14 +181,13 @@ async def _session_meta(session_id: str, llm: ChatOpenAI) -> dict:
             from app.services.conversation_store import session_owner
             owner = session_owner(session_id)
             stage = stored.get("stage") or ""
+            vals.update({key: stored.get(key) for key in ("collected_info", "resume_meta", "resume_versions", "session_constraints")})
             rd = protect_data(owner, stored.get("resume_data") or {})
             has_data = resume_data_has_content(rd)
+    from app.services.resume_workspace import tailor_metadata
     return {
-        "type": "meta",
-        "session_id": session_id,
-        "stage": stage,
-        "has_data": has_data,
-        "workspace": build_workspace(vals, rd),
+        "type": "meta", "session_id": session_id, "stage": stage, "has_data": has_data,
+        "workspace": build_workspace(vals, rd), **tailor_metadata(vals, rd),
     }
 
 

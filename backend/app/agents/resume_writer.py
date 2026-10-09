@@ -40,7 +40,7 @@ _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经�
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
 每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
-一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。
+一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。每条 bullet 不超过 60 个汉字（英文 2 字符按 1 汉字），写不下就只保留最关键的动作与产出。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
 新事实没有证据时留空并提问；questions 的问句优先用岗位手册「高价值追问」里的现成句子（按候选人事实换成具体对象），不要把岗位信号名套进“和「X」相关的部分”这类模板。严格输出 WriterDraft。"""
@@ -55,7 +55,7 @@ writer.items 必须是数组，每项只含 item_id、section、title、bullets�
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
-一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
+一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _REPAIR_CONTRACT = """只修复列表中违反事实边界的 bullet，每个原样返回 id。
@@ -245,6 +245,16 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                     else:
                         retry_state.update(retry_feedback)
                 raise
+
+
+MAX_BULLET_CHARS = 60
+
+
+def han_length(text: str) -> int:
+    """Bullet length in 汉字: ASCII characters count half."""
+    value = text or ""
+    ascii_count = sum(1 for ch in value if ord(ch) < 128 and not ch.isspace())
+    return (len(value.replace(" ", "")) - ascii_count) + (ascii_count + 1) // 2
 
 
 SUBSTANTIVE_KINDS = frozenset({"action", "method_tool", "deliverable", "result_metric", "result_qualitative"})
@@ -585,9 +595,14 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
     verdicts = {row["id"]: row for row in guarded}
     failed = [row for row in candidates if not row["valid_refs"] or verdicts.get(row["id"], {}).get("verdict") != "pass"]
     repairs = {}
-    if failed:
+    # 软违规：通过事实核验但过长的 bullet 修复一次，仍超长则保留原句（由 benchmark 的 overlong_bullets 计数）
+    soft = {row["id"]: f"overlong_bullet:当前{han_length(row['text'])}字，上限{MAX_BULLET_CHARS}字；请精简或保留最关键的动作与产出，不新增事实"
+            for row in candidates if row["valid_refs"] and verdicts.get(row["id"], {}).get("verdict") == "pass"
+            and han_length(row["text"]) > MAX_BULLET_CHARS and row not in failed}
+    to_repair = failed + [row for row in candidates if row["id"] in soft]
+    if to_repair:
         violations = []
-        for row in failed:
+        for row in to_repair:
             verdict = verdicts.get(row["id"], {})
             semantic = verdict.get("semantic")
             semantic = ({key: deepcopy(semantic[key]) for key in (
@@ -595,9 +610,10 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                 "unsupported_spans", "verdict") if key in semantic} if isinstance(semantic, dict) else None)
             violations.append({"id": row["id"], "item_id": row["item_id"],
                                "text": row["text"], "fact_ids": row["fact_ids"],
-                               "guard": {"lexical_errors": verdict.get("lexical_errors", []),
+                               "guard": {"lexical_errors": [soft[row["id"]]] if row["id"] in soft
+                                         else verdict.get("lexical_errors", []),
                                          "invalid_reasons": row["invalid_reasons"], "semantic": semantic}})
-        failed_items = {row["item_id"] for row in failed}
+        failed_items = {row["item_id"] for row in to_repair}
         payload = {"violations": violations,
                    "instruction": instruction, "scope": scope, "targets": list(targets),
                    "constraints": deepcopy(dict(constraints or {})),
@@ -610,15 +626,19 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                                     for fact in fact_rows if fact["item_id"] in failed_items]}
         try:
             output = await _call(writer_llm or model, RepairOutput, payload, _REPAIR_CONTRACT, role_family)
-            repairs = {row.id: row for row in output.bullets if row.id in {item["id"] for item in failed}}
+            repairs = {row.id: row for row in output.bullets if row.id in {item["id"] for item in to_repair}}
         except Exception:
             repairs = {}
     repaired = []
     first_pass_text = {row["id"]: row["text"] for row in failed}
-    for row in failed:
+    originals = {}
+    for row in to_repair:
         proposal = repairs.get(row["id"])
         if proposal is None:
             continue
+        if row["id"] in soft:
+            originals[row["id"]] = {key: deepcopy(row[key]) for key in (
+                "text", "fact_ids", "req_ids", "flags", "needs_metric", "metric_question")}
         refs = list(dict.fromkeys(proposal.fact_ids))
         if proposal.text.strip() and refs and all(fid in facts and facts[fid]["item_id"] == row["item_id"]
                                                    and _body_fact(facts[fid]) for fid in refs):
@@ -632,6 +652,11 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                                  jd_skills=role_profile.get("required_skills") or [],
                                  role_terms=role_profile.get("jd_language") or [], llm=model) if repaired else []
     second_verdicts = {row["id"]: row for row in second}
+    for row in candidates:
+        if row["id"] in originals and not (
+                second_verdicts.get(row["id"], {}).get("verdict") == "pass"
+                and han_length(row["text"]) < han_length(originals[row["id"]]["text"])):
+            row.update(originals[row["id"]])  # 精简失败或不更短：保留原句
     fallbacks = []
     names = {item.get("item_id"): str(item.get("name") or item.get("company") or "")
              for section in SECTIONS for item in source.get(section) or [] if isinstance(item, dict)}

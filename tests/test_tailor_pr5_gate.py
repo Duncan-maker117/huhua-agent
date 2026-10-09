@@ -795,3 +795,54 @@ class StagePhraseTests(unittest.TestCase):
         out, _, _ = preserve_item_limits(data, {}, facts, item_ids=["p1"])
         self.assertEqual(out["projects"][0]["role"], "课程原型")
         self.assertEqual(out["projects"][0]["polished_bullets"], ["先查候选再选，实现行程推荐"])
+
+
+class OverlongBulletTests(unittest.IsolatedAsyncioTestCase):
+    """E3：超过 60 汉字的 bullet 修复一次；仍超长或不更短则保留原句。"""
+
+    LONG = "针对模型推荐不存在店铺的问题，改为先检索候选地点再由模型在候选中编排行程并生成多方案路线以及备选餐饮和交通衔接安排还有按预算偏好排序的推荐结果"
+    SHORT = "针对模型推荐不存在店铺的问题，改为先检索候选地点再由模型在候选中编排行程"
+
+    def test_han_length(self):
+        from app.agents.resume_writer import han_length
+        self.assertEqual(han_length("一二三四五"), 5)
+        self.assertEqual(han_length("FastAPI 构建"), 4 + 2)  # 7 个 ASCII 按 4 个汉字估算 + 2 个汉字 → 6
+        self.assertGreater(han_length(self.LONG), 60)
+        self.assertLessEqual(han_length(self.SHORT), 60)
+
+    async def run_writer(self, repair_text):
+        from app.agents.resume_writer import run_resume_writer
+        facts = [("f1", "action", "改成先查候选再让模型选"), ("f2", "action", "生成多方案路线")]
+        source = {"projects": [{"item_id": "p1", "name": "途记", "facts": [
+            {"id": i, "kind": k, "text": t, "source_quote": t, "status": "active"} for i, k, t in facts]}]}
+        long_text, calls = self.LONG, []
+
+        class Model:
+            def with_structured_output(self, schema):
+                self.schema = schema.__name__
+                return self
+
+            async def ainvoke(self, messages):
+                calls.append(self.schema)
+                if self.schema == "SemanticBatch":
+                    return {"decisions": [{"id": "b0", "subject_ok": True, "actions_supported": True, "objects_supported": True,
+                                           "results_supported": True, "limits_kept": True, "unsupported_spans": [], "verdict": "pass"}]}
+                if self.schema == "RepairOutput":
+                    return {"bullets": [{"id": "b0", "text": repair_text, "fact_ids": ["f1", "f2"]}]}
+                return {"match_plan": {"requirements": [], "experience_plan": [{"item_id": "p1", "treatment": "lead", "target_bullets": 1}]},
+                        "writer": {"items": [{"item_id": "p1", "section": "projects",
+                                              "bullets": [{"text": long_text, "fact_ids": ["f1", "f2"]}]}]}}
+
+        # 词法层先要放行：源事实无多余数字/职责词，原句与修复句只用来源词汇
+        out = await run_resume_writer(source, {}, Model())
+        return out["resume_data"]["projects"][0]["polished_bullets"], calls
+
+    async def test_overlong_bullet_is_repaired_once(self):
+        bullets, calls = await self.run_writer("改为先检索候选再由模型选择，生成多方案路线")
+        self.assertEqual(calls.count("RepairOutput"), 1)
+        self.assertEqual(bullets, ["改为先检索候选再由模型选择，生成多方案路线"])
+
+    async def test_overlong_bullet_stays_when_repair_is_not_shorter(self):
+        bullets, calls = await self.run_writer(self.LONG + "，并持续迭代")
+        self.assertEqual(calls.count("RepairOutput"), 1)
+        self.assertEqual(bullets[0], self.LONG)

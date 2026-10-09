@@ -38,6 +38,19 @@ def _read(path: Path, default: Any, problems: list[str]) -> Any:
         return default
 
 
+def _bullet_lengths(resume: dict) -> list[int]:
+    """Visible experience bullets in 汉字 (ASCII counts half)."""
+    lengths = []
+    for section, field in (("projects", "polished_bullets"), ("work_experience", "bullets")):
+        for item in (resume or {}).get(section) or []:
+            if isinstance(item, dict) and item.get("hidden") is not True:
+                for text in item.get(field) or []:
+                    if isinstance(text, str):
+                        ascii_count = sum(1 for ch in text if ord(ch) < 128 and not ch.isspace())
+                        lengths.append(len(text.replace(" ", "")) - ascii_count + (ascii_count + 1) // 2)
+    return lengths
+
+
 def _writer_diagnostics(metadata: dict) -> dict:
     """Use only bounded status/type fields from the frozen writer diagnostics."""
     main = metadata.get("writer_diagnostic")
@@ -340,7 +353,9 @@ def _case_report(folder: Path, queue: list[dict]) -> dict:
                                 if isinstance(row, dict) and isinstance(row.get("reason"), str)) if isinstance(fallbacks, list) else Counter()
         diagnostics = _writer_diagnostics(metadata if isinstance(metadata, dict) else {})
         render = version.get("render") or {}
-        entry = {"version_id": vid, "turn": version.get("turn"), "stage": version.get("stage"),
+        lengths = _bullet_lengths(version.get("resume_data") or {})
+        entry = {"overlong_bullets": sum(value > 60 for value in lengths), "max_bullet_chars": max(lengths, default=0),
+                 "version_id": vid, "turn": version.get("turn"), "stage": version.get("stage"),
                  "user_visible": visible, "score_status": status,
                  "has_displayed_content": bool(_judge.candidate_units(version.get("resume_data"))),
                  "has_experience_body": _has_experience_body(version.get("resume_data") or {}),
@@ -572,6 +587,7 @@ def _render(aggregate: dict) -> str:
         "| Pairwise 新版胜率 | N/A | 本轮没有独立对手运行。 |",
         f"| Guard 回退 | {totals['guard']['fallbacks'] if totals['guard']['fallbacks'] is not None else '未观测'} | 按逐版本证据统计；误杀需人工复核。 |",
         f"| Guard 回退版本占比 | {totals['guard']['versions_with_fallback']}/{totals['guard']['observed_versions']} | 有任一 guard 回退的版本 / 有观测的版本；验收目标 ≤ 15%。 |",
+        f"| overlong_bullets | {facts['overlong_bullets']} | 可见版本中超过 60 汉字的 bullet 数（英文 2 字符按 1 汉字）；最长 {facts['max_bullet_chars']} 字。 |",
         f"| negative_absence_printed | {facts['negative_absence_printed']} | 简历正文印出「没有用户量/未上线/没有星数」等缺失型表述的单元数；验收目标 0。 |",
         f"| Writer 模型回退 | {totals['writer']['model_fallback'] + totals['writer']['compression_model_fallback'] if totals['writer']['status'] == 'observed' else '未观测'} | 主写作 {totals['writer']['model_fallback']}；压缩轮次 {totals['writer']['compression_model_fallback']}；{totals['writer']['not_observed_versions']} 版未观测。模型回退不计为正常写作或 Guard 回退。 |",
         f"| 事实限制保护回退 | {totals['guard']['reasons'].get('compression_preserved_status_limit', 0) if totals['guard']['status'] == 'observed' else '未观测'} | Guard reason=compression_preserved_status_limit 的逐版本观察数；不属于 Writer 模型回退。 |",
@@ -705,6 +721,8 @@ def build_report(output: Path) -> dict:
         "semantic_suspicions": sum(row["semantic_suspicions"] for row in versions),
         "unverifiable_units": sum(row["unverifiable_units"] for row in versions),
         "quality_check_counts": dict(Counter(item.get("kind", "unknown") for row in versions for item in row["quality_checks"])),
+        "overlong_bullets": sum(row["overlong_bullets"] for row in versions if row["user_visible"]),
+        "max_bullet_chars": max((row["max_bullet_chars"] for row in versions if row["user_visible"]), default=0),
         "negative_absence_printed": sum(item.get("kind") == "negative_absence_printed"
                                         for row in versions for item in row["quality_checks"]),
         "semantic_completed_versions": sum(row["score_status"] == "completed" for row in versions),

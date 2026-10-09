@@ -463,3 +463,12 @@ class JudgeTest(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EnumerationCountJudgeTest(unittest.TestCase):
+    def test_count_of_coordinated_items_is_not_a_new_number(self):
+        case = {"id": "t", "opening_turns": ["我检查了训练集和验证集的文件列表。"], "truth_facts": ["我检查了训练集和验证集的文件列表。"],
+                "requirements": [], "forbidden": {}}
+        for text, flagged in (("检查训练集与验证集的文件列表，核对两个集合的划分", False), ("检查了五个集合", True)):
+            score = judge.deterministic_score(case, resume(text))
+            self.assertEqual(any(f["kind"] == "number_not_in_truth" for f in score["flags"]), flagged, text)

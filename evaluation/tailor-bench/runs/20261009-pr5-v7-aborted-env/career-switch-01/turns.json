@@ -1,0 +1,169 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：AI 产品实习生\n岗位职责：整理用户需求，使用大模型原型验证想法，设计评测样例并分析回答错误，与研发协作推进迭代。\n任职要求：重视用户问题和模型能力边界；能够给出清楚的需求与验证记录。加分项：有 RAG、工作流工具或线上 AI 产品经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T23:12:35.288134+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "assistant": "JD解读出了点问题，但没关系，你直接告诉我你的经历也行。做过什么工作或项目？",
+    "elapsed_seconds": 0.162,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a12139-23de-7521-9d4c-0075233d83ec",
+        "started_at": "2026-10-09T23:12:35.295028+08:00",
+        "error_type": "OpenAIModelNotFoundError"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 1,
+      "calls_with_usage": 0,
+      "calls_without_usage": 1,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "我之前主要做社团运营，现在想转 AI 产品。“活动问答整理”是我做的一次整理：把群里反复问的问题放到表格里，用 GPT 试着分类，再人工检查。有同学一起提供材料，但没做成上线产品。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      2
+    ],
+    "started_at": "2026-10-09T23:12:35.452825+08:00",
+    "status": "error",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "error_type": "RuntimeError",
+    "error_diagnostic": {
+      "chain": [
+        {
+          "type": "RuntimeError",
+          "relation": "raised",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "evaluation/tailor-bench/run_bench.py",
+              "function": "turn",
+              "lineno": 461
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2294
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "OpenAIModelNotFoundError",
+          "relation": "context",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2251
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "jd_input_node",
+              "lineno": 1324
+            },
+            {
+              "file": "backend/app/agents/public_reply.py",
+              "function": "stream_public_reply",
+              "lineno": 91
+            },
+            {
+              "file": "backend/app/agents/public_reply.py",
+              "function": "consume",
+              "lineno": 81
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "NotFoundError",
+          "relation": "cause",
+          "context_suppressed": true,
+          "repo_frames": [],
+          "frames_truncated": false
+        },
+        {
+          "type": "HTTPStatusError",
+          "relation": "context",
+          "context_suppressed": false,
+          "repo_frames": [],
+          "frames_truncated": false
+        }
+      ],
+      "chain_truncated": false
+    },
+    "assistant": "",
+    "elapsed_seconds": 0.458,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a12139-2481-74a3-b75e-9ac5324d7692",
+        "started_at": "2026-10-09T23:12:35.457704+08:00",
+        "error_type": "OpenAIModelNotFoundError"
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a12139-2530-7a21-b40c-8822028896ef",
+        "started_at": "2026-10-09T23:12:35.633120+08:00",
+        "error_type": "OpenAIModelNotFoundError"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 2,
+      "calls_with_usage": 0,
+      "calls_without_usage": 2,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": []
+  }
+]

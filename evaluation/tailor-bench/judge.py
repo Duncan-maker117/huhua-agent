@@ -140,6 +140,18 @@ def _normal_number(raw: str) -> str:
     return str(number.normalize())
 
 
+def _enumeration_counts(texts: list[str]) -> set[int]:
+    """Item counts of coordinated lists (A、B和C → 3); 「两个集合」之类计数是同义改写，不算新增数字。"""
+    counts = set()
+    for text in texts:
+        for clause in re.split(r"[，,。；;\n]", text or ""):
+            if re.search(r"[、和及与]", clause):
+                pieces = [part for part in re.split(r"[、]|和|及|与", clause) if part.strip()]
+                if len(pieces) >= 2:
+                    counts.add(len(pieces))
+    return counts
+
+
 def _numbers(text: str) -> list[dict[str, str]]:
     output = []
     for match in _NUMBER.finditer(text):
@@ -196,6 +208,9 @@ def deterministic_score(case: dict, resume: dict, observed_facts: list[str] | No
             continue
         for number in _numbers(unit["text"]):
             matches = [known for known in truth_numbers if known["value"] == number["value"]]
+            if (not matches and number["kind"] == "quantity" and number["value"].isdigit()
+                    and int(number["value"]) in _enumeration_counts([*truth, *observed])):
+                continue
             if not matches:
                 flag(unit, "number_not_in_truth", number["raw"],
                      f"归一数字 {number['value']} 未见于 truth；可能为{number['kind']}，须结合原句复核，不能确认编造。")

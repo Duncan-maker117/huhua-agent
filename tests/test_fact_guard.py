@@ -530,3 +530,13 @@ class ExpansionGuardTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class E5Tests(unittest.TestCase):
+    def test_result_upgrade_and_attribution_examples(self):
+        errors = lexical_fact_errors("基于 SQLite 完成登记数据的读写，本地演示通过", "用 FastAPI 和 SQLite，本地演示过，没部署")
+        self.assertIn("unsupported_result_upgrade:演示通过", errors)
+        self.assertEqual([e for e in lexical_fact_errors("本地演示通过", "本地演示通过了") if e.startswith("unsupported_result")], [])
+        from app.services.fact_guard import SEMANTIC_CONTRACT
+        for phrase in ("新增归因/诊断", "定位为候选由模型自行生成", "结果升级", "本地演示通过"):
+            self.assertIn(phrase, SEMANTIC_CONTRACT)

@@ -1,0 +1,177 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：Python 后端开发实习生\n岗位职责：参与接口和数据查询开发，处理输入异常，记录排查过程。\n任职要求：了解 Python、关系型数据库和 HTTP 接口，能说明个人实现与团队分工。加分项：有部署维护或性能测试经验。请突出相关开发证据，非技术活动经历简要保留即可。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T23:12:37.726584+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "assistant": "JD解读出了点问题，但没关系，你直接告诉我你的经历也行。做过什么工作或项目？",
+    "elapsed_seconds": 0.169,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a12139-2d64-7f23-90dd-9d2615687dd3",
+        "started_at": "2026-10-09T23:12:37.732635+08:00",
+        "error_type": "OpenAIModelNotFoundError"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 1,
+      "calls_with_usage": 0,
+      "calls_without_usage": 1,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "下面是我自己的旧简历全文，想按这个岗位重新整理。\n\n苏演舟\n邮箱：fixture.candidate@example.com\n求职意向：软件开发实习\n教育：澄川学院，计算机科学与技术，本科在读。\n\n项目：知页索引\n课程小组作业，做本地知识笔记查询 Demo，没有部署上线。我用 Python 和 Flask 写笔记标题查询接口，用 SQLite 保存笔记标题和正文。我检查过空关键词和没有匹配项的请求，补了对应提示。登录和页面是队友写的。我用本地请求手动检查结果，没有性能测试或用户数据。\n\n活动项目：影像展招募页\n社团影像展的小组筹备工作。我用 Figma 画招募页草图，整理活动介绍文字；报名管理和正式海报是队友做的。草图只在社团内部讨论，没有开发上线，也没统计报名效果。\n\n技能：Python、Flask、SQLite、基础 SQL、Figma。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      1,
+      2,
+      3,
+      5,
+      6,
+      8,
+      9,
+      11
+    ],
+    "started_at": "2026-10-09T23:12:37.899886+08:00",
+    "status": "error",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "error_type": "RuntimeError",
+    "error_diagnostic": {
+      "chain": [
+        {
+          "type": "RuntimeError",
+          "relation": "raised",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "evaluation/tailor-bench/run_bench.py",
+              "function": "turn",
+              "lineno": 461
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2294
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "OpenAIModelNotFoundError",
+          "relation": "context",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2251
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "jd_input_node",
+              "lineno": 1324
+            },
+            {
+              "file": "backend/app/agents/public_reply.py",
+              "function": "stream_public_reply",
+              "lineno": 91
+            },
+            {
+              "file": "backend/app/agents/public_reply.py",
+              "function": "consume",
+              "lineno": 81
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "NotFoundError",
+          "relation": "cause",
+          "context_suppressed": true,
+          "repo_frames": [],
+          "frames_truncated": false
+        },
+        {
+          "type": "HTTPStatusError",
+          "relation": "context",
+          "context_suppressed": false,
+          "repo_frames": [],
+          "frames_truncated": false
+        }
+      ],
+      "chain_truncated": false
+    },
+    "assistant": "",
+    "elapsed_seconds": 0.458,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a12139-2e12-78f3-ab2c-26cea50d88d1",
+        "started_at": "2026-10-09T23:12:37.906784+08:00",
+        "error_type": "OpenAIModelNotFoundError"
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a12139-2f28-7951-91c8-79282fe8804c",
+        "started_at": "2026-10-09T23:12:38.184349+08:00",
+        "error_type": "OpenAIModelNotFoundError"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 2,
+      "calls_with_usage": 0,
+      "calls_without_usage": 2,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": []
+  }
+]

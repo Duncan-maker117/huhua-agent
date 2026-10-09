@@ -298,6 +298,9 @@ def expansion_errors(text: str, source: str) -> list[str]:
         match = pattern.search(text or "")
         if match and key not in (source or ""):
             errors.append("unsupported_purpose:" + key)
+    for claim in ("演示通过", "测试通过", "验收通过", "运行通过", "校验通过"):
+        if claim in (text or "") and not re.search(r"通过|成功|顺利", source or ""):
+            errors.append("unsupported_result_upgrade:" + claim)
     if re.search(r"梳理出|总结出|归纳出", text or "") and not re.search(r"梳理出|总结出|归纳出", source or ""):
         errors.append("unsupported_action:梳理出")
     if "具体场景" in (text or "") and "具体场景" not in (source or ""):
@@ -397,6 +400,8 @@ SEMANTIC_CONTRACT = """核验每条候选表述是否被其 source_quotes 完整
 17. 来源“整理汇总结果”→“整理汇总结果，供小组后续分析使用”：fail，新增用途/交付对象。
 18. 来源“核对疑似重复记录并标记”→“……保留原始数据，供后续复核”：fail，新增用途/交付对象。
 19. 来源“把群里反复问的问题放到表格里”→“长期接触群内同学的实际问题”：fail，新增时长/频次修饰。
+21. 来源“看到模型会推荐不存在的店”→“定位为候选由模型自行生成”：fail，新增归因/诊断动作。
+22. 来源“本地演示过”→“本地演示通过”：fail，结果升级（过→通过/成功）。
 20. 来源“手动检查了正常借还、缺少编号和重复归还的情况”→“手动检查三类情况”：pass，并列项计数是同义改写。
 补充正例：
 6. 来源“我用老师提供的代码训练模型，并在验证集评估结果”→“使用老师代码完成训练与评估”：pass，原文明确动作主体和两个阶段。

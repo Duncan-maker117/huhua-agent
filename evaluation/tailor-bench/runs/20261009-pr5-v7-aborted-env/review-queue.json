@@ -1,0 +1,58 @@
+{
+  "status": "pending_claude",
+  "confirmed_new_facts": null,
+  "items": [
+    {
+      "case_id": "direction-01",
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "version_review",
+      "score_status": "error",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "objective_unsupported",
+        "path": "basic_info.objective",
+        "quote": "我想找数据分析实习，手里还没有具体 JD。",
+        "unsupported_terms": [
+          "我想找数据分析实习",
+          "手里还没有具体 JD。"
+        ],
+        "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+      }
+    },
+    {
+      "case_id": "direction-01",
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "direction-01/scores.json",
+      "resume_source": "direction-01/versions.json",
+      "kind": "evaluation_incomplete",
+      "score_status": "error",
+      "error_type": "OpenAIModelNotFoundError",
+      "validation_error": null
+    },
+    {
+      "kind": "truth_review",
+      "case_id": "handson-01",
+      "review_status": "pending_claude",
+      "truth_review_status": "pending_claude",
+      "source": "handson-01/case.json"
+    }
+  ]
+}

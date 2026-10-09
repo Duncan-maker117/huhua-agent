@@ -492,9 +492,9 @@ def reconcile_report_rows(results: list[dict], before: dict, after: dict) -> lis
             if field in claimed:
                 continue
             claimed.add(field)
-            prepared.append({**row, "field": field, "status": "done",
-                             "changed": field in changed,
-                             "reason": "" if field in changed else "already_satisfied"})
+            satisfied = field not in changed and row.get("status") == "done" and row.get("reason") == "already_satisfied"
+            prepared.append({**row, "field": field, "status": "done", "changed": field in changed,
+                             "reason": "already_satisfied" if satisfied else ""})
             continue
         if not field:
             field = next((item for item in changed if item not in claimed), "")

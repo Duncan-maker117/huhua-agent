@@ -20,7 +20,7 @@ from app.agents.resume_writer import _without_near_duplicate_rows  # noqa: E402
 from app.agents.turn_actions import (  # noqa: E402
     absorb_education, bind_role_followup, choose_edit_plan, deterministic_compound_plan,
     education_confirmation, name_matches, parse_education_fields, render_operation_report,
-    uncovered_edit_clauses,
+    uncovered_edit_clauses, writing_constraints,
 )
 from app.services.fact_guard import ngram_overlap  # noqa: E402
 from app.services.resume_facts import new_fact  # noqa: E402
@@ -234,5 +234,156 @@ class EditReceiptGraphTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("途记", reply)
 
 
+ROUND5 = "途记更突出 Agent 设计；工坊集写详细一点；简历里保留抖音推广和 Claude Code；不要编造用户量。"
+INTERNAL_NAMES = ("understand", "whole", "set_field", "set_constraint", "refocus", "rewrite",
+                  "honor", "hide_item", "clean_format", "needs_confirmation")
+
+
+def _receipt(message, model_plan, before, after):
+    """Mirror the graph: executed ops + writing rules + uncovered clauses, then the receipt."""
+    from app.services.edit_plan import execute_edit_plan
+    plan = choose_edit_plan(message, before, model_plan)
+    executed = execute_edit_plan(before, {}, plan, collected_info={}, instruction=message)
+    rows = list(executed["operation_results"]) + writing_constraints(message) + uncovered_edit_clauses(
+        message, [*executed["operation_results"], *plan], before)
+    return plan, render_operation_report(rows, before, after)
+
+
+class Q3ReceiptTests(unittest.TestCase):
+    """评审 Q3：回执不自相矛盾、不泄露内部名、以执行前后文稿为准。"""
+
+    before = {"projects": [{"item_id": "p1", "name": "途记", "polished_bullets": ["a"]},
+                           {"item_id": "p2", "name": "工坊集", "polished_bullets": ["b"]}],
+              "education": [{"item_id": "e1", "school": "江商大", "major": "计算机", "degree": ""}]}
+
+    def after(self, **changes):
+        document = deepcopy(self.before)
+        if changes.get("p1"):
+            document["projects"][0]["polished_bullets"] = ["a2"]
+        if changes.get("p2"):
+            document["projects"][1]["polished_bullets"] = ["b2"]
+        return document
+
+    def test_covered_clause_never_also_reports_not_understood(self):
+        model_plan = [{"op": "refocus", "target": "途记", "args": {"focus": ["Agent 设计"]}},
+                      {"op": "rewrite", "target": "工坊集", "args": {}},
+                      {"op": "set_constraint", "target": "whole", "args": {}}]
+        plan, lines = _receipt(ROUND5, model_plan, self.before, self.after(p1=True, p2=True))
+        self.assertFalse(any(row["op"] == "set_constraint" for row in plan))
+        self.assertFalse(any("没理解" in line for line in lines), lines)
+        self.assertIn("✅ 调整重点 途记", lines)
+        self.assertIn("✅ 改写 工坊集", lines)
+        # 同一子句即使模型只给了动词、目标写成别名，也不得再出现没理解
+        self.assertEqual(uncovered_edit_clauses("工坊集写详细一点", [{"op": "rewrite", "target": "p2"}], self.before), [])
+        self.assertEqual(uncovered_edit_clauses("途记更突出 Agent 设计", [{"op": "refocus", "target": "途记"}], self.before), [])
+
+    def test_receipt_text_never_contains_internal_op_names(self):
+        model_plan = [{"op": "refocus", "target": "途记", "args": {}},
+                      {"op": "set_constraint", "target": "whole", "args": {}},
+                      {"op": "set_field", "target": "p1", "args": {"field": "role", "value": "独立"}}]
+        for after in (self.after(p1=True), self.after()):
+            _, lines = _receipt(ROUND5, model_plan, self.before, after)
+            text = "\n".join(lines)
+            for name in INTERNAL_NAMES:
+                self.assertNotIn(name, text)
+        lines = render_operation_report(
+            [{"op": "understand", "target": "x", "status": "needs_confirmation", "reason": "这项我没理解：『x』"},
+             {"op": "set_constraint", "target": "whole", "status": "cannot", "reason": "没有可设置的约束"},
+             {"op": "set_field", "target": "e1", "field": "school", "status": "done", "changed": True}],
+            self.before, self.after())
+        for line in lines:
+            for name in INTERNAL_NAMES:
+                self.assertNotIn(name, line)
+
+    def test_do_not_fabricate_is_a_writing_rule_not_a_constraint(self):
+        plan = choose_edit_plan(ROUND5, self.before, [{"op": "set_constraint", "target": "whole", "args": {"x": 1}}])
+        self.assertFalse(any(row["op"] == "set_constraint" for row in plan))
+        rows = writing_constraints("不要编造用户量")
+        self.assertEqual([row["target"] for row in rows], ["用户量"])
+        _, lines = _receipt(ROUND5, [], self.before, self.after(p1=True, p2=True))
+        self.assertIn("✅ 已遵守：未写用户量", lines)
+        self.assertFalse(any("篇幅" in line or "约束" in line for line in lines), lines)
+        # 真正的页数要求仍是约束
+        page = choose_edit_plan("压成一页，不要编造用户量", self.before,
+                                [{"op": "set_constraint", "target": "whole", "args": {"page_limit": 1}}])
+        self.assertTrue(any(row["op"] == "set_constraint" for row in page))
+
+    def test_education_receipt_follows_the_actual_before_after_diff(self):
+        message = "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+        after = deepcopy(self.before)
+        after["education"][0].update(school="江北商业大学", major="计算机科学与技术", degree="本科")
+        failed = [{"op": "set_field", "target": "e1", "field": "school", "status": "cannot",
+                   "reason": "仅能设置已确认的经历页眉字段"},
+                  {"op": "set_field", "target": "e1", "field": "degree", "status": "cannot",
+                   "reason": "仅能设置已确认的经历页眉字段"}]
+        lines = render_operation_report(failed, self.before, after)
+        self.assertTrue(lines and all(line.startswith("✅") for line in lines), lines)
+        self.assertFalse(any("❌" in line for line in lines))
+        # 文稿没变时，不能谎报成功
+        lines = render_operation_report(
+            [{"op": "set_field", "target": "e1", "field": "school", "status": "done", "changed": True}],
+            self.before, self.before)
+        self.assertFalse(any(line.startswith("✅") for line in lines), lines)
+
+    def test_unrequested_ops_do_not_reach_the_receipt(self):
+        answer = "途记基本是我一个人做的，产品方案和代码都是我。先给我出一版看看。"
+        plan, lines = _receipt(answer, [{"op": "set_field", "target": "p1", "args": {"field": "role", "value": "独立完成"}}],
+                               self.before, self.after(p1=True))
+        self.assertFalse(any(row["op"] == "set_field" for row in plan))
+        self.assertFalse(any("页眉" in line or "active fact" in line for line in lines), lines)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class Q4Tests(unittest.IsolatedAsyncioTestCase):
+    async def test_q4_2_answer_without_new_facts_closes_question_without_rewrite(self):
+        state = _init_state()
+        state["stage"] = "EVALUATING"
+        state["resume_data"] = {"basic_info": {"name": "江同学"}, "projects": [
+            {"item_id": "p1", "name": "途记", "polished_bullets": ["做了行程推荐原型"]}]}
+        state["messages"] = [HumanMessage(content="这方面我没有更多可以确认的信息，请只使用我已经提供的内容。")]
+        with patch("app.agents.resume_graph._write_resume_update", new=AsyncMock(
+                side_effect=AssertionError("无新事实的回答不得触发重写"))):
+            result = await evaluating_node(state, object())
+        self.assertFalse({"resume_data", "resume_versions", "change_summary", "collected_info"} & set(result))
+        self.assertNotIn("调整了", result["messages"][0].content)
+
+    async def test_q4_3_tool_named_only_in_an_experience_reaches_the_skill_area(self):
+        from app.agents.resume_writer import run_resume_writer
+        quote = "用 Claude Code 写技能"
+        source = {"projects": [{"item_id": "p2", "name": "工坊集", "facts": [
+            {"id": "f1", "kind": "method_tool", "text": quote, "source_quote": quote, "status": "active"}]}]}
+
+        class Model:
+            def with_structured_output(self, schema):
+                return self
+
+            async def ainvoke(self, messages):
+                return {"match_plan": {"requirements": [], "experience_plan": [{"item_id": "p2", "treatment": "keep"}]},
+                        "writer": {"items": [{"item_id": "p2", "section": "projects",
+                                              "bullets": [{"text": "用 Claude Code 编写技能", "fact_ids": ["f1"]}]}],
+                                   "skill_groups": {}}}
+
+        result = await run_resume_writer(source, {}, Model())
+        data = result["resume_data"]
+        names = [skill for values in (data.get("skill_groups") or {}).values() for skill in values] + list(data.get("skills") or [])
+        self.assertIn("Claude Code", names)
+
+    def test_q4_4_reasoning_is_explained_once_and_transferable_is_specific(self):
+        facts = {"projects": [{"item_id": "p1", "name": "工坊集", "facts": [
+            {"id": "f1", "kind": "action", "text": "公开仓库", "source_quote": "仓库是公开的", "status": "active"}]}]}
+        plan = {"requirements": [{"req_id": "r1", "status": "transferable", "fact_ids": ["f1"]}],
+                "experience_plan": [{"item_id": "p1", "treatment": "lead", "req_ids": ["r1"]}]}
+        profile = {"requirements": [{"id": "r1", "text": "开源协作"}]}
+        base = {"collected_info": facts, "resume_data": {"projects": [{"item_id": "p1", "name": "工坊集"}]},
+                "resume_versions": [{}], "resume_meta": {}}
+        first = compose_interviewer_reply(base, match_plan=plan, role_profile=profile)["text"]
+        self.assertIn("这版的思路", first)
+        self.assertIn("「开源协作」由工坊集", first)
+        self.assertNotIn("部分岗位要求由相邻经历支持", first)
+        later = {**base, "resume_versions": [{}, {}], "resume_meta": {"match_plan": plan}}
+        again = compose_interviewer_reply(later, match_plan=plan, role_profile=profile)["text"]
+        self.assertNotIn("这版的思路", again)
+        self.assertNotIn("可迁移表述", again)

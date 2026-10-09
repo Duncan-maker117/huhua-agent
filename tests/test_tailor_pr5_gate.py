@@ -508,7 +508,7 @@ class DetailRequestReceiptTests(unittest.TestCase):
         {"id": "f2", "kind": "action", "text": "做过抖音推广", "source_quote": "做过抖音推广", "status": "active"},
         {"id": "f3", "kind": "status_limit", "text": "没有星数", "source_quote": "没有星数", "status": "active"}]}]}
     before = {"projects": [{"item_id": "p2", "name": "工坊集", "polished_bullets": ["a"]}]}
-    profile = {"core_signals": [{"id": "s1", "signal": "开源协作"}, {"id": "s2", "signal": "内容推广"}]}
+    profile = {"role_family": "ai_pm", "core_signals": [{"id": "s1", "signal": "开源协作"}, {"id": "s2", "signal": "内容推广"}]}
     row = {"op": "rewrite", "target": "工坊集", "status": "done", "reason": "等待 writer 改写",
            "changed": False, "affected_item_ids": ["p2"]}
 
@@ -522,9 +522,12 @@ class DetailRequestReceiptTests(unittest.TestCase):
         lines = self.lines(["f1", "f2"])
         self.assertEqual(len(lines), 1)
         self.assertTrue(lines[0].startswith("⚠ 工坊集：现有资料都已写进去了，想写得更详细需要你补充，比如："), lines)
-        self.assertIn("「开源协作」", lines[0])
+        # W3：问句来自岗位手册「高价值追问」，不把信号名套进模板
+        from app.agents.career_prompt import playbook_followups
+        self.assertTrue(any(question in lines[0] for question in playbook_followups("ai_pm")), lines)
+        self.assertNotIn("相关的部分", lines[0])
+        self.assertNotIn("开源协作", lines[0])
         self.assertNotIn("✅", lines[0])
-        self.assertEqual(lines[0].count("？"), 1)
 
     def test_unused_disclosed_fact_keeps_the_normal_receipt(self):
         self.assertEqual(self.lines(["f1"]), ["✅ 改写 工坊集"])
@@ -638,3 +641,32 @@ class StoryBulletTests(unittest.IsolatedAsyncioTestCase):
                 {"id": "c", "text": "完成途记项目"}]
         self.assertEqual([row["id"] for row in _without_filler_rows(rows, "途记")], ["a"])
         self.assertEqual(len(_without_filler_rows(rows[2:], "途记")), 1)  # 唯一一条不清空条目
+
+
+class PlaybookFollowupTests(unittest.TestCase):
+    def test_questions_come_from_the_playbook_section(self):
+        from app.agents.career_prompt import pick_followup, playbook_followups
+        self.assertEqual(playbook_followups("backend")[0], "你自己写的是哪几个模块/接口？")
+        self.assertIn("这部分是你自己做的还是团队一起？你具体负责哪块？", playbook_followups("ai_pm"))
+        self.assertEqual(len(playbook_followups("other")), 3)
+
+    def test_first_uncovered_signal_is_chosen_and_generic_fallback_exists(self):
+        from app.agents.career_prompt import pick_followup
+        covered = "我一个人做的，负责全部代码，同学试用后给了反馈"
+        self.assertEqual(pick_followup("ai_pm", ""), "效果不好的时候你是怎么发现的、怎么改的？")
+        # 个人贡献/反馈已覆盖时，跳过对应问句
+        picked = pick_followup("ai_pm", covered)
+        self.assertNotIn("自己做的还是团队", picked)
+        self.assertNotIn("有多少人用过", picked)
+        self.assertTrue(pick_followup("no_such_family", ""))
+
+    def test_interviewer_drops_signal_template_questions(self):
+        facts = {"projects": [{"item_id": "p1", "name": "工坊集", "facts": [
+            {"id": "f1", "kind": "action", "text": "写技能", "source_quote": "写技能", "status": "active"}]}]}
+        bad = "工坊集里和「开源协作」相关的部分，你具体做了什么？"
+        plan = {"requirements": [], "experience_plan": [{"item_id": "p1", "treatment": "lead"}],
+                "questions": [{"q": bad, "improves": {"item_id": "p1", "req_id": ""}, "value": 5}]}
+        state = {"collected_info": facts, "resume_data": {"projects": [{"item_id": "p1", "name": "工坊集", "polished_bullets": ["a"]}]},
+                 "resume_versions": [{}]}
+        text = compose_interviewer_reply(state, match_plan=plan, role_profile={})["text"]
+        self.assertNotIn("相关的部分", text)

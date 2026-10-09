@@ -43,7 +43,7 @@ _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经�
 一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
-新事实没有证据时留空并提问。严格输出 WriterDraft。"""
+新事实没有证据时留空并提问；questions 的问句优先用岗位手册「高价值追问」里的现成句子（按候选人事实换成具体对象），不要把岗位信号名套进“和「X」相关的部分”这类模板。严格输出 WriterDraft。"""
 _ONE_PASS_CONTRACT = """本次只调用一次工具，顶层严格输出 OnePassOutput 对象：
 {"match_plan": MatchPlan 对象, "writer": WriterDraft 对象}。
 match_plan 内先按岗位要求和 active facts 做匹配计划；只引用给出的 fact_id/item_id。

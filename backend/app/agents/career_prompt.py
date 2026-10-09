@@ -1,6 +1,7 @@
 """Trusted, versioned career instructions shared by the active product nodes."""
 
 from functools import lru_cache
+import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -98,3 +99,36 @@ def career_messages(
         ],
         privacy,
     )
+
+
+_FOLLOWUP_CUES = (
+    # (问句关键词, 事实里已出现即视为该问句对应的信号已被覆盖的线索)
+    (r"自己做|团队|负责|本人|第几作者|自己写", r"一个人|自己|团队|同学|队友|分工|负责|独立"),
+    (r"反馈|用过|试过|结果怎么|数据是多少|节省|有人根据|真实用户", r"反馈|试用|用户|结果|提升|节省"),
+    (r"测|评测|基线|性能|指标|怎么判断", r"测试|评测|对比|样例|基线|指标"),
+    (r"上线|访问|Demo|部署|作品集|线上地址|GitHub", r"上线|Demo|部署|访问|链接|仓库|公开"),
+)
+_GENERIC_FOLLOWUP = "这件事里你具体负责什么？结果怎么样？有数字最好，没有的话说说留下了什么成果或反馈。"
+
+
+def playbook_followups(role_family: str) -> list[str]:
+    """岗位手册「高价值追问」一节里的现成问句。"""
+    name = ROLE_PLAYBOOKS.get(role_family or "other", ROLE_PLAYBOOKS["other"])
+    try:
+        text = (SKILL_ROOT / "role-playbooks" / name).read_text(encoding="utf-8")
+    except OSError:
+        return []
+    section = re.search(r"##\s*高价值追问[^\n]*\n(.*?)(?=\n##\s|\Z)", text, re.S)
+    return re.findall(r"[\"“]([^\"”]{4,80})[\"”]", section.group(1)) if section else []
+
+
+def pick_followup(role_family: str, facts_text: str = "") -> str:
+    """按 role_family 选第一个「事实里还没出现对应线索」的手册问句；没有手册用通用问句。"""
+    questions = playbook_followups(role_family)
+    if not questions:
+        return _GENERIC_FOLLOWUP
+    for question in questions:
+        cue = next((cues for keys, cues in _FOLLOWUP_CUES if re.search(keys, question)), "")
+        if not cue or not re.search(cue, facts_text or ""):
+            return question
+    return questions[0]

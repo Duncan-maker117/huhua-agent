@@ -174,6 +174,8 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
         if not isinstance(candidate, dict):
             continue
         q = str(candidate.get("q") or "").strip()
+        if re.search(r"和「[^」]{1,40}」(?:直接)?相关的部分", q):
+            continue  # 把岗位信号名套进模板的问句不用，改由手册问句/模型原生问句承担
         improvement = candidate.get("improves") or {}
         item_id, req_id = improvement.get("item_id") or "", improvement.get("req_id") or ""
         if not q or item_id not in known or (req_id and req_id not in valid_reqs):

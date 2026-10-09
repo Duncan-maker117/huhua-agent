@@ -411,13 +411,9 @@ _DETAIL_REQUEST = re.compile(r"详细|展开|写细|具体一点|丰富")
 
 
 def _detail_question(name: str, role_profile: dict | None, facts_text: str) -> str:
-    """One question tied to a job signal the item's facts do not yet speak to."""
-    signals = [str(row.get("signal") or "").strip() for row in (role_profile or {}).get("core_signals") or []
-               if isinstance(row, dict)]
-    signal = next((value for value in signals if value and value not in facts_text), signals[0] if signals else "")
-    if signal:
-        return f"{name}里和「{signal}」相关的部分，你具体做了什么、做到什么程度？"
-    return f"{name}里你具体做了什么、结果或产出是什么？"
+    """岗位手册「高价值追问」里的现成问句：第一个事实里还没覆盖的；没有手册用通用问句。"""
+    from app.agents.career_prompt import pick_followup
+    return pick_followup((role_profile or {}).get("role_family") or "other", facts_text)
 
 
 def detail_gap_rows(message: str, rows: list[dict], before: dict, after_meta: dict,

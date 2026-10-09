@@ -474,6 +474,29 @@ def explicit_objective(message: str) -> str:
     return value if value and value in (message or "") else ""
 
 
+def contract_gap_rows(rows: list[dict], contract: dict, before: dict) -> list[dict]:
+    """Edit-contract failures stay visible: no ✅ for an edit that changed nothing or dropped content."""
+    if not contract:
+        return rows
+    reasons = {}
+    for item_id in contract.get("no_op") or []:
+        reasons[item_id] = "这次改写没能比上一版更突出岗位相关内容（相关内容已在最前并用了 JD 表达，再改只会编造），需要你补充更贴近岗位的事实"
+    for item_id in contract.get("not_shorter") or []:
+        reasons.setdefault(item_id, "没能压得比上一版更短，当前稿保持表述不变")
+    for item_id in (contract.get("missing") or {}):
+        reasons.setdefault(item_id, "有已披露的相关内容没能保留进改写稿，请再确认要保留什么")
+    output = []
+    for row in rows:
+        affected = [item_id for item_id in row.get("affected_item_ids") or [] if item_id in reasons]
+        if row.get("op") in {"rewrite", "refocus", "compress"} and affected:
+            output.append({"op": "contract_gap", "target": _display_target(row.get("target") or "", before, before),
+                           "status": "needs_detail", "reason": reasons[affected[0]], "changed": False,
+                           "affected_item_ids": affected})
+        else:
+            output.append(row)
+    return output
+
+
 def writing_constraints(message: str) -> list[dict]:
     """「不要编造用户量」is a writing rule, not a page constraint."""
     rows = []
@@ -651,6 +674,9 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
         op = row.get("op") or "操作"
         if op == "understand":
             lines.append("⚠ " + str(row.get("reason") or "这项我没理解"))
+            continue
+        if op == "contract_gap":
+            lines.append(f"⚠ {row.get('target')}：{row.get('reason')}")
             continue
         if op == "need_detail":
             lines.append(f"⚠ {row.get('target')}：现有资料都已写进去了，想写得更详细需要你补充，比如：{row.get('reason')}")

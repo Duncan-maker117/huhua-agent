@@ -877,3 +877,122 @@ class SkillGroupTests(unittest.TestCase):
         from app.services.skill_groups import normalize_skill_groups
         out = normalize_skill_groups({"开发": [f"Python{i}" for i in range(12)]})
         self.assertEqual(len(out["开发"]), 8)
+
+
+class EditContractTests(unittest.IsolatedAsyncioTestCase):
+    """E1/E2：按 JD 突出、压缩、保留分工的确定性契约。输入为 data-01 / direction-01 v7 编辑前文稿。"""
+
+    PROFILE = {"role_family": "data", "jd_language": ["口径", "分析记录", "SQL"],
+               "core_signals": [{"id": "s1", "signal": "解释口径差异并形成分析记录", "jd_quotes": ["解释口径差异并形成分析记录"]}],
+               "requirements": [{"id": "r1", "text": "使用 SQL 整理业务数据"}, {"id": "r3", "text": "解释口径差异并形成分析记录"}]}
+
+    def facts(self):
+        rows = [("f1", "method_tool", "用 SQL 按商品和日期汇总采购流水"),
+                ("f2", "action", "在表格中核对重复记录并标注疑似重复处，保留原始数据"),
+                ("f3", "role", "本人负责口径说明"),
+                ("f4", "team", "可视化图表由队友完成")]
+        return {fid: {"id": fid, "item_id": "p1", "kind": kind, "text": text, "source_quote": text, "status": "active"}
+                for fid, kind, text in rows}
+
+    def row(self, ident, text, fact_ids, **extra):
+        return {"id": ident, "item_id": "p1", "section": "projects", "field": "polished_bullets", "bullet_index": 0,
+                "text": text, "fact_ids": fact_ids, "req_ids": [], "allowed_reqs": ["r1", "r3"], "flags": [],
+                "needs_metric": False, "metric_question": "", "valid_refs": True, "invalid_reasons": [], **extra}
+
+    def model(self, revised, calls):
+        class Model:
+            def with_structured_output(self, schema):
+                self.schema = schema.__name__
+                return self
+
+            async def ainvoke(self, messages):
+                calls.append((self.schema, str(messages[-1].content)))
+                if self.schema == "SemanticBatch":
+                    return {"decisions": [{"id": row["id"], "subject_ok": True, "actions_supported": True, "objects_supported": True,
+                                           "results_supported": True, "limits_kept": True, "unsupported_spans": [], "verdict": "pass"}
+                                          for row in revised] or []}
+                return {"bullets": revised}
+        return Model()
+
+    async def run_contract(self, rows, revised, modes, prior_records, prior_texts, instruction):
+        from app.agents.resume_writer import _apply_edit_contract
+        facts, calls, report = self.facts(), [], {}
+        model = self.model(revised, calls)
+        out = await _apply_edit_contract(
+            rows, item_id="p1", item_facts=list(facts.values()), facts=facts, prior_records=prior_records,
+            prior_texts=prior_texts, role_profile=self.PROFILE, modes=modes, instruction=instruction,
+            model=model, llm=model, role_family="data", source={}, report=report)
+        return out, calls, report
+
+    async def test_data01_dropping_the_jd_relevant_scope_note_is_repaired_and_put_first(self):
+        prior = ["使用 SQL 按商品和日期汇总采购流水，在表格中核对重复记录并标注疑似重复处，负责口径说明；可视化图表由队友完成",
+                 "在表格中核对重复记录，标注疑似重复位置，保留原始数据未作删除"]
+        records = [{"fact_ids": ["f1", "f2", "f3", "f4"], "req_ids": ["r3"]}, {"fact_ids": ["f2"], "req_ids": []}]
+        rows = [self.row("b0", "使用 SQL 按商品和日期汇总采购流水", ["f1"]),
+                self.row("b1", "在表格中核对重复记录，标注疑似重复处，未删除原始数据", ["f2"])]
+        revised = [{"id": "b1", "text": "负责口径说明，并在表格中核对重复记录、标注疑似重复处", "fact_ids": ["f3", "f2"]}]
+        modes = {"jd_focus": True, "compress": False, "keep_roles": False}
+        out, calls, report = await self.run_contract(
+            rows, revised, modes, records, prior, "按 JD 再改“菜篮账”，突出与岗位最相关的本人工作")
+        used = {fid for row in out for fid in row["fact_ids"]}
+        self.assertIn("f3", used)  # 口径说明没有丢
+        self.assertIn("f3", out[0]["fact_ids"])  # 最对口的事实所在 bullet 排第一
+        self.assertEqual([name for name, _ in calls].count("RepairOutput"), 1)  # 带清单只修复一次
+        self.assertIn("口径说明", [text for name, text in calls if name == "RepairOutput"][0])
+        self.assertNotIn("missing", report)
+
+    async def test_direction01_losing_the_personal_sql_part_is_detected(self):
+        from app.agents import edit_contract as contract
+        facts = self.facts()
+        records = [{"fact_ids": ["f1", "f3"], "req_ids": ["r1"]}]
+        required = contract.required_fact_ids(list(facts.values()), records, self.PROFILE, {"jd_focus": True})
+        self.assertTrue({"f1", "f3"} <= required or {"f1"} <= required)
+        rows = [self.row("b0", "用 SQL 按商品和日期汇总采购流水", ["f1"])]
+        out, calls, report = await self.run_contract(
+            rows, [], {"jd_focus": True, "compress": False, "keep_roles": False}, records,
+            ["用 SQL 按商品和日期汇总采购流水；本人负责其中的 SQL 汇总部分。"], "按数据分析实习方向再改，突出本人工作")
+        self.assertIn("f1", {fid for row in out for fid in row["fact_ids"]})
+
+    def test_noop_detection_and_concrete_retry_plan(self):
+        from app.agents import edit_contract as contract
+        facts = self.facts()
+        before = ["使用 SQL 按商品和日期汇总采购流水", "在表格中核对重复记录"]
+        self.assertTrue(contract.is_noop(before, ["使用 SQL 按商品和日期汇总采购流水。", "在表格里核对重复记录"]))
+        self.assertFalse(contract.is_noop(before, ["负责口径说明，形成分析记录", "使用 SQL 按商品和日期汇总采购流水"]))
+        plan = contract.retry_plan([self.row("b0", "x", ["f3"])], facts, self.PROFILE)
+        self.assertIn("请以「本人负责口径说明」", plan)
+        self.assertIn("口径", plan)
+
+    async def test_compress_keeps_team_fact_and_must_be_shorter(self):
+        prior = ["在表格中核对重复记录并标注疑似重复处", "报名和主持是别的同学做的"]
+        records = [{"fact_ids": ["f2"], "req_ids": []}, {"fact_ids": ["f4"], "req_ids": []}]
+        rows = [self.row("b0", "在表格中核对重复记录并标注疑似重复处，保留原始数据，另外整理了全部汇总结果", ["f2"])]
+        out, calls, report = await self.run_contract(
+            rows, [], {"jd_focus": False, "compress": True, "keep_roles": True}, records, prior,
+            "把描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。")
+        self.assertIn("f4", {fid for row in out for fid in row["fact_ids"]})  # 团队分工事实仍被引用
+        self.assertEqual([name for name, _ in calls].count("RepairOutput"), 1)
+        self.assertIn("not_shorter", report)  # 修复无效时如实报告，不假装已压缩
+
+    def test_edit_modes_and_prompt_inputs(self):
+        from app.agents import edit_contract as contract
+        self.assertTrue(contract.edit_modes("按 JD 再改“菜篮账”，突出与岗位最相关的本人工作")["jd_focus"])
+        modes = contract.edit_modes("精简成一条，保留本人工作、团队分工和状态限制")
+        self.assertTrue(modes["compress"] and modes["keep_roles"])
+        self.assertFalse(contract.active(contract.edit_modes("先给我出一版看看")))
+        self.assertEqual(contract.fact_req_ids("本人负责口径说明，形成分析记录", self.PROFILE), ["r3", "s1"])
+        from app.agents import resume_writer
+        for contract_text in (resume_writer._WRITE_CONTRACT, resume_writer._ONE_PASS_CONTRACT):
+            self.assertIn("fact_req_ids", contract_text)
+            self.assertIn("jd_language", contract_text)
+
+
+class ContractReceiptTests(unittest.TestCase):
+    def test_noop_edit_is_a_warning_not_a_tick(self):
+        from app.agents.turn_actions import contract_gap_rows
+        before = {"projects": [{"item_id": "p1", "name": "菜篮账", "polished_bullets": ["a"]}]}
+        rows = [{"op": "refocus", "target": "菜篮账", "status": "done", "changed": False, "affected_item_ids": ["p1"]}]
+        lines = render_operation_report(contract_gap_rows(rows, {"no_op": ["p1"]}, before), before, before)
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].startswith("⚠ 菜篮账："), lines)
+        self.assertEqual(contract_gap_rows(rows, {}, before), rows)

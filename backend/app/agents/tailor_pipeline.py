@@ -446,4 +446,4 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
             'compression_retention_checks': retention_checks,
             'guard_fallbacks': written.get('guard_fallbacks') or [],
             'change_summary': changes[:5], 'compression_actions': compressed,
-            'omitted': written.get('omitted') or []}
+            'omitted': written.get('omitted') or [], 'edit_contract': written.get('edit_contract') or {}}

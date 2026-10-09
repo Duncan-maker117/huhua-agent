@@ -1928,7 +1928,8 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         result['session_constraints'] = edit_constraints
     report_rows = list(operation_results) + writing_constraints(text) + uncovered_edit_clauses(
         text, [*operation_results, *planned_ops], before_edit)
-    from app.agents.turn_actions import detail_gap_rows
+    from app.agents.turn_actions import contract_gap_rows, detail_gap_rows
+    report_rows = contract_gap_rows(report_rows, result.get('edit_contract') or {}, before_edit)
     report_rows = detail_gap_rows(
         text, report_rows, before_edit, result.get('resume_meta') or {}, result.get('collected_info') or updated,
         (state.get('jd_info') or {}).get('role_profile') or {})

@@ -41,6 +41,7 @@ _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经�
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
 每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
 一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。每条 bullet 不超过 60 个汉字（英文 2 字符按 1 汉字），写不下就只保留最关键的动作与产出。
+按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
 新事实没有证据时留空并提问；questions 的问句优先用岗位手册「高价值追问」里的现成句子（按候选人事实换成具体对象），不要把岗位信号名套进“和「X」相关的部分”这类模板。严格输出 WriterDraft。"""
@@ -55,7 +56,7 @@ writer.items 必须是数组，每项只含 item_id、section、title、bullets�
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
-一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
+一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _REPAIR_CONTRACT = """只修复列表中违反事实边界的 bullet，每个原样返回 id。
@@ -686,6 +687,92 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
     return [row for row in candidates if row["text"] and row["fact_ids"]], fallbacks
 
 
+_CONTRACT_REPAIR = """你在按编辑契约修复一个条目的 bullet。返回 RepairOutput：只返回需要改的 bullet，每个原样带 id，
+text 是修复后的完整 bullet（不超过 60 个汉字），fact_ids 必须覆盖契约要求的事实，且只能来自同一条目的 active 事实。
+不新增来源没有的动作、对象、范围、成效、用途或修饰；缺失的事实必须写进某条 bullet；压缩要求总长度比修改前更短；
+JD 要求突出时，最相关事实的 bullet 放第一条并用 JD 词描述。"""
+
+
+async def _apply_edit_contract(rows: list[dict], *, item_id: str, item_facts: list[dict], facts: dict,
+                               prior_records: list, prior_texts: list[str], role_profile: dict, modes: dict,
+                               instruction: str, model, llm, role_family: str, source: dict, report: dict) -> list[dict]:
+    """Keep what the pre-edit draft cited for the JD / roles, make the edit visible, shorten on compress."""
+    from app.agents import edit_contract as contract
+    required = contract.required_fact_ids(item_facts, prior_records, role_profile, modes)
+    used = {fid for row in rows for fid in row.get("fact_ids") or []}
+    missing = sorted(required - used)
+    problems = []
+    if missing:
+        problems.append("丢失了改写前引用的事实，必须重新写进 bullet：" + "；".join(
+            f"{fid}={facts[fid]['text']}" for fid in missing if fid in facts))
+    prior_len = sum(han_length(text) for text in prior_texts)
+    if modes.get("compress") and prior_len and sum(han_length(row["text"]) for row in rows) >= prior_len:
+        problems.append(f"压缩后总长度必须短于修改前（修改前 {prior_len} 字）")
+    noop = bool(modes.get("jd_focus") and not modes.get("compress") and prior_texts
+                and contract.is_noop(prior_texts, [row["text"] for row in rows]))
+    if noop:
+        problems.append("改写前后几乎没有变化。" + contract.retry_plan(rows, facts, role_profile))
+    if problems and rows:
+        payload = {"violations": [{"id": row["id"], "item_id": item_id, "text": row["text"], "fact_ids": row["fact_ids"],
+                                   "guard": {"lexical_errors": ["edit_contract:" + problem for problem in problems],
+                                             "invalid_reasons": [], "semantic": None}} for row in rows],
+                   "instruction": instruction, "scope": "item", "targets": [item_id],
+                   "active_facts": [{"id": fact["id"], "item_id": item_id, "kind": fact.get("kind", "context"),
+                                     "text": fact["text"], "source_quote": fact.get("source_quote", ""),
+                                     "quote_origin": "original" if str(fact.get("source_quote") or "").strip() else "fact_text_fallback"}
+                                    for fact in item_facts if fact.get("id")],
+                   "edit_contract": {"required_fact_ids": sorted(required), "problems": problems,
+                                     "jd_language": role_profile.get("jd_language") or [],
+                                     "core_signals": role_profile.get("core_signals") or []}}
+        try:
+            output = await _call(llm or model, RepairOutput, payload, _CONTRACT_REPAIR, role_family)
+            proposals = {row.id: row for row in output.bullets if row.id in {r["id"] for r in rows}}
+        except Exception:
+            proposals = {}
+        revised = []
+        for row in rows:
+            proposal = proposals.get(row["id"])
+            refs = list(dict.fromkeys(proposal.fact_ids)) if proposal else []
+            if proposal and proposal.text.strip() and refs and all(
+                    fid in facts and facts[fid]["item_id"] == item_id and _body_fact(facts[fid]) for fid in refs):
+                revised.append({"id": row["id"], "item_id": item_id, "text": proposal.text.strip(), "fact_ids": refs})
+        if revised:
+            checks = await guard_bullets(revised, list(facts.values()), user_skills=source.get("skills") or [],
+                                         jd_skills=role_profile.get("required_skills") or [],
+                                         role_terms=role_profile.get("jd_language") or [], llm=model)
+            passed = {row["id"] for row in checks if row["verdict"] == "pass"}
+            for row in rows:
+                new = next((item for item in revised if item["id"] == row["id"] and item["id"] in passed), None)
+                if new:
+                    proposal = proposals[row["id"]]
+                    row.update(text=new["text"], fact_ids=new["fact_ids"],
+                               req_ids=[req for req in proposal.req_ids if req in row["allowed_reqs"]],
+                               flags=[flag for flag in proposal.flags if flag == "transferable"],
+                               needs_metric=proposal.needs_metric, metric_question=proposal.metric_question)
+        used = {fid for row in rows for fid in row.get("fact_ids") or []}
+        missing = sorted(required - used)
+        noop = bool(noop and contract.is_noop(prior_texts, [row["text"] for row in rows]))
+    # 仍缺的角色/团队分工事实：以事实原文单独成条（已是来源原句，不新增内容）
+    for fid in list(missing):
+        fact = facts.get(fid) or {}
+        text = strip_absence(fact.get("text") or "")
+        if fact.get("kind") in {"role", "team"} and text and modes.get("keep_roles"):
+            rows.append({"id": f"c{len(rows)}", "item_id": item_id, "section": rows[0]["section"] if rows else "projects",
+                         "field": rows[0]["field"] if rows else "polished_bullets", "bullet_index": len(rows),
+                         "text": text, "fact_ids": [fid], "req_ids": [], "allowed_reqs": [], "flags": [],
+                         "needs_metric": False, "metric_question": "", "valid_refs": True, "invalid_reasons": []})
+            missing.remove(fid)
+    if missing:
+        report.setdefault("missing", {})[item_id] = missing
+    if modes.get("compress") and prior_len and sum(han_length(row["text"]) for row in rows) >= prior_len:
+        report.setdefault("not_shorter", []).append(item_id)
+    if modes.get("jd_focus"):
+        rows = contract.order_rows(rows, facts, role_profile)
+    if noop:
+        report.setdefault("no_op", []).append(item_id)
+    return rows
+
+
 async def run_resume_writer(
     collected_info: dict, role_profile: dict, llm, *, current_data: dict | None = None,
     resume_meta: dict | None = None, instruction: str = "", scope: str = "whole",
@@ -713,6 +800,14 @@ async def run_resume_writer(
                "instruction": instruction, "scope": scope, "targets": list(targets),
                "allowed_item_ids": sorted(allowed), "capacity_budget": capacity,
                "current_target_bullets": _safe_current_targets(current, meta, allowed, facts)}
+    from app.agents import edit_contract as _edit_contract
+    _modes = _edit_contract.edit_modes(instruction)
+    if _edit_contract.active(_modes):
+        # 编辑模式：writer 必须看到岗位信号/要求，以及每条事实对应的 JD 要求 id
+        payload["edit_mode"] = _modes
+        payload["fact_req_ids"] = {
+            fact["id"]: _edit_contract.fact_req_ids(fact.get("text") or "", role_profile)
+            for item_id in allowed if item_id in items for fact in items[item_id][1].get("facts") or [] if fact.get("id")}
     plan = _default_plan(source, role_profile)
     draft = WriterDraft()
     stage = "one_pass" if mode == "one_pass" else "plan"
@@ -843,6 +938,10 @@ async def run_resume_writer(
     by_item = {}
     for row in checked:
         by_item.setdefault(row["item_id"], []).append(row)
+    prior_bullets_meta = deepcopy(meta.get("bullets") or {})
+    from app.agents import edit_contract as _contract
+    contract_modes = _contract.edit_modes(instruction) if scope != "bullet" else {}
+    contract_report: dict = {}
     metadata = meta.setdefault("bullets", {})
     for item_id, written in writers.items():
         pair = indexed_output.get(item_id)
@@ -857,6 +956,17 @@ async def run_resume_writer(
             rows = _without_repeated_fact_rows(rows, items[item_id][1].get("facts") or [],
                                                str(items[item_id][1].get("name") or items[item_id][1].get("company") or ""))
         rows = _without_near_duplicate_rows(rows)
+        if rows and _contract.active(contract_modes) and writer_diagnostic.get("status") != "model_fallback":
+            field_name = "polished_bullets" if section == "projects" else "bullets"
+            prior_item = next((entry for entry in current.get(section) or []
+                               if isinstance(entry, dict) and entry.get("item_id") == item_id), {})
+            prior_texts = [text for text in prior_item.get(field_name) or [] if isinstance(text, str)]
+            if prior_texts:
+                rows = await _apply_edit_contract(
+                    rows, item_id=item_id, item_facts=items[item_id][1].get("facts") or [], facts=facts,
+                    prior_records=prior_bullets_meta.get(item_id) or [], prior_texts=prior_texts,
+                    role_profile=role_profile, modes=contract_modes, instruction=instruction,
+                    model=model, llm=llm, role_family=role_family, source=source, report=contract_report)
         if not rows:
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"
@@ -979,4 +1089,5 @@ async def run_resume_writer(
         changes = [line for line in changes if "备用" not in line]
     return {"resume_data": output, "resume_meta": meta, "match_plan": match_plan,
             "omitted": omitted, "change_summary": changes, "guard_fallbacks": fallbacks,
-            "changed_items": changed_items, "writer_diagnostic": writer_diagnostic}
+            "changed_items": changed_items, "writer_diagnostic": writer_diagnostic,
+            "edit_contract": contract_report}

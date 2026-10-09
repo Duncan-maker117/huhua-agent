@@ -71,6 +71,8 @@
 .venv/bin/python evaluation/tailor-bench/run_bench.py --include-private --case real-01 --graph-only
 ```
 
+`run_bench.py` 在 macOS 上若未设置 `DYLD_FALLBACK_LIBRARY_PATH`，且本机有 `/opt/homebrew/lib`，会在导入渲染库之前指向该目录，以便 WeasyPrint 加载已安装的 Pango。页数仍只认渲染结果。
+
 需要实际重跑当前 graph 时才加 `--live` 与一个**新的** `runs-private/` 输出路径。私有 live 必须 `--graph-only`，不跑独立语义 judge。允许的模型是官方 `https://api.deepseek.com` 的 `deepseek-flash`，或百炼上名称以 `deepseek` 开头的模型。固定两轮回放不插入模拟追问。报告分开列出 8 个用户目标、14 个操作、`already_satisfied` 与 `executed`，以及真实 PDF 页数和仅用于诊断的估算行数。
 
 ## 评测口径

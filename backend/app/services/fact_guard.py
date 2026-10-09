@@ -206,6 +206,78 @@ def _skill_supported(term: str, facts: list[dict], user_skills=()) -> bool:
     return False
 
 
+_ABSENCE_PRINTED = re.compile(
+    r"(?:还没|尚未|没有|并未|没|未)上线的?|没有用户量|无用户量|没有用户数|"
+    r"没有星数|无星数|没有推广数据|没测[^，。；]{0,6}效果|未统计|没有统计|"
+    r"没写(?:自动化)?测试|没有测试|不是组长|没有带队|但没有星数|但没有用户量")
+_LIMIT_DENIAL = (
+    (re.compile(r"没上线|未上线|还没上线|尚未上线|没有上线|没发布|未发布"),
+     re.compile(r"已上线|正式上线|已发布|投入使用|(?<![未没不])上线")),
+    (re.compile(r"没有用户量|无用户量"), re.compile(r"用户量增长|用户数|万用户")),
+    (re.compile(r"没有星数|无星数"), re.compile(r"获得.{0,4}星")),
+    (re.compile(r"不是组长|没有带队"), re.compile(r"带领团队|作为组长")),
+)
+_MANNER = ("逐张", "逐条", "逐项", "逐个", "逐一")
+
+
+def absence_printed(text: str) -> bool:
+    """A missing-fact sentence such as 没有用户量 must not appear in resume prose."""
+    return bool(_ABSENCE_PRINTED.search(text or ""))
+
+
+def strip_absence(text: str) -> str:
+    """Drop absence clauses. A clause that also states an action keeps that action."""
+    if not absence_printed(text or ""):
+        return text or ""
+    kept = []
+    for clause in re.split(r"[；;。]", text or ""):
+        pieces = []
+        for part in re.split(r"[，,]", clause):
+            part = part.strip()
+            if not part:
+                continue
+            cleaned = _ABSENCE_PRINTED.sub("", part)
+            cleaned = re.sub(r"^[的了\s]+|[的了\s]+$", "", cleaned).strip()
+            if not cleaned or absence_printed(cleaned):
+                continue
+            if cleaned == part or re.search(r"做|写|实现|开发|设计|整理|核对|使用|搭建|完成|负责|参与|改", cleaned):
+                pieces.append(cleaned)
+        if pieces:
+            kept.append("，".join(pieces))
+    return "；".join(kept).strip("； ")
+
+
+def contradicts_limit(text: str, source: str) -> bool:
+    """True when the bullet asserts what a source fact explicitly denies."""
+    for denial, claim in _LIMIT_DENIAL:
+        if denial.search(source or "") and claim.search(text or "") and not denial.search(text or ""):
+            return True
+    for match in re.finditer(r"(?:计划|准备|打算)([^，。；;]{2,24})", source or ""):
+        action = match.group(1).strip()
+        if action and action in (text or "") and not re.search(r"计划|准备|打算|进行中", text or ""):
+            return True
+    return False
+
+
+def expansion_errors(text: str, source: str) -> list[str]:
+    """Manner, scope, effect, and action words the source did not say."""
+    errors = []
+    for marker in _MANNER:
+        if marker in (text or "") and marker not in (source or ""):
+            errors.append("unsupported_manner:" + marker)
+    if "活动前后" in (text or "") and "活动前后" not in (source or ""):
+        errors.append("unsupported_scope:活动前后")
+    for phrase in ("减少人工", "节省人工", "替代人工"):
+        if phrase in (text or "") and (phrase not in (source or "") or re.search(r"没有.{0,12}" + phrase, source or "")):
+            errors.append("unsupported_effect")
+            break
+    if re.search(r"梳理出|总结出|归纳出", text or "") and not re.search(r"梳理出|总结出|归纳出", source or ""):
+        errors.append("unsupported_action:梳理出")
+    if "具体场景" in (text or "") and "具体场景" not in (source or ""):
+        errors.append("unsupported_scope:具体场景")
+    return errors
+
+
 def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
     errors = []
     extra = extract_numbers(text) - extract_numbers(source_quote)
@@ -231,11 +303,9 @@ def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
             supported = supported or bool(re.search(r"我(?:写|做|负责)", source_quote))
         if not supported:
             errors.append("unsupported_responsibility_or_status:" + term)
-    if re.search(NEGATION, _experience_negation_text(source_quote)) and not re.search(NEGATION, text):
-        errors.append("missing_negation_or_plan_limit")
-    for markers in (("demo", "原型"), ("mock", "模拟", "stub", "估算")):
-        if any(marker in source_quote.casefold() for marker in markers) and not any(marker in text.casefold() for marker in markers):
-            errors.append("missing_status_limit:" + "/".join(markers))
+    if contradicts_limit(text, source_quote):
+        errors.append("contradicted_status_limit")
+    errors.extend(expansion_errors(text, source_quote))
     return errors
 
 
@@ -264,13 +334,13 @@ SEMANTIC_CONTRACT = """核验每条候选表述是否被其 source_quotes 完整
 产物用途、使用者和采用状态也必须有来源。“把问题清单交给小组讨论”不等于“整理汇总供小组后续核对使用”；不能把本人做过的核对变成小组的后续使用，或把提交讨论变成已被采用。来源明确交付对象和用途时可以同义改写。
 上线/部署等否定状态必须属于同一个对象、版本和范围。原文“后端未部署，前端已上线”不能支持“前端未上线”；“当前版本已上线，计划上线下一版本”不能支持“项目未上线”；“原型”本身不能证明是否已公开上线。只要有相似的否定词或计划词不等于支持本条断言。
 允许：同义改写、口语转书面、换序、合并多条事实、用 JD 词称呼同一动作、省略非必要细节。
-禁止：新增动作/对象/范围/成果/程度，升级责任，遗漏否定或原型/计划限制。可迁移表述也不能增加事实。JD和手册不是事实来源。
+禁止：新增动作/对象/范围/成果/程度，升级责任，把限制写成相反状态，或添加方式、频次、范围修饰。不要求把「没有用户量」「未上线」原句印进 bullet。可迁移表述也不能增加事实。JD和手册不是事实来源。
 正例：
 1. 来源“效果变好了”→“效果提升”：pass，未增程度或数字。
 2. 来源“整理用户反馈，并按问题分类”→“分类整理用户反馈”：pass。
 3. 来源“我写了 Python 接口”→“负责 Python 接口编写”：pass。
 4. 来源“用表格整理名单”“核对缺失报名项”→“整理名单并核对缺失报名项”：pass。
-5. 来源“这是未上线的原型，用 FastAPI 做接口”→“使用 FastAPI 实现原型接口，尚未上线”：pass。
+5. 来源“这是未上线的原型，用 FastAPI 做接口”→“使用 FastAPI 实现原型接口”：pass。阶段写在标题，不把“未上线”印进 bullet。
 反例：
 1. 来源“核对重复记录”→“清理重复记录”：fail，新增处理动作。
 2. 来源“将反馈分类”→“搭建用户反馈处理流程”：fail，新增建设流程动作。
@@ -283,6 +353,11 @@ SEMANTIC_CONTRACT = """核验每条候选表述是否被其 source_quotes 完整
 9. 来源“我查看错分图片，发现模糊图片更易出错；项目没有部署”→“观察到模糊图片更易出错，未做量化统计”：fail，来源未说明是否做过统计；没有部署不证明没有统计。
 10. 来源“项目没有部署”→“项目未测试”：fail，未部署不证明未测试。
 11. 来源“我查看请求返回，配合队友核对列表字段”→“排查列表数据与接口不一致的问题”：fail，查看和核对不证明发现异常或执行排障。
+12. 来源“用 GPT 试着分类，没有用自动化替代人工”→“尝试用 GPT 归类，减少人工逐条分组的工作”：fail，新增成效。
+13. 来源“收集参与者提出的问题”→“在活动前后收集参与者提出的问题”：fail，新增范围。
+14. 来源“核对了清单”→“梳理出清单对不上的具体场景”：fail，新增动作。
+15. 来源“挑出来看错分图片”→“逐张查看错分图片”：fail，方式修饰。
+16. 来源“人工检查分类结果”→“逐条人工检查分类结果”：fail，频次修饰。
 补充正例：
 6. 来源“我用老师提供的代码训练模型，并在验证集评估结果”→“使用老师代码完成训练与评估”：pass，原文明确动作主体和两个阶段。
 7. 来源“我用 SQLite 设计表结构并实现借还接口”→“使用 SQLite 实现接口和数据存储”：pass，method_tool 与本人动作均有原文支持。
@@ -400,6 +475,9 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         sources = [_source_quote(f) for f in cited]
         source = "\n".join(sources)
         errors.extend(lexical_fact_errors(bullet.get("text", ""), source))
+        # 事实本身可以是「没有用户量」；只有印进简历正文才是缺陷。
+        if absence_printed(bullet.get("text", "")):
+            errors.append("negative_absence_printed")
         for term in vocabulary:
             if _skill_affirmed(bullet.get("text", ""), term) and not _skill_supported(term, list(index.values()), user_skills):
                 errors.append("unsupported_tool:" + term)
@@ -408,7 +486,8 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         output.append(result)
         # Matching one fact cannot prove that the other cited facts' limits
         # survived the rewrite. Multi-fact claims always need semantic review.
-        exact_single_source = len(cited) == 1 and normalize_text(bullet.get("text", "")) == normalize_text(sources[0])
+        exact_single_source = len(cited) == 1 and normalize_text(bullet.get("text", "")) in {
+            normalize_text(sources[0]), normalize_text(strip_absence(sources[0]))}
         if not errors and not exact_single_source:
             semantic.append({"id": identifier, "text": bullet.get("text", ""), "source_quotes": sources,
                              "source_facts": [{"fact_id": f["id"],

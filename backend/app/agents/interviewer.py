@@ -208,13 +208,13 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     lead_items = [row.get("item_id") for row in treatments if row.get("treatment") == "lead"]
     backup_items = [row.get("item_id") for row in treatments if row.get("treatment") == "backup"]
     reasons = []
+    evidence = active_facts_for_writer(state.get("collected_info") or {})
+    item_facts = {item.get("item_id"): {fact.get("id") for fact in item.get("facts") or []}
+                  for section in ("projects", "work_experience", "internship")
+                  for item in evidence.get(section) or []}
+    req_text = {row.get("id"): row.get("text") for row in profile.get("requirements") or []
+                if isinstance(row, dict)}
     if lead_items:
-        evidence = active_facts_for_writer(state.get("collected_info") or {})
-        item_facts = {item.get("item_id"): {fact.get("id") for fact in item.get("facts") or []}
-                      for section in ("projects", "work_experience", "internship")
-                      for item in evidence.get(section) or []}
-        req_text = {row.get("id"): row.get("text") for row in profile.get("requirements") or []
-                    if isinstance(row, dict)}
         for item_id in lead_items:
             if item_id not in known:
                 continue
@@ -232,9 +232,20 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     if not reasons:
         reasons.append("按已确认事实整理了当前文稿，未补入缺少证据的成果或数字。")
     transferable = [row for row in plan.get("requirements") or [] if row.get("status") == "transferable"]
-    parts = [lead, "\n**这版的思路**：" + " ".join(reasons[:3])]
-    if transferable:
-        parts.append("\n**可迁移表述**：部分岗位要求由相邻经历支持，仍建议补充更直接的本人经历。")
+    prior_plan = (state.get("resume_meta") or {}).get("match_plan") or {}
+    def _signature(value):
+        return [(row.get("item_id"), row.get("treatment")) for row in (value or {}).get("experience_plan") or []]
+    explain = len(state.get("resume_versions") or []) <= 1 or _signature(prior_plan) != _signature(plan)
+    parts = [lead]
+    if explain:
+        parts.append("\n**这版的思路**：" + " ".join(reasons[:3]))
+        for row in transferable[:2]:
+            req = req_text.get(row.get("req_id")) or row.get("text") or ""
+            name = next((known[item_id][2].get("name") or known[item_id][2].get("company")
+                         for item_id, ids in item_facts.items()
+                         if item_id in known and ids.intersection(row.get("fact_ids") or [])), "")
+            if req and name:
+                parts.append(f"\n**可迁移表述**：「{req}」由{name}的已有经历迁移表达。")
     if selected:
         parts.append("\n**想让它更强，回答任意一个就行**：")
         parts.extend(f"{index}. {row['q']}（会改进：{row['location_label']}）"

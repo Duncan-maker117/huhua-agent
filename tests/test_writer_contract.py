@@ -58,10 +58,11 @@ class ParserThenValidModel:
         return parser.parse_result([ChatGeneration(message=message)])
 
 
-TEXT = "制作了页面拆分本地原型，尚未上线。"
+SOURCE_TEXT = "制作了页面拆分本地原型，尚未上线。"
+TEXT = PRINTED = "制作了页面拆分本地原型"  # 「尚未上线」只是限制，不入稿
 SOURCE = {"projects": [{"item_id": "synthetic-paper", "name": "纸页工具",
                         "facts": [{"id": "synthetic-fact-1", "kind": "status_limit",
-                                   "text": TEXT, "source_quote": TEXT, "status": "active",
+                                   "text": SOURCE_TEXT, "source_quote": SOURCE_TEXT, "status": "active",
                                    "source": "chat"}]}]}
 PLAN = {"requirements": [], "experience_plan": [{"item_id": "synthetic-paper",
                                                 "treatment": "keep"}]}
@@ -110,7 +111,7 @@ class WriterContractTest(unittest.TestCase):
             "stage": "one_pass", "error_type": "ValidationError",
             "validation_error_count": 1,
             "validation_errors": [{"loc": ["writer"], "type": "missing"}]})
-        self.assertIn(TEXT, result["resume_data"]["projects"][0]["polished_bullets"])
+        self.assertIn(PRINTED, result["resume_data"]["projects"][0]["polished_bullets"])
 
     def test_validation_paths_never_expose_unexpected_keys_or_values(self):
         invalid = {"match_plan": PLAN, "writer": {"items": [{
@@ -224,7 +225,7 @@ class WriterContractTest(unittest.TestCase):
             "status": "model_fallback", "mode": "one_pass",
             "schema_retry_count": 0,
             "stage": "write", "error_type": "EmptyWriterDraft"})
-        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], [TEXT])
+        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], [PRINTED])
 
     def test_two_pass_reports_plan_or_write_failure_stage(self):
         for planner, writer, stage in (
@@ -243,7 +244,7 @@ class WriterContractTest(unittest.TestCase):
                                                FakeModel({"match_plan": PLAN, "writer": DRAFT})))
         self.assertEqual(result["writer_diagnostic"], {"status": "model_completed", "mode": "one_pass",
                                                        "schema_retry_count": 0})
-        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], [TEXT])
+        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], [PRINTED])
 
     def test_validation_retry_succeeds_with_same_evidence_and_safe_feedback(self):
         model = FakeModel({"match_plan": PLAN}, {"match_plan": PLAN, "writer": DRAFT})

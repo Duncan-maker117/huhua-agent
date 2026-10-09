@@ -86,12 +86,13 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
         facts["certificates"].append("虚构证书")
         from test_resume_writer import FakeModel
         from app.services.resume_facts import normalize_fact_store
+        from app.services.fact_guard import strip_absence
         facts = normalize_fact_store(facts)
         project = facts['projects'][0]
         model = FakeModel([('OnePassOutput', {'match_plan': {}, 'writer': {
             'items': [{'item_id': project['item_id'], 'section': 'projects',
-                       'bullets': [{'text': fact['text'], 'fact_ids': [fact['id']]}
-                                   for fact in project['facts']]}],
+                       'bullets': [{'text': strip_absence(fact['text']), 'fact_ids': [fact['id']]}
+                                   for fact in project['facts'] if strip_absence(fact['text'])]}],
             'skill_groups': {'自定义工具': ['Excel']}}})])
         result = await self.rebuild(saved, facts, model=model)
         self.assertEqual([schema for schema, _ in model.calls], ['OnePassOutput'])

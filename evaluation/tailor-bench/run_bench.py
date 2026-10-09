@@ -22,6 +22,10 @@ from pathlib import Path
 import statistics
 import subprocess
 import sys
+if sys.platform == "darwin" and not os.environ.get("DYLD_FALLBACK_LIBRARY_PATH"):
+    _brew_lib = "/opt/homebrew/lib"
+    if os.path.isdir(_brew_lib):
+        os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = _brew_lib
 import tempfile
 import time
 from zoneinfo import ZoneInfo

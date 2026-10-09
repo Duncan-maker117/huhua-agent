@@ -15,7 +15,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.schemas.writer import MatchPlan, OnePassOutput, RepairOutput, WriterDraft
-from app.services.fact_guard import guard_bullets, ngram_overlap, validate_skill_groups
+from app.services.fact_guard import guard_bullets, ngram_overlap, strip_absence, validate_skill_groups
 from app.services.llm_compat import with_structured_output
 from app.services.model_privacy import ContactRedactor
 from app.services.resume_capacity import normalize_session_constraints, writer_capacity_budget
@@ -38,7 +38,7 @@ direct 是直接经历，transferable 要标注，gap 不得硬写。按相关�
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
-每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责，保留未上线/计划等限制。
+每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
 新事实没有证据时留空并提问。严格输出 WriterDraft。"""
@@ -53,7 +53,7 @@ writer.items 必须是数组，每项只含 item_id、section、title、bullets�
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
-不新增经历、工具、数字或成果；不升级职责，保留未上线/计划等限制；backup 不写正文。
+不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _REPAIR_CONTRACT = """只修复列表中违反事实边界的 bullet，每个原样返回 id。
@@ -415,11 +415,13 @@ def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict) -> tuple[s
            and _body_fact(facts[fid])]
     if not own:
         own = [fid for fid, fact in facts.items() if fact["item_id"] == item_id and _body_fact(fact)]
-    limits = [fid for fid, fact in facts.items()
-              if fact["item_id"] == item_id and _body_fact(fact)
-              and fact.get("kind") == "status_limit" and fid not in own]
-    refs = own + limits
-    return "；".join(facts[fid]["text"] for fid in refs if facts[fid].get("text")), refs
+    texts, refs = [], []
+    for fid in own:
+        cleaned = strip_absence(facts[fid].get("text") or "")
+        if cleaned:
+            texts.append(cleaned)
+            refs.append(fid)
+    return "；".join(texts), refs
 
 
 def _body_fact(fact: dict) -> bool:
@@ -637,12 +639,12 @@ async def run_resume_writer(
             if item_id in allowed and item_id not in writers:
                 selected = [fact for fact in item["facts"] if _body_fact(fact) and fact.get("kind") in
                             {"action", "method_tool", "deliverable", "result_metric", "result_qualitative", "status_limit"}]
-                selected = (selected or [fact for fact in item["facts"] if _body_fact(fact)])[
-                    :target_caps[item_id]]
+                selected = (selected or [fact for fact in item["facts"] if _body_fact(fact)])[:target_caps[item_id]]
                 from app.schemas.writer import WrittenItem, WrittenBullet
                 writers[item_id] = WrittenItem(item_id=item_id, section=section,
-                                               bullets=[WrittenBullet(text=fact["text"], fact_ids=[fact["id"]])
-                                                        for fact in selected])
+                                               bullets=[WrittenBullet(text=cleaned, fact_ids=[fact["id"]])
+                                                        for fact in selected
+                                                        if (cleaned := strip_absence(fact.get("text") or ""))])
     elif scope != "bullet":
         # A deliberate zero needs no model-written row, but still clears the
         # selected item's old body. Unselected items remain untouched.
@@ -760,6 +762,15 @@ async def run_resume_writer(
                 if skill not in invalid_skills and skill not in groups.setdefault(heading, []):
                     groups[heading].append(skill)
         groups = {name: values for name, values in groups.items() if values}
+        mentioned = [name for name in ("Claude Code", "Python", "Java", "SQL", "Excel", "Figma",
+                                       "FastAPI", "Vue", "React", "PyTorch", "TypeScript")
+                     if any(name.casefold() in f"{fact.get('source_quote') or ''}\n{fact.get('text') or ''}".casefold()
+                            for fact in facts.values())]
+        invalid_mentioned = set(validate_skill_groups({"开发工具": mentioned}, list(facts.values()), source.get("skills") or []))
+        for skill in mentioned:
+            if skill in invalid_mentioned or any(skill in values for values in groups.values()):
+                continue
+            groups.setdefault("开发工具", []).append(skill)
         output["skill_groups"] = groups
         target_role = role_profile.get("target_role")
         if isinstance(target_role, str) and target_role.strip() and not output.get("basic_info", {}).get("objective"):
@@ -791,8 +802,7 @@ async def run_resume_writer(
     hidden_ids = {entry["item_id"] for entry in changed_items
                   if next((item for item in output[entry["section"]]
                            if item.get("item_id") == entry["item_id"]), {}).get("hidden")}
-    visible_count = len(changed_items) - len(hidden_ids)
-    changes = ([f"调整了 {visible_count} 段经历的表述或顺序。"] if visible_count else [])
+    changes = []
     if hidden_ids and writer_diagnostic.get("status") != "model_fallback":
         changes.append(f"将 {len(hidden_ids)} 段经历设为备用，不在投递版展示。")
     if writer_diagnostic.get("status") == "model_fallback":

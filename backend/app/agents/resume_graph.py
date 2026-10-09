@@ -1797,6 +1797,10 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         return {**restored, 'stage': 'EVALUATING', 'resume_draft': resume_to_text(restored['resume_data']),
                 'messages': [AIMessage(content='已恢复上一版文稿；本轮新提供的事实仍保留。')],
                 'change_summary': ['恢复上一版文稿']}
+    if state.get('resume_data') and _re.search(
+            r"没有更多|只使用我已经提供|没有其他可以确认|没有可以补充", text
+    ) and not _re.search(r"改|突出|精简|删|写上|补上|压成|学校|专业", text):
+        return {'messages': [AIMessage(content='好，后面只使用你已经确认过的内容。')]}
     if not _candidate_source_allowed(message):
         if message.additional_kwargs.get('career_material_type') == 'jd' or _re.search(r'任职要求|职位要求|岗位职责|工作职责', text):
             info, reply = await _run_decoder_and_build_reply(text, llm)
@@ -1821,7 +1825,10 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         finally:
             _previous_assistant.reset(token)
         updated = _keep_unextracted_experience(updated, collected, message)
-    from app.agents.turn_actions import absorb_education, bind_role_followup, render_operation_report, uncovered_edit_clauses
+    from app.agents.turn_actions import (
+        absorb_education, bind_role_followup, render_operation_report,
+        uncovered_edit_clauses, writing_constraints,
+    )
     updated = absorb_education(updated, collected, text, getattr(message, 'id', '') or '')
     updated = bind_role_followup(updated, previous_assistant, text, getattr(message, 'id', '') or '')
     direction = _direction_profile_update(state, text, updated)
@@ -1867,13 +1874,24 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     # An empty saved draft must stay empty here. Serializing the pre-edit facts
     # into resume_data makes a writer failure preserve that shell and drop new facts.
     write_resume = data if state.get('resume_data') else {}
+    try:
+        from langgraph.config import get_config, get_stream_writer
+        get_stream_writer()({
+            "type": PUBLIC_REPLY_EVENT,
+            "node": get_config().get("metadata", {}).get("langgraph_node", "evaluating"),
+            "reply_id": str(uuid.uuid4()),
+            "content": "正在根据你已经确认的经历写这一版…\n\n",
+        })
+    except Exception:
+        pass
     result = await _write_resume_update(
         {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
          'session_constraints': edit_constraints or state.get('session_constraints') or {}},
         llm, scope=scope, targets=targets)
     if edit_constraints:
         result['session_constraints'] = edit_constraints
-    report_rows = list(operation_results) + uncovered_edit_clauses(text, planned_ops or operation_results, before_edit)
+    report_rows = list(operation_results) + writing_constraints(text) + uncovered_edit_clauses(
+        text, [*operation_results, *planned_ops], before_edit)
     report = render_operation_report(report_rows, before_edit, result.get('resume_data') or {})
     if report:
         result['change_summary'] = report[:5]

@@ -352,6 +352,7 @@ def execute_edit_plan(
         if op == "set_field":
             pointer = re.fullmatch(r"/basic_info/([^/]+)", target)
             field = str(args.get("field") or (pointer[1] if pointer else ""))
+            field = {"学校": "school", "专业": "major", "学历": "degree", "年级": "grade"}.get(field, field)
             value = args.get("value")
             if not isinstance(value, str):
                 results.append(_result(index, op, target, "cannot", "字段值必须是文字"))

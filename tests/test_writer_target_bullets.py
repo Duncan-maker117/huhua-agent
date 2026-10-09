@@ -94,7 +94,8 @@ class WriterTargetBulletsTest(unittest.TestCase):
         result = run(collected, {}, model("projects", "lead", 1))
         bullets = result["resume_data"]["projects"][0]["polished_bullets"]
         self.assertEqual(len(bullets), 1)
-        self.assertIn("没有上线", bullets[0])
+        self.assertNotIn("没有上线", bullets[0])
+        self.assertTrue(bullets[0])
 
 
 if __name__ == "__main__":

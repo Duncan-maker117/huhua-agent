@@ -25,7 +25,7 @@ def source():
         "projects": [
             {"item_id": "p1", "name": "原型项目", "raw_notes": ["不能进入模型的旧备注"],
              "description": "不可回写的原始说明", "facts": [
-                 fact("f1", "做了未上线的原型", kind="status_limit"),
+                 fact("f1", "做了原型", kind="status_limit"),
                  fact("f2", "旧成果1000用户", status="deleted"),
              ]},
             {"item_id": "p2", "name": "数据项目", "facts": [fact("f3", "整理用户反馈并分类")]},
@@ -153,7 +153,7 @@ class ResumeWriterTest(unittest.TestCase):
         model = FakeModel([
             ("OnePassOutput", {"match_plan": plan({"p1": "lead", "p2": "backup", "w1": "keep"}),
                                "writer": draft([
-                                   item("p1", "projects", [("做了未上线的原型", ["f1"])],
+                                   item("p1", "projects", [("做了原型", ["f1"])],
                                         {"name": "模型虚构项目", "role": "主导"}),
                                    item("w1", "work_experience", [("核对重复记录", ["f4"])],
                                         {"name": "虚构公司", "role": "经理"}),
@@ -172,7 +172,7 @@ class ResumeWriterTest(unittest.TestCase):
         self.assertEqual(data["skill_groups"], {"技术": ["Python"]})
         self.assertEqual(data["projects"][0]["description"], "")
         self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["text_hash"],
-                         hashlib.sha256("做了未上线的原型".encode()).hexdigest())
+                         hashlib.sha256("做了原型".encode()).hexdigest())
         sent = model.calls[0][1][-1].content
         self.assertNotIn("旧成果1000用户", sent)
         self.assertNotIn("不能进入模型的旧备注", sent)
@@ -186,11 +186,11 @@ class ResumeWriterTest(unittest.TestCase):
             ("WriterDraft", draft([
                 item("p1", "projects", [("上线后服务1000人", ["f1"])]),
                 item("w1", "work_experience", [("核对重复记录", ["f4"])])])),
-            ("RepairOutput", {"bullets": [{"id": "b0", "text": "做了未上线的原型", "fact_ids": ["f1"]}]}),
+            ("RepairOutput", {"bullets": [{"id": "b0", "text": "做了原型", "fact_ids": ["f1"]}]}),
         ])
         result = run(source(), ROLE, model, mode="two_pass")
         self.assertEqual([call[0] for call in model.calls], ["MatchPlan", "WriterDraft", "RepairOutput"])
-        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["做了未上线的原型"])
+        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["做了原型"])
         self.assertEqual(result["resume_data"]["work_experience"][0]["bullets"], ["核对重复记录"])
         self.assertEqual(result["guard_fallbacks"], [])
         self.assertIn("match_plan", model.calls[1][1][-1].content)
@@ -202,7 +202,7 @@ class ResumeWriterTest(unittest.TestCase):
             ("RepairOutput", {"bullets": [{"id": "b0", "text": "旧成果1000用户", "fact_ids": ["f2"]}]}),
         ])
         result = run(source(), ROLE, model)
-        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["做了未上线的原型"])
+        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["做了原型"])
         self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["fact_ids"], ["f1"])
         self.assertEqual(len(result["guard_fallbacks"]), 1)
         self.assertEqual(result["guard_fallbacks"][0]["reason"], "invalid_refs")
@@ -217,12 +217,12 @@ class ResumeWriterTest(unittest.TestCase):
                             "p2": [{"text_hash": "keep"}]}, "custom": "preserve"}
         model = FakeModel([("OnePassOutput", {"match_plan": plan({"p1": "lead", "p2": "backup"}),
                                                  "writer": draft([
-                                                     item("p1", "projects", [("做了未上线的原型", ["f1"])]),
+                                                     item("p1", "projects", [("做了原型", ["f1"])]),
                                                      item("p2", "projects", [("整理用户反馈并分类", ["f3"])])])})])
         result = run(source(), ROLE, model, current_data=current, resume_meta=meta,
                      scope="bullet", targets=["/projects/0/polished_bullets/1"])
         data = result["resume_data"]
-        self.assertEqual(data["projects"][0]["polished_bullets"], ["第一条", "做了未上线的原型"])
+        self.assertEqual(data["projects"][0]["polished_bullets"], ["第一条", "做了原型"])
         self.assertEqual(data["projects"][0]["name"], current["projects"][0]["name"])
         self.assertEqual(data["projects"][0]["role"], current["projects"][0]["role"])
         self.assertEqual(data["projects"][1], current["projects"][1])
@@ -235,7 +235,7 @@ class ResumeWriterTest(unittest.TestCase):
         model = FakeModel([("OnePassOutput", RuntimeError("offline"))])
         result = run(source(), ROLE, model)
         content = json.dumps(result["resume_data"], ensure_ascii=False)
-        self.assertIn("做了未上线的原型", content)
+        self.assertIn("做了原型", content)
         self.assertNotIn("旧成果1000用户", content)
         self.assertEqual(result["guard_fallbacks"], [])
 
@@ -278,7 +278,7 @@ class ResumeWriterTest(unittest.TestCase):
             ("RepairOutput", {"bullets": [{"id": "b0", "text": "产品负责人", "fact_ids": ["frole"]}]}),
         ])
         result = run(collected, ROLE, model)
-        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["做了未上线的原型"])
+        self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], ["做了原型"])
         self.assertEqual(result["guard_fallbacks"][0]["reason"], "invalid_refs")
         self.assertNotIn("产品负责人", result["resume_data"]["projects"][0]["polished_bullets"])
 

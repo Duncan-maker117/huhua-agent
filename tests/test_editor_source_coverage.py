@@ -31,15 +31,16 @@ def source():
 
 
 class EditorSourceCoverageTest(unittest.IsolatedAsyncioTestCase):
-    async def test_model_failure_writes_active_source_with_its_limit(self):
+    async def test_model_failure_writes_active_source_without_printing_its_limit(self):
         collected = source()
         before = copy.deepcopy(collected)
         result = await run_resume_writer(collected, {}, object())
         self.assertEqual(collected, before)
         data = result["resume_data"]
         draft = resume_to_text(data)
-        for statement in ("实现页面拆分", "收集到2条反馈", "尚未上线"):
+        for statement in ("实现页面拆分", "收集到2条反馈"):
             self.assertIn(statement, draft)
+        self.assertNotIn("尚未上线", draft)  # 限制事实只禁止相反断言，不印进正文
         for unsupported in ("百万用户", "准备上线", "Kubernetes"):
             self.assertNotIn(unsupported, draft)
         self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["fact_ids"], ["f1"])

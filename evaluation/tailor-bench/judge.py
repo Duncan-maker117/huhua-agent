@@ -26,6 +26,10 @@ _NUMBER = re.compile(r"百分之[零〇一二两三四五六七八九十百千�
 _COUNT_UNIT = re.compile(r"\s*(毫秒|分钟|小时|个月|个|人|条|项|例|次|家|秒|年|月|日|天|周|页|倍|元|万|亿|MB|GB|ms|%|％)", re.I)
 _NEGATED = re.compile(r"(?:没有|尚未|从未|并未|未曾|未|没|不曾|不|不是|并非|计划|准备|打算)(?:实际|正式|独立|真正|进行|完成|实现|过|去|要)?\s*$")
 _UNKNOWN_TAIL = re.compile(r"^\s*(?:尚未|未|没有|不详|未知|暂无|为零|为0)")
+_ABSENCE_PRINTED = re.compile(
+    r"(?:还没|尚未|没有|并未|没|未)上线的?|没有用户量|无用户量|没有用户数|"
+    r"没有星数|无星数|没有推广数据|没测[^，。；]{0,6}效果|未统计|没有统计|"
+    r"没写(?:自动化)?测试|没有测试|不是组长|没有带队|但没有星数|但没有用户量")
 
 
 class JudgeSchemaError(ValueError):
@@ -279,6 +283,9 @@ def _field_audits(case: dict, resume: dict, observed: list[str], disclosed: set[
     direction_sources = _direction_sources(case, observed)
     for unit in units:
         kind = unit["field_type"]
+        if unit.get("text") and _ABSENCE_PRINTED.search(unit["text"]):
+            issues.append({"kind": "negative_absence_printed", "path": unit["path"], "quote": unit["text"],
+                           "reason": "缺失型表述（没有用户量、没有星数、未上线等）不应印进简历。"})
         if kind == "assertion":
             continue
         if kind == "objective":

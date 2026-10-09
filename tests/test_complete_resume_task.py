@@ -78,7 +78,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(data['education']), 1)
         self.assertTrue(data['skills'])
         self.assertEqual(len(data['certificates']), 2)
-        self.assertIn('尚未上线', data['projects'][0]['description'])
+        self.assertNotIn('尚未上线', data['projects'][0]['description'])  # 限制事实不印进正文（规格红线 3）
         self.assertIn('3 段项目', result['messages'][-1].content)
         self.assertIn('已按已有事实更新', result['messages'][-1].content)
         self.assertNotIn('先从哪一段', result['messages'][-1].content)

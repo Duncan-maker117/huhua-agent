@@ -172,6 +172,26 @@ class ReviewFixTests(unittest.TestCase):
         self.assertEqual(plan[0]["args"]["focus"], ["Agent 设计"])
         self.assertTrue(any(row["op"] == "rewrite" and row["target"] == "工坊集" for row in plan))
 
+    def test_unrequested_field_edit_stays_off_the_receipt(self):
+        before = {"education": [{"item_id": "e1", "school": "江商大", "major": "计算机", "degree": ""}]}
+        after = {"education": [{"item_id": "e1", "school": "江北商业大学", "major": "计算机科学与技术", "degree": "本科"}]}
+        lines = render_operation_report([
+            {"op": "set_field", "target": "p1", "status": "needs_confirmation",
+             "reason": "该页眉值还没有对应的 active fact"},
+            {"op": "set_field", "target": "e1", "field": "school", "status": "cannot",
+             "reason": "仅能设置已确认的经历页眉字段"},
+            {"op": "set_field", "target": "e1", "field": "major", "status": "done", "changed": True},
+            {"op": "set_field", "target": "e1", "field": "degree", "status": "done", "changed": True},
+            {"op": "set_field", "target": "e1", "status": "cannot", "reason": "仅能设置已确认的经历页眉字段"},
+        ], before, after)
+        self.assertEqual(lines, ["✅ 修改学校", "✅ 修改专业", "✅ 修改学历"])
+        plan = choose_edit_plan(
+            "途记基本是我一个人做的，产品方案和代码都是我。先给我出一版看看。",
+            {"projects": [{"item_id": "p1", "name": "途记"}]},
+            [{"op": "set_field", "target": "p1", "args": {"field": "role", "value": "独立完成"}}],
+        )
+        self.assertFalse(any(row["op"] == "set_field" for row in plan))
+
     def test_b2_school_values_are_continuous_source_spans(self):
         self.assertEqual(parse_education_fields("学校写全称哈尔滨商业大学")["school"], "哈尔滨商业大学")
         self.assertEqual(parse_education_fields("学校填哈尔滨商业大学吧")["school"], "哈尔滨商业大学")

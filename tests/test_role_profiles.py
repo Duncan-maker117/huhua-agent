@@ -243,7 +243,7 @@ class RoleProfileTest(unittest.IsolatedAsyncioTestCase):
         ):
             with self.subTest(task=malicious), self.assertRaises(KeyError):
                 load_skill(malicious)
-        self.assertEqual(PROMPT_VERSION, "career-v2.0-2026-10-08")
+        self.assertEqual(PROMPT_VERSION, "career-v2.1-2026-10-09")
         self.assertIn("事实红线（只有这四条", CAREER_SYSTEM)
         prompt = build_jd_decoder_prompt("前端开发").format_messages(
             context="", jd_text="前端开发"

@@ -337,6 +337,43 @@ def _op_key(op: dict) -> str:
     return json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
 
 
+_FIELD_ALIAS = {"学校": "school", "专业": "major", "学历": "degree", "年级": "grade"}
+_FORBID_WRITING = re.compile(r"(?:不要编造|别编造|不要写|别写|不要出现)(?:出)?([^，。；;]{1,16})")
+
+
+def _normalize_op(op: dict) -> dict:
+    args = dict(op.get("args") or {})
+    if op.get("op") == "set_field" and args.get("field") in _FIELD_ALIAS:
+        args["field"] = _FIELD_ALIAS[args["field"]]
+        op = {**op, "args": args}
+    return op
+
+
+def _requested_op(op: dict, message: str) -> bool:
+    """Drop ops the user did not ask for, including a fake page constraint."""
+    kind = op.get("op")
+    if kind == "set_constraint":
+        return bool(re.search(r"[一二两12]\s*页", message or ""))
+    if kind == "set_field":
+        if not re.search(r"学校|专业|学历|本科|硕士|学院", message or ""):
+            return False
+        value = str((op.get("args") or {}).get("value") or "")
+        return not value or value in (message or "")
+    return True
+
+
+def writing_constraints(message: str) -> list[dict]:
+    """「不要编造用户量」is a writing rule, not a page constraint."""
+    rows = []
+    for match in _FORBID_WRITING.finditer(message or ""):
+        topic = match.group(1).strip("的了吧啊呀呢 ")
+        if not topic or re.search(r"[一二两12]\s*页", topic):
+            continue
+        rows.append({"op": "honor", "target": topic, "status": "done", "changed": True,
+                     "reason": "已遵守", "affected_item_ids": []})
+    return rows
+
+
 def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
                      collected: dict | None = None, *, router_failed: bool = False) -> list[dict]:
     """Model plan stays primary. Rules only fill gaps, or stand in when routing failed."""
@@ -347,16 +384,26 @@ def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
         if key not in seen:
             seen.add(key)
             rules.append(op)
+    model_plan = [_normalize_op(op) for op in (model_plan or []) if _requested_op(op, message)]
     if router_failed or not model_plan:
         return rules or list(model_plan or [])
     plan = list(model_plan)
     covered = {_op_key(op) for op in plan}
     for op in rules:
         key = _op_key(op)
+        if key not in seen and not _requested_op(op, message):
+            continue
         if key in covered:
             continue
-        # A rule op is redundant when the model already named the same item and verb family.
-        if any(_same_target(op.get("target") or "", existing.get("target") or "", data) for existing in plan):
+        if op.get("op") == "set_field":
+            field = (op.get("args") or {}).get("field")
+            value = (op.get("args") or {}).get("value")
+            if any(existing.get("op") == "set_field"
+                   and (existing.get("args") or {}).get("field") == field
+                   and (existing.get("args") or {}).get("value") == value
+                   for existing in plan):
+                continue
+        elif any(_same_target(op.get("target") or "", existing.get("target") or "", data) for existing in plan):
             continue
         plan.append(op)
         covered.add(key)
@@ -373,7 +420,7 @@ def uncovered_edit_clauses(message: str, plan: list[dict], data: dict | None = N
     for clause in edit_clauses(message):
         if not _CLAUSE_INTENT.search(clause):
             continue
-        if _clause_has_op(clause, plan, labels):
+        if _clause_has_op(clause, plan, labels, data):
             continue
         gaps.append({"op": "understand", "target": clause, "status": "needs_confirmation",
                      "reason": f"这项我没理解：『{clause}』，你是想加到哪段经历？",
@@ -381,19 +428,29 @@ def uncovered_edit_clauses(message: str, plan: list[dict], data: dict | None = N
     return gaps
 
 
-def _clause_has_op(clause: str, plan: list[dict], labels: list[str]) -> bool:
+def _clause_has_op(clause: str, plan: list[dict], labels: list[str], data: dict | None = None) -> bool:
     if re.search(r"学校|专业|学历|写全称|填", clause) and any(
         op.get("op") == "set_field" for op in plan
     ):
         return True
     if re.search(r"[一二两12]\s*页", clause) and any(op.get("op") == "set_constraint" for op in plan):
         return True
+    if re.search(r"不要编造|别写|不要写", clause):
+        return True
     mentioned = _match_label(clause, labels) or _ordinal_target(clause)
+    verbs = {"refocus": r"突出|侧重|重点", "rewrite": r"详细|写细|补一句|写上|加上|改写|修改",
+             "compress": r"精简|压缩|压成", "hide_item": r"删"}
     for op in plan:
         target = str(op.get("target") or "")
-        if mentioned and (mentioned == target or name_matches(mentioned, target) or name_matches(target, mentioned)):
+        display = _display_target(target, data or {}, data or {})
+        same = (mentioned and _same_target(mentioned, target, data)) or (target and target in clause)
+        same = same or any(label in clause and _same_target(label, display or target, data) for label in labels)
+        if same:
             return True
-        if target and target in clause:
+        verb = verbs.get(op.get("op") or "")
+        named = bool(mentioned and _same_target(mentioned, display or target, data))
+        named = named or bool(target and target in clause) or bool(display and display in clause and display not in {"", "whole"})
+        if verb and re.search(verb, clause) and named:
             return True
     return False
 
@@ -407,11 +464,54 @@ def _display_target(target: str, before: dict, after: dict) -> str:
     return target
 
 
+def _education_value(document: dict, field: str) -> str:
+    for item in (document or {}).get("education") or []:
+        if isinstance(item, dict) and str(item.get(field) or "").strip():
+            return str(item[field]).strip()
+    return ""
+
+
+def reconcile_report_rows(results: list[dict], before: dict, after: dict) -> list[dict]:
+    """A field line follows the draft diff, not a failed internal op."""
+    fields = ("school", "major", "degree")
+    changed = [field for field in fields if _education_value(before, field) != _education_value(after, field)
+               and _education_value(after, field)]
+    prepared = []
+    claimed = set()
+    for row in results or []:
+        if row.get("op") == "understand":
+            prepared.append(row)
+            continue
+        if row.get("op") != "set_field":
+            prepared.append(row)
+            continue
+        field = _FIELD_ALIAS.get(row.get("field") or "", row.get("field") or "")
+        if not field and changed:
+            field = next((item for item in changed if item not in claimed), "")
+        if field in fields and _education_value(after, field):
+            if field in claimed:
+                continue
+            claimed.add(field)
+            prepared.append({**row, "field": field, "status": "done",
+                             "changed": field in changed,
+                             "reason": "" if field in changed else "already_satisfied"})
+            continue
+        if not field:
+            field = next((item for item in changed if item not in claimed), "")
+            if field:
+                claimed.add(field)
+                prepared.append({**row, "field": field, "status": "done", "changed": True, "reason": ""})
+        # A failed field op that did not change the draft stays off the receipt.
+    return prepared
+
+
 def render_operation_report(results: list[dict], before: dict, after: dict) -> list[str]:
     """One line per requested op, from the op itself and the actual draft diff."""
     labels = {"rewrite": "改写", "compress": "压缩", "refocus": "调整重点", "set_field": "修改字段",
               "delete_item": "删除", "hide_item": "隐藏", "cap_bullets": "限制条数",
-              "remove_section": "去掉栏目", "set_constraint": "更新篇幅要求", "clean_format": "清理格式"}
+              "remove_section": "去掉栏目", "set_constraint": "更新篇幅要求", "clean_format": "清理格式",
+              "honor": "已遵守"}
+    hidden_targets = {"", "whole", "understand", "set_field", "set_constraint"}
 
     def find(document: dict, item_id: str):
         for section in ("projects", "work_experience", "education"):
@@ -421,15 +521,24 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
         return None
 
     lines = []
-    for row in results or []:
+    for row in reconcile_report_rows(results, before, after):
         op = row.get("op") or "操作"
+        if op == "understand":
+            lines.append("⚠ " + str(row.get("reason") or "这项我没理解"))
+            continue
+        if op == "honor":
+            topic = str(row.get("target") or "").strip()
+            lines.append(f"✅ 已遵守：未写{topic}" if topic else "✅ 已遵守这条限制")
+            continue
         if op == "set_field":
             field_name = {"school": "学校", "major": "专业", "degree": "学历", "grade": "年级",
-                          "name": "姓名", "phone": "电话", "email": "邮箱"}.get(row.get("field") or "", "字段")
-            title = f"修改{field_name}"
+                          "name": "姓名", "phone": "电话", "email": "邮箱"}.get(row.get("field") or "", "")
+            title = f"修改{field_name}" if field_name else "修改经历信息"
         else:
-            label = labels.get(op, op)
+            label = labels.get(op, "修改")
             target = _display_target(row.get("target") or "", before, after)
+            if target in hidden_targets or target == row.get("op"):
+                target = ""
             title = f"{label} {target}".strip()
         status = row.get("status")
         if status == "needs_confirmation":

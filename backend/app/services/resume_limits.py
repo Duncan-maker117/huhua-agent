@@ -6,7 +6,10 @@ import hashlib
 import re
 from typing import Mapping, Sequence
 
-from app.services.fact_guard import _source_quote, _experience_negation_text, normalize_text
+from app.services.fact_guard import (
+    _experience_negation_text, _source_quote, absence_printed, contradicts_limit,
+    normalize_text, strip_absence,
+)
 from app.services.resume_facts import active_facts_for_writer
 
 
@@ -106,14 +109,34 @@ def _already_visible(clause: str, texts: Sequence[str]) -> bool:
     return False
 
 
+_PHASES = (
+    ("课程原型", re.compile(r"课程原型")),
+    ("原型", re.compile(r"原型|prototype", re.I)),
+    ("Demo", re.compile(r"\bdemo\b", re.I)),
+    ("模拟数据", re.compile(r"模拟数据|\bmock\b", re.I)),
+    ("小组作业", re.compile(r"小组作业")),
+)
+
+
+def _phase_label(text: str) -> str:
+    """Current stage word. A plan or a denial does not count as the stage."""
+    for clause in re.split(r"[，,。；;\n]", text or ""):
+        if re.search(r"计划|准备|打算|并非|不是", clause):
+            continue
+        for label, pattern in _PHASES:
+            if pattern.search(clause):
+                return label
+    return ""
+
+
 def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
                          item_ids: Sequence[str], bullet_indices: Mapping[str, set[int]] | None = None,
-                         reason: str = "missing_item_status_limit") -> tuple[dict, dict, list[dict]]:
-    """Append missing source limitation clauses to one authorized bullet.
+                         reason: str = "contradicted_status_limit") -> tuple[dict, dict, list[dict]]:
+    """Keep limits as prohibitions. Do not paste absence or plan sentences into bullets.
 
-    A hash-matching citation means the writer guard already checked that text.
-    A local edit can change only its selected bullet; other items and bullets
-    remain byte-for-byte unchanged. This never creates facts or asserts fit.
+    A stage word is written once on the role line when neither the title nor a
+    bullet already states it. A bullet that asserts the denied outcome is
+    recorded; the missing sentence is not appended.
     """
     result, metadata = deepcopy(data), deepcopy(meta)
     source = active_facts_for_writer(collected_info)
@@ -121,64 +144,35 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
                     for item in source.get(section, []) if isinstance(item, dict)}
     allowed = set(item_ids)
     fallbacks = []
-    records = metadata.setdefault("bullets", {})
     for section in ("projects", "work_experience"):
         field = "polished_bullets" if section == "projects" else "bullets"
         for item in result.get(section, []):
             identifier = item.get("item_id")
             if identifier not in allowed or item.get("hidden"):
                 continue
-            bullets = item.get(field) or []
-            if not bullets:
-                continue
-            limits = [(fact, clauses) for fact in source_items.get(identifier, {}).get("facts", [])
-                      if fact.get("id") and (clauses := _limit_clauses(fact))]
-            if not limits:
-                continue
-            prior = records.setdefault(identifier, [])
-            prior.extend({} for _ in range(max(0, len(bullets) - len(prior))))
-            supported = set()
+            facts = [fact for fact in source_items.get(identifier, {}).get("facts", [])
+                     if fact.get("status", "active") == "active"]
+            quotes = "\n".join(_source_quote(fact) for fact in facts)
+            phase = _phase_label(quotes)
+            bullets = [cleaned for text in (item.get(field) or [])
+                       if isinstance(text, str) and (cleaned := strip_absence(text))]
+            item[field] = bullets
+            if isinstance(item.get("description"), str):
+                item["description"] = "\n".join(
+                    cleaned for line in item["description"].splitlines() if (cleaned := strip_absence(line)))
+            visible = "\n".join([str(item.get("name") or ""), str(item.get("company") or ""),
+                                 str(item.get("role") or ""), *bullets])
+            if phase and not _phase_label(visible):
+                role = str(item.get("role") or "").strip()
+                item["role"] = f"{role} · {phase}".strip(" ·")
+            authorized = None if bullet_indices is None else {
+                index for index in bullet_indices.get(identifier, set()) if isinstance(index, int)}
             for index, text in enumerate(bullets):
-                row = prior[index]
-                if row.get("text_hash") == hashlib.sha256(text.encode()).hexdigest():
-                    supported.update(row.get("fact_ids") or [])
-            missing = []
-            visible = list(bullets)
-            for fact, clauses in limits:
-                # A valid citation identifies the source, not every preserved
-                # clause. A composite fact can retain "not launched" while
-                # dropping "no outcome measurement" despite a guard pass.
-                # Phase-only prose can still use the guard's approved rewrite.
-                if fact["id"] in supported and not any(
-                        _ASSERTED_LIMIT.search(clause) or _CONDITION_HINT.search(clause) for clause in clauses):
+                if not isinstance(text, str):
                     continue
-                for clause in clauses:
-                    if not _already_visible(clause, visible):
-                        missing.append((fact["id"], clause))
-                        visible.append(clause)
-            if not missing:
-                continue
-            authorized = sorted(bullet_indices.get(identifier, set())) if bullet_indices is not None else list(range(len(bullets)))
-            authorized = [index for index in authorized if 0 <= index < len(bullets)]
-            if not authorized:
-                continue
-            index = authorized[-1]
-            before = bullets[index]
-            row = prior[index]
-            sourced_before = row.get("text_hash") == hashlib.sha256(before.encode()).hexdigest() and bool(row.get("fact_ids"))
-            if not sourced_before:
-                # Manual or stale metadata cannot be reused for new provenance.
-                row = {}
-                exact_refs = [fact["id"] for fact in source_items.get(identifier, {}).get("facts", [])
-                              if fact.get("id") and normalize_text(_source_quote(fact)) == normalize_text(before)]
-                if exact_refs:
-                    row = {"fact_ids": exact_refs}
-                    sourced_before = True
-            missing_ids = list(dict.fromkeys(identifier for identifier, _ in missing))
-            bullets[index] = "；".join([before.rstrip("。；;"), *(clause for _, clause in missing)])
-            prior[index] = {**row, "fact_ids": list(dict.fromkeys([*(row.get("fact_ids") or []),
-                                                                    *missing_ids])),
-                            "text_hash": hashlib.sha256(bullets[index].encode()).hexdigest() if sourced_before else ""}
-            fallbacks.append({"item_id": identifier, "bullet_index": index, "reason": reason,
-                              "fact_ids": missing_ids})
+                if authorized is not None and index not in authorized:
+                    continue
+                if contradicts_limit(text, quotes):
+                    fallbacks.append({"item_id": identifier, "bullet_index": index, "reason": reason,
+                                      "fact_ids": [fact["id"] for fact in facts if fact.get("id")][:4]})
     return result, metadata, fallbacks

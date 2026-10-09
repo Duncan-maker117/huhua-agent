@@ -66,8 +66,8 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
                        '我设计页面但没有结果', '我处理请求没有结果',
                        '处理请求失败提示，但没有增长结果', '项目没有结果']:
             with self.subTest(source=source):
-                self.assertIn('missing_negation_or_plan_limit',
-                              lexical_fact_errors('设计结果页面', source))
+                self.assertNotIn('missing_negation_or_plan_limit',
+                                 lexical_fact_errors('设计结果页面', source))
 
     async def test_undisclosed_negative_measurement_cannot_pass_semantic_approval(self):
         model = FakeModel([decision()])
@@ -176,7 +176,9 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
             checked = await guard_bullets([{'id': 'b1', 'text': target, 'fact_ids': ['f1']}],
                                           [fact(source)], llm=model)
             self.assertEqual(checked[0]['verdict'], 'fail')
-            self.assertEqual(model.structured.ainvoke.await_count, 1)
+            # 「未上线」印进正文本身就是缺失型表述缺陷，词法层先拦；否则必须走语义核验。
+            self.assertTrue('negative_absence_printed' in checked[0]['lexical_errors']
+                            or model.structured.ainvoke.await_count == 1)
 
     def test_numeric_equivalence_and_non_numeric_one(self):
         for source, target in [('十秒', '10秒'), ('两万条', '20000条'), ('百分之五十', '50%'), ('3千条', '3000条')]:
@@ -190,11 +192,12 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(lexical_fact_errors('效果提升', '效果变好了'), [])
         self.assertEqual(lexical_fact_errors('负责 Python 接口编写', '我写了 Python 接口'), [])
         for text, source in [('主导实现', '参与实现'), ('上线服务', '服务未上线'),
-                             ('效果提升50%', '效果变好'), ('完成测试', '计划完成测试'),
-                             ('开发系统', '开发原型系统')]:
+                             ('效果提升50%', '效果变好'), ('完成测试', '计划完成测试')]:
             with self.subTest(text=text):
                 self.assertTrue(lexical_fact_errors(text, source))
-        self.assertEqual(lexical_fact_errors('使用 FastAPI 实现原型，未上线', '用 FastAPI 做原型，未上线'), [])
+        self.assertEqual(lexical_fact_errors('开发系统', '开发原型系统'), [])
+        self.assertEqual(lexical_fact_errors('使用 FastAPI 实现原型', '用 FastAPI 做原型，未上线'), [])
+
 
     async def test_positive_and_negative_semantic_cases_share_one_batch(self):
         pairs = [{'id':'good','text':'效果提升','source_quotes':['效果变好了']},
@@ -268,7 +271,8 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
             [fact('主导上线产品', item_id='p1', kind='action', source_quote='参与原型，未上线')])
         self.assertEqual(checked[0]['verdict'], 'fail')
         self.assertIn('unsupported_responsibility_or_status:主导', checked[0]['lexical_errors'])
-        self.assertIn('missing_negation_or_plan_limit', checked[0]['lexical_errors'])
+        self.assertIn('contradicted_status_limit', checked[0]['lexical_errors'])
+        self.assertNotIn('missing_negation_or_plan_limit', checked[0]['lexical_errors'])
 
     async def test_method_tool_with_explicit_first_person_action_remains_eligible(self):
         original = '我用老师提供的代码训练模型，并在验证集评估结果'
@@ -418,6 +422,76 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('仅供内部验证', prompt)
         unavailable = await guard_bullets(bullets, facts)
         self.assertEqual([row['verdict'] for row in unavailable], ['pass', 'fail'])
+
+
+CASES = Path(__file__).resolve().parents[1] / 'evaluation' / 'tailor-bench' / 'cases'
+
+
+def opening(case):
+    return json.loads((CASES / f'{case}.json').read_text(encoding='utf-8'))['opening_turns'][0]
+
+
+class ExpansionGuardTests(unittest.TestCase):
+    def test_review_sentences_fail_closed(self):
+        """PR5 v3 评审 Q2：六句新增事实/修饰，事实来源取用例开场原话。"""
+        samples = [
+            ("career-switch-01", "尝试用 GPT 对整理出的问题进行归类，减少人工逐条分组的工作", "unsupported_effect"),
+            ("career-switch-01", "尝试用 GPT 对整理出的问题进行归类，减少人工逐条分组的工作", "unsupported_manner:逐条"),
+            ("career-switch-01", "逐条人工检查分类结果", "unsupported_manner:逐条"),
+            ("ops-01", "在活动前后收集参与者提出的问题", "unsupported_scope:活动前后"),
+            ("pm-01", "梳理出清单对不上的具体场景", "unsupported_action:梳理出"),
+            ("pm-01", "梳理出清单对不上的具体场景", "unsupported_scope:具体场景"),
+            ("algorithm-01", "逐张查看预测错误的图片", "unsupported_manner:逐张"),
+        ]
+        for case, text, marker in samples:
+            with self.subTest(case=case, text=text):
+                errors = lexical_fact_errors(text, opening(case))
+                self.assertIn(marker, errors)
+                self.assertNotIn("missing_negation_or_plan_limit", errors)
+
+    def test_faithful_rewrites_of_the_same_sources_still_pass(self):
+        samples = [("career-switch-01", "用 GPT 对整理出的问题试分类，并人工检查"),
+                   ("ops-01", "活动后把反馈按主题整理"),
+                   ("pm-01", "访谈同学平时如何记录清单，并画出提交与确认流程"),
+                   ("algorithm-01", "把预测错误的图片挑出来查看")]
+        for case, text in samples:
+            with self.subTest(case=case):
+                errors = lexical_fact_errors(text, opening(case))
+                self.assertFalse([e for e in errors if e.startswith("unsupported_")], errors)
+
+    async def test_guard_bullets_rejects_review_sentences_without_the_model(self):
+        model = FakeModel([])
+        for case, text in [("ops-01", "在活动前后收集参与者提出的问题"), ("algorithm-01", "逐张查看错分图片")]:
+            checked = await guard_bullets([{'id': 'b1', 'text': text, 'fact_ids': ['f1']}],
+                                          [fact(opening(case))], llm=model)
+            self.assertEqual(checked[0]['verdict'], 'fail', text)
+        model.structured.ainvoke.assert_not_awaited()
+
+    def test_semantic_contract_lists_new_effect_scope_action_and_manner_failures(self):
+        from app.services.fact_guard import SEMANTIC_CONTRACT
+        for phrase in ("减少人工逐条分组的工作", "在活动前后收集参与者提出的问题", "梳理出清单对不上的具体场景",
+                       "逐张查看错分图片", "逐条人工检查分类结果", "新增成效", "新增范围", "新增动作",
+                       "方式修饰", "频次修饰"):
+            self.assertIn(phrase, SEMANTIC_CONTRACT)
+
+    async def test_guard_bullets_flags_absence_printed_in_a_bullet(self):
+        checked = await guard_bullets([{'id': 'b1', 'text': '使用 FastAPI 实现原型，未上线', 'fact_ids': ['f1']}],
+                                      [fact('用 FastAPI 做原型，未上线')], llm=FakeModel([]))
+        self.assertEqual(checked[0]['verdict'], 'fail')
+        self.assertIn('negative_absence_printed', checked[0]['lexical_errors'])
+
+    def test_absence_sentences_are_flagged_and_stripped(self):
+        from app.services.fact_guard import absence_printed, strip_absence
+        for text in ("还没上线", "没有用户量", "仓库公开，没有星数", "项目尚未上线", "没有统计阅读量"):
+            self.assertTrue(absence_printed(text), text)
+            self.assertNotIn("negative_absence_printed", lexical_fact_errors(text, text))  # 事实可以是缺失型
+        self.assertFalse(absence_printed("实现接口并联调"))
+        self.assertEqual(strip_absence("实现接口并联调。"), "实现接口并联调。")
+        self.assertNotIn("没有用户量", strip_absence("先查候选店铺再编排行程；没有用户量"))
+
+    def test_omitting_a_negation_is_allowed_and_reversing_it_is_not(self):
+        self.assertNotIn("contradicted_status_limit", lexical_fact_errors("实现接口", "还没上线，没有用户量"))
+        self.assertIn("contradicted_status_limit", lexical_fact_errors("项目已上线并有用户量增长", "还没上线，没有用户量"))
 
 
 if __name__ == '__main__':

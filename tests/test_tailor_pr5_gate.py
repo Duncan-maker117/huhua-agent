@@ -573,3 +573,14 @@ class RejectedTextRecordingTests(unittest.IsolatedAsyncioTestCase):
         rows = await self.fallback_rows(True)
         self.assertEqual(rows[0]["rejected_text"], "独立负责途记的代码实现")
         self.assertEqual(rows[0]["fallback_text"], "我参与了途记的代码实现")
+
+
+class UnrequestedWritingOpTests(unittest.TestCase):
+    def test_answer_without_edit_intent_creates_no_rewrite_ops(self):
+        answer = "途记基本是我一个人做的，产品方案和代码都是我。先给我出一版看看。"
+        data = {"projects": [{"item_id": "p1", "name": "途记"}]}
+        plan = choose_edit_plan(answer, data, [{"op": "refocus", "target": "途记", "args": {}},
+                                               {"op": "rewrite", "target": "途记", "args": {}}])
+        self.assertEqual(plan, [])
+        kept = choose_edit_plan("途记写详细一点", data, [{"op": "rewrite", "target": "途记", "args": {}}])
+        self.assertEqual([row["op"] for row in kept], ["rewrite"])

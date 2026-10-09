@@ -366,9 +366,15 @@ def _normalize_op(op: dict) -> dict:
     return op
 
 
+_EDIT_VERB = re.compile(r"改|突出|详细|精简|压缩|压成|删|写|补|换|调整|重写|润色|优化|强调|侧重|展开|缩短|扩|加上|去掉")
+
+
 def _requested_op(op: dict, message: str) -> bool:
     """Drop ops the user did not ask for, including a fake page constraint."""
     kind = op.get("op")
+    if kind in {"rewrite", "refocus", "compress"} and not _EDIT_VERB.search(message or ""):
+        # 「先给我出一版看看」这类回答没有编辑意图，不能凭空生成改写项再报 ❌。
+        return False
     if kind == "set_constraint":
         return bool(re.search(r"[一二两12]\s*页", message or ""))
     if kind == "set_field":

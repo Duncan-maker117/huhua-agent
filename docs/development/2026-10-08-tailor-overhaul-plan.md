@@ -322,6 +322,7 @@ PR6 依赖 PR4/PR5 的 API：Codex 在 PR4 完成时在 `docs/development/` 写�
   3. 新增 §3.5 存储边界：保存只写文稿，不再用文稿重建事实母版；facts 增加 status，writer 只读 active facts。
   4. backup 改为 `hidden: true` 可逆状态，不走删除。
   5. benchmark 逐版本评分；确认新增事实零容忍；12 例定位为回归集，后续扩至 32 例含留出集。
+- 2026-10-10 **PR5 验收通过**（b573ebe，Sonnet 接手完成 Q1–Q4、R1–R4、W1–W3、F1–F7、E1–E5）。离线 970/970；v8 全套：编辑执行 21/26（含超时补跑）、首稿 13/13、guard 回退 6/50、negative_absence_printed 0、页面 67/67、确认新增事实 1 条（direction-01「明确各菜品分类的统计口径」，轻微）。已知遗留转入后续：direction-01/handson-01 的"按 JD 突出"仍偏同义改写；平均轮延迟约 35 秒、并发时首轮超时；real-01 两页（转 PR6）；平铺 skills 与分组不同步（转 PR6）；`unsupported_tool` 应只对技能词表生效。
 - 2026-10-09 PR5 v3 评审：**规格修正**——"不丢限制"被实现为"把否定原句拼进 bullet"（`resume_limits.preserve_item_limits`、`fact_guard` 的 missing_negation/missing_status_limit），导致 60 版中 59 版守卫回退、简历出现「还没上线；没有用户量」「没有星数；但没有星数」。红线 3 改为"不说反"，限制事实不要求印出。详见 `evaluation/tailor-bench/claude-pr5-v3-review.txt`。
 - 2026-10-09 Banz：写作、结构化、评审、模拟器全部改用 deepseek-flash，不再使用 deepseek-v4-pro；§7.4 已补同模型评审的偏差控制。
 - 2026-10-09 PR5（Cursor，未提交）评审：**需修订**。离线测试 895/895 通过；阻断项：规则拆分整体覆盖模型 edit_plan 并静默丢掉未匹配的子要求、学校字段混入指令原文（「学校写全称哈尔滨商业大学」）。改为模型计划为主、规则只补充并做子句覆盖检查。实测因 DeepSeek 402 余额不足未能进行，pr5-v1 run 不作验收。详见 `evaluation/tailor-bench/claude-pr5-review.txt`。

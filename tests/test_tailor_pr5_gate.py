@@ -575,6 +575,7 @@ class RejectedTextRecordingTests(unittest.IsolatedAsyncioTestCase):
     async def test_benchmark_switch_records_rejected_text(self):
         rows = await self.fallback_rows(True)
         self.assertEqual(rows[0]["rejected_text"], "独立负责途记的代码实现")
+        self.assertEqual(rows[0]["repaired_text"], "")  # 本例修复输出为空，没有二次文本
         self.assertEqual(rows[0]["fallback_text"], "我参与了途记的代码实现")
 
 

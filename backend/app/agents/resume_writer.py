@@ -614,6 +614,7 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
         except Exception:
             repairs = {}
     repaired = []
+    first_pass_text = {row["id"]: row["text"] for row in failed}
     for row in failed:
         proposal = repairs.get(row["id"])
         if proposal is None:
@@ -651,7 +652,9 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                           "semantic_failed": bool(verdict.get("semantic")) and verdict.get("verdict") != "pass"})
         if os.environ.get("HUHUA_RECORD_REJECTED_TEXT") == "1":
             # 仅 benchmark（合成数据）开启；生产路径只记 hash 和错误码。
-            fallbacks[-1]["rejected_text"] = old_text
+            fallbacks[-1]["rejected_text"] = first_pass_text.get(row["id"], old_text)
+            fallbacks[-1]["repaired_text"] = old_text if old_text != first_pass_text.get(row["id"]) else ""
+            fallbacks[-1]["repair_error_codes"] = sorted(second_verdicts.get(row["id"], {}).get("lexical_errors", []))[:6]
             fallbacks[-1]["fallback_text"] = text
             fallbacks[-1]["semantic_unsupported_spans"] = list(
                 (verdict.get("semantic") or {}).get("unsupported_spans") or [])

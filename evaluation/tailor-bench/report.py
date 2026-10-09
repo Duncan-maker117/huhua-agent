@@ -571,6 +571,8 @@ def _render(aggregate: dict) -> str:
         f"| Graph / Judge / 模拟器 tokens | {_usage_text(totals['usage']['graph'])} / {_usage_text(totals['usage']['judge'])} / {_usage_text(totals['usage']['simulator'])} | 三类分开统计，合计费用包含模拟器；HTTP 重试次数未知。 |",
         "| Pairwise 新版胜率 | N/A | 本轮没有独立对手运行。 |",
         f"| Guard 回退 | {totals['guard']['fallbacks'] if totals['guard']['fallbacks'] is not None else '未观测'} | 按逐版本证据统计；误杀需人工复核。 |",
+        f"| Guard 回退版本占比 | {totals['guard']['versions_with_fallback']}/{totals['guard']['observed_versions']} | 有任一 guard 回退的版本 / 有观测的版本；验收目标 ≤ 15%。 |",
+        f"| negative_absence_printed | {facts['negative_absence_printed']} | 简历正文印出「没有用户量/未上线/没有星数」等缺失型表述的单元数；验收目标 0。 |",
         f"| Writer 模型回退 | {totals['writer']['model_fallback'] + totals['writer']['compression_model_fallback'] if totals['writer']['status'] == 'observed' else '未观测'} | 主写作 {totals['writer']['model_fallback']}；压缩轮次 {totals['writer']['compression_model_fallback']}；{totals['writer']['not_observed_versions']} 版未观测。模型回退不计为正常写作或 Guard 回退。 |",
         f"| 事实限制保护回退 | {totals['guard']['reasons'].get('compression_preserved_status_limit', 0) if totals['guard']['status'] == 'observed' else '未观测'} | Guard reason=compression_preserved_status_limit 的逐版本观察数；不属于 Writer 模型回退。 |",
         f"| 页面实测 | {totals['pages']['within_limit']}/{totals['pages']['rendered']} 版合规 | 渲染缺失 {totals['pages']['unknown']} 版记未知。 |",
@@ -703,6 +705,8 @@ def build_report(output: Path) -> dict:
         "semantic_suspicions": sum(row["semantic_suspicions"] for row in versions),
         "unverifiable_units": sum(row["unverifiable_units"] for row in versions),
         "quality_check_counts": dict(Counter(item.get("kind", "unknown") for row in versions for item in row["quality_checks"])),
+        "negative_absence_printed": sum(item.get("kind") == "negative_absence_printed"
+                                        for row in versions for item in row["quality_checks"]),
         "semantic_completed_versions": sum(row["score_status"] == "completed" for row in versions),
         "semantic_unscored_content_versions": sum(row["has_displayed_content"] and row["score_status"] != "completed" for row in versions),
         "semantic_statuses": dict(Counter(row["semantic_status"] for row in versions)),
@@ -775,6 +779,8 @@ def build_report(output: Path) -> dict:
                        if any(row["guard_fallbacks"] is not None for row in versions) else None,
                       "reasons": dict(sum((Counter(row["guard_fallback_reasons"]) for row in versions), Counter())),
                       "false_positive_rate": None,
+                      "versions_with_fallback": sum(bool(row["guard_fallbacks"]) for row in versions),
+                      "observed_versions": sum(row["guard_fallbacks"] is not None for row in versions),
                       "status": "observed" if any(row["guard_fallbacks"] is not None for row in versions)
                       else "not_observed"},
         },

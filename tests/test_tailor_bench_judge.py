@@ -33,6 +33,14 @@ class FakeLLM:
 
 
 class JudgeTest(unittest.IsolatedAsyncioTestCase):
+    def test_negative_absence_printed_is_a_quality_check(self):
+        case = {"id": "t", "opening_turns": ["x"], "truth_facts": ["x"], "requirements": []}
+        for text, flagged in (("仓库公开；没有星数", True), ("先查候选店铺再编排行程，还没上线", True),
+                              ("使用 FastAPI 实现接口并联调", False)):
+            _, issues = judge._field_audits(case, resume(text), [], set())
+            kinds = [row["kind"] for row in issues]
+            self.assertEqual("negative_absence_printed" in kinds, flagged, text)
+
     def setUp(self):
         self.case = {"id": "test", "jd_text": "岗位需要服务100万用户并上线生产环境。",
                      "opening_turns": ["我整理反馈，做了原型但未上线。"],

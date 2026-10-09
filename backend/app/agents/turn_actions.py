@@ -7,6 +7,7 @@ did not say. They only relocate or record text that is already in the turn.
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 import re
 import uuid
 
@@ -331,8 +332,9 @@ def _same_target(left: str, right: str, data: dict | None) -> bool:
     return name_matches(names.get(left, left), names.get(right, right))
 
 
-def _op_key(op: dict) -> tuple:
-    return (op.get("op"), str(op.get("target") or ""), tuple(sorted((op.get("args") or {}).items())))
+def _op_key(op: dict) -> str:
+    payload = {"op": op.get("op"), "target": str(op.get("target") or ""), "args": op.get("args") or {}}
+    return json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
 
 
 def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],

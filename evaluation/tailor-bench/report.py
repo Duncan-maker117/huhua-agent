@@ -185,7 +185,7 @@ def _has_experience_body(resume: dict) -> bool:
                for unit in _judge.candidate_units(resume))
 
 
-def _version_status(score: dict, version: dict, requirements: list[str]) -> str:
+def _version_status(score: dict, version: dict, requirements: list[str], *, require_quality: bool = True) -> str:
     status = score.get("status", "missing")
     has_content = bool(_judge.candidate_units(version.get("resume_data")))
     if status == "no_draft":
@@ -197,7 +197,8 @@ def _version_status(score: dict, version: dict, requirements: list[str]) -> str:
     factuality = score.get("factuality") or {}
     audits = factuality.get("audits")
     deterministic = score.get("deterministic") or {}
-    if (_quality(score) is None or not isinstance(rows, list)
+    facts_only = score.get("quality_scope") == "facts_only" and not require_quality
+    if ((not facts_only and _quality(score) is None) or not isinstance(rows, list)
             or len(rows) != len(requirements)
             or Counter(row.get("requirement") for row in rows if isinstance(row, dict)) != Counter(requirements)
             or not all(isinstance(row, dict) and (row.get("expected_status") == "gap"
@@ -305,11 +306,16 @@ def _case_report(folder: Path, queue: list[dict]) -> dict:
         queue.append({"kind": "truth_review", "case_id": cid, "review_status": "pending_claude",
                       "truth_review_status": truth_status, "source": links["case.json"]})
     indexed_scores = {row.get("version_id"): row.get("score") or {} for row in scores.get("versions", [])}
+    visible_versions = [version for version in versions if version.get("user_visible") is True]
+    first_body_id = next((version.get("version_id") for version in visible_versions
+                          if _has_experience_body(version.get("resume_data") or {})), None)
+    final_visible_id = next((version.get("version_id") for version in reversed(visible_versions)), None)
+    quality_required = {item for item in (first_body_id, final_visible_id) if item}
     version_rows = []
     for version in versions:
         vid = version.get("version_id")
         score = indexed_scores.get(vid, {})
-        status = _version_status(score, version, requirements)
+        status = _version_status(score, version, requirements, require_quality=vid in quality_required)
         visible = version.get("user_visible") is True
         deterministic = score.get("deterministic") or {}
         lexical = deterministic.get("flags") or []

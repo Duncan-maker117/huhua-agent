@@ -299,6 +299,30 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(result["cases"][0]["evaluation_status"], "incomplete")
         self.assertEqual(result["cases"][0]["versions"][0]["score_status"], "invalid_completed_score")
 
+    def test_facts_only_middle_version_stays_completed_without_quality(self):
+        self.manifest()
+        versions = [version("v001", 2), version("v002", 3), version("v003", 4)]
+        middle = score()
+        middle["quality"] = None
+        middle["quality_scope"] = "facts_only"
+        self.fixture(versions=versions, version_scores=[
+            {"version_id": "v001", "score": score()},
+            {"version_id": "v002", "score": middle},
+            {"version_id": "v003", "score": score()},
+        ])
+        result = report.build_report(self.output)
+        self.assertEqual([row["score_status"] for row in result["cases"][0]["versions"]],
+                         ["completed", "completed", "completed"])
+
+    def test_final_version_still_needs_quality_when_marked_facts_only(self):
+        self.manifest()
+        invalid = score()
+        invalid["quality"] = None
+        invalid["quality_scope"] = "facts_only"
+        self.fixture(version_scores=[{"version_id": "v001", "score": invalid}])
+        result = report.build_report(self.output)
+        self.assertEqual(result["cases"][0]["versions"][0]["score_status"], "invalid_completed_score")
+
     def test_completed_requires_both_lexical_and_semantic_review(self):
         self.manifest()
         for missing in ("deterministic", "factuality"):

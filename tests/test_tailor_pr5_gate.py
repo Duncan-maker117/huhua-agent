@@ -163,6 +163,15 @@ class ReviewFixTests(unittest.TestCase):
         self.assertEqual(forge[0]["op"], "rewrite")
         self.assertEqual(forge[0]["target"], "Forge Skill")
 
+    def test_nested_model_args_do_not_crash_plan_merge(self):
+        message = "途记更突出 Agent 设计；工坊集写详细一点"
+        data = {"projects": [{"item_id": "p1", "name": "途记"}, {"item_id": "p2", "name": "工坊集"}]}
+        plan = choose_edit_plan(message, data, [
+            {"op": "refocus", "target": "途记", "args": {"focus": ["Agent 设计"]}},
+        ])
+        self.assertEqual(plan[0]["args"]["focus"], ["Agent 设计"])
+        self.assertTrue(any(row["op"] == "rewrite" and row["target"] == "工坊集" for row in plan))
+
     def test_b2_school_values_are_continuous_source_spans(self):
         self.assertEqual(parse_education_fields("学校写全称哈尔滨商业大学")["school"], "哈尔滨商业大学")
         self.assertEqual(parse_education_fields("学校填哈尔滨商业大学吧")["school"], "哈尔滨商业大学")

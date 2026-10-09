@@ -6,6 +6,7 @@ import asyncio
 from copy import deepcopy
 import hashlib
 import json
+import os
 import re
 from typing import Any, Mapping, Sequence, get_args, get_origin
 
@@ -581,6 +582,12 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                                                  if str(code).startswith("unsupported_") and ":" in str(code) else "")
                                                  for code in verdict.get("lexical_errors", [])})[:6],
                           "semantic_failed": bool(verdict.get("semantic")) and verdict.get("verdict") != "pass"})
+        if os.environ.get("HUHUA_RECORD_REJECTED_TEXT") == "1":
+            # 仅 benchmark（合成数据）开启；生产路径只记 hash 和错误码。
+            fallbacks[-1]["rejected_text"] = old_text
+            fallbacks[-1]["fallback_text"] = text
+            fallbacks[-1]["semantic_unsupported_spans"] = list(
+                (verdict.get("semantic") or {}).get("unsupported_spans") or [])
     return [row for row in candidates if row["text"] and row["fact_ids"]], fallbacks
 
 

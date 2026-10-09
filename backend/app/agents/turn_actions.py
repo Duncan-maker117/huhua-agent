@@ -11,6 +11,7 @@ import json
 import re
 import uuid
 
+from app.services.fact_guard import strip_absence
 from app.services.resume_facts import new_fact, normalize_fact_store
 
 
@@ -400,6 +401,54 @@ def deterministic_only(message: str, planned_ops: list[dict], writer_requests: l
         _EDUCATION_CLAUSE.search(clause) for clause in clauses)
 
 
+_DETAIL_REQUEST = re.compile(r"详细|展开|写细|具体一点|丰富")
+
+
+def _detail_question(name: str, role_profile: dict | None, facts_text: str) -> str:
+    """One question tied to a job signal the item's facts do not yet speak to."""
+    signals = [str(row.get("signal") or "").strip() for row in (role_profile or {}).get("core_signals") or []
+               if isinstance(row, dict)]
+    signal = next((value for value in signals if value and value not in facts_text), signals[0] if signals else "")
+    if signal:
+        return f"{name}里和「{signal}」相关的部分，你具体做了什么、做到什么程度？"
+    return f"{name}里你具体做了什么、结果或产出是什么？"
+
+
+def detail_gap_rows(message: str, rows: list[dict], before: dict, after_meta: dict,
+                    collected: dict, role_profile: dict | None = None) -> list[dict]:
+    """「写详细一点」但条目没有未使用的已披露事实：不能报 ✅，改为请用户补充。"""
+    from app.services.resume_facts import active_facts_for_writer
+    clauses = [clause for clause in edit_clauses(message) if _DETAIL_REQUEST.search(clause)]
+    if not clauses:
+        return rows
+    evidence = active_facts_for_writer(collected or {})
+    items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship")
+             for item in evidence.get(section) or [] if isinstance(item, dict)}
+    output = []
+    for row in rows:
+        affected = [item_id for item_id in row.get("affected_item_ids") or [] if item_id in items]
+        name = _display_target(row.get("target") or "", before, before)
+        if row.get("op") == "rewrite" and row.get("status") == "done" and affected and any(
+                name and name in clause for clause in clauses):
+            item = items[affected[0]]
+            cited = {fid for bullet in (after_meta.get("bullets") or {}).get(affected[0]) or []
+                     if isinstance(bullet, dict) for fid in bullet.get("fact_ids") or []}
+            unused = []
+            for fact in item.get("facts") or []:
+                text = strip_absence(fact.get("text") or "")
+                if (fact.get("id") not in cited and text and fact.get("field") is None
+                        and not re.fullmatch(r"(?:这是|是)?(?:个|一个)?(?:课程原型|原型|demo|模拟数据|小组作业)(?:项目)?", text, re.I)):
+                    unused.append(fact)
+            if not unused:
+                facts_text = " ".join(str(fact.get("text") or "") for fact in item.get("facts") or [])
+                output.append({"op": "need_detail", "target": name, "status": "needs_detail",
+                               "reason": _detail_question(name, role_profile, facts_text),
+                               "changed": False, "affected_item_ids": affected})
+                continue
+        output.append(row)
+    return output
+
+
 def writing_constraints(message: str) -> list[dict]:
     """「不要编造用户量」is a writing rule, not a page constraint."""
     rows = []
@@ -563,6 +612,9 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
         op = row.get("op") or "操作"
         if op == "understand":
             lines.append("⚠ " + str(row.get("reason") or "这项我没理解"))
+            continue
+        if op == "need_detail":
+            lines.append(f"⚠ {row.get('target')}：现有资料都已写进去了，想写得更详细需要你补充，比如：{row.get('reason')}")
             continue
         if op == "honor":
             topic = str(row.get("target") or "").strip()

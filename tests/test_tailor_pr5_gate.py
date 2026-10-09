@@ -20,7 +20,7 @@ from app.agents.resume_writer import _without_near_duplicate_rows  # noqa: E402
 from app.agents.turn_actions import (  # noqa: E402
     absorb_education, bind_role_followup, choose_edit_plan, deterministic_compound_plan,
     education_confirmation, name_matches, parse_education_fields, render_operation_report,
-    uncovered_edit_clauses, writing_constraints,
+    uncovered_edit_clauses, writing_constraints, detail_gap_rows,
 )
 from app.services.fact_guard import ngram_overlap  # noqa: E402
 from app.services.resume_facts import new_fact  # noqa: E402
@@ -498,3 +498,78 @@ class RepeatedFactTests(unittest.TestCase):
         self.assertEqual((text, refs), ("改成先查候选再让模型选", ["f3"]))
         self.assertNotIn("；", text)
         self.assertEqual(_fallback_bullet("p1", ["f2"], {"f2": facts["f2"]}, "途记"), ("", []))
+
+
+class DetailRequestReceiptTests(unittest.TestCase):
+    """R3：要求「写详细」但没有未使用的已披露事实时，回执不能是 ✅。"""
+
+    collected = {"projects": [{"item_id": "p2", "name": "工坊集", "facts": [
+        {"id": "f1", "kind": "method_tool", "text": "用 Claude Code 写技能", "source_quote": "用 Claude Code 写技能", "status": "active"},
+        {"id": "f2", "kind": "action", "text": "做过抖音推广", "source_quote": "做过抖音推广", "status": "active"},
+        {"id": "f3", "kind": "status_limit", "text": "没有星数", "source_quote": "没有星数", "status": "active"}]}]}
+    before = {"projects": [{"item_id": "p2", "name": "工坊集", "polished_bullets": ["a"]}]}
+    profile = {"core_signals": [{"id": "s1", "signal": "开源协作"}, {"id": "s2", "signal": "内容推广"}]}
+    row = {"op": "rewrite", "target": "工坊集", "status": "done", "reason": "等待 writer 改写",
+           "changed": False, "affected_item_ids": ["p2"]}
+
+    def lines(self, cited):
+        meta = {"bullets": {"p2": [{"fact_ids": cited}]}}
+        rows = detail_gap_rows("工坊集写详细一点", [self.row], self.before, meta, self.collected, self.profile)
+        after = {"projects": [{"item_id": "p2", "name": "工坊集", "polished_bullets": ["a2"]}]}
+        return render_operation_report(rows, self.before, after)
+
+    def test_all_facts_already_used_becomes_a_warning_with_one_signal_question(self):
+        lines = self.lines(["f1", "f2"])
+        self.assertEqual(len(lines), 1)
+        self.assertTrue(lines[0].startswith("⚠ 工坊集：现有资料都已写进去了，想写得更详细需要你补充，比如："), lines)
+        self.assertIn("「开源协作」", lines[0])
+        self.assertNotIn("✅", lines[0])
+        self.assertEqual(lines[0].count("？"), 1)
+
+    def test_unused_disclosed_fact_keeps_the_normal_receipt(self):
+        self.assertEqual(self.lines(["f1"]), ["✅ 改写 工坊集"])
+
+    def test_other_requests_are_not_affected(self):
+        rows = detail_gap_rows("工坊集精简一点", [self.row], self.before, {"bullets": {}}, self.collected, self.profile)
+        self.assertEqual(rows, [self.row])
+
+
+class RejectedTextRecordingTests(unittest.IsolatedAsyncioTestCase):
+    """R4：被拒原文仅在 benchmark 开关下记录；默认只有 hash 和错误码。"""
+
+    async def fallback_rows(self, enabled):
+        import os
+        from app.agents.resume_writer import run_resume_writer
+        quote = "我参与了途记的代码实现"
+        source = {"projects": [{"item_id": "p1", "name": "途记", "facts": [
+            {"id": "f1", "kind": "action", "text": quote, "source_quote": quote, "status": "active"}]}]}
+
+        class Model:
+            def with_structured_output(self, schema):
+                self.schema = schema
+                return self
+
+            async def ainvoke(self, messages):
+                if self.schema.__name__ == "RepairOutput":
+                    return {"bullets": []}
+                return {"match_plan": {"requirements": [], "experience_plan": [{"item_id": "p1", "treatment": "keep"}]},
+                        "writer": {"items": [{"item_id": "p1", "section": "projects", "bullets": [
+                            {"text": "独立负责途记的代码实现", "fact_ids": ["f1"]}]}]}}
+
+        env = {"HUHUA_RECORD_REJECTED_TEXT": "1"} if enabled else {}
+        with patch.dict(os.environ, env, clear=False):
+            if not enabled:
+                os.environ.pop("HUHUA_RECORD_REJECTED_TEXT", None)
+            return (await run_resume_writer(source, {}, Model()))["guard_fallbacks"]
+
+    async def test_default_records_only_hash_and_codes(self):
+        rows = await self.fallback_rows(False)
+        self.assertEqual(len(rows), 1)
+        self.assertNotIn("rejected_text", rows[0])
+        self.assertIn("unsupported_responsibility_or_status:独立", rows[0]["error_codes"])
+        self.assertTrue(rows[0]["rejected_text_hash"])
+
+    async def test_benchmark_switch_records_rejected_text(self):
+        rows = await self.fallback_rows(True)
+        self.assertEqual(rows[0]["rejected_text"], "独立负责途记的代码实现")
+        self.assertEqual(rows[0]["fallback_text"], "我参与了途记的代码实现")

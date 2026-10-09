@@ -28,6 +28,7 @@ if sys.platform == "darwin" and not os.environ.get("DYLD_FALLBACK_LIBRARY_PATH")
         os.environ["DYLD_FALLBACK_LIBRARY_PATH"] = _brew_lib
 import tempfile
 import time
+os.environ.setdefault("HUHUA_RECORD_REJECTED_TEXT", "1")  # benchmark 全是合成数据，记录被拒原文便于诊断
 from zoneinfo import ZoneInfo
 
 HERE = Path(__file__).resolve().parent

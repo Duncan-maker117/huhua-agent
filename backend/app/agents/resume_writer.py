@@ -940,7 +940,7 @@ async def run_resume_writer(
         by_item.setdefault(row["item_id"], []).append(row)
     prior_bullets_meta = deepcopy(meta.get("bullets") or {})
     from app.agents import edit_contract as _contract
-    contract_modes = _contract.edit_modes(instruction) if scope != "bullet" else {}
+    contract_modes = _contract.edit_modes(instruction) if scope == "item" else {}  # 整稿复合修改不逐条修复，避免超时
     contract_report: dict = {}
     metadata = meta.setdefault("bullets", {})
     for item_id, written in writers.items():

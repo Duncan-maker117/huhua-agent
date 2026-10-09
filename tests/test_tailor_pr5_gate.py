@@ -996,3 +996,14 @@ class ContractReceiptTests(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertTrue(lines[0].startswith("⚠ 菜篮账："), lines)
         self.assertEqual(contract_gap_rows(rows, {}, before), rows)
+
+
+class SkillPrefixAndModeTests(unittest.TestCase):
+    def test_user_research_keeps_its_first_character(self):
+        from app.services.skill_groups import split_skills
+        self.assertEqual(split_skills(["用户调研", "用 Claude Code 辅助开发"]), ["用户调研", "Claude Code"])
+
+    def test_page_compression_is_not_a_bullet_compress_edit(self):
+        from app.agents import edit_contract as contract
+        self.assertFalse(contract.edit_modes("精简重复技能。请压缩成一页")["compress"])
+        self.assertTrue(contract.edit_modes("把“菜篮账”的描述精简成一条")["compress"])

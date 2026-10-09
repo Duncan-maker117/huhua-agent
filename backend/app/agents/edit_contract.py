@@ -13,7 +13,7 @@ from typing import Iterable, Mapping, Sequence
 from app.services.fact_guard import normalize_text, strip_absence
 
 _JD_FOCUS = re.compile(r"按\s*JD|JD\s*(?:再)?改|突出|最相关|侧重|对口|贴合|更符合岗位")
-_COMPRESS = re.compile(r"精简|压缩|压成|缩短|合并成一条|成一条")
+_COMPRESS = re.compile(r"(?:描述|内容|bullet|经历)[^。；;]{0,8}(?:精简|压缩|压成|缩短)|精简成一条|合并成一条|压成一条")
 _KEEP_ROLES = re.compile(r"保留[^。；;]{0,16}(?:团队分工|分工|本人工作|状态限制)")
 SUBSTANTIVE = {"action", "method_tool", "deliverable", "result_metric", "result_qualitative"}
 NOOP_SIMILARITY = 0.9

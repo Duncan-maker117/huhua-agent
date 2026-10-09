@@ -33,6 +33,11 @@ class FakeLLM:
 
 
 class JudgeTest(unittest.IsolatedAsyncioTestCase):
+    def test_f3_edit_prompt_accepts_stage_in_title_and_never_requires_printed_absence(self):
+        prompt = judge._EDIT_PROMPT
+        for phrase in ("标题行", "任一 bullet", "没有”类事实不要求印出", "不能因“状态限制未出现在 after 的 bullet 里”判为不遵循", "说反"):
+            self.assertIn(phrase, prompt)
+
     def test_negative_absence_printed_is_a_quality_check(self):
         case = {"id": "t", "opening_turns": ["x"], "truth_facts": ["x"], "requirements": []}
         for text, flagged in (("仓库公开；没有星数", True), ("先查候选店铺再编排行程，还没上线", True),

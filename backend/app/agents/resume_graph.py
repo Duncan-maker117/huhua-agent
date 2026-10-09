@@ -1657,6 +1657,20 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
 
 
 
+async def _update_without_writer(state: ResumeState, instruction: str) -> dict:
+    """Field-only edits (education, format) never rewrite project or work prose."""
+    from app.agents.tailor_pipeline import apply_deterministic_update
+    from app.agents.turn_actions import absorb_education, overlay_education
+    from app.services.resume_facts import normalize_fact_store
+    collected = normalize_fact_store(state.get("collected_info") or _empty_collected_info())
+    collected = absorb_education(collected, state.get("collected_info") or {}, instruction)
+    base = overlay_education(collected, copy.deepcopy(state.get("resume_data") or {}))
+    result = await apply_deterministic_update({**state, "collected_info": collected}, base, instruction)
+    result['collected_info'] = collected
+    result['resume_strategy'] = state.get('resume_strategy') or {}
+    return result
+
+
 def _writer_reply(result: dict) -> str:
     data = result['resume_data']
     counts = []
@@ -1884,10 +1898,18 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         })
     except Exception:
         pass
-    result = await _write_resume_update(
-        {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
-         'session_constraints': edit_constraints or state.get('session_constraints') or {}},
-        llm, scope=scope, targets=targets)
+    from app.agents.turn_actions import deterministic_only
+    writer_requests = executed['writer_requests'] if planned_ops else []
+    if state.get('resume_data') and not imported and deterministic_only(
+            text, planned_ops, writer_requests, collected, updated, direction):
+        result = await _update_without_writer(
+            {**state, **direction, 'collected_info': updated, 'resume_data': data,
+             'session_constraints': edit_constraints or state.get('session_constraints') or {}}, text)
+    else:
+        result = await _write_resume_update(
+            {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
+             'session_constraints': edit_constraints or state.get('session_constraints') or {}},
+            llm, scope=scope, targets=targets)
     if edit_constraints:
         result['session_constraints'] = edit_constraints
     report_rows = list(operation_results) + writing_constraints(text) + uncovered_edit_clauses(

@@ -378,6 +378,28 @@ def _requested_op(op: dict, message: str) -> bool:
     return True
 
 
+_DETERMINISTIC_OPS = {"set_field", "clean_format"}
+_EDUCATION_CLAUSE = re.compile(r"学校|专业|学历|本科|硕士|博士|大专|年级|大[一二三四]|研[一二三]")
+
+
+def deterministic_only(message: str, planned_ops: list[dict], writer_requests: list[dict],
+                       before: dict, after: dict, direction: dict | None = None) -> bool:
+    """True when the turn only edits education fields or format: the writer must not run.
+
+    Project and work prose must stay byte-for-byte identical to the previous version.
+    """
+    if writer_requests or direction:
+        return False
+    if any(key != "education" and (before or {}).get(key) != (after or {}).get(key)
+           for key in set(before or {}) | set(after or {})):
+        return False
+    if planned_ops:
+        return all(op.get("op") in _DETERMINISTIC_OPS for op in planned_ops)
+    clauses = [clause for clause in edit_clauses(message) if _CLAUSE_INTENT.search(clause)]
+    return bool(clauses) and (before or {}) != (after or {}) and all(
+        _EDUCATION_CLAUSE.search(clause) for clause in clauses)
+
+
 def writing_constraints(message: str) -> list[dict]:
     """「不要编造用户量」is a writing rule, not a page constraint."""
     rows = []

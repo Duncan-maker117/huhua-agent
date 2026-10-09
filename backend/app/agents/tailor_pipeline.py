@@ -269,6 +269,28 @@ async def _retain_compressed_body(before: dict, meta: dict, revised: dict, actio
     return data, metadata, 'accepted'
 
 
+async def apply_deterministic_update(state: dict, base_data: dict, instruction: str = '') -> dict:
+    """Save a field-only edit (education, format) without calling the writer.
+
+    Project and work prose is taken from the previous version unchanged.
+    """
+    constraints = constraints_for_turn(state, instruction)
+    current = state.get('resume_data') or {}
+    data = deepcopy(current)
+    data['education'] = deepcopy(base_data.get('education') or current.get('education') or [])
+    version = prepare_version(current, state.get('resume_meta') or {}, state.get('resume_versions') or [],
+                              data, deepcopy(state.get('resume_meta') or {}), label='确认资料更新')
+    measurement = await asyncio.to_thread(measure_rendered_pages, version['resume_data'], constraints)
+    diagnostic = {'status': 'not_called', 'reason': 'deterministic_only'}
+    version['resume_meta'].update(page_check=measurement, writer_diagnostic=diagnostic,
+                                  guard_fallbacks=[], change_summary=[])
+    return {**version, 'match_plan': deepcopy(state.get('match_plan') or {}),
+            'session_constraints': constraints, 'page_check': measurement,
+            'writer_diagnostic': diagnostic, 'compression_writer_diagnostics': [],
+            'compression_retention_checks': [], 'guard_fallbacks': [], 'change_summary': [],
+            'compression_actions': [], 'omitted': deepcopy((state.get('resume_meta') or {}).get('omitted') or [])}
+
+
 async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_llm=None,
                               instruction: str = '', mode: str = 'one_pass',
                               scope: str = 'whole', targets=()) -> dict:

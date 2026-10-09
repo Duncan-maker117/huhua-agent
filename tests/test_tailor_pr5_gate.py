@@ -410,3 +410,51 @@ class HandsOnLiveFindingsTests(unittest.IsolatedAsyncioTestCase):
         text, refs = _fallback_bullet("p1", ["f1", "f2"], facts)
         self.assertEqual((text, refs), ("做了行程推荐原型", ["f2"]))
         self.assertEqual(_fallback_bullet("p1", ["f1"], {"f1": facts["f1"]}), ("", []))
+
+
+class DeterministicOnlyTests(unittest.IsolatedAsyncioTestCase):
+    """R1：只改教育字段时不调用 writer，项目/经历正文逐字不变。"""
+
+    async def run_turn(self, message):
+        from app.services.resume_facts import normalize_fact_store
+        state = _init_state()
+        state["stage"] = "EVALUATING"
+        state["candidate_history_reconciled"] = True
+        state["collected_info"] = normalize_fact_store({
+            "projects": [{"item_id": "p1", "name": "途记", "description": "做行程推荐原型。"}],
+            "education": [{"item_id": "e1", "school": "江商大", "major": "计算机", "degree": ""}]})
+        pid = state["collected_info"]["projects"][0]["item_id"]
+        state["resume_data"] = {"basic_info": {"name": "江同学"},
+                                "education": [{"item_id": "e1", "school": "江商大", "major": "计算机", "degree": ""}],
+                                "projects": [{"item_id": pid, "name": "途记", "hidden": False,
+                                              "polished_bullets": ["设计行程推荐 Agent 方案：先检索候选地点，再由模型编排行程。"]}]}
+        state["messages"] = [HumanMessage(content=message)]
+        writer = AsyncMock(side_effect=AssertionError("字段类修改不得调用 writer"))
+        with patch("app.agents.tailor_pipeline.run_resume_writer", new=writer), \
+                patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value={
+                    "status": "rendered", "pages": 1, "page_limit": 1, "within_page_limit": True}), \
+                patch("app.agents.resume_graph._recover_candidate_history",
+                      new=AsyncMock(side_effect=lambda current, model: current["collected_info"])):
+            result = await evaluating_node(state, object())
+        return state, result, writer
+
+    async def test_education_only_edit_keeps_project_prose_verbatim(self):
+        state, result, writer = await self.run_turn("学校改成江北商业大学，计算机科学与技术专业，本科大三。")
+        writer.assert_not_awaited()
+        before, after = state["resume_data"], result["resume_data"]
+        self.assertEqual(after["projects"], before["projects"])
+        self.assertEqual(after.get("work_experience"), before.get("work_experience"))
+        education = after["education"][0]
+        self.assertEqual((education["school"], education["major"], education["degree"]),
+                         ("江北商业大学", "计算机科学与技术", "本科"))
+        reply = result["messages"][0].content
+        self.assertIn("✅ 修改学校", reply)
+        self.assertNotIn("❌", reply)
+
+    def test_deterministic_only_requires_no_writing_op(self):
+        from app.agents.turn_actions import deterministic_only
+        edu = {"education": [1]}
+        self.assertTrue(deterministic_only("学校改成X", [{"op": "set_field"}], [], {}, edu))
+        self.assertFalse(deterministic_only("学校改成X，途记写详细点", [{"op": "set_field"}, {"op": "rewrite"}], [], {}, edu))
+        self.assertFalse(deterministic_only("学校改成X", [{"op": "set_field"}], [{"scope": "item"}], {}, edu))
+        self.assertFalse(deterministic_only("学校改成X", [], [], {}, {"education": [1], "projects": [2]}))

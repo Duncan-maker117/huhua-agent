@@ -418,10 +418,16 @@ def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict) -> tuple[s
     texts, refs = [], []
     for fid in own:
         cleaned = strip_absence(facts[fid].get("text") or "")
-        if cleaned:
+        if cleaned and not _bare_phase(cleaned):
             texts.append(cleaned)
             refs.append(fid)
     return "；".join(texts), refs
+
+
+def _bare_phase(text: str) -> bool:
+    """「课程原型」这类阶段词只写在标题行，不单独成 bullet；「做了原型」是动作，不算。"""
+    value = (text or "").strip("。；;，, ")
+    return bool(re.fullmatch(r"(?:这是|是)?(?:个|一个)?(?:课程原型|原型|demo|模拟数据|小组作业)(?:项目)?", value, re.I))
 
 
 def _body_fact(fact: dict) -> bool:
@@ -527,9 +533,15 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
         old_text = row["text"]
         text, refs = _fallback_bullet(row["item_id"], row["fact_ids"], facts)
         row.update(text=text, fact_ids=refs, req_ids=[], flags=[], needs_metric=False, metric_question="")
+        verdict = verdicts.get(row["id"], {})
         fallbacks.append({"item_id": row["item_id"], "bullet_id": row["id"],
                           "reason": "invalid_refs" if not row["valid_refs"] else "guard_repair_failed",
-                          "rejected_text_hash": _hash(old_text)})
+                          "rejected_text_hash": _hash(old_text),
+                          # 只记错误码，不记被拒文本，便于定位又不泄露内容
+                          "error_codes": sorted({str(code).split(":")[0] + (":" + str(code).split(":", 1)[1]
+                                                 if str(code).startswith("unsupported_") and ":" in str(code) else "")
+                                                 for code in verdict.get("lexical_errors", [])})[:6],
+                          "semantic_failed": bool(verdict.get("semantic")) and verdict.get("verdict") != "pass"})
     return [row for row in candidates if row["text"] and row["fact_ids"]], fallbacks
 
 
@@ -644,7 +656,8 @@ async def run_resume_writer(
                 writers[item_id] = WrittenItem(item_id=item_id, section=section,
                                                bullets=[WrittenBullet(text=cleaned, fact_ids=[fact["id"]])
                                                         for fact in selected
-                                                        if (cleaned := strip_absence(fact.get("text") or ""))])
+                                                        if (cleaned := strip_absence(fact.get("text") or ""))
+                                                        and not _bare_phase(cleaned)])
     elif scope != "bullet":
         # A deliberate zero needs no model-written row, but still clears the
         # selected item's old body. Unselected items remain untouched.

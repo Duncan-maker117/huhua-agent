@@ -154,6 +154,22 @@ def absorb_education(collected: dict, previous: dict | None, message: str, turn_
     return result
 
 
+_COMMAND_SENTENCE = re.compile(r"先给我|给我出|帮我|请(?:你)?(?:先|帮|给)|出一版|生成|看看吧?$")
+
+
+def _ownership_span(answer: str) -> str:
+    """Keep the leading ownership statement; a trailing 「先给我出一版看看」 is a command, not a fact."""
+    text = answer.strip()
+    sentences = [part for part in re.findall(r"[^。！？!?\n]+[。！？!?]?", text) if part.strip()]
+    kept = []
+    for sentence in sentences:
+        if _COMMAND_SENTENCE.search(sentence):
+            break
+        kept.append(sentence)
+    span = "".join(kept).strip()
+    return span if span and span in text else text
+
+
 def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str = "") -> dict:
     """Attach a short ownership answer to the experience the previous question named."""
     if not isinstance(answer, str) or not isinstance(question, str):
@@ -174,7 +190,7 @@ def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str
         target = pools[0][1]
     if target is None:
         return collected
-    quote = answer.strip()
+    quote = _ownership_span(answer)
     if any(fact.get("source_quote") == quote and fact.get("status", "active") == "active"
            for fact in target.get("facts") or []):
         return result

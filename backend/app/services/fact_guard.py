@@ -300,7 +300,10 @@ def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
             continue
         supported = _affirmed(source_quote, term)
         if term == "负责":
-            supported = supported or bool(re.search(r"我(?:写|做|负责)", source_quote))
+            supported = supported or bool(re.search(r"我(?:写|做|负责)|都是我|是我(?:做|写|设计)的", source_quote))
+        if term == "独立":
+            # 「我一个人做的」就是独立完成的原话，不必逐字出现「独立」。
+            supported = supported or bool(re.search(r"我一个人|一个人(?:做|完成|写)|自己一个人|独自|单独完成", source_quote))
         if not supported:
             errors.append("unsupported_responsibility_or_status:" + term)
     if contradicts_limit(text, source_quote):

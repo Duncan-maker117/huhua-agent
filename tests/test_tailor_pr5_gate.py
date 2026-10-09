@@ -93,7 +93,9 @@ class HandsOnGateTests(unittest.TestCase):
         bound = bind_role_followup(
             collected, "「途记」是你独立完成，还是团队协作？", ROLE, "t3")
         role = [fact for fact in bound["projects"][0]["facts"] if fact["kind"] == "role"]
-        self.assertEqual(role[0]["source_quote"], ROLE)
+        # 句尾「先给我出一版看看」是指令不是事实，不得进入事实原文
+        self.assertEqual(role[0]["source_quote"], "途记基本是我一个人做的，产品方案和代码都是我。")
+        self.assertNotIn("先给我", role[0]["text"])
         self.assertNotIn("独立", role[0]["text"])
         view = build_workspace({"collected_info": bound}, {"projects": [{
             "item_id": "p1", "name": "途记", "polished_bullets": ["做了行程推荐原型。"]}]})
@@ -387,3 +389,24 @@ class Q4Tests(unittest.IsolatedAsyncioTestCase):
         again = compose_interviewer_reply(later, match_plan=plan, role_profile=profile)["text"]
         self.assertNotIn("这版的思路", again)
         self.assertNotIn("可迁移表述", again)
+
+
+class HandsOnLiveFindingsTests(unittest.IsolatedAsyncioTestCase):
+    """handson-01 实测发现：用户原话「我一个人做的」应能支持「独立完成」，阶段词不单独成 bullet。"""
+
+    def test_one_person_statement_supports_independent_and_responsible(self):
+        from app.services.fact_guard import lexical_fact_errors
+        source = "途记基本是我一个人做的，产品方案和代码都是我。"
+        for text in ("独立完成途记的产品方案与代码实现", "负责途记的产品方案与代码"):
+            self.assertEqual(lexical_fact_errors(text, source), [], text)
+        # 没有这句话时仍然拦截
+        self.assertTrue(lexical_fact_errors("独立完成途记的代码实现", "我参与了途记的代码实现"))
+        self.assertTrue(lexical_fact_errors("负责途记的代码实现", "我参与了途记的代码实现"))
+
+    def test_bare_stage_word_is_not_a_fallback_bullet(self):
+        from app.agents.resume_writer import _fallback_bullet
+        facts = {"f1": {"id": "f1", "item_id": "p1", "kind": "status_limit", "text": "课程原型"},
+                 "f2": {"id": "f2", "item_id": "p1", "kind": "action", "text": "做了行程推荐原型；没有用户量"}}
+        text, refs = _fallback_bullet("p1", ["f1", "f2"], facts)
+        self.assertEqual((text, refs), ("做了行程推荐原型", ["f2"]))
+        self.assertEqual(_fallback_bullet("p1", ["f1"], {"f1": facts["f1"]}), ("", []))

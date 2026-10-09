@@ -846,3 +846,34 @@ class OverlongBulletTests(unittest.IsolatedAsyncioTestCase):
         bullets, calls = await self.run_writer(self.LONG + "，并持续迭代")
         self.assertEqual(calls.count("RepairOutput"), 1)
         self.assertEqual(bullets[0], self.LONG)
+
+
+class SkillGroupTests(unittest.TestCase):
+    """E4：固定类别、去重、整句拆分、每组 ≤8、其他 ≤3、按 JD 相关度排序。"""
+
+    def test_real01_like_skill_lines_are_split_deduped_and_grouped(self):
+        from app.services.skill_groups import normalize_skill_groups
+        groups = {"产品能力": ["PRD 撰写", "竞品分析", "Prompt Engineering"],
+                  "其他": ["LLM / RAG / Agent / MCP 概念与应用场景", "Java / Spring Boot / MySQL 开发经验",
+                         "Claude Code（生产级使用）", "Claude Code", "claude code", "Ｃｕｒｓｏｒ", "Cursor",
+                         "抖音短视频创作与推广", "OpenClaw", "ChatGPT / Gemini", "Figma / Google Stitch",
+                         "产品使用体验报告撰写", "神秘技能甲", "神秘技能乙", "神秘技能丙", "神秘技能丁", "神秘技能戊"],
+                  "开发工具": ["FastAPI"]}
+        out = normalize_skill_groups(groups, jd_terms=["Agent", "MCP", "Claude Code"])
+        flat = [skill for values in out.values() for skill in values]
+        self.assertEqual(len(flat), len({skill.casefold() for skill in flat}))
+        self.assertEqual(sum("claude code" in skill.casefold() for skill in flat), 1)
+        self.assertIn("Claude Code", flat)
+        self.assertNotIn("Claude Code（生产级使用）", flat)
+        self.assertTrue({"LLM", "RAG", "Agent", "MCP"} <= set(out["AI 与 Agent"]))
+        self.assertTrue({"Java", "Spring Boot", "MySQL"} <= set(out["开发"]))
+        self.assertLessEqual(len(out.get("其他", [])), 3)
+        self.assertTrue(all(len(values) <= 8 for values in out.values()))
+        self.assertTrue(set(out) <= {"产品方法", "AI 与 Agent", "开发", "工具", "内容运营", "其他"})
+        # JD 相关项排在前面
+        self.assertEqual(out["AI 与 Agent"][:2], ["Agent", "MCP"])
+
+    def test_overflow_is_omitted_not_renamed(self):
+        from app.services.skill_groups import normalize_skill_groups
+        out = normalize_skill_groups({"开发": [f"Python{i}" for i in range(12)]})
+        self.assertEqual(len(out["开发"]), 8)

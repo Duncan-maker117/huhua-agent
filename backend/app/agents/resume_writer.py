@@ -931,6 +931,8 @@ async def run_resume_writer(
             if skill in invalid_mentioned or any(skill in values for values in groups.values()):
                 continue
             groups.setdefault("开发工具", []).append(skill)
+        from app.services.skill_groups import jd_terms_from_profile, normalize_skill_groups
+        groups = normalize_skill_groups(groups, (), jd_terms_from_profile(role_profile))
         output["skill_groups"] = groups
         target_role = role_profile.get("target_role")
         if isinstance(target_role, str) and target_role.strip() and not output.get("basic_info", {}).get("objective"):

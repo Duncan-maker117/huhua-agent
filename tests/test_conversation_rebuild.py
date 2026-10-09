@@ -99,7 +99,7 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["skills"], ["Excel"])
         # Custom headings have no authenticated provenance in an old draft;
         # retain the active skill while using a neutral display heading.
-        self.assertEqual(result["skill_groups"], {"其他": ["Excel"]})
+        self.assertEqual(result["skill_groups"], {"工具": ["Excel"]})  # 固定类别，自定义分组名不显示
         self.assertEqual(result["certificates"], ["虚构证书"])
 
     async def test_group_only_edits_survive_and_new_chat_skill_is_added(self):

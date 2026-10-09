@@ -348,7 +348,7 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
         new_data = result["resume_data"]
         self.assertEqual(new_data["sections"], saved["sections"])
         self.assertEqual(new_data["basic_info"]["photo"], saved["basic_info"]["photo"])
-        self.assertEqual(new_data["skill_groups"], saved["skill_groups"])
+        self.assertEqual(new_data["skill_groups"], {"开发": ["Python"]})  # 固定类别
         self.assertEqual(new_data["experience_section_title"], "代表项目")
         self.assertEqual(new_data["verification_notes"], [])
         self.assertIn("三次本地验收", new_data["projects"][0]["description"])

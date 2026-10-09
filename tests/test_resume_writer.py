@@ -123,7 +123,8 @@ class ResumeWriterTest(unittest.TestCase):
                                                 ("整理用户反馈并分类", ["f3"])])],
                                                             skill_groups={"十年算法总监经验": ["Python"]})})])
         result = run(source(), ROLE, model)
-        self.assertEqual(result["resume_data"]["skill_groups"], {"其他": ["Python"]})
+        # 固定类别：不可信的分组名从不显示，技能按词表归入「开发」
+        self.assertEqual(result["resume_data"]["skill_groups"], {"开发": ["Python"]})
         self.assertNotIn("十年算法总监经验", json.dumps(result["resume_data"], ensure_ascii=False))
 
     def test_whole_rewrite_clears_uncited_old_summary(self):
@@ -169,7 +170,7 @@ class ResumeWriterTest(unittest.TestCase):
         self.assertEqual(data["projects"][0]["name"], "原型项目")
         self.assertEqual(data["work_experience"][0]["company"], "实习单位")
         self.assertTrue(data["projects"][1]["hidden"])
-        self.assertEqual(data["skill_groups"], {"技术": ["Python"]})
+        self.assertEqual(data["skill_groups"], {"开发": ["Python"]})
         self.assertEqual(data["projects"][0]["description"], "")
         self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["text_hash"],
                          hashlib.sha256("做了原型".encode()).hexdigest())

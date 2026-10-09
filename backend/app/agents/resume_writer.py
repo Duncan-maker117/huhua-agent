@@ -39,6 +39,7 @@ _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经�
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
 每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
+每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
 新事实没有证据时留空并提问。严格输出 WriterDraft。"""
@@ -53,7 +54,7 @@ writer.items 必须是数组，每项只含 item_id、section、title、bullets�
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
-不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
+每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _REPAIR_CONTRACT = """只修复列表中违反事实边界的 bullet，每个原样返回 id。
@@ -245,6 +246,32 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                 raise
 
 
+def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = ()) -> list[dict]:
+    """同一事实不写两条：fact_ids 相同或为另一条的子集时保留信息更多的一条；
+    条数不超过该条目可写的不同事实数（事实少就少写）。"""
+    sets = [frozenset(row.get("fact_ids") or []) for row in rows]
+    drop = set()
+    for i, row in enumerate(rows):
+        for j, other in enumerate(rows):
+            if i == j or j in drop or not sets[i] or not sets[i] <= sets[j]:
+                continue
+            if sets[i] == sets[j]:
+                # 相同：保留更长的一条；等长时保留靠前的
+                if len(row.get("text", "")) < len(other.get("text", "")) or (
+                        len(row.get("text", "")) == len(other.get("text", "")) and i > j):
+                    drop.add(i)
+                    break
+            else:
+                drop.add(i)
+                break
+    kept = [row for index, row in enumerate(rows) if index not in drop]
+    groups = [fact for fact in item_facts if _body_fact(fact)
+              and (cleaned := strip_absence(fact.get("text") or "")) and not _bare_phase(cleaned)]
+    if groups and len(kept) > len(groups):
+        kept = kept[:len(groups)]
+    return kept
+
+
 def _without_near_duplicate_rows(rows: list[dict]) -> list[dict]:
     """Guard-level duplicate check: a later bullet that restates an earlier one is dropped."""
     kept = []
@@ -410,24 +437,34 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
             "questions": questions}
 
 
-def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict) -> tuple[str, list[str]]:
+def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict,
+                     name: str = "") -> tuple[str, list[str]]:
+    """One fact only: the most informative own fact. Never join fragments with 「；」."""
     own = [fid for fid in dict.fromkeys(cited) if fid in facts and facts[fid]["item_id"] == item_id
            and _body_fact(facts[fid])]
     if not own:
         own = [fid for fid, fact in facts.items() if fact["item_id"] == item_id and _body_fact(fact)]
-    texts, refs = [], []
+    best, best_id = "", ""
     for fid in own:
         cleaned = strip_absence(facts[fid].get("text") or "")
-        if cleaned and not _bare_phase(cleaned):
-            texts.append(cleaned)
-            refs.append(fid)
-    return "；".join(texts), refs
+        if cleaned and not _bare_phase(cleaned, name) and len(cleaned) > len(best):
+            best, best_id = cleaned, fid
+    return (best, [best_id]) if best else ("", [])
 
 
-def _bare_phase(text: str) -> bool:
-    """「课程原型」这类阶段词只写在标题行，不单独成 bullet；「做了原型」是动作，不算。"""
+def _bare_phase(text: str, name: str = "") -> bool:
+    """阶段陈述（「课程原型」「途记基本是课程原型」）只写在标题行，不单独成 bullet；「做了原型」是动作，不算。"""
     value = (text or "").strip("。；;，, ")
-    return bool(re.fullmatch(r"(?:这是|是)?(?:个|一个)?(?:课程原型|原型|demo|模拟数据|小组作业)(?:项目)?", value, re.I))
+    if re.fullmatch(r"(?:这是|是)?(?:个|一个)?(?:课程原型|原型|demo|模拟数据|小组作业)(?:项目)?", value, re.I):
+        return True
+    label = re.search(r"课程原型|原型|demo|模拟数据|小组作业", value, re.I)
+    if not label:
+        return False
+    rest = value.replace(label.group(0), "")
+    if name:
+        rest = rest.replace(name, "")
+    rest = re.sub(r"基本|这个|本身|项目|都|就|是|个|一个|的|属于|只是|仅是|[，,。；;\s]", "", rest)
+    return not rest
 
 
 def _body_fact(fact: dict) -> bool:
@@ -527,11 +564,13 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                                  role_terms=role_profile.get("jd_language") or [], llm=model) if repaired else []
     second_verdicts = {row["id"]: row for row in second}
     fallbacks = []
+    names = {item.get("item_id"): str(item.get("name") or item.get("company") or "")
+             for section in SECTIONS for item in source.get(section) or [] if isinstance(item, dict)}
     for row in failed:
         if second_verdicts.get(row["id"], {}).get("verdict") == "pass":
             continue
         old_text = row["text"]
-        text, refs = _fallback_bullet(row["item_id"], row["fact_ids"], facts)
+        text, refs = _fallback_bullet(row["item_id"], row["fact_ids"], facts, names.get(row["item_id"], ""))
         row.update(text=text, fact_ids=refs, req_ids=[], flags=[], needs_metric=False, metric_question="")
         verdict = verdicts.get(row["id"], {})
         fallbacks.append({"item_id": row["item_id"], "bullet_id": row["id"],
@@ -657,7 +696,7 @@ async def run_resume_writer(
                                                bullets=[WrittenBullet(text=cleaned, fact_ids=[fact["id"]])
                                                         for fact in selected
                                                         if (cleaned := strip_absence(fact.get("text") or ""))
-                                                        and not _bare_phase(cleaned)])
+                                                        and not _bare_phase(cleaned, str(item.get("name") or item.get("company") or ""))])
     elif scope != "bullet":
         # A deliberate zero needs no model-written row, but still clears the
         # selected item's old body. Unselected items remain untouched.
@@ -709,7 +748,10 @@ async def run_resume_writer(
         if treatment.get(item_id) == "backup" and scope != "bullet" and writer_diagnostic.get("status") != "model_fallback":
             item["hidden"] = True
             continue
-        rows = _without_near_duplicate_rows(by_item.get(item_id, []))
+        rows = by_item.get(item_id, [])
+        if scope != "bullet":
+            rows = _without_repeated_fact_rows(rows, items[item_id][1].get("facts") or [])
+        rows = _without_near_duplicate_rows(rows)
         if not rows:
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"

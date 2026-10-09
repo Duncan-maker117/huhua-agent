@@ -458,3 +458,43 @@ class DeterministicOnlyTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(deterministic_only("学校改成X，途记写详细点", [{"op": "set_field"}, {"op": "rewrite"}], [], {}, edu))
         self.assertFalse(deterministic_only("学校改成X", [{"op": "set_field"}], [{"scope": "item"}], {}, edu))
         self.assertFalse(deterministic_only("学校改成X", [], [], {}, {"education": [1], "projects": [2]}))
+
+
+class RepeatedFactTests(unittest.TestCase):
+    """R2：同一事实不重复成多条；回退不拼接、不带标题行已有的阶段词。"""
+
+    def rows(self, *specs):
+        return [{"id": f"b{i}", "text": text, "fact_ids": ids} for i, (text, ids) in enumerate(specs)]
+
+    def test_equal_or_subset_fact_sets_keep_the_richer_bullet(self):
+        from app.agents.resume_writer import _without_repeated_fact_rows
+        rows = self.rows(("先查候选再让模型选", ["f3"]),
+                         ("针对模型推荐不存在的店，改为先查候选再让模型选", ["f2", "f3"]),
+                         ("做行程推荐", ["f1"]))
+        kept = _without_repeated_fact_rows(rows)
+        self.assertEqual([row["id"] for row in kept], ["b1", "b2"])
+        same = _without_repeated_fact_rows(self.rows(("短句", ["f1"]), ("更长的一句表述", ["f1"])))
+        self.assertEqual([row["text"] for row in same], ["更长的一句表述"])
+
+    def test_bullet_count_never_exceeds_distinct_fact_groups(self):
+        from app.agents.resume_writer import _without_repeated_fact_rows
+        facts = [{"id": "f1", "field": None, "text": "做行程推荐"},
+                 {"id": "f2", "field": None, "text": "课程原型"},
+                 {"id": "f3", "field": None, "text": "没有用户量"}]
+        rows = self.rows(("a", ["f1"]), ("b", ["f2"]), ("c", ["f3"]))
+        self.assertEqual(len(_without_repeated_fact_rows(rows, facts)), 1)
+
+    def test_prompts_state_the_one_bullet_per_fact_group_rule(self):
+        from app.agents import resume_writer
+        for contract in (resume_writer._WRITE_CONTRACT, resume_writer._ONE_PASS_CONTRACT):
+            self.assertIn("事实组", contract)
+
+    def test_fallback_is_one_fact_without_stage_statement_or_joining(self):
+        from app.agents.resume_writer import _fallback_bullet
+        facts = {"f1": {"id": "f1", "item_id": "p1", "kind": "action", "text": "做了行程推荐"},
+                 "f2": {"id": "f2", "item_id": "p1", "kind": "status_limit", "text": "途记基本是课程原型"},
+                 "f3": {"id": "f3", "item_id": "p1", "kind": "action", "text": "改成先查候选再让模型选"}}
+        text, refs = _fallback_bullet("p1", ["f1", "f2", "f3"], facts, "途记")
+        self.assertEqual((text, refs), ("改成先查候选再让模型选", ["f3"]))
+        self.assertNotIn("；", text)
+        self.assertEqual(_fallback_bullet("p1", ["f2"], {"f2": facts["f2"]}, "途记"), ("", []))

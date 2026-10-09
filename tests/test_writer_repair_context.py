@@ -158,7 +158,7 @@ class WriterRepairContextTest(unittest.TestCase):
         self.assertEqual(len(result["guard_fallbacks"]), 1)
         self.assertEqual(result["guard_fallbacks"][0]["reason"], "guard_repair_failed")
         self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"][1],
-                         "我用键盘检查搜索操作能否完成；数据接口由队友负责")
+                         "我用键盘检查搜索操作能否完成")  # 回退只保留信息量最大的一条事实，不用「；」拼接
 
     def test_repair_timeout_still_falls_back_once(self):
         async def slow_reply():

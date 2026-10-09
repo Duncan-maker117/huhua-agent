@@ -551,6 +551,10 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
 
     scores = {"versions": [], "edits": [], "pairwise": {"status": "not_run_without_comparator"},
               "human_review": {"status": "pending_claude", "confirmed_new_facts": None}}
+    early_first = first_draft_version(recorder.versions)
+    early_first_id = early_first["version_id"] if early_first else None
+    visible_ids = [version["version_id"] for version in recorder.versions if version.get("user_visible")]
+    quality_ids = {item for item in (early_first_id, visible_ids[-1] if visible_ids else None) if item}
     # Scores are durable after each version, so interrupted reviews can resume.
     for version in recorder.versions:
         counter = counter_type()
@@ -559,7 +563,8 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             async with asyncio.timeout(args.judge_timeout + 5):
                 score = await judge_version(case, version["resume_data"], judge_llm,
                                             observed_facts=version["observed_facts"],
-                                            disclosed_fact_indices=version["disclosed_fact_indices"])
+                                            disclosed_fact_indices=version["disclosed_fact_indices"],
+                                            include_quality=version["version_id"] in quality_ids)
         except Exception as exc:
             score = {"status": "error", "error_type": type(exc).__name__,
                      "deterministic": deterministic_score(case, version["resume_data"], version["observed_facts"])}
@@ -715,15 +720,18 @@ async def run_live(cases, args, output, manifest):
     if not settings.LLM_API_KEY:
         raise RuntimeError("LLM credential is not configured")
     assert_private_model_policy(cases, args, settings)
-    if not args.graph_only and args.judge_model in {settings.LLM_MODEL, settings.LLM_STRUCTURED_MODEL}:
-        raise ValueError("Judge model must differ from both graph models")
+    same_model_judge = not args.graph_only and args.judge_model in {
+        settings.LLM_MODEL, settings.LLM_STRUCTURED_MODEL or settings.LLM_MODEL}
+    from urllib.parse import urlsplit
+    judge_host = (urlsplit(settings.LLM_BASE_URL or "").hostname or "").lower()
+    judge_thinking = {"enable_thinking": True} if judge_host == "dashscope.aliyuncs.com" else {"thinking": {"type": "enabled"}}
     # Mirror the chat entry point; preserve model settings across benchmark runs.
     llm = ChatOpenAI(model=settings.LLM_MODEL, api_key=settings.LLM_API_KEY,
                      base_url=settings.LLM_BASE_URL, temperature=0.7, streaming=True)
     judge_llm = None if args.graph_only else ChatOpenAI(model=args.judge_model, api_key=settings.LLM_API_KEY,
                            base_url=settings.LLM_BASE_URL, temperature=0, timeout=args.judge_timeout,
                            max_retries=0, max_tokens=12000,
-                           extra_body={"thinking": {"type": "enabled"}}, reasoning_effort="high")
+                           extra_body=judge_thinking, reasoning_effort="high")
     selector_llm = ChatOpenAI(model=settings.LLM_STRUCTURED_MODEL or settings.LLM_MODEL,
                               api_key=settings.LLM_API_KEY, base_url=settings.LLM_BASE_URL,
                               temperature=0, streaming=False, timeout=args.selector_timeout,
@@ -741,6 +749,7 @@ async def run_live(cases, args, output, manifest):
                         writer_mode=settings.LLM_WRITER_MODE, writer_temperature=settings.LLM_WRITER_TEMPERATURE,
                         writer_max_tokens=settings.LLM_MAX_TOKENS or 4000,
                     judge_model=None if args.graph_only else args.judge_model, judge_temperature=0, judge_reasoning_effort="high",
+                    same_model_judge=same_model_judge,
                     graph_temperature=0.7, concurrency=args.concurrency,
                     max_followups=args.max_followups, turn_timeout_seconds=args.turn_timeout,
                     judge_timeout_seconds=args.judge_timeout,
@@ -797,7 +806,7 @@ def main() -> int:
     parser.add_argument("--turn-timeout", type=float, default=150)
     parser.add_argument("--judge-timeout", type=float, default=120)
     parser.add_argument("--selector-timeout", type=float, default=60)
-    parser.add_argument("--judge-model", default="deepseek-v4-pro")
+    parser.add_argument("--judge-model", default="deepseek-flash")
     parser.add_argument("--graph-only", action="store_true", help="Capture chats first, leave semantic reviews explicitly incomplete")
     parser.add_argument("--rejudge-versions", action="store_true",
                         help="With --rescore, rejudge completed nonempty versions and retain every prior attempt")

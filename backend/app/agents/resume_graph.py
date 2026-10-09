@@ -44,6 +44,9 @@ logger = logging.getLogger(__name__)
 # ── 状态定义 ─────────────────────────────────────────────────────────────────
 
 STAGES = ["JD_INPUT", "COLLECTING", "BUILDING", "EVALUATING", "EXPORT"]
+_previous_assistant = __import__("contextvars").ContextVar("tailor_previous_assistant", default="")
+
+
 _EXPERIENCE_ACTIONS = (
     r"做过|做了|参与|负责|开发|搭建|设计|实现|完成|组织|运营|主导|整理|绘制|画|提交"
     r"|编写|演示|收集|修改|调整|修复|测试|验证|调研|访谈|沟通|记录|交付"
@@ -783,7 +786,8 @@ def _explicit_generate_requested(text: str) -> bool:
             r"(?:^|[，,])\s*(?:请|帮我|给我|现在|直接|开始|先|按已有|按现有).{0,30}"
             r"(?:生成|制作|整理|写|输出|做一份|出一份|做).{0,20}(?:简历|草稿)"
             r"|^(?:生成|制作|整理|输出).{0,16}(?:简历|草稿)"
-            r"|^(?:简历|草稿).{0,16}(?:生成|制作)",
+            r"|^(?:简历|草稿).{0,16}(?:生成|制作)"
+            r"|出一版|写一版|生成吧|直接写吧|先出稿|先给我出",
             clause,
         ):
             return True
@@ -888,7 +892,7 @@ def _collected_summary(collected: dict) -> str:
 
 
 async def _extract_info_from_message(
-    message: str, current: dict, llm: ChatOpenAI
+    message: str, current: dict, llm: ChatOpenAI,
 ) -> dict:
     """Apply a sparse, per-fact validated user message patch."""
     from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch
@@ -896,8 +900,9 @@ async def _extract_info_from_message(
 
     normalized = normalize_fact_store(current)
     try:
-        patch = await extract_facts_patch(message, normalized, llm,
-                                          metadata_context=normalized.get("metadata_context"))
+        patch = await extract_facts_patch(
+            message, normalized, llm, metadata_context=normalized.get("metadata_context"),
+            previous_assistant=_previous_assistant.get())
         return apply_fact_patch(normalized, patch)
     except Exception as e:
         logger.warning("Info extraction failed: %s", type(e).__name__)
@@ -1332,6 +1337,13 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         ))
     result["candidate_history_reconciled"] = True
     latest = result.get("collected_info", collected)
+    if latest_message and result.get("messages") and result.get("stage") != "BUILDING":
+        from app.agents.interviewer import education_question
+        note, asked = education_question({**state, **result, "messages": state.get("messages") or []})
+        current_reply = result["messages"][-1]
+        if note and isinstance(getattr(current_reply, "content", None), str) and note not in current_reply.content:
+            result["messages"][-1] = AIMessage(content=current_reply.content + "\n\n" + note, id=current_reply.id)
+            result["asked_questions"] = asked
     if latest != state.get("collected_info"):
         result["collected_info"] = latest
     if result.get("stage") != "BUILDING" and (
@@ -1448,7 +1460,16 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         and len(last_human) > 5
     ):
         extract_llm = _make_non_streaming_llm(llm, temperature=0)
-        collected = await _extract_info_from_message(last_human, collected, extract_llm)
+        previous_assistant = next((m.content for m in reversed(messages)
+                                   if isinstance(m, AIMessage) and isinstance(m.content, str)), "")
+        token = _previous_assistant.set(previous_assistant)
+        try:
+            collected = await _extract_info_from_message(last_human, collected, extract_llm)
+        finally:
+            _previous_assistant.reset(token)
+        from app.agents.turn_actions import absorb_education, bind_role_followup
+        collected = absorb_education(collected, previous_collected, last_human, source_message.id or "")
+        collected = bind_role_followup(collected, previous_assistant, last_human, source_message.id or "")
         if decision.action != TriageAction.WRAP_EXPERIENCE and collected == previous_collected:
             collected = _keep_unextracted_experience(collected, previous_collected, source_message)
         collected = _apply_explicit_project_removals(collected, last_human)
@@ -1478,6 +1499,20 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     }
 
     action = decision.action
+
+    from app.agents.interviewer import first_draft_ready
+    from app.agents.tailor_pipeline import _has_visible_experience_body
+    ready_state = {**state, **base_update}
+    # Implicit first draft only. A later fact keeps the live resume update;
+    # "出一版/生成" still takes the explicit generate path above.
+    if (action != TriageAction.DECODE_JD and candidate_material
+            and not _has_visible_experience_body(state.get("resume_data") or {})
+            and first_draft_ready(ready_state)
+            and (_has_minimum_info(collected) or collected.get("education")
+                 or (state.get("resume_data") or {}).get("projects")
+                 or (state.get("resume_data") or {}).get("work_experience"))):
+        base_update["stage"] = "BUILDING"
+        return base_update
 
     # 分支 A：开始生成简历
     # 不发硬编码过渡气泡——LangGraph 条件边会直接 chain 到 building_node，
@@ -1555,6 +1590,10 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         base_update["jd_text"] = last_human
         base_update["jd_info"] = jd_info
         base_update["resume_strategy"] = resume_strategy
+        if first_draft_ready({**state, **base_update}) and (
+            _has_minimum_info(collected) or collected.get("education")
+        ):
+            base_update["stage"] = "BUILDING"
         return base_update
 
     # 兜底：按 ASK_EXP 走
@@ -1597,11 +1636,15 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
     from app.services.resume_facts import normalize_fact_store
     from app.config import get_settings
     collected = normalize_fact_store(state.get("collected_info") or _empty_collected_info())
+    from app.agents.turn_actions import absorb_education, overlay_education
+    latest_for_education = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
+    collected = absorb_education(collected, state.get("collected_info") or {}, latest_for_education)
     working = {**state, "collected_info": collected}
     serialized = _serialize_to_resume_data(working)
     current = state.get("resume_data") or {}
     # Targeted rewrites retain unrelated manually edited content exactly.
     base = copy.deepcopy(current) if scope != 'whole' and current else serialized
+    base = overlay_education(collected, base)
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
     writer = _make_writer_llm(llm)
     structured = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
@@ -1656,10 +1699,26 @@ def _writer_reply(result: dict) -> str:
     return reply
 
 
+def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
+    from app.agents.interviewer import compose_interviewer_reply, education_question
+    if (result.get("writer_diagnostic") or {}).get("status") == "model_fallback":
+        note, asked = education_question({**state, **result})
+        return (("\n\n" + note) if note else ""), asked
+    composed = compose_interviewer_reply(
+        {**state, **result}, match_plan=result.get('match_plan'),
+        version_number=len(result.get('resume_versions') or state.get('resume_versions') or []) + 1)
+    text = composed.get('text') or ''
+    marker = '**这版的思路**'
+    if marker not in text:
+        return '', composed.get('asked_questions') or state.get('asked_questions') or []
+    return '\n\n' + text[text.index(marker):], composed.get('asked_questions') or []
+
+
 async def building_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     result = await _write_resume_update(state, llm)
-    result.update(messages=[AIMessage(content=_writer_reply(result))], stage='EVALUATING',
-                  resume_draft=resume_to_text(result['resume_data']))
+    suffix, asked = _interview_suffix(state, result)
+    result.update(messages=[AIMessage(content=_writer_reply(result) + suffix)], stage='EVALUATING',
+                  resume_draft=resume_to_text(result['resume_data']), asked_questions=asked)
     return result
 
 
@@ -1725,8 +1784,11 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if _user_wants_export(text):
         return {"stage": "EXPORT", **(await export_node(state, llm))}
     if _user_asks_review(text):
-        reply, checks = _review_reply(data, state.get('jd_info'))
-        return {'messages': [AIMessage(content=reply)], 'eval_result': {'checks': checks}}
+        from app.agents.advisor import review_with_advisor
+        reviewer = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+        advice = await review_with_advisor({**state, 'resume_data': data}, reviewer)
+        return {'messages': [AIMessage(content=advice['text'])],
+                'eval_result': {'checks': [row.get('issue', '') for row in advice.get('issues') or []]}}
     if _re.fullmatch(r'\s*(?:撤销|撤回|回到上一版|恢复上一版)(?:刚才的修改|这次修改|上次修改|上一版|一下)?[。！!\s]*', text):
         try:
             restored = restore_payload(state)
@@ -1747,22 +1809,93 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     collected = state.get('collected_info') or _empty_collected_info()
     imported = parse_existing_resume(text)
     updated = collected
+    previous_assistant = next((m.content for m in reversed(state.get('messages', []))
+                               if isinstance(m, AIMessage) and isinstance(m.content, str) and m is not message), "")
     if imported:
         updated = _merge_imported_candidate(collected, imported)
     elif _generation_contains_facts(text, editing_existing=True):
         extract_llm = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
-        updated = await _extract_info_from_message(text, collected, extract_llm)
+        token = _previous_assistant.set(previous_assistant)
+        try:
+            updated = await _extract_info_from_message(text, collected, extract_llm)
+        finally:
+            _previous_assistant.reset(token)
         updated = _keep_unextracted_experience(updated, collected, message)
+    from app.agents.turn_actions import absorb_education, bind_role_followup, render_operation_report, uncovered_edit_clauses
+    updated = absorb_education(updated, collected, text, getattr(message, 'id', '') or '')
+    updated = bind_role_followup(updated, previous_assistant, text, getattr(message, 'id', '') or '')
     direction = _direction_profile_update(state, text, updated)
     scope, targets = infer_edit_scope(data, text)
+    operation_results = []
+    edit_constraints = state.get('session_constraints')
+    before_edit = copy.deepcopy(data)
+    planned_ops = []
+    if not imported:
+        from app.agents.router import route_intents
+        from app.services.edit_plan import execute_edit_plan
+        # Scripted writer doubles are not routers. A non-chat model fails closed
+        # into the deterministic plan and does not consume the writer response.
+        if isinstance(llm, ChatOpenAI):
+            structured = _make_non_streaming_llm(llm, temperature=0)
+        else:
+            class _RouterUnavailable:
+                def with_structured_output(self, schema):
+                    return self
+                async def ainvoke(self, messages):
+                    raise RuntimeError("router_unavailable")
+            structured = _RouterUnavailable()
+        routed = await route_intents(text, {**state, 'resume_data': data, 'collected_info': updated}, structured)
+        planned_ops = list(routed.get('edit_plan') or [])
+        if planned_ops:
+            executed = execute_edit_plan(
+                data, edit_constraints, routed['edit_plan'], collected_info=updated, instruction=text)
+            data = executed['data']
+            edit_constraints = executed['constraints']
+            operation_results = executed['operation_results']
+            if executed['writer_requests'] and not (updated != collected or direction):
+                scope = executed['writer_requests'][0]['scope']
+                targets = executed['writer_requests'][0]['targets']
     if imported or updated != collected or direction:
         scope, targets = 'whole', []
     if scope == 'item' and not targets:
+        unanswered = [row for row in operation_results if row.get('status') in {'needs_confirmation', 'cannot'}]
+        if unanswered:
+            lines = render_operation_report(unanswered, data, data)
+            return {'messages': [AIMessage(content='有一项还没法定位，其余要求仍保留在当前稿。\n\n' + '\n'.join(lines))],
+                    'collected_info': updated}
         return {'messages': [AIMessage(content='没有找到你指定序号的经历，当前正文保留。请提供该经历的名称。')]}
-    result = await _write_resume_update({**state, **direction, 'collected_info': updated}, llm, scope=scope, targets=targets)
+    # An empty saved draft must stay empty here. Serializing the pre-edit facts
+    # into resume_data makes a writer failure preserve that shell and drop new facts.
+    write_resume = data if state.get('resume_data') else {}
+    result = await _write_resume_update(
+        {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
+         'session_constraints': edit_constraints or state.get('session_constraints') or {}},
+        llm, scope=scope, targets=targets)
+    if edit_constraints:
+        result['session_constraints'] = edit_constraints
+    report_rows = list(operation_results) + uncovered_edit_clauses(text, planned_ops or operation_results, before_edit)
+    report = render_operation_report(report_rows, before_edit, result.get('resume_data') or {})
+    if report:
+        result['change_summary'] = report[:5]
+        meta = dict(result.get('resume_meta') or {})
+        meta['change_summary'] = report[:5]
+        meta['operation_results'] = operation_results
+        result['resume_meta'] = meta
+    reply = _writer_reply(result)
+    if report:
+        reply = _re.sub(r'\n\n本次修改：[\s\S]*$', '', reply)
+        reply += '\n\n本次修改：\n' + '\n'.join('· ' + line for line in report)
+        if not any(line.startswith('✅') for line in report):
+            reply = '这轮没有完成你点名的修改。\n\n本次修改：\n' + '\n'.join('· ' + line for line in report)
+        elif '本轮没有形成可保存的正文修改' in reply:
+            reply = reply.replace('本轮没有形成可保存的正文修改，当前草稿保留。', '已完成你点名的修改。')
+    suffix, asked = _interview_suffix({**state, **direction, 'collected_info': updated}, result)
+    if suffix:
+        reply += suffix
+        result['asked_questions'] = asked
     return {**direction, **result, 'stage': 'EVALUATING',
             'resume_draft': resume_to_text(result['resume_data']),
-            'messages': [AIMessage(content=_writer_reply(result))]}
+            'messages': [AIMessage(content=reply)]}
 
 
 async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:

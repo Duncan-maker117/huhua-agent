@@ -435,7 +435,7 @@ class JudgeTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_pairwise_position_bias_is_inconclusive(self):
         out = await judge.pairwise(self.case, resume("a"), resume("b"), FakeLLM({"winner": "A", "reason": "只选左边。"}))
-        self.assertEqual(out["winner"], "inconclusive")
+        self.assertEqual(out["winner"], "相当")
         self.assertFalse(out["consistent"])
 
     async def test_pairwise_schema_failure_retains_only_unvalidated_score_object(self):

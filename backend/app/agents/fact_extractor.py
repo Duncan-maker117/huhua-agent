@@ -14,7 +14,8 @@ _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch
 {"items":[{"section":"projects|work_experience|internship|education","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","text":"规范化陈述","source_quote":"本轮连续原文"}],"raw_notes":["本轮相关原话"]}],"basic_info":{},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
 口语可转书面，但不能新增数字、动作、职责、成果或工具；否定、计划、Demo、未上线必须保留。归属已有经历须用已有 item_id。
 更正旧事实用 corrections，删除事实用 removals；删除文稿的句子不等于删除事实。
-JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 只帮助判断冲突和限制，不是正文事实。
+JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
+教育信息（学校、专业、学历、年级）归 education，不要建成项目。学校简称保持原词，不要自行扩写成全称。
 不要返回整份 collected_info，不要添加未知字段。"""
 
 
@@ -88,7 +89,8 @@ def _quote_has_unquoted_limit(message: str, quote: str) -> bool:
 
 
 async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: str = "",
-                              metadata_context=None, semantic_check=None) -> dict:
+                              metadata_context=None, semantic_check=None,
+                              previous_assistant: str = "") -> dict:
     """Reject individual unsupported facts while retaining the rest of a patch."""
     from app.services.fact_guard import lexical_fact_errors, normalize_text, verify_semantics
 
@@ -101,7 +103,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 "facts": [{"id": f.get("id"), "text": f.get("text")}
                           for f in item.get("facts", []) if f.get("status") == "active"]}
                for section in FACT_SECTIONS for item in visible.get(section, []) if isinstance(item, dict)]
-    payload = {"message": message, "existing": outline, "metadata_context": metadata_context or []}
+    payload = {"message": message, "existing": outline, "metadata_context": metadata_context or [],
+               "previous_assistant": (previous_assistant or "")[:500]}
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
         from app.services.model_privacy import ContactRedactor, redact_model_messages

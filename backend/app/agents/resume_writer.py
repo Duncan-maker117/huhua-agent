@@ -15,7 +15,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.schemas.writer import MatchPlan, OnePassOutput, RepairOutput, WriterDraft
-from app.services.fact_guard import guard_bullets, validate_skill_groups
+from app.services.fact_guard import guard_bullets, ngram_overlap, validate_skill_groups
 from app.services.llm_compat import with_structured_output
 from app.services.model_privacy import ContactRedactor
 from app.services.resume_capacity import normalize_session_constraints, writer_capacity_budget
@@ -243,6 +243,16 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                     else:
                         retry_state.update(retry_feedback)
                 raise
+
+
+def _without_near_duplicate_rows(rows: list[dict]) -> list[dict]:
+    """Guard-level duplicate check: a later bullet that restates an earlier one is dropped."""
+    kept = []
+    for row in rows:
+        if any(ngram_overlap(row.get("text", ""), previous.get("text", "")) >= 0.6 for previous in kept):
+            continue
+        kept.append(row)
+    return kept
 
 
 def _source_evidence(collected_info: dict) -> tuple[dict, dict, dict]:
@@ -579,6 +589,11 @@ async def run_resume_writer(
             schema = OnePassOutput if mode == "one_pass" else MatchPlan if stage == "plan" else WriterDraft
             writer_diagnostic.update(_safe_validation_errors(error, schema))
     match_plan = _validate_plan(plan, source, role_profile, items, facts)
+    if writer_diagnostic.get("status") == "model_fallback":
+        for row in match_plan["experience_plan"]:
+            if row.get("treatment") == "backup":
+                row["treatment"] = "keep"
+                row["target_bullets"] = min(row.get("target_bullets") or 2, 2) or 2
     req_ids = {row["req_id"] for row in match_plan["requirements"]}
     treatment = {row["item_id"]: row["treatment"] for row in match_plan["experience_plan"]}
     # _validate_plan already bounds every requested count by its treatment.
@@ -591,6 +606,12 @@ async def run_resume_writer(
         # A schema-valid but empty draft also falls back or leaves an edit undone.
         writer_diagnostic.update(status="model_fallback", stage="write",
                                  error_type="EmptyWriterDraft")
+        for row in match_plan["experience_plan"]:
+            if row.get("treatment") == "backup":
+                row["treatment"] = "keep"
+                row["target_bullets"] = 2
+        treatment = {row["item_id"]: row["treatment"] for row in match_plan["experience_plan"]}
+        target_caps = {row["item_id"]: row["target_bullets"] for row in match_plan["experience_plan"]}
     output = deepcopy(current)
     for section in SECTIONS:
         output.setdefault(section, [])
@@ -602,10 +623,11 @@ async def run_resume_writer(
                 entry = _seed_item(section, source_item, None)
                 output[section].append(entry)
                 indexed_output[item_id] = (section, entry)
-        # Previously visible entries without active facts cannot be regenerated.
-        for item_id, (_, item) in indexed_output.items():
-            if item_id not in items:
-                item["hidden"] = True
+        # A failed write must not park an experience as backup. Missing facts stay visible.
+        if writer_diagnostic.get("status") != "model_fallback":
+            for item_id, (_, item) in indexed_output.items():
+                if item_id not in items:
+                    item["hidden"] = True
     writers = {}
     for row in draft.items:
         if row.item_id in allowed and row.item_id in items and items[row.item_id][0] == row.section and row.item_id not in writers:
@@ -669,10 +691,10 @@ async def run_resume_writer(
         if pair is None:
             continue
         section, item = pair
-        if treatment.get(item_id) == "backup" and scope != "bullet":
+        if treatment.get(item_id) == "backup" and scope != "bullet" and writer_diagnostic.get("status") != "model_fallback":
             item["hidden"] = True
             continue
-        rows = by_item.get(item_id, [])
+        rows = _without_near_duplicate_rows(by_item.get(item_id, []))
         if not rows:
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"
@@ -680,7 +702,9 @@ async def run_resume_writer(
                 if target_caps[item_id] == 0 and section == "projects":
                     item["description"] = ""
                 metadata[item_id] = []
-                if not any(_body_fact(fact) for fact in items[item_id][1]["facts"]):
+                if writer_diagnostic.get("status") != "model_fallback" and not any(
+                    _body_fact(fact) for fact in items[item_id][1]["facts"]
+                ):
                     item["hidden"] = True
             continue
         field = "polished_bullets" if section == "projects" else "bullets"
@@ -769,8 +793,18 @@ async def run_resume_writer(
                            if item.get("item_id") == entry["item_id"]), {}).get("hidden")}
     visible_count = len(changed_items) - len(hidden_ids)
     changes = ([f"调整了 {visible_count} 段经历的表述或顺序。"] if visible_count else [])
-    if hidden_ids:
+    if hidden_ids and writer_diagnostic.get("status") != "model_fallback":
         changes.append(f"将 {len(hidden_ids)} 段经历设为备用，不在投递版展示。")
+    if writer_diagnostic.get("status") == "model_fallback":
+        prior_hidden = {item.get("item_id"): item.get("hidden") is True
+                        for section in SECTIONS for item in current.get(section) or []
+                        if isinstance(item, dict) and item.get("item_id")}
+        for section in SECTIONS:
+            for item in output.get(section) or []:
+                if not isinstance(item, dict) or not item.get("item_id"):
+                    continue
+                item["hidden"] = prior_hidden.get(item["item_id"], False)
+        changes = [line for line in changes if "备用" not in line]
     return {"resume_data": output, "resume_meta": meta, "match_plan": match_plan,
             "omitted": omitted, "change_summary": changes, "guard_fallbacks": fallbacks,
             "changed_items": changed_items, "writer_diagnostic": writer_diagnostic}

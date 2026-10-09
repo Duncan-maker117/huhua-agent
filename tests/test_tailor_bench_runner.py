@@ -269,10 +269,13 @@ class SimulatorEvidenceTests(unittest.TestCase):
     def test_all_authored_cases_are_valid_and_trap_covered(self):
         import json
         cases = [json.loads(path.read_text()) for path in (HERE / "cases").glob("*.json")]
-        self.assertEqual(len(cases), 12)
+        self.assertEqual(len(cases), 13)
         for case in cases:
             validate_case(case)
             self.assertGreaterEqual(len(set(case["traps"])), 2)
+            if case["id"] == "handson-01":
+                self.assertEqual(case["truth_review_status"], "pending_claude")
+                continue
             self.assertEqual(case["truth_review_status"], "approved_by_claude")
 
 

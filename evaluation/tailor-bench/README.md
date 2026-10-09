@@ -71,7 +71,7 @@
 .venv/bin/python evaluation/tailor-bench/run_bench.py --include-private --case real-01 --graph-only
 ```
 
-需要实际重跑当前 graph 时才加 `--live` 与一个**新的** `runs-private/` 输出路径。私有 live 只允许 `https://api.deepseek.com` 的 `deepseek-flash`（主模型与结构化模型），且必须 `--graph-only`；独立语义 judge 尚无授权，因此不能送往默认 `deepseek-v4-pro`。固定两轮回放不插入模拟追问。报告分开列出 8 个用户目标、14 个操作、`already_satisfied` 与 `executed`，以及真实 PDF 页数和仅用于诊断的估算行数。
+需要实际重跑当前 graph 时才加 `--live` 与一个**新的** `runs-private/` 输出路径。私有 live 必须 `--graph-only`，不跑独立语义 judge。允许的模型是官方 `https://api.deepseek.com` 的 `deepseek-flash`，或百炼上名称以 `deepseek` 开头的模型。固定两轮回放不插入模拟追问。报告分开列出 8 个用户目标、14 个操作、`already_satisfied` 与 `executed`，以及真实 PDF 页数和仅用于诊断的估算行数。
 
 ## 评测口径
 
@@ -93,7 +93,7 @@
 不会启动服务器、档案后台任务、邮件、联网工具、RAG 或外部 tracing；只向已配置模型服务发送合成文本。
 应用数据库与 checkpoint 在运行退出后清理，输出的合成证据保留。
 
-图模型使用现有主模型/结构化模型及当前参数，不修改旧链路构造行为。当前凭证的模型列表返回 `deepseek-flash` 与 `deepseek-v4-pro`：前者是旧链路模型，后者是唯一不同于旧链路且已验证可访问的评审候选。不能据此宣称它是所有模型中最强或与主模型完全独立。
+图模型使用现有主模型/结构化模型及当前参数，不修改旧链路构造行为。评审默认也是 `deepseek-flash`，可与写作同模型；同模型时 manifest 记 `same_model_judge=true`，质量分只作参考，事实以确定性检查和 Claude 复核为准。不能据此宣称评审模型最强或与写作模型独立。
 
 上下文 callback 覆盖图内重新创建的模型；报告的是 **logical_model_calls**。SDK 内部 HTTP 重试不可观测，失败调用未报告的 token 不算零。图、模拟器与 judge 的 token 分别列出，费用仅对已报告 token 给当前公开费率范围。
 

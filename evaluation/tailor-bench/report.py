@@ -542,7 +542,10 @@ def _render(aggregate: dict) -> str:
     title = "# Tailor PR0 · 旧链路逐版本基线" if phase == "PR0" else f"# Tailor {phase} · 逐版本评估"
     lines = ["# Tailor · 私有真实材料回放" if private else title, "",
              f"运行：{_cell(run.get('started_at', 'unknown'))}；源码快照 `{_cell(run.get('git_commit', 'unknown'))}`。",
-             f"写作模型 `{_cell(run.get('writer_model', 'unknown'))}`；评审模型 `{_cell(run.get('judge_model', 'unknown'))}`。", "",
+             f"写作模型 `{_cell(run.get('writer_model', 'unknown'))}`；评审模型 `{_cell(run.get('judge_model', 'unknown'))}`。",
+             *( [f"评审与写作同为 {_cell(run.get('writer_model', 'deepseek-flash'))}，质量分仅供参考，事实以确定性检查和 Claude 复核为准。"]
+                if run.get("same_model_judge") else []),
+             "",
              f"本报告状态：**{aggregate['status']}**。{totals['cases']} 个{'用例（含私有真实材料）' if private else '合成用例'}，{totals['versions']} 个变化版本（可见 {totals['visible_versions']}，仅内部 {totals['internal_only_versions']}）。",
              f"{truth_label}；**本轮输出的确认新增经历事实仍为 null（未知）**，需 Claude 差异复核。模型评分不替代复核确认。", "",
              "## 历史复核归属", "",

@@ -196,12 +196,20 @@ def _question_options(question: str, name: str) -> list[tuple[str, str]]:
     return []
 
 
+def _active_fact_rows(item: dict) -> list[dict]:
+    return [fact for fact in item.get("facts") or []
+            if isinstance(fact, dict) and fact.get("status", "active") == "active" and str(fact.get("text") or "").strip()]
+
+
 def _role_is_described(item: dict) -> bool:
     """Do not re-ask a display-field gap when the candidate text already says it.
 
     This does not populate role, select an answer or mutate the canonical data.
     """
-    text = "\n".join(_strings(item.get("description")) + _strings(item.get("polished_bullets")) + _strings(item.get("bullets")))
+    if any(fact.get("kind") == "role" for fact in _active_fact_rows(item)):
+        return True
+    text = "\n".join(_strings(item.get("description")) + _strings(item.get("polished_bullets")) + _strings(item.get("bullets"))
+                     + [fact.get("text", "") for fact in _active_fact_rows(item)])
     pattern = r"(?:我|本人)(?:主要|独立|具体)?(?:负责|完成|承担)|(?:我|本人)(?:是|作为|担任)(?:独立开发者|独立作者)|(?:^|[\n，。；：:])\s*(?:独立开发者|独立作者|独立完成|独立开发)"
     for match in re.finditer(pattern, text):
         prefix = text[max(0, match.start() - 10):match.start()]
@@ -223,8 +231,41 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     # An explicit canonical object can represent a deliberate deletion. Never
     # populate its panels from an older collected_info object in that case.
     source = canonical if canonical else facts
-    items = []
+    fact_items = []
     for key, kind in (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习")):
+        for item in facts.get(key) or []:
+            if isinstance(item, dict) and _active_fact_rows(item):
+                fact_items.append((key, kind, item))
+    items = []
+    if fact_items:
+        hidden_ids = {
+            item.get("item_id"): bool(item.get("hidden"))
+            for key, _kind in (("projects", ""), ("work_experience", ""), ("internship", ""))
+            for item in (canonical or {}).get(key) or [] if isinstance(item, dict) and item.get("item_id")
+        }
+        for _key, kind, item in fact_items:
+            name = item.get("name") or item.get("company") or "未命名经历"
+            role_facts = [fact.get("text", "") for fact in _active_fact_rows(item) if fact.get("kind") == "role"]
+            role = item.get("role") or item.get("title") or (role_facts[0] if role_facts else "")
+            bullets = [fact.get("text", "") for fact in _active_fact_rows(item)
+                       if fact.get("kind") != "role" and not fact.get("field")]
+            if not bullets:
+                bullets = [fact.get("text", "") for fact in _active_fact_rows(item) if not fact.get("field")]
+            missing = []
+            if not role and not _role_is_described(item):
+                missing.append("你的职责与分工")
+            if not bullets:
+                missing.append("具体动作与交付物")
+            if not (item.get("start_date") or item.get("end_date")):
+                missing.append("经历时间")
+            items.append({
+                "name": str(name), "kind": kind, "role": str(role),
+                "item_id": item.get("item_id"),
+                "hidden": hidden_ids.get(item.get("item_id"), bool(item.get("hidden"))),
+                "period": " — ".join(str(item.get(k)) for k in ("start_date", "end_date") if item.get(k)),
+                "bullets": bullets, "missing": missing,
+            })
+    for key, kind in (() if fact_items else (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"))):
         for item in source.get(key) or []:
             if not isinstance(item, dict):
                 continue
@@ -245,7 +286,11 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
                 "bullets": bullets, "missing": missing,
             })
 
-    jd = values.get("jd_info") or {}
+    jd = copy.deepcopy(values.get("jd_info") or {})
+    if items and isinstance(jd.get("summary"), str):
+        kept = [part for part in re.split(r"(?<=[。！])|\n", jd["summary"])
+                if part.strip() and not re.search(r"只给了|没有给我个人|没有个人材料|只有\s*JD|只给了岗位", part)]
+        jd["summary"] = "".join(kept).strip()
     basic = copy.deepcopy(source.get("basic_info") or {})
     has_data = resume_data_has_content(canonical)
     request, reply, material = _latest_turn(values)
@@ -334,12 +379,23 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
 
     groups = source.get("skill_groups") or {}
     skills = [skill for values in groups.values() for skill in _strings(values)] if groups else _strings(source.get("skills"))
+    if fact_items and facts.get("skills"):
+        fact_skills = []
+        for skill in facts.get("skills") or []:
+            if isinstance(skill, dict):
+                if skill.get("status", "active") == "active" and skill.get("name"):
+                    fact_skills.append(str(skill["name"]))
+            elif isinstance(skill, str) and skill.strip():
+                fact_skills.append(skill.strip())
+        if fact_skills:
+            skills = fact_skills
+    education_rows = copy.deepcopy((facts.get("education") if fact_items and facts.get("education") else source.get("education")) or [])
     return {
         "tailor": tailor_metadata(values, canonical),
         "web_sources": bounded_web_sources(values.get("web_sources")),
-        "jd": {"info": copy.deepcopy(jd), "keywords": _strings(values.get("jd_keywords")), "raw_text": values.get("jd_text") or ""},
+        "jd": {"info": jd, "keywords": _strings(values.get("jd_keywords")), "raw_text": values.get("jd_text") or ""},
         "experiences": {"items": items, "basic_info": basic, "skills": skills,
-                        "education": copy.deepcopy(source.get("education") or []),
+                        "education": education_rows,
                         "certificates": _strings(source.get("certificates")),
                         "verification_notes": _strings(source.get("verification_notes"))},
         "resume": {"has_data": has_data, "version": resume_revision(canonical)},

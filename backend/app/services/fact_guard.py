@@ -331,6 +331,47 @@ async def verify_semantics(pairs: list[dict], llm, *, timeout: float = 45) -> di
     return {key: decisions[key] if key in decisions and key not in duplicates else _failed(key, "semantic_result_missing_or_duplicate") for key in expected}
 
 
+_NEAR_EQUIVALENTS = (("频繁", "经常"), ("调用", "用"))
+
+
+def duplicate_key(text: str) -> str:
+    """Fold spacing and a few pairs that only restate the same bullet."""
+    value = normalize_text(text)
+    for source, target in _NEAR_EQUIVALENTS:
+        value = value.replace(source, target)
+    return value
+
+
+def ngram_overlap(left: str, right: str, n: int = 2) -> float:
+    """Containment of character n-grams after duplicate folding. 1.0 means the same claim."""
+    left, right = duplicate_key(left), duplicate_key(right)
+    if not left or not right:
+        return 0.0
+    if left == right:
+        return 1.0
+    if min(len(left), len(right)) < n:
+        return 0.0
+    grams_left = [left[index:index + n] for index in range(len(left) - n + 1)]
+    grams_right = [right[index:index + n] for index in range(len(right) - n + 1)]
+    from collections import Counter
+    left_counts, right_counts = Counter(grams_left), Counter(grams_right)
+    shared = sum((left_counts & right_counts).values())
+    return shared / min(sum(left_counts.values()), sum(right_counts.values()))
+
+
+def drop_near_duplicate_texts(texts: list[str], *, threshold: float = 0.6) -> list[int]:
+    """Indices of later bullets that restate an earlier one at or above the overlap threshold."""
+    dropped = []
+    for index, text in enumerate(texts):
+        for earlier in range(index):
+            if earlier in dropped:
+                continue
+            if ngram_overlap(texts[earlier], text) >= threshold:
+                dropped.append(index)
+                break
+    return dropped
+
+
 def _terms(extra=()) -> set[str]:
     base = TERM_FILE.read_text().splitlines() if TERM_FILE.is_file() else []
     return {term.strip() for term in [*base, *extra] if isinstance(term, str) and term.strip() and not term.startswith("#")}

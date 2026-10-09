@@ -54,6 +54,13 @@ def resume_to_text(data: dict) -> str:
     return "\n".join(lines)
 
 
+def _skill_parts(skill: str) -> list[str]:
+    """Split a parenthetical JD phrase into words. The wrapper and inner tokens are each a skill."""
+    parts = re.split(r"[（）()【】\[\]、，,；;/]|等", skill)
+    tokens = [part.strip() for part in parts if part and part.strip() and part.strip() != "等"]
+    return tokens or [skill.strip()]
+
+
 def _contains_skill(text: str, skill: str) -> bool:
     """Keep ASCII skill names distinct while allowing adjacent Chinese prose."""
     if skill.isascii():
@@ -82,7 +89,14 @@ def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
     if re.search(r"\d+(?:[.,]\d+)?%?\*", text):
         checks.append("核实并替换带 * 的估算数字。")
     required = [s for s in jd_info.get("required_skills", []) if isinstance(s, str)]
-    missing = [s for s in required if not _contains_skill(text, s)]
+    # A parenthetical phrase is covered when any of its real tokens is already in the draft.
+    missing = []
+    for skill in required:
+        parts = [part for part in _skill_parts(skill) if len(part) >= 2 or part.isascii()]
+        if parts and any(_contains_skill(text, part) for part in parts):
+            continue
+        if not _contains_skill(text, skill):
+            missing.append(skill)
     if missing:
         checks.append("JD 中这些技能在简历文字里尚未出现，请核对是否有真实经历可补：" + "、".join(missing[:5]) + "。")
     if not checks:

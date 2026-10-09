@@ -420,8 +420,9 @@ JSON结构（不要额外字段）：
 """
 
 
-def _validate_version(result: dict, payload: dict) -> dict:
-    _require(set(result) == {"audits", "quality", "coverage"}, "unexpected version fields")
+def _validate_version(result: dict, payload: dict, *, require_quality: bool = True) -> dict:
+    expected = {"audits", "coverage"} | ({"quality"} if require_quality else set())
+    _require(set(result) == expected, "unexpected version fields")
     units = {unit["id"]: unit["text"] for unit in payload["resume_units"]}
     assertions = set(payload["assertion_unit_ids"])
     audits = result["audits"]
@@ -447,9 +448,10 @@ def _validate_version(result: dict, payload: dict) -> dict:
             _require(bool(row["unsupported_spans"]), "unlocated suspicion")
         row["audit_method"] = "llm"
         by_id[uid] = row
-    quality = result["quality"]
-    _require(isinstance(quality, dict) and set(quality) == set(QUALITY_DIMENSIONS), "invalid quality dimensions")
-    _require(all(type(score) is int and 1 <= score <= 5 for score in quality.values()), "score out of range")
+    if require_quality:
+        quality = result["quality"]
+        _require(isinstance(quality, dict) and set(quality) == set(QUALITY_DIMENSIONS), "invalid quality dimensions")
+        _require(all(type(score) is int and 1 <= score <= 5 for score in quality.values()), "score out of range")
     coverage = result["coverage"]
     requirements = {row["id"]: row for row in payload["requirements"]}
     _require(isinstance(coverage, list) and len(coverage) == len(requirements), "incomplete coverage")
@@ -538,8 +540,21 @@ def _coverage_summary(requirements: list[dict], disclosed: set[int], rows: list[
             **{key: disclosed_result[key] for key in ("covered", "total", "ratio")}}
 
 
+def _version_prompt(include_quality: bool) -> str:
+    if include_quality:
+        return _VERSION_PROMPT
+    return _VERSION_PROMPT.replace(
+        "quality 五维为整数1-5：JD相关性、个人贡献、真实结果产出、专业表达、取舍篇幅。无数字的真实产出也可高分，错误标题/原话堆砌应体现质量缺陷。\n",
+        "本版只核事实，不要打五维质量分，也不要输出 quality。\n",
+    ).replace(
+        ',"quality":{"jd_relevance":1,"personal_contribution":1,"results_impact":1,"professional_expression":1,"selection_length":1}',
+        "",
+    )
+
+
 async def judge_version(case: dict, resume: dict, llm: Any, observed_facts: list[str] | None = None,
-                        disclosed_fact_indices: list[int] | None = None) -> dict:
+                        disclosed_fact_indices: list[int] | None = None, *,
+                        include_quality: bool = True) -> dict:
     deterministic = deterministic_score(case, resume, observed_facts, disclosed_fact_indices)
     payload = _payload(case, resume, observed_facts, disclosed_fact_indices)
     disclosed = set(payload["disclosed_fact_indices"])
@@ -557,9 +572,9 @@ async def judge_version(case: dict, resume: dict, llm: Any, observed_facts: list
         return base
     parsed_result = None
     try:
-        result, usage = await _json_call(llm, _VERSION_PROMPT, payload)
+        result, usage = await _json_call(llm, _version_prompt(include_quality), payload)
         parsed_result = deepcopy(result)
-        result = _validate_version(result, payload)
+        result = _validate_version(result, payload, require_quality=include_quality)
     except Exception as error:
         return {**base, "status": "error", **_evaluation_error(error, parsed_result)}
     texts = {u["id"]: u["text"] for u in payload["resume_units"]}
@@ -569,7 +584,10 @@ async def judge_version(case: dict, resume: dict, llm: Any, observed_facts: list
     unverifiable = [{**row, "quote": texts[row["unit_id"]], "review_status": "quality_review"}
                     for row in audits if row["verdict"] in {"uncertain", "unverifiable_unit"}]
     coverage = _coverage_summary(payload["requirements"], disclosed, result["coverage"], audits)
-    return {**base, "status": "completed", "usage": usage, "quality": result["quality"], "coverage": coverage,
+    return {**base, "status": "completed", "usage": usage,
+            "quality": result.get("quality") if include_quality else None,
+            "quality_scope": "scored" if include_quality else "facts_only",
+            "coverage": coverage,
             "factuality": {"status": "pending_human_review", "safe": None, "confirmed_fabrications": None,
                            "audits": audits, "statement_unit_count": len(payload["assertion_unit_ids"]),
                            "suspicions": suspicions, "unverifiable_units": unverifiable,
@@ -664,4 +682,4 @@ async def pairwise(case: dict, a: dict, b: dict, llm: Any, seed: int = 0,
         return {**base, "status": "error", "rounds": rounds}
     consistent = rounds[0]["winner"] == rounds[1]["winner"]
     return {**base, "status": "completed", "rounds": rounds, "consistent": consistent,
-            "winner": rounds[0]["winner"] if consistent else "inconclusive"}
+            "winner": rounds[0]["winner"] if consistent else "相当"}

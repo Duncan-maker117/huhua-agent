@@ -180,7 +180,7 @@ class LLMCompatTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(requests[0]["response_format"]["type"], "json_schema")
                 self.assertNotIn("thinking", requests[1])
 
-    async def test_explicit_non_deepseek_endpoint_preserves_defaults_for_deepseek_model(self):
+    async def test_spoofed_host_without_deepseek_model_keeps_sdk_defaults(self):
         endpoints = [
             "https://api.openai.com/v1",
             "https://api.deepseek.com.evil.invalid/v1",
@@ -188,12 +188,33 @@ class LLMCompatTest(unittest.IsolatedAsyncioTestCase):
         ]
         for base_url in endpoints:
             with self.subTest(base_url=base_url):
-                async with self.offline_llm(base_url=base_url) as (llm, requests):
+                async with self.offline_llm(model="custom-model", base_url=base_url) as (llm, requests):
                     await llm.with_structured_output(_Answer).ainvoke("test")
                     result = await with_structured_output(llm, _Answer).ainvoke("test")
                 self.assertEqual(result.answer, "parsed offline")
                 self.assertEqual(requests[1], requests[0])
                 self.assertNotIn("thinking", requests[1])
+                self.assertNotIn("enable_thinking", requests[1])
+
+    async def test_bailian_deepseek_uses_function_calling_and_disables_dashscope_thinking(self):
+        async with self.offline_llm(
+            model="deepseek-v4.1-flash",
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        ) as (llm, requests):
+            result = await with_structured_output(llm, _Answer).ainvoke("test")
+        self.assertEqual(result.answer, "parsed offline")
+        body = requests[0]
+        self.assertNotIn("response_format", body)
+        self.assertEqual(body["enable_thinking"], False)
+        self.assertNotIn("thinking", body)
+        self.assertEqual(body["tool_choice"]["type"], "function")
+
+    async def test_vanchin_deepseek_name_uses_function_calling(self):
+        async with self.offline_llm(model="vanchin/deepseek-v4", base_url="https://api.openai.com/v1") as (llm, requests):
+            result = await with_structured_output(llm, _Answer).ainvoke("test")
+        self.assertEqual(result.answer, "parsed offline")
+        self.assertEqual(requests[0]["thinking"], {"type": "disabled"})
+        self.assertEqual(requests[0]["tool_choice"]["type"], "function")
 
     async def test_official_deepseek_models_are_recognized_without_explicit_base(self):
         for model in ("deepseek-chat", "deepseek-reasoner", "deepseek-flash", "deepseek-v4-pro"):
@@ -204,14 +225,11 @@ class LLMCompatTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(result.answer, "parsed offline")
                 self.assert_deepseek_request(requests[0])
 
-    async def test_unknown_deepseek_model_prefix_does_not_change_defaults(self):
-        async with self.offline_llm(
-            model="deepseek-custom", base_url=_UNSET
-        ) as (llm, requests):
-            await llm.with_structured_output(_Answer).ainvoke("test")
-            await with_structured_output(llm, _Answer).ainvoke("test")
-        self.assertEqual(requests[1], requests[0])
-        self.assertNotIn("thinking", requests[1])
+    async def test_deepseek_name_prefix_uses_function_calling_without_official_host(self):
+        async with self.offline_llm(model="deepseek-custom", base_url=_UNSET) as (llm, requests):
+            result = await with_structured_output(llm, _Answer).ainvoke("test")
+        self.assertEqual(result.answer, "parsed offline")
+        self.assert_deepseek_request(requests[0])
 
     async def test_actual_async_root_client_identifies_deepseek_endpoint(self):
         async with self.offline_llm(

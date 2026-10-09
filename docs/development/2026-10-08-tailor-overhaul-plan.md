@@ -277,7 +277,13 @@ opening_turns → agent 回复 → simulate_user 回答 agent 的问题（最多
 | 流畅度 | 首稿前的用户轮数、平均每轮延迟、每用例 token/费用、guard_fallbacks | 首稿 ≤ 2 轮 |
 | 守卫误杀 | 语义核验 fail 的条目中，经 Claude 复核实际合规的比例 | ≤ 15% |
 
-评审模型：用当前可用的**最强**模型，且不同于写作模型，temperature 0。评审输入不含版本标签和生成理由。
+评审模型：**2026-10-09 Banz 决定全部使用 deepseek-flash**（pro 成本过高）。评审与写作同模型时按以下方式控制自评偏差：
+- 评审调用开启思考模式、temperature 0，与写作调用的参数区分开；manifest 记录 `same_model_judge: true`，summary 顶部注明。
+- **事实安全以确定性检查为准**（数字、强度词、禁止断言、标题/重复/教育/objective 检查），模型评审只产出"疑点"，所有疑点由 Claude 人工复核，不以模型"无疑点"作为通过依据。
+- pairwise 质量比较必须 A/B 随机并交换顺序各评一次，两次结论不一致记为"相当"。
+- 降成本：五维质量只评首稿与终稿；中间版本只跑确定性检查 + 事实疑点评审。
+- Claude 每轮抽 3 例人工盲评，与模型评审对比；一致率 < 70% 时该轮质量分不作结论。
+评审输入不含版本标签和生成理由。
 
 ### 7.5 参数实验（新链路完成后跑，Claude 审结果）
 | 编号 | 变量 | 取值 |
@@ -316,6 +322,9 @@ PR6 依赖 PR4/PR5 的 API：Codex 在 PR4 完成时在 `docs/development/` 写�
   3. 新增 §3.5 存储边界：保存只写文稿，不再用文稿重建事实母版；facts 增加 status，writer 只读 active facts。
   4. backup 改为 `hidden: true` 可逆状态，不走删除。
   5. benchmark 逐版本评分；确认新增事实零容忍；12 例定位为回归集，后续扩至 32 例含留出集。
+- 2026-10-09 Banz：写作、结构化、评审、模拟器全部改用 deepseek-flash，不再使用 deepseek-v4-pro；§7.4 已补同模型评审的偏差控制。
+- 2026-10-09 PR5（Cursor，未提交）评审：**需修订**。离线测试 895/895 通过；阻断项：规则拆分整体覆盖模型 edit_plan 并静默丢掉未匹配的子要求、学校字段混入指令原文（「学校写全称哈尔滨商业大学」）。改为模型计划为主、规则只补充并做子句覆盖检查。实测因 DeepSeek 402 余额不足未能进行，pr5-v1 run 不作验收。详见 `evaluation/tailor-bench/claude-pr5-review.txt`。
+- 2026-10-09 Claude 真人式试用 PR4（e12c91d）：事实安全与首稿改写达标；对话理解断裂——回答被丢致重复追问、口语生成请求被忽略、单条与复合修改均不生效且回复谎报已修改、教育被识别为经历。详见 `evaluation/tailor-bench/claude-handson-20261009.txt`，P0 四项列为 PR5 合入门槛，剧本固化为 handson-01。
 - 2026-10-08 真实材料实测（旧代码）暴露 5 项规格缺口，已补 §10：篇幅预算与渲染校验、多材料合并与冲突、复合指令 edit_plan、可见判断回复、模板排版；标准答案 golden-one-page.md 作为 real-01 验收参照。
 - 2026-10-08 PR0 基线评审（详见 `evaluation/tailor-bench/claude-review-response.txt`）：**PR0 需小修**。
   - 确认新增经历事实 0（旧链路只拼接原话）；44 条疑点全部误报，其中标题类暴露真实质量缺陷。

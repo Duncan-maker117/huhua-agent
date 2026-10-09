@@ -81,11 +81,14 @@ def assert_private_model_policy(cases, args, settings) -> None:
         return
     from urllib.parse import urlparse
     endpoint = urlparse(settings.LLM_BASE_URL)
-    if (settings.LLM_MODEL != "deepseek-flash"
-            or (settings.LLM_STRUCTURED_MODEL or settings.LLM_MODEL) != "deepseek-flash"
-            or endpoint.scheme != "https" or endpoint.hostname != "api.deepseek.com"
-            or endpoint.username or endpoint.password):
-        raise ValueError("Private materials are authorized only for official DeepSeek deepseek-flash")
+    model = settings.LLM_MODEL or ""
+    structured = settings.LLM_STRUCTURED_MODEL or model
+    official = (endpoint.hostname == "api.deepseek.com" and model == "deepseek-flash"
+                and structured == "deepseek-flash")
+    bailian = (endpoint.hostname == "dashscope.aliyuncs.com" and model.lower().startswith("deepseek")
+               and structured.lower().startswith("deepseek"))
+    if (endpoint.scheme != "https" or endpoint.username or endpoint.password or not (official or bailian)):
+        raise ValueError("Private materials are authorized only for official DeepSeek deepseek-flash or Bailian DeepSeek, graph-only")
     if not args.graph_only:
         raise ValueError("Private replay currently requires --graph-only; independent semantic review is pending")
 

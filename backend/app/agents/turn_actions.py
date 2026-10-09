@@ -389,6 +389,8 @@ def _requested_op(op: dict, message: str) -> bool:
     if kind == "set_constraint":
         return bool(re.search(r"[一二两12]\s*页", message or ""))
     if kind == "set_field":
+        if (op.get("args") or {}).get("field") == "objective":
+            return bool(explicit_objective(message)) and (op.get("args") or {}).get("value") == explicit_objective(message)
         if not re.search(r"学校|专业|学历|本科|硕士|学院", message or ""):
             return False
         value = str((op.get("args") or {}).get("value") or "")
@@ -462,6 +464,16 @@ def detail_gap_rows(message: str, rows: list[dict], before: dict, after_meta: di
     return output
 
 
+_OBJECTIVE_DIRECTIVE = re.compile(r"求职意向\s*(?:就)?\s*(?:写成|写|改成|改为|填成|填)\s*[：:]?\s*([^，。；;\n]{2,60})")
+
+
+def explicit_objective(message: str) -> str:
+    """用户明确说「求职意向就写 X」时的 X；必须逐字出现在原话里。"""
+    match = _OBJECTIVE_DIRECTIVE.search(message or "")
+    value = match.group(1).strip(" 。，；;“”\"'「」") if match else ""
+    return value if value and value in (message or "") else ""
+
+
 def writing_constraints(message: str) -> list[dict]:
     """「不要编造用户量」is a writing rule, not a page constraint."""
     rows = []
@@ -476,7 +488,21 @@ def writing_constraints(message: str) -> list[dict]:
 
 def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
                      collected: dict | None = None, *, router_failed: bool = False) -> list[dict]:
-    """Model plan stays primary. Rules only fill gaps, or stand in when routing failed."""
+    """Model plan stays primary. Rules only fill gaps, or stand in when routing failed.
+
+    「求职意向就写 X」always becomes a literal set_field; the writer never rewrites it."""
+    plan = _choose_edit_plan(message, data, model_plan, collected, router_failed=router_failed)
+    value = explicit_objective(message)
+    if value:
+        plan = [op for op in plan if not (op.get("op") == "set_field"
+                                          and (op.get("args") or {}).get("field") == "objective")]
+        plan.append({"op": "set_field", "target": "basic_info",
+                     "args": {"field": "objective", "value": value}})
+    return plan
+
+
+def _choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
+                      collected: dict | None = None, *, router_failed: bool = False) -> list[dict]:
     rules = []
     seen = set()
     for op in [*education_edit_ops(message, collected or {}), *deterministic_compound_plan(message, data)]:

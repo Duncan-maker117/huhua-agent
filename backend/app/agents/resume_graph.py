@@ -1653,6 +1653,12 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
     # Targeted rewrites retain unrelated manually edited content exactly.
     base = copy.deepcopy(current) if scope != 'whole' and current else serialized
     base = overlay_education(collected, base)
+    from app.agents.turn_actions import explicit_objective
+    _objective = explicit_objective(next((m.content for m in reversed(state.get("messages", []))
+                                          if isinstance(m, HumanMessage)), ""))
+    if _objective:
+        # 用户明确说「求职意向就写 X」：逐字使用，writer 只继承不改写
+        base.setdefault("basic_info", {})["objective"] = _objective
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
     writer = _make_writer_llm(llm)
     structured = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm

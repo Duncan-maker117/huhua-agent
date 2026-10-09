@@ -167,6 +167,28 @@ def _active_header_value(collected: dict, section: str, item_id: str, field: str
     return False
 
 
+def _cap_value(args: dict, instruction: str):
+    """「最多两条/各两条/两条以内」→ 2。先看模型参数（整数、数字串、中文数字），再看用户原话。"""
+    from app.services.fact_guard import _chinese_number
+    for key in ("n", "max_bullets", "limit", "max", "count", "max_count"):
+        value = args.get(key)
+        if type(value) is int:
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+        if isinstance(value, str) and value.strip():
+            text = value.strip().removesuffix("条").strip()
+            if text.isdigit():
+                return int(text)
+            if re.fullmatch(r"[零〇一二两三四五六七八九十]+", text):
+                return _chinese_number(text)
+    match = re.search(r"(?:最多|至多|不超过|各|每个[^，。；]{0,6}?|保留)\s*([零一二两三四五六七八九十\d]+)\s*条", instruction or "")
+    if match:
+        text = match[1]
+        return int(text) if text.isdigit() else _chinese_number(text)
+    return None
+
+
 def _number_in_instruction(number: int, instruction: str, unit: str) -> bool:
     variants = {0: ("零",), 1: ("一",), 2: ("二", "两"), 3: ("三",),
                 4: ("四",), 5: ("五",)}
@@ -290,6 +312,12 @@ def execute_edit_plan(
             lookup = original if _ORDINAL.fullmatch(target) else output
             rows, error = _resolve_items(lookup, target, section_hint=str(args.get("section") or ""))
             if error:
+                if (op in ("delete_item", "hide_item") and error.startswith("没有找到指定经历")
+                        and _literal_in(target, instruction)
+                        and any(target and target in str(value) for value in (output.get("basic_info") or {}).values())):
+                    # 目标已不在文稿里，且作为基本信息（如所在地）保留：用户目的已达成
+                    results.append(_result(index, op, target, "done", "already_satisfied", changed=False))
+                    continue
                 results.append(_result(index, op, target, "needs_confirmation", error))
                 continue
             if lookup is original:
@@ -310,7 +338,7 @@ def execute_edit_plan(
                 results.append(_result(index, op, target, "done", "" if changed else "already_satisfied",
                                        changed=changed, affected=affected))
             elif op == "cap_bullets":
-                n = args.get("n", args.get("max_bullets"))
+                n = _cap_value(args, instruction)
                 if type(n) is not int or not 0 <= n <= 5:
                     results.append(_result(index, op, target, "cannot", "条数必须是 0 到 5 的整数"))
                     continue

@@ -708,3 +708,70 @@ class SerializeWithoutAbsenceTests(unittest.TestCase):
             self.assertNotIn(phrase, text)
         self.assertIn("我写活动介绍", text)
         self.assertIn("没有统计阅读量和转化", str(collected["projects"]))
+
+
+class RealMaterialGateTests(unittest.IsolatedAsyncioTestCase):
+    """F6：求职意向逐字、cap_bullets 参数归一、已达成的删除回执。材料均为虚构。"""
+
+    def test_explicit_objective_is_extracted_verbatim(self):
+        from app.agents.turn_actions import explicit_objective
+        self.assertEqual(explicit_objective("请压缩成一页。求职意向就写 AI 产品经理实习（Agent 应用方向）。请压缩"),
+                         "AI 产品经理实习（Agent 应用方向）")
+        self.assertEqual(explicit_objective("没有这个要求"), "")
+        plan = choose_edit_plan("求职意向就写数据分析实习", {"projects": []}, [
+            {"op": "set_field", "target": "basic_info", "args": {"field": "objective", "value": "AI 产品"}}])
+        objective = [op for op in plan if op["op"] == "set_field"]
+        self.assertEqual(len(objective), 1)
+        self.assertEqual(objective[0]["args"], {"field": "objective", "value": "数据分析实习"})
+
+    async def test_objective_survives_the_writer_verbatim(self):
+        test = self
+        from app.services.resume_facts import normalize_fact_store
+        state = _init_state()
+        state["stage"] = "EVALUATING"
+        state["candidate_history_reconciled"] = True
+        state["collected_info"] = normalize_fact_store({"projects": [
+            {"item_id": "p1", "name": "途记", "description": "做了行程推荐原型。"}]})
+        state["resume_data"] = {"basic_info": {"name": "江同学", "objective": "AI 产品"}, "projects": [
+            {"item_id": state["collected_info"]["projects"][0]["item_id"], "name": "途记", "polished_bullets": ["做了行程推荐原型。"]}]}
+        state["messages"] = [HumanMessage(content="途记写详细一点。求职意向就写AI 产品经理实习（Agent 应用方向）。")]
+
+        async def passthrough(collected_info, role_profile, llm, **kwargs):
+            data = deepcopy(kwargs["current_data"])
+            test.assertEqual(data["basic_info"]["objective"], "AI 产品经理实习（Agent 应用方向）")  # writer 收到的就是逐字值
+            return {"resume_data": data, "resume_meta": deepcopy(kwargs["resume_meta"]), "match_plan": {},
+                    "omitted": [], "guard_fallbacks": [], "change_summary": [], "changed_items": []}
+
+        with patch("app.agents.tailor_pipeline.run_resume_writer", side_effect=passthrough), \
+                patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value={
+                    "status": "rendered", "pages": 1, "page_limit": 1, "within_page_limit": True}), \
+                patch("app.agents.resume_graph._recover_candidate_history",
+                      new=AsyncMock(side_effect=lambda current, model: current["collected_info"])):
+            result = await evaluating_node(state, object())
+        self.assertEqual(result["resume_data"]["basic_info"]["objective"], "AI 产品经理实习（Agent 应用方向）")
+
+    def test_cap_bullets_arguments_are_normalized(self):
+        from app.services.edit_plan import execute_edit_plan
+        data = {"projects": [{"item_id": "p1", "name": "甲", "polished_bullets": ["a", "b", "c"]}]}
+        for args in ({"n": "两"}, {"n": "2"}, {"max_bullets": 2.0}, {"limit": "两条"}, {}, {"n": "很多"}):
+            with self.subTest(args=args):
+                out = execute_edit_plan(data, {}, [{"op": "cap_bullets", "target": "甲", "args": args}],
+                                        instruction="四个项目各保留最多两条")
+                self.assertEqual(out["operation_results"][0]["status"], "done", out["operation_results"])
+                self.assertEqual(out["data"]["projects"][0]["polished_bullets"], ["a", "b"])
+        failed = execute_edit_plan(data, {}, [{"op": "cap_bullets", "target": "甲", "args": {"n": "很多"}}],
+                                   instruction="甲保留一些")
+        self.assertEqual(failed["operation_results"][0]["status"], "cannot")
+
+    def test_delete_of_an_item_that_is_already_gone_is_already_satisfied(self):
+        from app.services.edit_plan import execute_edit_plan
+        data = {"basic_info": {"location": "某市"}, "projects": [{"item_id": "p1", "name": "甲"}]}
+        out = execute_edit_plan(data, {}, [{"op": "delete_item", "target": "某市", "args": {}}],
+                                instruction="某市是所在地，不是项目，删除这个误识别的项目")
+        row = out["operation_results"][0]
+        self.assertEqual((row["status"], row["reason"]), ("done", "already_satisfied"))
+        lines = render_operation_report(out["operation_results"], data, out["data"])
+        self.assertEqual(lines, ["✅ 删除 某市：原本已经满足"])
+        missing = execute_edit_plan(data, {}, [{"op": "delete_item", "target": "乙项目", "args": {}}],
+                                    instruction="删除甲")
+        self.assertEqual(missing["operation_results"][0]["status"], "needs_confirmation")

@@ -775,3 +775,23 @@ class RealMaterialGateTests(unittest.IsolatedAsyncioTestCase):
         missing = execute_edit_plan(data, {}, [{"op": "delete_item", "target": "乙项目", "args": {}}],
                                     instruction="删除甲")
         self.assertEqual(missing["operation_results"][0]["status"], "needs_confirmation")
+
+
+class StagePhraseTests(unittest.TestCase):
+    """F7：标题行已有阶段时，bullet 里重复的阶段短语去掉。"""
+
+    def test_strip_stage_phrases(self):
+        from app.services.resume_limits import strip_stage_phrases
+        self.assertEqual(strip_stage_phrases("针对推荐不存在店铺的问题，改为先查候选再选，在课程原型中实现行程推荐"),
+                         "针对推荐不存在店铺的问题，改为先查候选再选，实现行程推荐")
+        self.assertEqual(strip_stage_phrases("以课程原型形式完成行程推荐"), "完成行程推荐")
+        self.assertEqual(strip_stage_phrases("做了行程推荐原型"), "做了行程推荐原型")  # 动作里的「原型」不动
+
+    def test_preserve_item_limits_applies_it_only_when_the_header_has_the_stage(self):
+        from app.services.resume_limits import preserve_item_limits
+        facts = {"projects": [{"item_id": "p1", "name": "途记", "facts": [
+            {"id": "f1", "kind": "status_limit", "text": "课程原型", "source_quote": "课程原型", "status": "active"}]}]}
+        data = {"projects": [{"item_id": "p1", "name": "途记", "role": "", "polished_bullets": ["先查候选再选，在课程原型中实现行程推荐"]}]}
+        out, _, _ = preserve_item_limits(data, {}, facts, item_ids=["p1"])
+        self.assertEqual(out["projects"][0]["role"], "课程原型")
+        self.assertEqual(out["projects"][0]["polished_bullets"], ["先查候选再选，实现行程推荐"])

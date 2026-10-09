@@ -129,6 +129,17 @@ def _phase_label(text: str) -> str:
     return ""
 
 
+_STAGE_PHRASE = re.compile(
+    r"[，,；;]?\s*(?:在|以|作为|基于)(?:这个|该|此)?(?:课程原型|原型|[Dd]emo|模拟数据|小组作业)(?:项目)?"
+    r"(?:中|里|形式|下|阶段)?(?:的)?")
+
+
+def strip_stage_phrases(text: str) -> str:
+    """去掉与标题行重复的阶段短语（「…，在课程原型中实现行程推荐」→「…，实现行程推荐」）。"""
+    cleaned = _STAGE_PHRASE.sub(lambda m: "，" if m.group(0)[:1] in "，,；;" else "", text or "")
+    return re.sub(r"^[，,；;\s]+|[，,；;\s]+$", "", re.sub(r"[，,]{2,}", "，", cleaned))
+
+
 def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
                          item_ids: Sequence[str], bullet_indices: Mapping[str, set[int]] | None = None,
                          reason: str = "contradicted_status_limit") -> tuple[dict, dict, list[dict]]:
@@ -162,11 +173,20 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
                     cleaned for line in item["description"].splitlines() if (cleaned := strip_absence(line)))
             visible = "\n".join([str(item.get("name") or ""), str(item.get("company") or ""),
                                  str(item.get("role") or ""), *bullets])
-            if phase and not _phase_label(visible):
+            strippable = any(isinstance(text, str) and strip_stage_phrases(text) != text for text in bullets)
+            if phase and not _phase_label(" ".join(str(item.get(key) or "") for key in ("name", "company", "role"))) \
+                    and (strippable or not _phase_label(visible)):
                 role = str(item.get("role") or "").strip()
                 item["role"] = f"{role} · {phase}".strip(" ·")
             authorized = None if bullet_indices is None else {
                 index for index in bullet_indices.get(identifier, set()) if isinstance(index, int)}
+            header = " ".join(str(item.get(key) or "") for key in ("name", "company", "role"))
+            if _phase_label(header):
+                # 标题行已表达阶段，bullet 里的「在课程原型中…」「以原型形式…」重复短语去掉
+                bullets = [strip_stage_phrases(text) if isinstance(text, str) and (
+                    authorized is None or index in authorized) else text for index, text in enumerate(bullets)]
+                bullets = [text for text in bullets if not isinstance(text, str) or text.strip()]
+                item[field] = bullets
             for index, text in enumerate(bullets):
                 if not isinstance(text, str):
                     continue

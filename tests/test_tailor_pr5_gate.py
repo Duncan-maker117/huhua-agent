@@ -584,3 +584,57 @@ class UnrequestedWritingOpTests(unittest.TestCase):
         self.assertEqual(plan, [])
         kept = choose_edit_plan("途记写详细一点", data, [{"op": "rewrite", "target": "途记", "args": {}}])
         self.assertEqual([row["op"] for row in kept], ["rewrite"])
+
+
+class StoryBulletTests(unittest.IsolatedAsyncioTestCase):
+    """W1/W2：问题不单独成条、凑数条被丢弃（途记三条事实）。"""
+
+    facts = [("f1", "action", "做了行程推荐"),
+             ("f2", "context", "模型会推荐不存在的店"),
+             ("f3", "method_tool", "改成先查候选再让模型选")]
+
+    def source(self):
+        return {"projects": [{"item_id": "p1", "name": "途记", "facts": [
+            {"id": fid, "kind": kind, "text": text, "source_quote": text, "status": "active"}
+            for fid, kind, text in self.facts]}]}
+
+    async def write(self, bullets):
+        from app.agents.resume_writer import run_resume_writer
+
+        class Model:
+            def with_structured_output(self, schema):
+                self.schema = schema.__name__
+                return self
+
+            async def ainvoke(self, messages):
+                if self.schema == "SemanticBatch":
+                    return {"decisions": [{"id": f"b{i}", "subject_ok": True, "actions_supported": True,
+                                           "objects_supported": True, "results_supported": True, "limits_kept": True,
+                                           "unsupported_spans": [], "verdict": "pass"} for i in range(8)]}
+                return {"match_plan": {"requirements": [], "experience_plan": [{"item_id": "p1", "treatment": "lead", "target_bullets": 3}]},
+                        "writer": {"items": [{"item_id": "p1", "section": "projects", "bullets": bullets}]}}
+
+        return (await run_resume_writer(self.source(), {}, Model()))["resume_data"]["projects"][0]["polished_bullets"]
+
+    async def test_w1_problem_is_merged_into_the_action_bullet(self):
+        out = await self.write([
+            {"text": "模型会推荐不存在的店", "fact_ids": ["f2"]},
+            {"text": "改成先查候选再让模型选", "fact_ids": ["f3"]},
+            {"text": "做了行程推荐", "fact_ids": ["f1"]}])
+        self.assertEqual(len(out), 2, out)
+        self.assertIn("不存在的店", out[0])
+        self.assertIn("先查候选", out[0])
+
+    async def test_w2_filler_bullet_is_dropped(self):
+        out = await self.write([
+            {"text": "做行程推荐，模型会推荐不存在的店，改成先查候选再让模型选", "fact_ids": ["f1", "f2", "f3"]},
+            {"text": "以课程原型形式完成行程推荐流程", "fact_ids": ["f1"]}])
+        self.assertEqual(len(out), 1, out)
+
+    def test_w2_filler_rule_is_deterministic(self):
+        from app.agents.resume_writer import _without_filler_rows
+        rows = [{"id": "a", "text": "负责途记行程推荐模块，先查候选再选"},
+                {"id": "b", "text": "以课程原型形式完成行程推荐流程"},
+                {"id": "c", "text": "完成途记项目"}]
+        self.assertEqual([row["id"] for row in _without_filler_rows(rows, "途记")], ["a"])
+        self.assertEqual(len(_without_filler_rows(rows[2:], "途记")), 1)  # 唯一一条不清空条目

@@ -40,7 +40,7 @@ _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经�
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
 每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
-每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。
+一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
 新事实没有证据时留空并提问。严格输出 WriterDraft。"""
@@ -55,7 +55,7 @@ writer.items 必须是数组，每项只含 item_id、section、title、bullets�
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
-每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
+一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _REPAIR_CONTRACT = """只修复列表中违反事实边界的 bullet，每个原样返回 id。
@@ -247,9 +247,74 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                 raise
 
 
-def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = ()) -> list[dict]:
+SUBSTANTIVE_KINDS = frozenset({"action", "method_tool", "deliverable", "result_metric", "result_qualitative"})
+_FILLER = re.compile(r"课程原型|原型|demo|模拟数据|小组作业|形式|完成|实现|流程|进行|负责|开展|做了|做|以|了|的|项目|工作|相关|整个|一个|[，,。；;：:\s]", re.I)
+
+
+def _is_substantive(fact: dict | None) -> bool:
+    return bool(fact) and fact.get("kind") in SUBSTANTIVE_KINDS
+
+
+def _merge_context_only_rows(rows: list[dict], facts: Mapping[str, dict]) -> list[dict]:
+    """背景/问题不单独成条：只引用 context/role/team/status 类事实的 bullet 并入同条目的动作 bullet。
+
+    一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出。"""
+    by_item: dict[str, list[dict]] = {}
+    for row in rows:
+        by_item.setdefault(row["item_id"], []).append(row)
+    drop = set()
+    for item_rows in by_item.values():
+        def substantive(row):
+            return any(_is_substantive(facts.get(fid)) for fid in row.get("fact_ids") or [])
+        if not any(substantive(row) for row in item_rows):
+            continue
+        for index, row in enumerate(item_rows):
+            if substantive(row) or not row.get("valid_refs", True):
+                continue
+            later = [other for other in item_rows[index + 1:] if substantive(other) and other["id"] not in drop]
+            earlier = [other for other in item_rows[:index] if substantive(other) and other["id"] not in drop]
+            target = (later or earlier or [None])[0]
+            if target is None:
+                continue
+            if later:
+                target["text"] = f"{row['text'].rstrip('。；;，, ')}，{target['text']}"
+            else:
+                target["text"] = f"{target['text'].rstrip('。；;，, ')}，{row['text']}"
+            target["fact_ids"] = list(dict.fromkeys([*row["fact_ids"], *target["fact_ids"]])) if later \
+                else list(dict.fromkeys([*target["fact_ids"], *row["fact_ids"]]))
+            drop.add(row["id"])
+    return [row for row in rows if row["id"] not in drop]
+
+
+def _substance(text: str, name: str = "") -> str:
+    value = text or ""
+    if name:
+        value = value.replace(name, "")
+    return _FILLER.sub("", value)
+
+
+def _without_filler_rows(rows: list[dict], name: str = "") -> list[dict]:
+    """只表达阶段/状态或只复述项目名/已写内容的 bullet 一律丢弃（唯一一条除外）。"""
+    kept = list(rows)
+    if len(kept) <= 1:
+        return kept
+    for row in list(kept):
+        others = " ".join(_substance(other["text"], name) for other in kept if other is not row)
+        remainder = _substance(row.get("text", ""), name)
+        if len(remainder) < 2 or remainder in others:
+            kept.remove(row)
+        if len(kept) <= 1:
+            break
+    return kept
+
+
+def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (), name: str = "") -> list[dict]:
     """同一事实不写两条：fact_ids 相同或为另一条的子集时保留信息更多的一条；
-    条数不超过该条目可写的不同事实数（事实少就少写）。"""
+    背景类事实不算独立事实组，条数不超过该条目可写的动作/方法/产出/结果事实数。"""
+    lookup = {fact.get("id"): fact for fact in item_facts}
+    if rows and any(any(_is_substantive(lookup.get(fid)) for fid in row.get("fact_ids") or []) for row in rows):
+        rows = [row for row in rows
+                if any(_is_substantive(lookup.get(fid)) for fid in row.get("fact_ids") or [])]
     sets = [frozenset(row.get("fact_ids") or []) for row in rows]
     drop = set()
     for i, row in enumerate(rows):
@@ -257,7 +322,6 @@ def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (
             if i == j or j in drop or not sets[i] or not sets[i] <= sets[j]:
                 continue
             if sets[i] == sets[j]:
-                # 相同：保留更长的一条；等长时保留靠前的
                 if len(row.get("text", "")) < len(other.get("text", "")) or (
                         len(row.get("text", "")) == len(other.get("text", "")) and i > j):
                     drop.add(i)
@@ -266,7 +330,8 @@ def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (
                 drop.add(i)
                 break
     kept = [row for index, row in enumerate(rows) if index not in drop]
-    groups = [fact for fact in item_facts if _body_fact(fact)
+    kept = _without_filler_rows(kept, name)
+    groups = [fact for fact in item_facts if _body_fact(fact) and _is_substantive(fact)
               and (cleaned := strip_absence(fact.get("text") or "")) and not _bare_phase(cleaned)]
     if groups and len(kept) > len(groups):
         kept = kept[:len(groups)]
@@ -446,6 +511,8 @@ def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict,
     if not own:
         own = [fid for fid, fact in facts.items() if fact["item_id"] == item_id and _body_fact(fact)]
     best, best_id = "", ""
+    if any(_is_substantive(facts[fid]) for fid in own):
+        own = [fid for fid in own if _is_substantive(facts[fid])]
     for fid in own:
         cleaned = strip_absence(facts[fid].get("text") or "")
         if cleaned and not _bare_phase(cleaned, name) and len(cleaned) > len(best):
@@ -739,6 +806,8 @@ async def run_resume_writer(
                                    "allowed_reqs": req_ids, "flags": [flag for flag in bullet.flags if flag == "transferable"],
                                    "needs_metric": bullet.needs_metric, "metric_question": bullet.metric_question,
                                    "valid_refs": not reasons, "invalid_reasons": reasons})
+    if scope != "bullet":
+        candidate_rows = _merge_context_only_rows(candidate_rows, facts)
     checked, fallbacks = await _guard_and_repair(
         candidate_rows, facts, source, role_profile, model, role_family, writer_llm=llm,
         instruction=instruction, scope=scope, targets=targets,
@@ -757,7 +826,8 @@ async def run_resume_writer(
             continue
         rows = by_item.get(item_id, [])
         if scope != "bullet":
-            rows = _without_repeated_fact_rows(rows, items[item_id][1].get("facts") or [])
+            rows = _without_repeated_fact_rows(rows, items[item_id][1].get("facts") or [],
+                                               str(items[item_id][1].get("name") or items[item_id][1].get("company") or ""))
         rows = _without_near_duplicate_rows(rows)
         if not rows:
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):

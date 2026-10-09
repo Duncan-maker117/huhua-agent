@@ -21,6 +21,12 @@ _ROLE_QUESTION = re.compile(r"职责|分工|独立|团队|一个人|谁做")
 _ROLE_ANSWER = re.compile(r"一个人|都是我|独立|我负责|我写|我做|本人")
 
 
+_AWARD_LINE = re.compile(r"竞赛|比赛|大赛|杯|奖|证书")
+_EDU_HEADER = re.compile(
+    r"(?ms)^[ \t#]*(?:教育背景|教育经历|教育)[ \t]*$\n(.*?)(?=^[ \t#]*(?:项目经历|项目|实习经历|工作经历|实习|"
+    r"技能|专业技能|奖项|荣誉|获奖|证书|自我评价|个人评价|个人定位)[ \t]*$|\Z)")
+
+
 def _clauses(message: str) -> list[str]:
     return [part.strip() for part in re.split(r"[，,。；;\n]", message) if part.strip()]
 
@@ -36,7 +42,10 @@ def _clean_school(name: str) -> str:
 
 
 def _school_token(clause: str) -> str:
-    named = re.search(r"([\u4e00-\u9fffA-Za-z]{2,24}(?:大学|学院))", clause)
+    if _AWARD_LINE.search(clause):
+        return ""  # 竞赛/奖项/证书行不产生教育字段
+    # 「…大学」后面紧跟 生/程序/竞赛/比赛/大赛/杯 时是更长名称的一部分（如「…大学生程序设计竞赛」），作废
+    named = re.search(r"([\u4e00-\u9fffA-Za-z]{2,24}(?:大学|学院))(?!生|程序|竞赛|比赛|大赛|杯)", clause)
     if named:
         school = _clean_school(named.group(1))
         if school.endswith(("大学", "学院")) and school not in _NOT_SCHOOL and not school.startswith("我在") and len(school) >= 3:
@@ -52,7 +61,9 @@ def parse_education_fields(message: str) -> dict[str, str]:
     if not isinstance(message, str) or not message.strip():
         return {}
     fields: dict[str, str] = {}
-    for clause in _clauses(message):
+    section = _EDU_HEADER.search(message)
+    # 有「教育背景」栏目时只从该栏取，避免奖项/项目行里的「…大学」干扰
+    for clause in _clauses(section.group(1) if section and section.group(1).strip() else message):
         school_hint = _school_token(clause)
         if not _EDU_WORD.search(clause) and not school_hint:
             continue

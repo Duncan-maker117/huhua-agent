@@ -671,3 +671,22 @@ class PlaybookFollowupTests(unittest.TestCase):
                  "resume_versions": [{}]}
         text = compose_interviewer_reply(state, match_plan=plan, role_profile={})["text"]
         self.assertNotIn("相关的部分", text)
+
+
+class SchoolExtractionTests(unittest.TestCase):
+    """F1：学校必须是完整机构名；竞赛/奖项行不产生教育字段。名称均为虚构。"""
+
+    UPLOAD = ("某某\n教育背景\n北辰商业大学 | 计算机科学与技术（本科） | 大三在读 | 预计 2027 年 6 月毕业\n"
+              "项目经历\n某项目\n奖项\n- 第二十届北辰省大学生程序设计竞赛  算法组三等奖\n- 第三届某某杯程序设计大赛  三等奖\n")
+
+    def test_education_section_wins_over_award_lines(self):
+        self.assertEqual(parse_education_fields(self.UPLOAD).get("school"), "北辰商业大学")
+
+    def test_award_line_alone_yields_no_education_fields(self):
+        for line in ("第二十届北辰省大学生程序设计竞赛  算法组三等奖", "全国大学生数学建模竞赛 一等奖",
+                     "第五届清河学院杯创新大赛 二等奖", "北辰商业大学优秀学生奖学金"):
+            self.assertEqual(parse_education_fields(line), {}, line)
+
+    def test_name_followed_by_longer_word_is_void_but_real_school_stays(self):
+        self.assertNotIn("school", parse_education_fields("我参加了北辰大学生创新活动"))
+        self.assertEqual(parse_education_fields("学校改成江北商业大学，计算机科学与技术专业，本科大三。")["school"], "江北商业大学")

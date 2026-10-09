@@ -1,6 +1,7 @@
 """The existing-resume path must create an editable draft without invented facts."""
 
 import copy
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -115,7 +116,13 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
                 self.assertIn("生成", reply)
                 for unsupported in ("两项", "已合入", "PR", "主导", "已上线"):
                     self.assertNotIn(unsupported, reply)
-                self.assertIn(description, result["resume_data"]["projects"][0]["description"])
+                shown = result["resume_data"]["projects"][0]["description"]
+                self.assertNotIn("没有用户效果数据", shown)
+                self.assertNotIn("尚未上线", shown)
+                # 原话仍在事实母版里
+                self.assertIn(description, json.dumps(result["collected_info"]["projects"], ensure_ascii=False))
+                if "没有" not in description and "尚未" not in description:
+                    self.assertIn(description, shown)
 
     def test_negative_fabrication_instruction_allows_real_resume(self):
         self.assertTrue(_candidate_source_allowed(HumanMessage(content=OLD_RESUME)))

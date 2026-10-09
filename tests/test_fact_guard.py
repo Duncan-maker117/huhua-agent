@@ -316,9 +316,9 @@ class FactGuardTests(unittest.IsolatedAsyncioTestCase):
                      unsupported_spans=['未测试']),
         ])
         checked = await guard_bullets([
-            {'id': 'unstated', 'item_id': 'p1', 'text': '查看错分图片，未做量化统计；项目没有部署',
+            {'id': 'unstated', 'item_id': 'p1', 'text': '查看错分图片，未做量化统计',
              'fact_ids': ['observed']},
-            {'id': 'explicit', 'item_id': 'p1', 'text': '查看错分图片，未做量化统计；项目没有部署',
+            {'id': 'explicit', 'item_id': 'p1', 'text': '查看错分图片，未做量化统计',
              'fact_ids': ['stated']},
             {'id': 'unrelated', 'item_id': 'p1', 'text': '项目未测试', 'fact_ids': ['observed']},
         ], [fact(source, 'observed', item_id='p1', kind='result_qualitative'),

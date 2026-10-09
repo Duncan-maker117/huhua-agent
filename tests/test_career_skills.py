@@ -275,7 +275,10 @@ class CareerSkillTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(projects[0]["description"], material)
                 self.assertEqual(projects[0]["raw_description"], material)
                 serialized = _serialize_to_resume_data({**state, **result})
-                self.assertEqual(serialized["projects"][0]["description"], material)
+                # 事实母版保留原话；展示文本不印「还没有上线」这类缺失型表述
+                shown = serialized["projects"][0]["description"]
+                self.assertNotIn("还没有上线", shown)
+                self.assertIn("这是课程作业", shown)
 
     async def test_failed_decode_preserves_previous_jd_and_stage(self):
         state = _init_state()

@@ -1,0 +1,995 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 业务接口与关系型数据操作",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 输入边界与异常路径验证",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 输入边界与异常路径验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "error",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 8,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "Python 后端开发实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 业务接口与关系型数据操作",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 输入边界与异常路径验证",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "not_run",
+            "covered": null,
+            "total": 1,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 1,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 4,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 输入边界与异常路径验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": null,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": null,
+          "total": 1,
+          "ratio": null
+        },
+        "usage": {},
+        "error_type": "LengthFinishReasonError",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "error",
+          "run_id": "01a12050-ec20-73f2-9ab5-163996ae3920",
+          "started_at": "2026-10-09T18:58:56.672702+08:00",
+          "error_type": "LengthFinishReasonError"
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "error",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 8,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "Python 后端开发实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 业务接口与关系型数据操作",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 输入边界与异常路径验证",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "not_run",
+            "covered": null,
+            "total": 1,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 1,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 4,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 输入边界与异常路径验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": null,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": null,
+          "total": 1,
+          "ratio": null
+        },
+        "usage": {},
+        "error_type": "LengthFinishReasonError",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "error",
+          "run_id": "01a12052-e696-7ee3-951a-0fe4eba233d7",
+          "started_at": "2026-10-09T19:01:06.326755+08:00",
+          "error_type": "LengthFinishReasonError"
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "error",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 6,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "Python 后端开发实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程项目“借还簿”，跟同学一起做图书借还。我写的是 Python 接口里登记借出和归还那块，用 FastAPI 和 SQLite，本地演示过，没部署。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 业务接口与关系型数据操作",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 输入边界与异常路径验证",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "not_run",
+            "covered": null,
+            "total": 1,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 1,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 4,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 业务接口与关系型数据操作",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 输入边界与异常路径验证",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 高并发系统或服务上线经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": null,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": null,
+          "total": 1,
+          "ratio": null
+        },
+        "usage": {},
+        "error_type": "LengthFinishReasonError",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "error",
+          "run_id": "01a12055-0728-7de1-b0dc-f8529967e4e6",
+          "started_at": "2026-10-09T19:03:25.736925+08:00",
+          "error_type": "LengthFinishReasonError"
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 3,
+      "instruction": "按 JD 再改“借还簿”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": false,
+        "followed": false,
+        "executed": false,
+        "reason": "候选人可见正文无变化；元数据或生成说明变化不计执行。",
+        "evidence": [],
+        "usage": {},
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": []
+    },
+    {
+      "turn": 4,
+      "instruction": "把“借还簿”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "error",
+        "substantive_diff": true,
+        "followed": null,
+        "executed": null,
+        "reason": null,
+        "evidence": [],
+        "usage": {},
+        "error_type": "OpenAIConnectionError",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "error",
+          "run_id": "01a12056-d9c4-7d93-9399-4998062ac5e5",
+          "started_at": "2026-10-09T19:05:25.189413+08:00",
+          "error_type": "OpenAIConnectionError"
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

@@ -1,0 +1,943 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 活动内容与协作执行",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 反馈分类与后续选题",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 5,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 活动内容与协作执行",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 反馈分类与后续选题",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句与observed_facts原话一致，所有主张均有前置披露原文支持。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 活动内容与协作执行",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 反馈分类与后续选题",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 5,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 活动内容与协作执行",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 反馈分类与后续选题",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {
+          "input_tokens": 1739,
+          "output_tokens": 2211,
+          "total_tokens": 3950
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12077-5e5d-7171-8661-75923ae52cf0",
+          "started_at": "2026-10-09T19:40:56.285653+08:00",
+          "usage": {
+            "input_tokens": 1739,
+            "output_tokens": 2211,
+            "total_tokens": 3950
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句与已实际披露原话一致，本人参与、撰写活动介绍、收集问题、按主题整理反馈、他人负责报名主持及未统计数据的说法均有 observed 原文支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "unsupported",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "在活动前后"
+              ],
+              "reason": "“在活动前后”是新增的收集时间事实；observed 只说“收大家的问题”，truth 也未说明收集时间，故整句不能视为完全支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文明确报名和主持由别的同学做、本人未统计阅读量和转化，可支持与同学分工及未统计转化数据的表述。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [
+            {
+              "unit_id": "u003",
+              "verdict": "unsupported",
+              "observed_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [
+                "在活动前后"
+              ],
+              "reason": "“在活动前后”是新增的收集时间事实；observed 只说“收大家的问题”，truth 也未说明收集时间，故整句不能视为完全支持。",
+              "audit_method": "llm",
+              "quote": "在活动前后收集参与者提出的问题，活动结束后按主题归类整理反馈；未统计阅读量与转化数据",
+              "review_status": "pending"
+            }
+          ],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 活动内容与协作执行",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 反馈分类与后续选题",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 5,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 活动内容与协作执行",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 反馈分类与后续选题",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {
+          "input_tokens": 1798,
+          "output_tokens": 7375,
+          "total_tokens": 9173
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12077-cdeb-7460-866f-a1b3428d1f3f",
+          "started_at": "2026-10-09T19:41:24.843932+08:00",
+          "usage": {
+            "input_tokens": 1798,
+            "output_tokens": 7375,
+            "total_tokens": 9173
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 2,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原话覆盖了参与活动运营、写活动介绍、收集问题、按主题整理反馈、报名主持由他人负责、未统计阅读量和转化；‘负责’在此语境下对应本人写活动介绍，未新增事实。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 2,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 活动内容与协作执行",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 反馈分类与后续选题",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 5,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 活动内容与协作执行",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 反馈分类与后续选题",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 社群规模增长或内容转化数据",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {
+          "input_tokens": 1798,
+          "output_tokens": 10398,
+          "total_tokens": 12196
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12078-f95e-7e51-b9e3-d753f993368b",
+          "started_at": "2026-10-09T19:42:41.502751+08:00",
+          "usage": {
+            "input_tokens": 1798,
+            "output_tokens": 10398,
+            "total_tokens": 12196
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 3,
+      "instruction": "按 JD 再改“读书角”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 在保留原有事实的基础上，将已披露的本人工作拆分为反馈整理和协作边界两条，突出与内容运营实习中“整理参与者反馈”“协作执行”最相关的内容，且未补报名、主持、阅读量或转化等未由本人负责的新经历。",
+        "evidence": [
+          {
+            "before_quote": "我写活动介绍、收大家的问题，活动后把反馈按主题整理了。",
+            "after_quote": "在活动前后收集参与者提出的问题，活动结束后按主题归类整理反馈；未统计阅读量与转化数据"
+          },
+          {
+            "before_quote": "报名和主持是别的同学做的，我没有统计阅读量和转化。",
+            "after_quote": "与社团同学分工协作，报名与现场主持由其他同学负责；本人未统计阅读量与转化数据"
+          }
+        ],
+        "usage": {
+          "input_tokens": 751,
+          "output_tokens": 1284,
+          "total_tokens": 2035
+        },
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1207a-ea93-7ec2-a280-f35c98f5dc31",
+          "started_at": "2026-10-09T19:44:48.787364+08:00",
+          "usage": {
+            "input_tokens": 751,
+            "output_tokens": 1284,
+            "total_tokens": 2035
+          }
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "instruction": "把“读书角”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 将 before 中三条分散的 assertion 合并为 u002 一条，涵盖本人工作（撰写活动介绍、收集问题、按主题整理反馈）、团队分工（报名与主持由其他同学负责）和状态限制（未统计阅读量与转化数据），符合“精简成一条并保留已有材料”的要求；末尾虽有重复表述，但未新增编造事实。",
+        "evidence": [
+          {
+            "before_quote": "我在校园读书社参加过“读书角”活动运营。我写活动介绍、收大家的问题，活动后把反馈按主题整理了。报名和主持是别的同学做的，我没有统计阅读量和转化。",
+            "after_quote": "参与校园读书社「读书角」活动运营，负责撰写活动介绍、收集参与者问题，活动后按主题归类整理反馈；报名与主持由其他同学负责，本人未统计阅读量与转化数据；我没有统计阅读量和转化"
+          },
+          {
+            "before_quote": "在活动前后收集参与者提出的问题，活动结束后按主题归类整理反馈；未统计阅读量与转化数据",
+            "after_quote": ""
+          },
+          {
+            "before_quote": "与社团同学分工协作，报名与现场主持由其他同学负责；本人未统计阅读量与转化数据",
+            "after_quote": ""
+          }
+        ],
+        "usage": {
+          "input_tokens": 779,
+          "output_tokens": 1789,
+          "total_tokens": 2568
+        },
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1207b-334f-70e3-ac2b-7398ace8465e",
+          "started_at": "2026-10-09T19:45:07.408095+08:00",
+          "usage": {
+            "input_tokens": 779,
+            "output_tokens": 1789,
+            "total_tokens": 2568
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

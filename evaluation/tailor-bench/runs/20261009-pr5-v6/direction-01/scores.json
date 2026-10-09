@@ -1,0 +1,1452 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 1,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "objective_unsupported",
+            "path": "basic_info.objective",
+            "quote": "我想找数据分析实习，手里还没有具体 JD。",
+            "unsupported_terms": [
+              "我想找数据分析实习",
+              "手里还没有具体 JD。"
+            ],
+            "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            }
+          ],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective",
+              "quote": "我想找数据分析实习，手里还没有具体 JD。",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 解释口径与图表结论边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 3,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 解释口径与图表结论边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {
+          "input_tokens": 1482,
+          "output_tokens": 118,
+          "total_tokens": 1600
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12116-1b8f-7f80-8313-1347dcac5e42",
+          "started_at": "2026-10-09T22:34:19.407370+08:00",
+          "usage": {
+            "input_tokens": 1482,
+            "output_tokens": 118,
+            "total_tokens": 1600
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "objective_unsupported",
+            "path": "basic_info.objective",
+            "quote": "我想找数据分析实习，手里还没有具体 JD。",
+            "unsupported_terms": [
+              "我想找数据分析实习",
+              "手里还没有具体 JD。"
+            ],
+            "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "u003 中的 SQL 分类汇总、表格画图与 observed_facts 原话一致；“呈现汇总结果”是画图动作的自然书面改写，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective",
+              "quote": "我想找数据分析实习，手里还没有具体 JD。",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 4,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "用 SQL 按菜品分类汇总模拟点餐记录",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 解释口径与图表结论边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用 SQL 按菜品分类汇总模拟点餐记录",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 3,
+            "fact_ratio": 0.3333333333333333,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用 SQL 按菜品分类汇总模拟点餐记录",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 解释口径与图表结论边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1677,
+          "output_tokens": 3381,
+          "total_tokens": 5058
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12116-2aee-74f2-8512-5dde3026077c",
+          "started_at": "2026-10-09T22:34:23.342889+08:00",
+          "usage": {
+            "input_tokens": 1677,
+            "output_tokens": 3381,
+            "total_tokens": 5058
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 5,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "objective_unsupported",
+            "path": "basic_info.objective",
+            "quote": "我想找数据分析实习，手里还没有具体 JD。",
+            "unsupported_terms": [
+              "我想找数据分析实习",
+              "手里还没有具体 JD。"
+            ],
+            "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+                "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句涉及的模拟点餐记录、SQL按菜品分类汇总、小组作业中承担SQL汇总/图表/口径说明、队友负责排版与汇报，均能在observed原文中找到证据；输出分类维度统计结果可视为汇总的同义表达，未新增业务效果或具体口径内容。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+                "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "表格画图、撰写口径说明均有observed原文支持；“交代分类与统计的界定方式”是对口径说明的一般性书面化表述，未新增取消订单口径或不能推断真实销量等未披露细节。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective",
+              "quote": "我想找数据分析实习，手里还没有具体 JD。",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 解释口径与图表结论边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 3,
+            "fact_ratio": 0.3333333333333333,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 解释口径与图表结论边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1739,
+          "output_tokens": 4717,
+          "total_tokens": 6456
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12116-90d8-7ff1-8b3f-0618a82d1f13",
+          "started_at": "2026-10-09T22:34:49.433095+08:00",
+          "usage": {
+            "input_tokens": 1739,
+            "output_tokens": 4717,
+            "total_tokens": 6456
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 5,
+          "statement_unit_count": 2,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "objective_unsupported",
+            "path": "basic_info.objective",
+            "quote": "我想找数据分析实习，手里还没有具体 JD。",
+            "unsupported_terms": [
+              "我想找数据分析实习",
+              "手里还没有具体 JD。"
+            ],
+            "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总",
+                "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "“老师提供的模拟点餐记录”“用 SQL 按菜品分类汇总”有 observed 原文；“图表与口径说明交由小组用于课程汇报、排版与汇报由队友负责”与 observed 中“口径说明是我做的”“队友负责演示文稿排版和汇报”以及课程小组作业背景一致，未新增业务效果或数字。因果/归属未越界。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "再用表格画图",
+                "SQL 汇总、图表和口径说明是我做的。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "“用表格绘制图表”有 observed 原文“再用表格画图”支持；“撰写统计口径说明”有 observed“口径说明是我做的”支持。“明确分类与统计范围”是对已披露口径说明与按菜品分类汇总的概括性表述，未引入取消订单口径、结论边界等未披露具体内容，也未新增数字或结果程度。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 2,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective",
+              "quote": "我想找数据分析实习，手里还没有具体 JD。",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "用 SQL 按菜品分类汇总消费数据，输出分类统计结果",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 解释口径与图表结论边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用 SQL 按菜品分类汇总消费数据，输出分类统计结果",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 3,
+            "fact_ratio": 0.3333333333333333,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用 SQL 按菜品分类汇总消费数据，输出分类统计结果",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 解释口径与图表结论边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1765,
+          "output_tokens": 2915,
+          "total_tokens": 4680
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12117-839b-7f90-a138-36cf1805048c",
+          "started_at": "2026-10-09T22:35:51.579364+08:00",
+          "usage": {
+            "input_tokens": 1765,
+            "output_tokens": 2915,
+            "total_tokens": 4680
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "objective_unsupported",
+            "path": "basic_info.objective",
+            "quote": "我想找数据分析实习，手里还没有具体 JD。",
+            "unsupported_terms": [
+              "我想找数据分析实习",
+              "手里还没有具体 JD。"
+            ],
+            "reason": "求职意向含未见于用户方向表述或 JD 标题的词，属于方向扩写质量问题。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。",
+                "队友负责演示文稿排版和汇报；SQL 汇总、图表和口径说明是我做的。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "课程小组、模拟点餐记录、SQL 分类汇总、表格绘图、本人做口径说明以及队友负责演示文稿排版和汇报，均有 observed 原文支持；未新增上线、商业收益或量化结果。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我做过课程作业“晚餐账本”，拿老师给的模拟点餐记录用 SQL 按菜品分类汇总，再用表格画图。作业是小组做的，我没测业务效果。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u001",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective",
+              "quote": "我想找数据分析实习，手里还没有具体 JD。",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 2,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "用 SQL 按菜品分类汇总消费数据",
+                  "fact_indices": [
+                    2
+                  ]
+                }
+              ],
+              "requirement": "r1 使用 SQL 完成分类汇总",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                2
+              ],
+              "truth_fact_indices": [
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                2
+              ],
+              "covered_truth_fact_indices": [
+                2
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r2 解释口径与图表结论边界",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                4,
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用 SQL 按菜品分类汇总消费数据",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 3,
+            "fact_ratio": 0.3333333333333333,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "用 SQL 按菜品分类汇总消费数据",
+                    "fact_indices": [
+                      2
+                    ]
+                  }
+                ],
+                "requirement": "r1 使用 SQL 完成分类汇总",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  2
+                ],
+                "truth_fact_indices": [
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  2
+                ],
+                "covered_truth_fact_indices": [
+                  2
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r2 解释口径与图表结论边界",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  4,
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1813,
+          "output_tokens": 4209,
+          "total_tokens": 6022
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12118-148f-7b40-bed3-158f383c894c",
+          "started_at": "2026-10-09T22:36:28.687701+08:00",
+          "usage": {
+            "input_tokens": 1813,
+            "output_tokens": 4209,
+            "total_tokens": 6022
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 4,
+      "instruction": "按数据分析实习方向再改“晚餐账本”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 在已披露事实范围内把“口径说明”改为“统计口径说明，明确分类与统计范围”，并保留 SQL 汇总、图表等与数据分析实习更相关的内容，同时继续明确演示文稿排版与汇报由队友负责，未新增业务效果、量化结果等未披露经历。",
+        "evidence": [
+          {
+            "before_quote": "基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总，输出分类维度的统计结果，小组作业中承担 SQL 汇总、图表与口径说明，演示文稿排版与汇报由队友完成。",
+            "after_quote": "基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总消费数据，输出分类统计结果，图表与口径说明交由小组用于课程汇报，演示文稿排版与汇报由队友负责。"
+          },
+          {
+            "before_quote": "用表格将汇总结果绘制成图表，并撰写口径说明，交代分类与统计的界定方式。",
+            "after_quote": "用表格将汇总结果绘制成图表，并撰写统计口径说明，明确分类与统计范围。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 849,
+          "output_tokens": 3497,
+          "total_tokens": 4346
+        },
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12118-e0ee-7603-bc14-7967bcbb4902",
+          "started_at": "2026-10-09T22:37:21.007122+08:00",
+          "usage": {
+            "input_tokens": 849,
+            "output_tokens": 3497,
+            "total_tokens": 4346
+          }
+        }
+      ]
+    },
+    {
+      "turn": 5,
+      "instruction": "把“晚餐账本”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 将原先两条描述合并为一条，保留了本人工作（SQL 按菜品分类汇总、表格绘制图表、撰写统计口径说明）、团队分工（演示文稿排版与汇报由队友负责）以及课程小组作业/模拟点餐记录/课程汇报等状态限制，且未新增未披露经历。",
+        "evidence": [
+          {
+            "before_quote": "基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总消费数据，输出分类统计结果，图表与口径说明交由小组用于课程汇报，演示文稿排版与汇报由队友负责。",
+            "after_quote": "课程小组作业，基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总消费数据，用表格绘制图表并撰写统计口径说明，产出供小组课程汇报使用；演示文稿排版与汇报由队友负责。"
+          },
+          {
+            "before_quote": "用表格将汇总结果绘制成图表，并撰写统计口径说明，明确分类与统计范围。",
+            "after_quote": "课程小组作业，基于老师提供的模拟点餐记录，用 SQL 按菜品分类汇总消费数据，用表格绘制图表并撰写统计口径说明，产出供小组课程汇报使用；演示文稿排版与汇报由队友负责。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 832,
+          "output_tokens": 2676,
+          "total_tokens": 3508
+        },
+        "judge_code_sha256": "92f5f20b6a2e98aff9bdc21546187602daab283967889f74962520a8c41c06d3"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12119-870d-7370-818d-b007e25b9cf9",
+          "started_at": "2026-10-09T22:38:03.533315+08:00",
+          "usage": {
+            "input_tokens": 832,
+            "output_tokens": 2676,
+            "total_tokens": 3508
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

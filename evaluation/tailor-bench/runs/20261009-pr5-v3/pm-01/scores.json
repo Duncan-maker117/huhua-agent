@@ -1,0 +1,2505 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 4,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 5,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "产品经理实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原话覆盖了课程项目、宿舍拼单清单对不上问题、询问同学如何记清单、绘制提交与确认流程以及原型未开发上线，均为同义改写或信息合并，无新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "也画了提交和确认的流程"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 明确提到画了提交和确认流程，可支持该单元关于绘制提交与确认核心操作流程及顺序的表述。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原话支持课程项目、画出流程以及未开发上线，产出为流程设计稿属于对已画流程的可接受书面化概括。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 4,
+          "results_impact": 2,
+          "professional_expression": 4,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "绘制提交与确认的核心操作流程，明确各环节的操作顺序",
+                  "fact_indices": [
+                    3
+                  ]
+                }
+              ],
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3
+              ],
+              "covered_truth_fact_indices": [
+                3
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 1,
+            "fact_total": 1,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制提交与确认的核心操作流程，明确各环节的操作顺序",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 4,
+            "fact_ratio": 0.25,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制提交与确认的核心操作流程，明确各环节的操作顺序",
+                    "fact_indices": [
+                      3
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3
+                ],
+                "covered_truth_fact_indices": [
+                  3
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1835,
+          "output_tokens": 10388,
+          "total_tokens": 12223
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1207d-c446-7053-b907-b5d11baf6a1c",
+          "started_at": "2026-10-09T19:47:55.590671+08:00",
+          "usage": {
+            "input_tokens": 1835,
+            "output_tokens": 10388,
+            "total_tokens": 12223
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 6,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "产品经理实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "truth_only",
+              "observed_quotes": [],
+              "truth_quotes": [
+                "在“拼单清单”中，我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+              ],
+              "unsupported_spans": [],
+              "reason": "“询问同学平时怎么记清单”和“未统计访谈人数”有observed支持，但“梳理出清单对不上的具体场景”在observed中没有对应原文；truth fact 1支持记录了重复登记与确认状态不清楚的问题，故整体判为truth_only。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "truth_quotes": [
+                "在“拼单清单”中，我画了从提交物品到确认清单的操作流程。"
+              ],
+              "unsupported_spans": [],
+              "reason": "observed原文明确写到“画了提交和确认的流程”，truth fact 3也支持绘制从提交物品到确认清单的操作流程；对操作步骤的概括未新增关键事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。\n我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "truth_quotes": [
+                "我参与了课程小组项目“拼单清单”，项目停留在原型阶段，没有开发上线。",
+                "在“拼单清单”中，我用 Axure 做了清单提交和确认状态的交互原型。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。"
+              ],
+              "unsupported_spans": [],
+              "reason": "observed原文支持用Axure制作清单提交和确认状态交互原型、项目未开发上线、未统计访谈人数、未做A/B测试或量化效果评估；truth facts 0、4、7均支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。\n我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [
+            {
+              "unit_id": "u003",
+              "verdict": "truth_only",
+              "observed_quotes": [],
+              "truth_quotes": [
+                "在“拼单清单”中，我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+              ],
+              "unsupported_spans": [],
+              "reason": "“询问同学平时怎么记清单”和“未统计访谈人数”有observed支持，但“梳理出清单对不上的具体场景”在observed中没有对应原文；truth fact 1支持记录了重复登记与确认状态不清楚的问题，故整体判为truth_only。",
+              "audit_method": "llm",
+              "quote": "针对宿舍一起买东西时清单老对不上的问题，询问同学平时怎么记清单，梳理出清单对不上的具体场景（未统计访谈人数）",
+              "review_status": "pending"
+            }
+          ],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "绘制清单提交与确认的核心操作流程，明确提交方与确认方的操作步骤",
+                  "fact_indices": [
+                    3
+                  ]
+                },
+                {
+                  "unit_id": "u005",
+                  "quote": "用 Axure 制作清单提交和确认状态的交互原型",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 1,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，明确提交方与确认方的操作步骤",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u005",
+                    "quote": "用 Axure 制作清单提交和确认状态的交互原型",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 2,
+            "fact_total": 4,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，明确提交方与确认方的操作步骤",
+                    "fact_indices": [
+                      3
+                    ]
+                  },
+                  {
+                    "unit_id": "u005",
+                    "quote": "用 Axure 制作清单提交和确认状态的交互原型",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 1,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1871,
+          "output_tokens": 8231,
+          "total_tokens": 10102
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1207f-d7dd-7f52-baae-2eae511bbecb",
+          "started_at": "2026-10-09T19:50:11.678300+08:00",
+          "usage": {
+            "input_tokens": 1871,
+            "output_tokens": 8231,
+            "total_tokens": 10102
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 6,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "产品经理实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "想解决宿舍一起买东西时清单老对不上的问题",
+                "我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+              ],
+              "truth_quotes": [
+                "在“拼单清单”中，我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+              ],
+              "unsupported_spans": [],
+              "reason": "“清单对不上”“宿舍共同购买”“询问同学如何记录”“重复登记、确认状态不清楚”均在 observed 原文中有据；未新增人数、效果或上线等事实，仅为口语转书面。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "也画了提交和确认的流程",
+                "我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "truth_quotes": [
+                "在“拼单清单”中，我画了从提交物品到确认清单的操作流程。",
+                "在“拼单清单”中，我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "unsupported_spans": [],
+              "reason": "流程图与 Axure 交互原型两个动作分别有 observed 原话支撑，未夸大为开发上线。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "是个没开发上线的原型",
+                "组员共同完成课堂汇报；视觉设计由队友完成，我没有负责整个项目。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。"
+              ],
+              "truth_quotes": [
+                "我参与了课程小组项目“拼单清单”，项目停留在原型阶段，没有开发上线。",
+                "在“拼单清单”中，组员共同完成课堂汇报；视觉设计由队友完成，我没有负责整个项目。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。"
+              ],
+              "unsupported_spans": [],
+              "reason": "课程项目、未上线、队友负责视觉、组员共同汇报、未负责整个项目、未统计人数、未做 A/B 测试均与 observed 原文一致，无新增主张。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。\n我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                  "fact_indices": [
+                    3,
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1929,
+          "output_tokens": 2155,
+          "total_tokens": 4084
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12081-2bdd-7572-892b-53dd2181f2cd",
+          "started_at": "2026-10-09T19:51:38.717960+08:00",
+          "usage": {
+            "input_tokens": 1929,
+            "output_tokens": 2155,
+            "total_tokens": 4084
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 6,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "产品经理实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+                "我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "“宿舍共同购买时清单对不上”“询问同学如何记录共同购买的物品”“记录重复登记、确认状态不清楚两类问题”均有 observed 原话对应，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+                "我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "绘制提交与确认流程、用 Axure 做提交与确认状态交互原型均在 observed 原文中出现，动作与工具一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+                "组员共同完成课堂汇报；视觉设计由队友完成，我没有负责整个项目。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "课程项目、未开发上线、未负责整个项目、视觉设计由队友完成、组员共同汇报、无访谈人数统计、无 A/B 测试或量化评估，均逐项有 observed 原话支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。\n我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                  "fact_indices": [
+                    3,
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1951,
+          "output_tokens": 1473,
+          "total_tokens": 3424
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12081-7c63-7dc1-9167-8f2a51386601",
+          "started_at": "2026-10-09T19:51:59.331870+08:00",
+          "usage": {
+            "input_tokens": 1951,
+            "output_tokens": 1473,
+            "total_tokens": 3424
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 6,
+          "statement_unit_count": 3,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "产品经理实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "该句关于询问同学、记录重复登记和确认状态不清楚的问题，均有已披露原话支持；把记录到的问题概括为两类，属于同义归纳。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "也画了提交和确认的流程",
+                "我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "绘制提交和确认流程、用 Axure 制作提交和确认状态原型，均有已披露原话支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目",
+                "是个没开发上线的原型",
+                "组员共同完成课堂汇报；视觉设计由队友完成，我没有负责整个项目。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "课程项目、未上线、未负责整个项目、视觉由队友完成、未统计访谈人数、未做 A/B 测试或量化评估，均有已披露原话支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。\n我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 3,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "询问同学平时如何记录共同购买的物品，把模糊反馈归纳为重复登记、确认状态不清楚两类具体问题",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u004",
+                  "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                  "fact_indices": [
+                    3,
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "询问同学平时如何记录共同购买的物品，把模糊反馈归纳为重复登记、确认状态不清楚两类具体问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "询问同学平时如何记录共同购买的物品，把模糊反馈归纳为重复登记、确认状态不清楚两类具体问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u004",
+                    "quote": "绘制清单提交与确认的核心操作流程，并用 Axure 制作提交、确认状态的交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1980,
+          "output_tokens": 6005,
+          "total_tokens": 7985
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12081-b6c3-7cf0-bfd4-d191f57b20d3",
+          "started_at": "2026-10-09T19:52:14.275984+08:00",
+          "usage": {
+            "input_tokens": 1980,
+            "output_tokens": 6005,
+            "total_tokens": 7985
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v007",
+      "turn": 7,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 4,
+          "statement_unit_count": 1,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "产品经理实习生"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我参加过“拼单清单”这个课程项目，想解决宿舍一起买东西时清单老对不上的问题。我问了同学平时怎么记清单，也画了提交和确认的流程，是个没开发上线的原型。",
+                "我询问同学如何记录共同购买的物品，并记录了重复登记和确认状态不清楚的问题。",
+                "我用 Axure 做了清单提交和确认状态的交互原型。",
+                "组员共同完成课堂汇报；视觉设计由队友完成，我没有负责整个项目。",
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "课程项目、用户询问、两类问题、提交与确认流程、Axure 原型、团队分工、未上线及未做 A/B/量化评估等主张，均有 observed_facts 原文对应；末尾对未统计访谈人数和未做 A/B 测试存在重复表述，但不属于事实性编造。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我没有统计访谈人数，也没有做 A/B 测试或量化效果评估。\n我用 Axure 做了清单提交和确认状态的交互原型。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 1,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 3,
+          "professional_expression": 3,
+          "selection_length": 2
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "询问同学平时如何记录共同购买的物品，归纳出重复登记、确认状态不清楚两类问题",
+                  "fact_indices": [
+                    1
+                  ]
+                }
+              ],
+              "requirement": "r1 从使用反馈提炼具体需求",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                1
+              ],
+              "truth_fact_indices": [
+                1,
+                2
+              ],
+              "covered_disclosed_fact_indices": [
+                1
+              ],
+              "covered_truth_fact_indices": [
+                1
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u003",
+                  "quote": "绘制提交与确认流程并用 Axure 制作交互原型",
+                  "fact_indices": [
+                    3,
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 交付核心流程与交互原型",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                3,
+                4
+              ],
+              "truth_fact_indices": [
+                3,
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                3,
+                4
+              ],
+              "covered_truth_fact_indices": [
+                3,
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 3,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "询问同学平时如何记录共同购买的物品，归纳出重复登记、确认状态不清楚两类问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "绘制提交与确认流程并用 Axure 制作交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 3,
+            "fact_total": 4,
+            "fact_ratio": 0.75,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "询问同学平时如何记录共同购买的物品，归纳出重复登记、确认状态不清楚两类问题",
+                    "fact_indices": [
+                      1
+                    ]
+                  }
+                ],
+                "requirement": "r1 从使用反馈提炼具体需求",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  1
+                ],
+                "truth_fact_indices": [
+                  1,
+                  2
+                ],
+                "covered_disclosed_fact_indices": [
+                  1
+                ],
+                "covered_truth_fact_indices": [
+                  1
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u003",
+                    "quote": "绘制提交与确认流程并用 Axure 制作交互原型",
+                    "fact_indices": [
+                      3,
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 交付核心流程与交互原型",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  3,
+                  4
+                ],
+                "truth_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  3,
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  3,
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 线上转化漏斗或 A/B 测试经验",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 2014,
+          "output_tokens": 7768,
+          "total_tokens": 9782
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12082-db75-73d3-afb1-7cee50f5401b",
+          "started_at": "2026-10-09T19:53:29.205691+08:00",
+          "usage": {
+            "input_tokens": 2014,
+            "output_tokens": 7768,
+            "total_tokens": 9782
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 6,
+      "instruction": "按 JD 再改“拼单清单”，突出我已经提供的材料中与岗位最相关的本人工作，不补新经历。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 相比 before 有实质文本改动并朝 JD 要求对齐：u003 把“记录下重复登记、确认状态不清楚两类具体问题”改为“把模糊反馈归纳为……两类具体问题”，呼应任职要求“能把模糊反馈转成具体问题”，仍基于已披露的“询问同学如何记录并记录这两类问题”，未新增经历；u005 重新组织了个人贡献边界（“本人未负责整个项目”“方案未开发上线”），把“没有负责整个项目”“未开发上线”等已有否定性事实归拢，呼应“表达清晰，能说明个人贡献”，同时去掉部分重复表述。未引入 observed_facts 之外的新项目、指标或岗位经历。",
+        "evidence": [
+          {
+            "before_quote": "针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，记录下重复登记、确认状态不清楚两类具体问题",
+            "after_quote": "针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，把模糊反馈归纳为重复登记、确认状态不清楚两类具体问题"
+          },
+          {
+            "before_quote": "课程项目；未开发上线；没有负责整个项目；视觉设计由队友完成；组员共同完成课堂汇报；没有统计访谈人数；没有做 A/B 测试或量化效果评估；我没有统计访谈人数；也没有做 A/B 测试或量化效果评估",
+            "after_quote": "课程项目，本人未负责整个项目，视觉设计由队友完成，组员共同完成课堂汇报；方案未开发上线，未做 A/B 测试或量化效果评估；我没有统计访谈人数；也没有做 A/B 测试或量化效果评估"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1073,
+          "output_tokens": 1747,
+          "total_tokens": 2820
+        },
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12084-560f-7f52-b435-caa47afbf6e3",
+          "started_at": "2026-10-09T19:55:06.127392+08:00",
+          "usage": {
+            "input_tokens": 1073,
+            "output_tokens": 1747,
+            "total_tokens": 2820
+          }
+        }
+      ]
+    },
+    {
+      "turn": 7,
+      "instruction": "把“拼单清单”的描述精简成一条，保留已有材料中的本人工作、团队分工和状态限制。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "after 将原本分列于 u003、u004、u005 的“拼单清单”经历合并为单条 u003，并保留已披露的本人工作（询问同学、归纳问题、绘制流程/Axure 原型）、团队分工（本人未负责整个项目、视觉设计由队友完成、组员共同完成课堂汇报）及状态限制（未开发上线、未统计访谈人数、未做 A/B 测试或量化效果评估）；label 与 Axure 技能仍保留。末尾虽有重复的状态限制表述，但核心“精简成一条且保留已有材料”已实质执行。",
+        "evidence": [
+          {
+            "before_quote": "针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，把模糊反馈归纳为重复登记、确认状态不清楚两类具体问题",
+            "after_quote": "课程项目：针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，归纳出重复登记、确认状态不清楚两类问题，绘制提交与确认流程并用 Axure 制作交互原型；本人未负责整个项目，视觉设计由队友完成，组员共同完成课堂汇报；方案未开发上线，未统计访谈人数，未做 A/B 测试或量化效果评估；我没有统计访谈人数；也没有做 A/B 测试或量化效果评估"
+          },
+          {
+            "before_quote": "课程项目，本人未负责整个项目，视觉设计由队友完成，组员共同完成课堂汇报；方案未开发上线，未做 A/B 测试或量化效果评估；我没有统计访谈人数；也没有做 A/B 测试或量化效果评估",
+            "after_quote": "课程项目：针对宿舍共同购买时清单对不上的问题，询问同学平时如何记录共同购买的物品，归纳出重复登记、确认状态不清楚两类问题，绘制提交与确认流程并用 Axure 制作交互原型；本人未负责整个项目，视觉设计由队友完成，组员共同完成课堂汇报；方案未开发上线，未统计访谈人数，未做 A/B 测试或量化效果评估；我没有统计访谈人数；也没有做 A/B 测试或量化效果评估"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1051,
+          "output_tokens": 2285,
+          "total_tokens": 3336
+        },
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12084-c389-74e2-9aa2-3fc41e12599c",
+          "started_at": "2026-10-09T19:55:34.153675+08:00",
+          "usage": {
+            "input_tokens": 1051,
+            "output_tokens": 2285,
+            "total_tokens": 3336
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

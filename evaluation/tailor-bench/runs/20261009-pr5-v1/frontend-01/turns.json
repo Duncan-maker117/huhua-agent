@@ -1,0 +1,163 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：前端开发实习生\n岗位职责：开发列表和搜索交互，处理加载、空结果和错误状态，与后端协作联调。\n任职要求：熟悉 JavaScript 或 TypeScript，了解组件化开发，注重交互完整性和可访问性。加分项：有前端性能优化或线上监测经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T15:25:47.085075+08:00",
+    "status": "completed",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "assistant": "JD解读出了点问题，但没关系，你直接告诉我你的经历也行。做过什么工作或项目？",
+    "elapsed_seconds": 0.461,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a11f8d-c4d0-7b92-b20e-19d9ca3b3652",
+        "started_at": "2026-10-09T15:25:47.088973+08:00",
+        "error_type": "APIStatusError"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 1,
+      "calls_with_usage": 0,
+      "calls_without_usage": 1,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  },
+  {
+    "turn": 2,
+    "phase": "opening",
+    "user": "课程小组做了个“书架角”网页 Demo，我用 Vue 3 和 TypeScript 写书籍搜索列表。除了搜书，我还补了加载中、没结果和请求失败的界面，网站没上线。",
+    "task": "auto",
+    "simulation": null,
+    "disclosed_fact_indices": [
+      0,
+      2
+    ],
+    "started_at": "2026-10-09T15:25:47.556333+08:00",
+    "status": "error",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "error_type": "RuntimeError",
+    "error_diagnostic": {
+      "chain": [
+        {
+          "type": "RuntimeError",
+          "relation": "raised",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "evaluation/tailor-bench/run_bench.py",
+              "function": "turn",
+              "lineno": 456
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2236
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "APIStatusError",
+          "relation": "context",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2193
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "jd_input_node",
+              "lineno": 1316
+            },
+            {
+              "file": "backend/app/agents/public_reply.py",
+              "function": "stream_public_reply",
+              "lineno": 91
+            },
+            {
+              "file": "backend/app/agents/public_reply.py",
+              "function": "consume",
+              "lineno": 81
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "HTTPStatusError",
+          "relation": "context",
+          "context_suppressed": false,
+          "repo_frames": [],
+          "frames_truncated": false
+        }
+      ],
+      "chain_truncated": false
+    },
+    "assistant": "",
+    "elapsed_seconds": 0.837,
+    "model_calls": [
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a11f8d-c6ac-7781-97ad-a3566a6baa47",
+        "started_at": "2026-10-09T15:25:47.564143+08:00",
+        "error_type": "APIStatusError"
+      },
+      {
+        "model": "deepseek-flash",
+        "status": "error",
+        "run_id": "01a11f8d-c848-72d0-ad8d-9785d3e9a558",
+        "started_at": "2026-10-09T15:25:47.976313+08:00",
+        "error_type": "APIStatusError"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 2,
+      "calls_with_usage": 0,
+      "calls_without_usage": 2,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": []
+  }
+]

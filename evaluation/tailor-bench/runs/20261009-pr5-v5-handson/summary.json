@@ -1,0 +1,2631 @@
+{
+  "cases": [
+    {
+      "case_id": "handson-01",
+      "status": "completed",
+      "graph_status": "completed",
+      "evaluation_status": "completed",
+      "truth_review_status": "pending_claude",
+      "turn_count": 5,
+      "followup_count": 0,
+      "version_count": 6,
+      "visible_version_count": 5,
+      "first_draft_turn": 2,
+      "first_draft_version": "v002",
+      "commits": [
+        {
+          "turn": 1,
+          "stage": "COLLECTING",
+          "hash": "1c25d5f76252dd88e25fe9ab7697bc5f2081521a1eb3fd76f5206dafbcceda34",
+          "has_experience": false,
+          "fact_snapshot": {
+            "status": "observed",
+            "source": "committed_sql",
+            "checkpoint_id": null,
+            "collected_info": {},
+            "active_facts": [],
+            "active_skills": [],
+            "projection": "stored_fact_rows_only_no_legacy_inference"
+          }
+        },
+        {
+          "turn": 2,
+          "stage": "EVALUATING",
+          "hash": "10e892a50e4d35105d20e7c2618e210952eda03f9a707c70a58771936ad96e76",
+          "has_experience": true,
+          "fact_snapshot": {
+            "status": "observed",
+            "source": "committed_sql",
+            "checkpoint_id": null,
+            "collected_info": {
+              "basic_info": {
+                "name": "",
+                "phone": "",
+                "email": "",
+                "location": ""
+              },
+              "education": [
+                {
+                  "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb",
+                  "school": "江商大",
+                  "facts": [
+                    {
+                      "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                      "kind": "context",
+                      "text": "就读于江商大计算机专业，大三",
+                      "source_quote": "我是江商大计算机大三的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我是江商大计算机大三的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                      "kind": "context",
+                      "text": "江商大",
+                      "source_quote": "江商大",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "江商大",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "school"
+                    },
+                    {
+                      "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                      "kind": "context",
+                      "text": "大三",
+                      "source_quote": "大三",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "大三",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "grade"
+                    },
+                    {
+                      "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                      "kind": "context",
+                      "text": "计算机",
+                      "source_quote": "计算机",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "计算机",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "major"
+                    }
+                  ],
+                  "raw_notes": [
+                    "我是江商大计算机大三的。",
+                    "我是江商大计算机大三的",
+                    "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+                  ],
+                  "major": "计算机",
+                  "grade": "大三"
+                }
+              ],
+              "work_experience": [],
+              "internship": [],
+              "projects": [
+                {
+                  "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62",
+                  "name": "途记",
+                  "facts": [
+                    {
+                      "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                      "kind": "context",
+                      "text": "基本是课程原型",
+                      "source_quote": "途记基本是课程原型",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "途记基本是课程原型",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                      "kind": "action",
+                      "text": "本人负责行程推荐",
+                      "source_quote": "我做了行程推荐",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我做了行程推荐",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                      "kind": "context",
+                      "text": "模型会推荐不存在的店",
+                      "source_quote": "模型会推荐不存在的店",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "模型会推荐不存在的店",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_838530884ef748999fec58be7e801582",
+                      "kind": "method_tool",
+                      "text": "改成先查候选再让模型选",
+                      "source_quote": "我改成先查候选再让模型选",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我改成先查候选再让模型选",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                      "kind": "status_limit",
+                      "text": "还没上线",
+                      "source_quote": "还没上线",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "还没上线",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                      "kind": "status_limit",
+                      "text": "没有用户量",
+                      "source_quote": "没有用户量",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "没有用户量",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+                    "途记基本是课程原型",
+                    "我做了行程推荐",
+                    "模型会推荐不存在的店",
+                    "我改成先查候选再让模型选",
+                    "还没上线",
+                    "没有用户量"
+                  ]
+                },
+                {
+                  "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597",
+                  "name": "工坊集",
+                  "facts": [
+                    {
+                      "id": "f_598e262a2c854f9a96a97b01669709bd",
+                      "kind": "deliverable",
+                      "text": "用 Claude Code 写的技能",
+                      "source_quote": "工坊集是我用 Claude Code 写的技能",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "工坊集是我用 Claude Code 写的技能",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                      "kind": "action",
+                      "text": "做过抖音推广",
+                      "source_quote": "也做过抖音推广",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "也做过抖音推广",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                      "kind": "status_limit",
+                      "text": "仓库是公开的",
+                      "source_quote": "仓库是公开的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "仓库是公开的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                      "kind": "status_limit",
+                      "text": "没有星数",
+                      "source_quote": "但没有星数",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "但没有星数",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。",
+                    "工坊集是我用 Claude Code 写的技能",
+                    "也做过抖音推广",
+                    "仓库是公开的",
+                    "但没有星数"
+                  ]
+                }
+              ],
+              "skills": [],
+              "personal_summary": "",
+              "verification_notes": []
+            },
+            "active_facts": [
+              {
+                "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                "kind": "context",
+                "text": "基本是课程原型",
+                "source_quote": "途记基本是课程原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "途记基本是课程原型",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                "kind": "action",
+                "text": "本人负责行程推荐",
+                "source_quote": "我做了行程推荐",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做了行程推荐",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                "kind": "context",
+                "text": "模型会推荐不存在的店",
+                "source_quote": "模型会推荐不存在的店",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "模型会推荐不存在的店",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_838530884ef748999fec58be7e801582",
+                "kind": "method_tool",
+                "text": "改成先查候选再让模型选",
+                "source_quote": "我改成先查候选再让模型选",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我改成先查候选再让模型选",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                "kind": "status_limit",
+                "text": "还没上线",
+                "source_quote": "还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "还没上线",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                "kind": "status_limit",
+                "text": "没有用户量",
+                "source_quote": "没有用户量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "没有用户量",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_598e262a2c854f9a96a97b01669709bd",
+                "kind": "deliverable",
+                "text": "用 Claude Code 写的技能",
+                "source_quote": "工坊集是我用 Claude Code 写的技能",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "工坊集是我用 Claude Code 写的技能",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                "kind": "action",
+                "text": "做过抖音推广",
+                "source_quote": "也做过抖音推广",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也做过抖音推广",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                "kind": "status_limit",
+                "text": "仓库是公开的",
+                "source_quote": "仓库是公开的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "仓库是公开的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                "kind": "status_limit",
+                "text": "没有星数",
+                "source_quote": "但没有星数",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "但没有星数",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                "kind": "context",
+                "text": "就读于江商大计算机专业，大三",
+                "source_quote": "我是江商大计算机大三的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我是江商大计算机大三的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                "kind": "context",
+                "text": "江商大",
+                "source_quote": "江商大",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "江商大",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "school",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                "kind": "context",
+                "text": "大三",
+                "source_quote": "大三",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "大三",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "grade",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                "kind": "context",
+                "text": "计算机",
+                "source_quote": "计算机",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "计算机",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "major",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              }
+            ],
+            "active_skills": [],
+            "projection": "stored_fact_rows_only_no_legacy_inference"
+          }
+        },
+        {
+          "turn": 3,
+          "stage": "EVALUATING",
+          "hash": "e7d64923e881fa8a586b4a48d4d9d5dbdd7582678ecc2424180c7f9b9cc92310",
+          "has_experience": true,
+          "fact_snapshot": {
+            "status": "observed",
+            "source": "committed_sql",
+            "checkpoint_id": null,
+            "collected_info": {
+              "basic_info": {
+                "name": "",
+                "phone": "",
+                "email": "",
+                "location": ""
+              },
+              "education": [
+                {
+                  "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb",
+                  "school": "江商大",
+                  "facts": [
+                    {
+                      "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                      "kind": "context",
+                      "text": "就读于江商大计算机专业，大三",
+                      "source_quote": "我是江商大计算机大三的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我是江商大计算机大三的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                      "kind": "context",
+                      "text": "江商大",
+                      "source_quote": "江商大",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "江商大",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "school"
+                    },
+                    {
+                      "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                      "kind": "context",
+                      "text": "大三",
+                      "source_quote": "大三",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "大三",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "grade"
+                    },
+                    {
+                      "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                      "kind": "context",
+                      "text": "计算机",
+                      "source_quote": "计算机",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "计算机",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "major"
+                    }
+                  ],
+                  "raw_notes": [
+                    "我是江商大计算机大三的。",
+                    "我是江商大计算机大三的",
+                    "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+                  ],
+                  "major": "计算机",
+                  "grade": "大三"
+                }
+              ],
+              "work_experience": [],
+              "internship": [],
+              "projects": [
+                {
+                  "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62",
+                  "name": "途记",
+                  "facts": [
+                    {
+                      "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                      "kind": "context",
+                      "text": "基本是课程原型",
+                      "source_quote": "途记基本是课程原型",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "途记基本是课程原型",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                      "kind": "action",
+                      "text": "本人负责行程推荐",
+                      "source_quote": "我做了行程推荐",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我做了行程推荐",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                      "kind": "context",
+                      "text": "模型会推荐不存在的店",
+                      "source_quote": "模型会推荐不存在的店",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "模型会推荐不存在的店",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_838530884ef748999fec58be7e801582",
+                      "kind": "method_tool",
+                      "text": "改成先查候选再让模型选",
+                      "source_quote": "我改成先查候选再让模型选",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我改成先查候选再让模型选",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                      "kind": "status_limit",
+                      "text": "还没上线",
+                      "source_quote": "还没上线",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "还没上线",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                      "kind": "status_limit",
+                      "text": "没有用户量",
+                      "source_quote": "没有用户量",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "没有用户量",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+                    "途记基本是课程原型",
+                    "我做了行程推荐",
+                    "模型会推荐不存在的店",
+                    "我改成先查候选再让模型选",
+                    "还没上线",
+                    "没有用户量"
+                  ]
+                },
+                {
+                  "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597",
+                  "name": "工坊集",
+                  "facts": [
+                    {
+                      "id": "f_598e262a2c854f9a96a97b01669709bd",
+                      "kind": "deliverable",
+                      "text": "用 Claude Code 写的技能",
+                      "source_quote": "工坊集是我用 Claude Code 写的技能",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "工坊集是我用 Claude Code 写的技能",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                      "kind": "action",
+                      "text": "做过抖音推广",
+                      "source_quote": "也做过抖音推广",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "也做过抖音推广",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                      "kind": "status_limit",
+                      "text": "仓库是公开的",
+                      "source_quote": "仓库是公开的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "仓库是公开的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                      "kind": "status_limit",
+                      "text": "没有星数",
+                      "source_quote": "但没有星数",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "但没有星数",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。",
+                    "工坊集是我用 Claude Code 写的技能",
+                    "也做过抖音推广",
+                    "仓库是公开的",
+                    "但没有星数"
+                  ]
+                }
+              ],
+              "skills": [],
+              "personal_summary": "",
+              "verification_notes": []
+            },
+            "active_facts": [
+              {
+                "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                "kind": "context",
+                "text": "基本是课程原型",
+                "source_quote": "途记基本是课程原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "途记基本是课程原型",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                "kind": "action",
+                "text": "本人负责行程推荐",
+                "source_quote": "我做了行程推荐",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做了行程推荐",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                "kind": "context",
+                "text": "模型会推荐不存在的店",
+                "source_quote": "模型会推荐不存在的店",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "模型会推荐不存在的店",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_838530884ef748999fec58be7e801582",
+                "kind": "method_tool",
+                "text": "改成先查候选再让模型选",
+                "source_quote": "我改成先查候选再让模型选",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我改成先查候选再让模型选",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                "kind": "status_limit",
+                "text": "还没上线",
+                "source_quote": "还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "还没上线",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                "kind": "status_limit",
+                "text": "没有用户量",
+                "source_quote": "没有用户量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "没有用户量",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_598e262a2c854f9a96a97b01669709bd",
+                "kind": "deliverable",
+                "text": "用 Claude Code 写的技能",
+                "source_quote": "工坊集是我用 Claude Code 写的技能",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "工坊集是我用 Claude Code 写的技能",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                "kind": "action",
+                "text": "做过抖音推广",
+                "source_quote": "也做过抖音推广",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也做过抖音推广",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                "kind": "status_limit",
+                "text": "仓库是公开的",
+                "source_quote": "仓库是公开的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "仓库是公开的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                "kind": "status_limit",
+                "text": "没有星数",
+                "source_quote": "但没有星数",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "但没有星数",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                "kind": "context",
+                "text": "就读于江商大计算机专业，大三",
+                "source_quote": "我是江商大计算机大三的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我是江商大计算机大三的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                "kind": "context",
+                "text": "江商大",
+                "source_quote": "江商大",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "江商大",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "school",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                "kind": "context",
+                "text": "大三",
+                "source_quote": "大三",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "大三",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "grade",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                "kind": "context",
+                "text": "计算机",
+                "source_quote": "计算机",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "计算机",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "major",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              }
+            ],
+            "active_skills": [],
+            "projection": "stored_fact_rows_only_no_legacy_inference"
+          }
+        },
+        {
+          "turn": 4,
+          "stage": "EVALUATING",
+          "hash": "202a32127a4bfeb10873fe9db18e914f24c95722d49bb64de48351796d8ebe9a",
+          "has_experience": true,
+          "fact_snapshot": {
+            "status": "observed",
+            "source": "committed_sql",
+            "checkpoint_id": null,
+            "collected_info": {
+              "basic_info": {
+                "name": "",
+                "phone": "",
+                "email": "",
+                "location": ""
+              },
+              "education": [
+                {
+                  "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb",
+                  "school": "江商大",
+                  "facts": [
+                    {
+                      "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                      "kind": "context",
+                      "text": "就读于江商大计算机专业，大三",
+                      "source_quote": "我是江商大计算机大三的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我是江商大计算机大三的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                      "kind": "context",
+                      "text": "江商大",
+                      "source_quote": "江商大",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "江商大",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "school"
+                    },
+                    {
+                      "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                      "kind": "context",
+                      "text": "大三",
+                      "source_quote": "大三",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "大三",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "grade"
+                    },
+                    {
+                      "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                      "kind": "context",
+                      "text": "计算机",
+                      "source_quote": "计算机",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "计算机",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "major"
+                    }
+                  ],
+                  "raw_notes": [
+                    "我是江商大计算机大三的。",
+                    "我是江商大计算机大三的",
+                    "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+                  ],
+                  "major": "计算机",
+                  "grade": "大三"
+                }
+              ],
+              "work_experience": [],
+              "internship": [],
+              "projects": [
+                {
+                  "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62",
+                  "name": "途记",
+                  "facts": [
+                    {
+                      "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                      "kind": "context",
+                      "text": "基本是课程原型",
+                      "source_quote": "途记基本是课程原型",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "途记基本是课程原型",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                      "kind": "action",
+                      "text": "本人负责行程推荐",
+                      "source_quote": "我做了行程推荐",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我做了行程推荐",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                      "kind": "context",
+                      "text": "模型会推荐不存在的店",
+                      "source_quote": "模型会推荐不存在的店",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "模型会推荐不存在的店",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_838530884ef748999fec58be7e801582",
+                      "kind": "method_tool",
+                      "text": "改成先查候选再让模型选",
+                      "source_quote": "我改成先查候选再让模型选",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我改成先查候选再让模型选",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                      "kind": "status_limit",
+                      "text": "还没上线",
+                      "source_quote": "还没上线",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "还没上线",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                      "kind": "status_limit",
+                      "text": "没有用户量",
+                      "source_quote": "没有用户量",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "没有用户量",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+                    "途记基本是课程原型",
+                    "我做了行程推荐",
+                    "模型会推荐不存在的店",
+                    "我改成先查候选再让模型选",
+                    "还没上线",
+                    "没有用户量"
+                  ]
+                },
+                {
+                  "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597",
+                  "name": "工坊集",
+                  "facts": [
+                    {
+                      "id": "f_598e262a2c854f9a96a97b01669709bd",
+                      "kind": "deliverable",
+                      "text": "用 Claude Code 写的技能",
+                      "source_quote": "工坊集是我用 Claude Code 写的技能",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "工坊集是我用 Claude Code 写的技能",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                      "kind": "action",
+                      "text": "做过抖音推广",
+                      "source_quote": "也做过抖音推广",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "也做过抖音推广",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                      "kind": "status_limit",
+                      "text": "仓库是公开的",
+                      "source_quote": "仓库是公开的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "仓库是公开的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                      "kind": "status_limit",
+                      "text": "没有星数",
+                      "source_quote": "但没有星数",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "但没有星数",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。",
+                    "工坊集是我用 Claude Code 写的技能",
+                    "也做过抖音推广",
+                    "仓库是公开的",
+                    "但没有星数"
+                  ]
+                }
+              ],
+              "skills": [],
+              "personal_summary": "",
+              "verification_notes": []
+            },
+            "active_facts": [
+              {
+                "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                "kind": "context",
+                "text": "基本是课程原型",
+                "source_quote": "途记基本是课程原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "途记基本是课程原型",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                "kind": "action",
+                "text": "本人负责行程推荐",
+                "source_quote": "我做了行程推荐",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做了行程推荐",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                "kind": "context",
+                "text": "模型会推荐不存在的店",
+                "source_quote": "模型会推荐不存在的店",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "模型会推荐不存在的店",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_838530884ef748999fec58be7e801582",
+                "kind": "method_tool",
+                "text": "改成先查候选再让模型选",
+                "source_quote": "我改成先查候选再让模型选",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我改成先查候选再让模型选",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                "kind": "status_limit",
+                "text": "还没上线",
+                "source_quote": "还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "还没上线",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                "kind": "status_limit",
+                "text": "没有用户量",
+                "source_quote": "没有用户量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "没有用户量",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_598e262a2c854f9a96a97b01669709bd",
+                "kind": "deliverable",
+                "text": "用 Claude Code 写的技能",
+                "source_quote": "工坊集是我用 Claude Code 写的技能",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "工坊集是我用 Claude Code 写的技能",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                "kind": "action",
+                "text": "做过抖音推广",
+                "source_quote": "也做过抖音推广",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也做过抖音推广",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                "kind": "status_limit",
+                "text": "仓库是公开的",
+                "source_quote": "仓库是公开的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "仓库是公开的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                "kind": "status_limit",
+                "text": "没有星数",
+                "source_quote": "但没有星数",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "但没有星数",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                "kind": "context",
+                "text": "就读于江商大计算机专业，大三",
+                "source_quote": "我是江商大计算机大三的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我是江商大计算机大三的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                "kind": "context",
+                "text": "江商大",
+                "source_quote": "江商大",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "江商大",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "school",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                "kind": "context",
+                "text": "大三",
+                "source_quote": "大三",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "大三",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "grade",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                "kind": "context",
+                "text": "计算机",
+                "source_quote": "计算机",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "计算机",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "major",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              }
+            ],
+            "active_skills": [],
+            "projection": "stored_fact_rows_only_no_legacy_inference"
+          }
+        },
+        {
+          "turn": 5,
+          "stage": "EVALUATING",
+          "hash": "a4095a3a0c3ce93abcad1d72174454882661398935a1116cf8365403268c9c74",
+          "has_experience": true,
+          "fact_snapshot": {
+            "status": "observed",
+            "source": "committed_sql",
+            "checkpoint_id": null,
+            "collected_info": {
+              "basic_info": {
+                "name": "",
+                "phone": "",
+                "email": "",
+                "location": ""
+              },
+              "education": [
+                {
+                  "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb",
+                  "school": "江北商业大学",
+                  "facts": [
+                    {
+                      "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                      "kind": "context",
+                      "text": "就读于江商大计算机专业，大三",
+                      "source_quote": "我是江商大计算机大三的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我是江商大计算机大三的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_285b3f4997d54a67a8d2948ba1767a49",
+                      "kind": "context",
+                      "text": "江商大",
+                      "source_quote": "江商大",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "superseded",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "江商大",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "school"
+                    },
+                    {
+                      "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                      "kind": "context",
+                      "text": "大三",
+                      "source_quote": "大三",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "大三",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "grade"
+                    },
+                    {
+                      "id": "f_497deaf6f3d74e8a9bc776d6fe84ea76",
+                      "kind": "context",
+                      "text": "计算机",
+                      "source_quote": "计算机",
+                      "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                      "status": "superseded",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "计算机",
+                          "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                        }
+                      ],
+                      "field": "major"
+                    },
+                    {
+                      "id": "f_03b5fd23eb194d1fa9e8d324de25869a",
+                      "kind": "context",
+                      "text": "江北商业大学",
+                      "source_quote": "江北商业大学",
+                      "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "江北商业大学",
+                          "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c"
+                        }
+                      ],
+                      "field": "school"
+                    },
+                    {
+                      "id": "f_5367d27c4a9b47c3bb14cd426cedc79a",
+                      "kind": "context",
+                      "text": "计算机科学与技术",
+                      "source_quote": "计算机科学与技术",
+                      "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "计算机科学与技术",
+                          "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c"
+                        }
+                      ],
+                      "field": "major"
+                    },
+                    {
+                      "id": "f_2f399ff9fcfa4ed8b41da8fbc6c163a5",
+                      "kind": "context",
+                      "text": "本科",
+                      "source_quote": "本科",
+                      "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "本科",
+                          "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c"
+                        }
+                      ],
+                      "field": "degree"
+                    }
+                  ],
+                  "raw_notes": [
+                    "我是江商大计算机大三的。",
+                    "我是江商大计算机大三的",
+                    "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。",
+                    "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+                  ],
+                  "major": "计算机科学与技术",
+                  "grade": "大三",
+                  "degree": "本科"
+                }
+              ],
+              "work_experience": [],
+              "internship": [],
+              "projects": [
+                {
+                  "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62",
+                  "name": "途记",
+                  "facts": [
+                    {
+                      "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                      "kind": "context",
+                      "text": "基本是课程原型",
+                      "source_quote": "途记基本是课程原型",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "途记基本是课程原型",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                      "kind": "action",
+                      "text": "本人负责行程推荐",
+                      "source_quote": "我做了行程推荐",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我做了行程推荐",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                      "kind": "context",
+                      "text": "模型会推荐不存在的店",
+                      "source_quote": "模型会推荐不存在的店",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "模型会推荐不存在的店",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_838530884ef748999fec58be7e801582",
+                      "kind": "method_tool",
+                      "text": "改成先查候选再让模型选",
+                      "source_quote": "我改成先查候选再让模型选",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "我改成先查候选再让模型选",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                      "kind": "status_limit",
+                      "text": "还没上线",
+                      "source_quote": "还没上线",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "还没上线",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                      "kind": "status_limit",
+                      "text": "没有用户量",
+                      "source_quote": "没有用户量",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "没有用户量",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+                    "途记基本是课程原型",
+                    "我做了行程推荐",
+                    "模型会推荐不存在的店",
+                    "我改成先查候选再让模型选",
+                    "还没上线",
+                    "没有用户量"
+                  ]
+                },
+                {
+                  "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597",
+                  "name": "工坊集",
+                  "facts": [
+                    {
+                      "id": "f_598e262a2c854f9a96a97b01669709bd",
+                      "kind": "deliverable",
+                      "text": "用 Claude Code 写的技能",
+                      "source_quote": "工坊集是我用 Claude Code 写的技能",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "工坊集是我用 Claude Code 写的技能",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                      "kind": "action",
+                      "text": "做过抖音推广",
+                      "source_quote": "也做过抖音推广",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "也做过抖音推广",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                      "kind": "status_limit",
+                      "text": "仓库是公开的",
+                      "source_quote": "仓库是公开的",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "仓库是公开的",
+                          "turn_id": ""
+                        }
+                      ]
+                    },
+                    {
+                      "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                      "kind": "status_limit",
+                      "text": "没有星数",
+                      "source_quote": "但没有星数",
+                      "turn_id": "",
+                      "status": "active",
+                      "source": "chat",
+                      "sources": [
+                        {
+                          "source": "chat",
+                          "source_quote": "但没有星数",
+                          "turn_id": ""
+                        }
+                      ]
+                    }
+                  ],
+                  "raw_notes": [
+                    "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。",
+                    "工坊集是我用 Claude Code 写的技能",
+                    "也做过抖音推广",
+                    "仓库是公开的",
+                    "但没有星数"
+                  ]
+                }
+              ],
+              "skills": [],
+              "personal_summary": "",
+              "verification_notes": []
+            },
+            "active_facts": [
+              {
+                "id": "f_875c061f8697494e9ed009f99d1af3a7",
+                "kind": "context",
+                "text": "基本是课程原型",
+                "source_quote": "途记基本是课程原型",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "途记基本是课程原型",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_80525535c4cb4e86a2dbb95a075fff39",
+                "kind": "action",
+                "text": "本人负责行程推荐",
+                "source_quote": "我做了行程推荐",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我做了行程推荐",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_4bc3fae0d6ab4d7995f1c84a00a13da1",
+                "kind": "context",
+                "text": "模型会推荐不存在的店",
+                "source_quote": "模型会推荐不存在的店",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "模型会推荐不存在的店",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_838530884ef748999fec58be7e801582",
+                "kind": "method_tool",
+                "text": "改成先查候选再让模型选",
+                "source_quote": "我改成先查候选再让模型选",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我改成先查候选再让模型选",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_0f29cd22247a4a1cb2cdf9a68db33283",
+                "kind": "status_limit",
+                "text": "还没上线",
+                "source_quote": "还没上线",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "还没上线",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_26d09d1c73e748aa88aa99d066c6e083",
+                "kind": "status_limit",
+                "text": "没有用户量",
+                "source_quote": "没有用户量",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "没有用户量",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "48ab9558-5134-435e-a6ab-b00f13051f62"
+              },
+              {
+                "id": "f_598e262a2c854f9a96a97b01669709bd",
+                "kind": "deliverable",
+                "text": "用 Claude Code 写的技能",
+                "source_quote": "工坊集是我用 Claude Code 写的技能",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "工坊集是我用 Claude Code 写的技能",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_423e8a7e52a4428cb89c81221c9b7d09",
+                "kind": "action",
+                "text": "做过抖音推广",
+                "source_quote": "也做过抖音推广",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "也做过抖音推广",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_c74de6aa5ff2491098c723ad13a632ba",
+                "kind": "status_limit",
+                "text": "仓库是公开的",
+                "source_quote": "仓库是公开的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "仓库是公开的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_a37e675c001d4d569a2e2fd36138e1cf",
+                "kind": "status_limit",
+                "text": "没有星数",
+                "source_quote": "但没有星数",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "但没有星数",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "projects",
+                "item_id": "4b98c1b5-2e7e-468e-93d6-929eaf6a9597"
+              },
+              {
+                "id": "f_d3b43291536a40b9be0458ea3b7aa857",
+                "kind": "context",
+                "text": "就读于江商大计算机专业，大三",
+                "source_quote": "我是江商大计算机大三的",
+                "turn_id": "",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "我是江商大计算机大三的",
+                    "turn_id": ""
+                  }
+                ],
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_a6a22a807a5e46ff9daf7ebf57292026",
+                "kind": "context",
+                "text": "大三",
+                "source_quote": "大三",
+                "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "大三",
+                    "turn_id": "38549fc8-2341-4f15-8770-f249d7dd0ba8"
+                  }
+                ],
+                "field": "grade",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_03b5fd23eb194d1fa9e8d324de25869a",
+                "kind": "context",
+                "text": "江北商业大学",
+                "source_quote": "江北商业大学",
+                "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "江北商业大学",
+                    "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c"
+                  }
+                ],
+                "field": "school",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_5367d27c4a9b47c3bb14cd426cedc79a",
+                "kind": "context",
+                "text": "计算机科学与技术",
+                "source_quote": "计算机科学与技术",
+                "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "计算机科学与技术",
+                    "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c"
+                  }
+                ],
+                "field": "major",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              },
+              {
+                "id": "f_2f399ff9fcfa4ed8b41da8fbc6c163a5",
+                "kind": "context",
+                "text": "本科",
+                "source_quote": "本科",
+                "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c",
+                "status": "active",
+                "source": "chat",
+                "sources": [
+                  {
+                    "source": "chat",
+                    "source_quote": "本科",
+                    "turn_id": "88205c50-f157-4016-b3b4-46a44d618d6c"
+                  }
+                ],
+                "field": "degree",
+                "section": "education",
+                "item_id": "c645f2db-5d2d-4e81-b180-bed47721f0bb"
+              }
+            ],
+            "active_skills": [],
+            "projection": "stored_fact_rows_only_no_legacy_inference"
+          }
+        }
+      ],
+      "stage_first_draft_turn": 2,
+      "stage_first_draft_version": "v002",
+      "final_has_body": true,
+      "content_outcome": "has_experience_body",
+      "final_version": "v006",
+      "mean_turn_latency_seconds": 23.753,
+      "graph_usage": {
+        "input_tokens": 51154,
+        "output_tokens": 13065,
+        "total_tokens": 64219,
+        "logical_model_calls": 15,
+        "calls_with_usage": 15,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "not_calculated",
+        "reported_token_cost_usd": null,
+        "sdk_http_attempts": null
+      },
+      "judge_usage": {
+        "input_tokens": 11448,
+        "output_tokens": 27460,
+        "total_tokens": 38908,
+        "logical_model_calls": 7,
+        "calls_with_usage": 7,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "not_calculated",
+        "reported_token_cost_usd": null,
+        "sdk_http_attempts": null
+      },
+      "model_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f5-f556-70e3-82ef-44f3c6c4f716",
+          "started_at": "2026-10-09T21:59:12.470597+08:00",
+          "usage": {
+            "input_tokens": 2180,
+            "output_tokens": 3627,
+            "total_tokens": 5807
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f6-5ccb-7421-9300-241c57a0451d",
+          "started_at": "2026-10-09T21:59:38.955628+08:00",
+          "usage": {
+            "input_tokens": 1697,
+            "output_tokens": 188,
+            "total_tokens": 1885
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f6-6c81-7cc2-9a21-21c74ab8de68",
+          "started_at": "2026-10-09T21:59:42.977479+08:00",
+          "usage": {
+            "input_tokens": 468,
+            "output_tokens": 1401,
+            "total_tokens": 1869
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f6-9e32-71e3-a83a-30fcb5c6eb0c",
+          "started_at": "2026-10-09T21:59:55.699065+08:00",
+          "usage": {
+            "input_tokens": 2697,
+            "output_tokens": 566,
+            "total_tokens": 3263
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f6-b20d-76e1-a750-009139f5a491",
+          "started_at": "2026-10-09T22:00:00.781740+08:00",
+          "usage": {
+            "input_tokens": 7678,
+            "output_tokens": 1632,
+            "total_tokens": 9310
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f6-eae3-7342-9387-f98f1ab5e8c7",
+          "started_at": "2026-10-09T22:00:15.331521+08:00",
+          "usage": {
+            "input_tokens": 2833,
+            "output_tokens": 211,
+            "total_tokens": 3044
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f6-f58f-7263-b402-0003a6e426b8",
+          "started_at": "2026-10-09T22:00:18.063877+08:00",
+          "usage": {
+            "input_tokens": 1458,
+            "output_tokens": 272,
+            "total_tokens": 1730
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-0134-74d3-ba53-d64591e02736",
+          "started_at": "2026-10-09T22:00:21.044851+08:00",
+          "usage": {
+            "input_tokens": 7614,
+            "output_tokens": 1317,
+            "total_tokens": 8931
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-2a6b-76f1-b10f-db6d18871b8a",
+          "started_at": "2026-10-09T22:00:31.595547+08:00",
+          "usage": {
+            "input_tokens": 2620,
+            "output_tokens": 97,
+            "total_tokens": 2717
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-3e2a-72d1-9892-b15b5f43b665",
+          "started_at": "2026-10-09T22:00:36.650974+08:00",
+          "usage": {
+            "input_tokens": 1455,
+            "output_tokens": 349,
+            "total_tokens": 1804
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-4ce4-7d41-b458-03341bb05f1c",
+          "started_at": "2026-10-09T22:00:40.420854+08:00",
+          "usage": {
+            "input_tokens": 7760,
+            "output_tokens": 2050,
+            "total_tokens": 9810
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-87a7-7010-8fe1-c29131d7daaf",
+          "started_at": "2026-10-09T22:00:55.463675+08:00",
+          "usage": {
+            "input_tokens": 2784,
+            "output_tokens": 258,
+            "total_tokens": 3042
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-966b-74d0-8d2e-5673685baff3",
+          "started_at": "2026-10-09T22:00:59.244111+08:00",
+          "usage": {
+            "input_tokens": 5355,
+            "output_tokens": 458,
+            "total_tokens": 5813
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-a69e-74c2-86a9-1231262bf230",
+          "started_at": "2026-10-09T22:01:03.390906+08:00",
+          "usage": {
+            "input_tokens": 3049,
+            "output_tokens": 325,
+            "total_tokens": 3374
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-b5f9-7580-b753-930e6c27a122",
+          "started_at": "2026-10-09T22:01:07.321683+08:00",
+          "usage": {
+            "input_tokens": 1506,
+            "output_tokens": 314,
+            "total_tokens": 1820
+          }
+        }
+      ],
+      "judge_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f7-c577-79e0-8c26-c70acfa1a135",
+          "started_at": "2026-10-09T22:01:11.287913+08:00",
+          "usage": {
+            "input_tokens": 1741,
+            "output_tokens": 5753,
+            "total_tokens": 7494
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f8-f7a7-7d63-9631-821b09426096",
+          "started_at": "2026-10-09T22:02:29.671346+08:00",
+          "usage": {
+            "input_tokens": 1704,
+            "output_tokens": 2118,
+            "total_tokens": 3822
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f9-4214-7e31-b91e-ee8f81524127",
+          "started_at": "2026-10-09T22:02:48.724724+08:00",
+          "usage": {
+            "input_tokens": 1810,
+            "output_tokens": 5051,
+            "total_tokens": 6861
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120f9-d8d8-7ab1-9a3a-91a8bb01a8f5",
+          "started_at": "2026-10-09T22:03:27.320728+08:00",
+          "usage": {
+            "input_tokens": 1848,
+            "output_tokens": 5544,
+            "total_tokens": 7392
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120fa-d9e2-7e50-b683-fc22b8df51b0",
+          "started_at": "2026-10-09T22:04:33.122715+08:00",
+          "usage": {
+            "input_tokens": 1909,
+            "output_tokens": 7254,
+            "total_tokens": 9163
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120fc-3bf0-7812-b710-d1b2faaff8ab",
+          "started_at": "2026-10-09T22:06:03.760309+08:00",
+          "usage": {
+            "input_tokens": 1174,
+            "output_tokens": 1204,
+            "total_tokens": 2378
+          }
+        },
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a120fc-7596-72a1-9ec8-ec5a204e1436",
+          "started_at": "2026-10-09T22:06:18.518841+08:00",
+          "usage": {
+            "input_tokens": 1262,
+            "output_tokens": 536,
+            "total_tokens": 1798
+          }
+        }
+      ],
+      "simulator_calls": [],
+      "simulator_usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "logical_model_calls": 0,
+        "calls_with_usage": 0,
+        "calls_without_usage": 0,
+        "cost": null,
+        "cost_status": "not_calculated",
+        "reported_token_cost_usd": null,
+        "sdk_http_attempts": null
+      },
+      "simulator_fallbacks": 0,
+      "guard_fallbacks": 0,
+      "guard_fallbacks_status": "observed",
+      "writer_diagnostics": {
+        "status": "observed",
+        "model_completed": 3,
+        "model_fallback": 0,
+        "compression_model_completed": 0,
+        "compression_model_fallback": 0,
+        "versions_with_model_fallback": 0,
+        "not_observed_versions": 3
+      },
+      "safety_gate": "pending_claude_review",
+      "session_id": "4f70964c-4b1d-4d33-ad0f-ee9045d519c5"
+    }
+  ],
+  "human_review_status": "pending_claude",
+  "phase": "PR4"
+}

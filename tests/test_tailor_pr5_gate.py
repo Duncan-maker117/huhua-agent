@@ -690,3 +690,21 @@ class SchoolExtractionTests(unittest.TestCase):
     def test_name_followed_by_longer_word_is_void_but_real_school_stays(self):
         self.assertNotIn("school", parse_education_fields("我参加了北辰大学生创新活动"))
         self.assertEqual(parse_education_fields("学校改成江北商业大学，计算机科学与技术专业，本科大三。")["school"], "江北商业大学")
+
+
+class SerializeWithoutAbsenceTests(unittest.TestCase):
+    """F4：事实母版保留原话，序列化进 resume_data 的 description/bullets 不含缺失型表述。"""
+
+    def test_description_and_bullets_drop_absence_but_master_keeps_it(self):
+        from app.agents.resume_graph import _serialize_to_resume_data
+        from app.services.resume_facts import normalize_fact_store
+        collected = normalize_fact_store({
+            "projects": [{"item_id": "p1", "name": "读书角", "description": "我写活动介绍。我没有统计阅读量和转化。"}],
+            "work_experience": [{"item_id": "w1", "company": "某社", "description": "整理反馈\\n还没上线，没有用户量"}]})
+        state = {**_init_state(), "collected_info": collected}
+        shown = _serialize_to_resume_data(state)
+        text = str(shown["projects"]) + str(shown["work_experience"])
+        for phrase in ("没有统计", "还没上线", "没有用户量"):
+            self.assertNotIn(phrase, text)
+        self.assertIn("我写活动介绍", text)
+        self.assertIn("没有统计阅读量和转化", str(collected["projects"]))

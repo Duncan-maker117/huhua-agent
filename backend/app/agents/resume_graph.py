@@ -173,6 +173,9 @@ def _extract_opt_basic_info(messages: list) -> dict:
     return out
 
 
+from app.services.fact_guard import strip_absence as _strip_absence  # 「没有用户量」类限制不进入简历展示文本；事实母版原样保留
+
+
 def _serialize_to_resume_data(state: "ResumeState") -> dict:
     """state → ResumeData dict（供 /resume 接口返回给前端渲染）。"""
     collected = state.get("collected_info") or _empty_collected_info()
@@ -218,7 +221,8 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             for field in {fact.get("field") for fact in facts if fact.get("field")}:
                 values = [fact["text"] for fact in facts if fact.get("field") == field and fact.get("status", "active") == "active"]
                 item[field] = values[-1] if values else ""
-            body = [fact["text"] for fact in facts if fact.get("status", "active") == "active" and not fact.get("field")]
+            body = [cleaned for fact in facts if fact.get("status", "active") == "active" and not fact.get("field")
+                    if (cleaned := _strip_absence(fact["text"]))]
             item["description"] = "\n".join(body)
             item["bullets"] = body
         return item
@@ -239,8 +243,9 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
 
     def _work(w: dict) -> dict:
         desc = w.get("description", "")
-        bullets = w.get("bullets") or (
-            [line.strip("-• ") for line in desc.splitlines() if line.strip()]
+        bullets = [cleaned for text in (w.get("bullets") or []) if (cleaned := _strip_absence(text))] or (
+            [cleaned for line in desc.splitlines() if line.strip()
+             if (cleaned := _strip_absence(line.strip("-• ")))]
             if desc
             else []
         )
@@ -253,6 +258,9 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             "bullets": bullets,
         }
 
+    def _proj_description(text: str) -> str:
+        return "\n".join(line for raw in str(text or "").splitlines() if (line := _strip_absence(raw)))
+
     def _proj(p: dict) -> dict:
         return {
             **_presentation(p),
@@ -260,7 +268,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             "role": p.get("role", ""),
             "start_date": p.get("start_date", "") or p.get("duration", ""),
             "end_date": p.get("end_date", ""),
-            "description": p.get("description", ""),
+            "description": _proj_description(p.get("description", "")),
         }
 
     projects = [_proj(_active_item(p)) for p in collected.get("projects", [])]

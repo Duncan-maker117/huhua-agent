@@ -1,0 +1,85 @@
+[
+  {
+    "turn": 1,
+    "phase": "jd",
+    "user": "岗位：数据分析实习生\n岗位职责：使用 SQL 整理业务数据，核对数据质量问题，解释口径差异并形成分析记录。\n任职要求：具备基础 SQL 和表格处理能力，能够区分事实、假设与建议；能清楚描述本人负责的分析步骤。加分项：有业务指标改善验证经验。",
+    "task": "decode_jd",
+    "simulation": null,
+    "disclosed_fact_indices": [],
+    "started_at": "2026-10-09T19:04:59.324510+08:00",
+    "status": "error",
+    "committed_fact_snapshot": {
+      "status": "unknown",
+      "source": "committed_sql",
+      "reason": "authoritative_sql_fact_master_unavailable"
+    },
+    "error_type": "TimeoutError",
+    "error_diagnostic": {
+      "chain": [
+        {
+          "type": "TimeoutError",
+          "relation": "raised",
+          "context_suppressed": true,
+          "repo_frames": [
+            {
+              "file": "evaluation/tailor-bench/run_bench.py",
+              "function": "turn",
+              "lineno": 454
+            }
+          ],
+          "frames_truncated": false
+        },
+        {
+          "type": "CancelledError",
+          "relation": "cause",
+          "context_suppressed": false,
+          "repo_frames": [
+            {
+              "file": "evaluation/tailor-bench/run_bench.py",
+              "function": "turn",
+              "lineno": 456
+            },
+            {
+              "file": "backend/app/agents/resume_graph.py",
+              "function": "stream_agent",
+              "lineno": 2193
+            }
+          ],
+          "frames_truncated": false
+        }
+      ],
+      "chain_truncated": false
+    },
+    "assistant": "",
+    "elapsed_seconds": 150.06,
+    "model_calls": [
+      {
+        "model": "deepseek-v4.1-flash",
+        "status": "started",
+        "run_id": "01a12056-74c6-7783-9fbd-48f69f4e99b7",
+        "started_at": "2026-10-09T19:04:59.334418+08:00"
+      }
+    ],
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0,
+      "logical_model_calls": 1,
+      "calls_with_usage": 0,
+      "calls_without_usage": 1,
+      "cost": null,
+      "cost_status": "not_calculated",
+      "reported_token_cost_usd": null,
+      "sdk_http_attempts": null
+    },
+    "stage": "JD_INPUT",
+    "acceptance_context": {
+      "resume_meta": {},
+      "resume_versions": [],
+      "session_constraints": {}
+    },
+    "new_versions": [
+      "v001"
+    ]
+  }
+]

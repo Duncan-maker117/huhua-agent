@@ -269,8 +269,11 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(result["resume_data"], state["resume_data"])
         self.assertEqual(len(result["resume_data"]["projects"]), 2)
         description = result["resume_data"]["projects"][0]["description"]
-        for fact in ("2 条反馈", "修改了文件选择提示", "没有上线", "没有用户增长数据"):
+        for fact in ("2 条反馈", "修改了文件选择提示"):
             self.assertIn(fact, description)
+        for limit in ("没有上线", "没有用户增长数据"):  # 限制只留在事实母版，不印进展示文本
+            self.assertNotIn(limit, description)
+            self.assertIn(limit, json.dumps(result["collected_info"]["projects"], ensure_ascii=False))
         self.assertEqual(observed[0]["candidate_facts"]["projects"][0]["facts"][-1]["source_quote"], source)
         self.assertTrue(observed[0]["resume_updated"])
 

@@ -1,0 +1,158 @@
+{
+  "id": "handson-01",
+  "title": "口语首稿、职责短答、复合修改与教育更正",
+  "scenario": "handson",
+  "role_family": "ai_pm",
+  "truth_review_status": "pending_claude",
+  "jd_text": "岗位：AI 产品实习生（Agent 方向）\n岗位职责：参与 Agent 产品方案，能把模型能力边界写成可验证的原型。\n任职要求：能说清本人职责；了解大模型应用（RAG、Agent、Function Calling 等）。加分项：有内容推广或开源协作经历。",
+  "opening_turns": [
+    "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。",
+    "途记基本是我一个人做的，产品方案和代码都是我。先给我出一版看看。"
+  ],
+  "truth_facts": [
+    "我是江商大计算机专业本科大三在读；江商大是江北商业大学的简称。",
+    "途记是行程推荐 Agent 原型，还没上线，没有用户量。",
+    "在途记中，模型会推荐不存在的店，我改成先查询候选再让模型从候选里选。",
+    "途记的产品方案和代码基本是我一个人做的。",
+    "工坊集是我用 Claude Code 写的技能，仓库公开，没有星数。",
+    "我为工坊集做过抖音推广，没有推广数据。"
+  ],
+  "forbidden": {
+    "numbers": [
+      "1000",
+      "30%"
+    ],
+    "claims": [
+      "正式上线",
+      "用户量增长",
+      "主导团队"
+    ]
+  },
+  "must_cover": [
+    "r1 抖音推广进稿",
+    "r2 Claude Code 进稿"
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "抖音推广进稿",
+      "evidence_fact_indices": [
+        5
+      ],
+      "keywords": [
+        "抖音"
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r2",
+      "text": "Claude Code 进稿",
+      "evidence_fact_indices": [
+        4
+      ],
+      "keywords": [
+        "Claude Code"
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "已上线的 Agent 产品",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "上线"
+      ],
+      "expected_status": "gap"
+    }
+  ],
+  "edit_instructions": [
+    "途记更突出 Agent 设计；工坊集写详细一点；简历里保留抖音推广和 Claude Code；不要编造用户量。",
+    "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+  ],
+  "traps": [
+    "team_vs_person",
+    "demo_not_launched",
+    "no_metrics"
+  ],
+  "simulator_topics": [
+    {
+      "keywords": [
+        "职责",
+        "分工",
+        "独立",
+        "团队",
+        "一个人",
+        "谁做"
+      ],
+      "fact_indices": [
+        3
+      ]
+    },
+    {
+      "keywords": [
+        "推广",
+        "抖音",
+        "技能",
+        "Claude",
+        "开源"
+      ],
+      "fact_indices": [
+        4,
+        5
+      ]
+    },
+    {
+      "keywords": [
+        "学校",
+        "专业",
+        "学历",
+        "简称",
+        "全称"
+      ],
+      "fact_indices": [
+        0
+      ]
+    },
+    {
+      "keywords": [
+        "上线",
+        "用户",
+        "效果",
+        "数字"
+      ],
+      "fact_indices": [
+        1,
+        5
+      ]
+    }
+  ],
+  "opening_fact_indices": [
+    [
+      1,
+      2,
+      4,
+      5
+    ],
+    [
+      3
+    ]
+  ],
+  "expected_project_names": [
+    "途记",
+    "工坊集"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 0,
+      "fields": {
+        "school": "江商大",
+        "major": "计算机",
+        "degree": "本科",
+        "status": "在读"
+      },
+      "opening_turn_indices": [
+        0
+      ]
+    }
+  ]
+}

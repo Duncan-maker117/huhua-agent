@@ -1,0 +1,320 @@
+{
+  "status": "pending_claude",
+  "confirmed_new_facts": null,
+  "items": [
+    {
+      "kind": "truth_review",
+      "case_id": "handson-01",
+      "review_status": "pending_claude",
+      "truth_review_status": "pending_claude",
+      "source": "handson-01/case.json"
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u011",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "skill",
+        "quote": "Claude Code",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "field_unmatched",
+        "path": "skills.开发工具[0]",
+        "quote": "Claude Code",
+        "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u012",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "skill",
+        "quote": "Claude Code",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "field_unmatched",
+        "path": "skills.开发工具[0]",
+        "quote": "Claude Code",
+        "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u007",
+        "verdict": "unsupported",
+        "observed_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [
+          "并编排行程"
+        ],
+        "reason": "“负责行程推荐模块”“模型推荐不存在店铺”“先查候选再让模型选”有 observed/truth 支持，但“并编排行程”在 observed 和 truth 中均无对应，属于新增动作，故该 unit 不完全支持。",
+        "audit_method": "llm",
+        "quote": "负责行程推荐模块：针对模型推荐不存在店铺的问题，将生成流程改为先检索候选店铺、再由模型在候选内选择并编排行程",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u011",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "skill",
+        "quote": "Claude Code",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "field_unmatched",
+        "path": "skills.开发工具[0]",
+        "quote": "Claude Code",
+        "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": false,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": false,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "semantic",
+      "finding": {
+        "unit_id": "u008",
+        "verdict": "unsupported",
+        "observed_quotes": [
+          "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+          "途记基本是我一个人做的，产品方案和代码都是我。"
+        ],
+        "truth_quotes": [
+          "在途记中，模型会推荐不存在的店，我改成先查询候选再让模型从候选里选。",
+          "途记的产品方案和代码基本是我一个人做的。"
+        ],
+        "unsupported_spans": [
+          "并编排行程"
+        ],
+        "reason": "除“并编排行程”外，其余可被 observed/truth 支持；truth 与 observed 只说明从候选里选，未说明模型编排行程。",
+        "audit_method": "llm",
+        "quote": "负责行程推荐模块：针对模型推荐不存在店铺的问题，将生成流程改为先检索候选店铺、再由模型在候选内选择并编排行程",
+        "review_status": "pending"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": false,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u012",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "skill",
+        "quote": "Claude Code",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": false,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "field_unmatched",
+        "path": "skills.开发工具[0]",
+        "quote": "Claude Code",
+        "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v006",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "version_review",
+      "score_status": "completed",
+      "reason": "逐版事实仍需人工复核，模型通过不等于人工确认。"
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v006",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "unverifiable_unit",
+      "finding": {
+        "unit_id": "u012",
+        "verdict": "unverifiable_unit",
+        "observed_quotes": [],
+        "direction_quotes": [],
+        "truth_quotes": [],
+        "unsupported_spans": [],
+        "reason": "字段级确定性规范化匹配。",
+        "audit_method": "deterministic_field",
+        "field_type": "skill",
+        "quote": "Claude Code",
+        "review_status": "quality_review"
+      }
+    },
+    {
+      "case_id": "handson-01",
+      "version_id": "v006",
+      "turn": 5,
+      "user_visible": true,
+      "review_status": "pending_claude",
+      "source": "handson-01/scores.json",
+      "resume_source": "handson-01/versions.json",
+      "kind": "quality_check",
+      "finding": {
+        "kind": "field_unmatched",
+        "path": "skills.开发工具[0]",
+        "quote": "Claude Code",
+        "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+      }
+    }
+  ]
+}

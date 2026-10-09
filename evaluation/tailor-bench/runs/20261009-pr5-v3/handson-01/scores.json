@@ -1,0 +1,2759 @@
+{
+  "versions": [
+    {
+      "version_id": "v001",
+      "turn": 1,
+      "user_visible": true,
+      "score": {
+        "status": "no_draft",
+        "deterministic": {
+          "status": "no_draft",
+          "candidate_unit_count": 0,
+          "statement_unit_count": 0,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": false
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [],
+          "statement_unit_count": 0,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": false,
+              "available_fact_indices": [],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 0,
+            "total": 0,
+            "ratio": null,
+            "fact_covered": 0,
+            "fact_total": 0,
+            "fact_ratio": null,
+            "requirements": []
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 0,
+            "total": 2,
+            "ratio": 0.0,
+            "fact_covered": 0,
+            "fact_total": 2,
+            "fact_ratio": 0.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": false,
+                "disclosed_applicable": false,
+                "disclosed_covered": null,
+                "truth_covered": false,
+                "available_fact_indices": [],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 0,
+          "total": 0,
+          "ratio": null
+        },
+        "usage": {},
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": []
+    },
+    {
+      "version_id": "v002",
+      "turn": 2,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 10,
+          "statement_unit_count": 5,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "AI 产品实习生（Agent 方向）"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "本版正文主张仅为“大三”，observed_facts 原话中已出现“我是江商大计算机大三的”，直接支持该学历年级表述，未新增本科/在读以外的事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐",
+                "还没上线，没有用户量"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "“课程原型”“做了行程推荐”“未上线、无用户量”均可在 observed_facts 中找到对应原话，改写程度限于书面化，未升级为已上线或有用户。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "模型会推荐不存在的店，我改成先查候选再让模型选"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文描述的问题与改法（先查候选再由模型选）与 observed_facts 原话一致；“候选地点”是“候选”在店铺推荐语境下的同义具体化，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型",
+                "还没上线，没有用户量"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "与 observed_facts 中“基本是课程原型”“还没上线，没有用户量”完全对应，属同义书面化。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能",
+                "仓库是公开的，但没有星数"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "Claude Code 技能、仓库公开、无星数三点均有 observed 原话支持；正文中“没有星数”重复出现属文字冗余，不构成新增事实。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 5,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 3,
+          "personal_contribution": 3,
+          "results_impact": 2,
+          "professional_expression": 3,
+          "selection_length": 4
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                5
+              ],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u010",
+                  "quote": "用 Claude Code 写的技能；仓库是公开的；没有星数",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                4
+              ],
+              "covered_truth_fact_indices": [
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 2,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u010",
+                    "quote": "用 Claude Code 写的技能；仓库是公开的；没有星数",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 2,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u010",
+                    "quote": "用 Claude Code 写的技能；仓库是公开的；没有星数",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1756,
+          "output_tokens": 2390,
+          "total_tokens": 4146
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1206c-6a29-7471-8665-3cc5dc757465",
+          "started_at": "2026-10-09T19:28:58.409705+08:00",
+          "usage": {
+            "input_tokens": 1756,
+            "output_tokens": 2390,
+            "total_tokens": 4146
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v003",
+      "turn": 3,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 9,
+          "statement_unit_count": 4,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "AI 产品实习生（Agent 方向）"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "原话已披露本人为江商大计算机大三，支持“大三”这一身份表述。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "原话覆盖“做了行程推荐”“课程原型”“还没上线，没有用户量”，与正文一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "模型会推荐不存在的店，我改成先查候选再让模型选"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "原话已说明模型推荐不存在店的问题及改为先查候选再让模型选，正文为同义书面化表达，未新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "原话支持“用 Claude Code 写的技能”“仓库公开”“没有星数”，正文虽重复“没有星数”但事实一致。",
+              "audit_method": "llm"
+            }
+          ],
+          "statement_unit_count": 4,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence_supported": false,
+              "disclosed_applicable": true,
+              "disclosed_covered": false,
+              "truth_covered": false,
+              "available_fact_indices": [
+                5
+              ],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u009",
+                  "quote": "用 Claude Code 写的技能；仓库是公开的；没有星数；但没有星数",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                4
+              ],
+              "covered_truth_fact_indices": [
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 2,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "用 Claude Code 写的技能；仓库是公开的；没有星数；但没有星数",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 1,
+            "total": 2,
+            "ratio": 0.5,
+            "fact_covered": 1,
+            "fact_total": 2,
+            "fact_ratio": 0.5,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": false,
+                "evidence": [],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": false,
+                "disclosed_applicable": true,
+                "disclosed_covered": false,
+                "truth_covered": false,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "用 Claude Code 写的技能；仓库是公开的；没有星数；但没有星数",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 1,
+          "total": 2,
+          "ratio": 0.5
+        },
+        "usage": {
+          "input_tokens": 1683,
+          "output_tokens": 1859,
+          "total_tokens": 3542
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1206c-d89b-7212-bc79-cf1fed514fd0",
+          "started_at": "2026-10-09T19:29:26.683384+08:00",
+          "usage": {
+            "input_tokens": 1683,
+            "output_tokens": 1859,
+            "total_tokens": 3542
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v004",
+      "turn": 4,
+      "user_visible": true,
+      "score": {
+        "status": "error",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 11,
+          "statement_unit_count": 5,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "field_unmatched",
+            "path": "skills.开发工具[0]",
+            "quote": "Claude Code",
+            "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+          }
+        ],
+        "factuality": {
+          "status": "not_run",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "AI 产品实习生（Agent 方向）"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 5,
+          "suspicions": [],
+          "unverifiable_units": [],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                5
+              ],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r2",
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": true,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            },
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 2,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "not_run",
+            "covered": null,
+            "total": 2,
+            "ratio": null,
+            "fact_covered": null,
+            "fact_total": 2,
+            "fact_ratio": null,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              },
+              {
+                "requirement_id": "r2",
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence": [],
+                "evidence_supported": null,
+                "disclosed_applicable": true,
+                "disclosed_covered": null,
+                "truth_covered": null,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [],
+                "covered_truth_fact_indices": []
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence": [],
+              "evidence_supported": null,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": null,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": null,
+          "total": 2,
+          "ratio": null
+        },
+        "usage": {},
+        "error_type": "LengthFinishReasonError",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "error",
+          "run_id": "01a1206d-2b8b-77f1-92ea-b88cb1a5d5b5",
+          "started_at": "2026-10-09T19:29:47.916005+08:00",
+          "error_type": "LengthFinishReasonError"
+        }
+      ]
+    },
+    {
+      "version_id": "v005",
+      "turn": 5,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 11,
+          "statement_unit_count": 5,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "field_unmatched",
+            "path": "skills.开发工具[0]",
+            "quote": "Claude Code",
+            "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "AI 产品实习生（Agent 方向）"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "“大三”有已披露原话直接支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+                "途记基本是我一个人做的，产品方案和代码都是我。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "方案设计、本人负责、候选检索再让模型编排等主张均有已披露原话支持；把输出约束到真实候选范围是对“先查候选再让模型从候选里选”的同义概括。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "课程原型、尚未上线、没有用户量均有已披露原话支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "使用 Claude Code 编写工坊集技能、仓库公开均有已披露原话支持；未提及星数不影响该句成立。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "抖音推广、仓库没有星数均有已披露原话支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 5,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u011",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill",
+              "quote": "Claude Code",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u010",
+                  "quote": "为工坊集做过抖音推广",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5
+              ],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                5
+              ],
+              "covered_truth_fact_indices": [
+                5
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u009",
+                  "quote": "使用 Claude Code 编写工坊集技能",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                4
+              ],
+              "covered_truth_fact_indices": [
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u010",
+                    "quote": "为工坊集做过抖音推广",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "使用 Claude Code 编写工坊集技能",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u010",
+                    "quote": "为工坊集做过抖音推广",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u009",
+                    "quote": "使用 Claude Code 编写工坊集技能",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1811,
+          "output_tokens": 3858,
+          "total_tokens": 5669
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1206f-3d3e-7001-8b33-a0f4fd31ceb6",
+          "started_at": "2026-10-09T19:32:03.519105+08:00",
+          "usage": {
+            "input_tokens": 1811,
+            "output_tokens": 3858,
+            "total_tokens": 5669
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v006",
+      "turn": 6,
+      "user_visible": false,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 13,
+          "statement_unit_count": 6,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "field_unmatched",
+            "path": "skills.其他[0]",
+            "quote": "Claude Code",
+            "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "AI 产品实习生（Agent 方向）"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文明确提到大三，支持该 unit 的“大三”主张。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。",
+                "途记基本是我一个人做的，产品方案和代码都是我。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文支持本人做途记行程推荐、方案与代码，并支持针对模型推荐不存在店铺的问题改为先查候选再让模型选择；未新增未披露事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文支持途记是课程原型、尚未上线、暂无用户量。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文支持模型推荐不存在店铺的问题、改为先查候选再让模型选择，以及尚未上线、没有用户量。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文支持使用 Claude Code 编写工坊集技能且代码仓库公开。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u012",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "observed 原文支持为工坊集做过抖音推广、仓库没有星数；末尾重复“但没有星数”属于冗余但不构成新增不实事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u013",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 6,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u013",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill",
+              "quote": "Claude Code",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": null,
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u012",
+                  "quote": "为工坊集做过抖音推广；仓库目前没有星数；但没有星数",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5
+              ],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                5
+              ],
+              "covered_truth_fact_indices": [
+                5
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u011",
+                  "quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                4
+              ],
+              "covered_truth_fact_indices": [
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u012",
+                    "quote": "为工坊集做过抖音推广；仓库目前没有星数；但没有星数",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u011",
+                    "quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u012",
+                    "quote": "为工坊集做过抖音推广；仓库目前没有星数；但没有星数",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u011",
+                    "quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1891,
+          "output_tokens": 2266,
+          "total_tokens": 4157
+        },
+        "quality_scope": "facts_only",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a1206f-ec83-7ce1-86ba-636c8ab48073",
+          "started_at": "2026-10-09T19:32:48.387276+08:00",
+          "usage": {
+            "input_tokens": 1891,
+            "output_tokens": 2266,
+            "total_tokens": 4157
+          }
+        }
+      ]
+    },
+    {
+      "version_id": "v007",
+      "turn": 6,
+      "user_visible": true,
+      "score": {
+        "status": "completed",
+        "deterministic": {
+          "status": "completed",
+          "candidate_unit_count": 13,
+          "statement_unit_count": 6,
+          "flags": [],
+          "suspected_count": 0,
+          "confirmed_fabrications": null,
+          "safe": null,
+          "human_review_required": true
+        },
+        "quality_checks": [
+          {
+            "kind": "field_unmatched",
+            "path": "skills.其他[0]",
+            "quote": "Claude Code",
+            "reason": "独立标题、名称或技能未匹配截至本版披露文本；单列质量问题，不当作新增经历事实。"
+          }
+        ],
+        "factuality": {
+          "status": "pending_human_review",
+          "safe": null,
+          "confirmed_fabrications": null,
+          "audits": [
+            {
+              "unit_id": "u001",
+              "verdict": "supported",
+              "observed_quotes": [],
+              "direction_quotes": [
+                "AI 产品实习生（Agent 方向）"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "objective"
+            },
+            {
+              "unit_id": "u002",
+              "verdict": "supported",
+              "observed_quotes": [
+                "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u003",
+              "verdict": "supported",
+              "observed_quotes": [
+                "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u004",
+              "verdict": "supported",
+              "observed_quotes": [
+                "学校改成江北商业大学，计算机科学与技术专业，本科大三。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u005",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。",
+                "本科大三"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文“大三”与前实际披露的“我是江商大计算机大三的”“本科大三”一致，仅涉及就读阶段，无新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u006",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u007",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选",
+                "途记基本是我一个人做的，产品方案和代码都是我。"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文称负责途记行程推荐方案设计与实现，并针对不存在店铺问题先检索候选、再由模型编排、约束输出；前披露有“我做了行程推荐”“产品方案和代码都是我”“改成先查候选再让模型选”，为同义改写。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u008",
+              "verdict": "supported",
+              "observed_quotes": [
+                "途记基本是课程原型",
+                "还没上线，没有用户量"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文说途记目前为课程原型、尚未上线、暂无用户量，均能从已披露原话直接支持。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u009",
+              "verdict": "supported",
+              "observed_quotes": [
+                "模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文复述模型推荐不存在店铺的问题、改为先查候选再让模型从中选择、未上线且无用户量，与前披露原话一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u010",
+              "verdict": "supported",
+              "observed_quotes": [
+                "我是江商大计算机大三的。途记基本是课程原型，我做了行程推荐，模型会推荐不存在的店，我改成先查候选再让模型选，还没上线，没有用户量。工坊集是我用 Claude Code 写的技能，也做过抖音推广，仓库是公开的，但没有星数。"
+              ],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "label"
+            },
+            {
+              "unit_id": "u011",
+              "verdict": "supported",
+              "observed_quotes": [
+                "工坊集是我用 Claude Code 写的技能",
+                "仓库是公开的"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文称使用 Claude Code 编写工坊集技能、代码仓库公开，与前披露原话一致。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u012",
+              "verdict": "supported",
+              "observed_quotes": [
+                "也做过抖音推广",
+                "但没有星数"
+              ],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "正文称曾为工坊集做抖音推广且仓库没有星数，前披露原话支持；末尾“但没有星数”重复但不新增事实。",
+              "audit_method": "llm"
+            },
+            {
+              "unit_id": "u013",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill"
+            }
+          ],
+          "statement_unit_count": 6,
+          "suspicions": [],
+          "unverifiable_units": [
+            {
+              "unit_id": "u013",
+              "verdict": "unverifiable_unit",
+              "observed_quotes": [],
+              "direction_quotes": [],
+              "truth_quotes": [],
+              "unsupported_spans": [],
+              "reason": "字段级确定性规范化匹配。",
+              "audit_method": "deterministic_field",
+              "field_type": "skill",
+              "quote": "Claude Code",
+              "review_status": "quality_review"
+            }
+          ],
+          "human_review_required": true
+        },
+        "quality": {
+          "jd_relevance": 4,
+          "personal_contribution": 4,
+          "results_impact": 3,
+          "professional_expression": 3,
+          "selection_length": 3
+        },
+        "coverage": {
+          "requirements": [
+            {
+              "requirement_id": "r1",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u012",
+                  "quote": "为工坊集做过抖音推广",
+                  "fact_indices": [
+                    5
+                  ]
+                }
+              ],
+              "requirement": "r1 抖音推广进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                5
+              ],
+              "truth_fact_indices": [
+                5
+              ],
+              "covered_disclosed_fact_indices": [
+                5
+              ],
+              "covered_truth_fact_indices": [
+                5
+              ]
+            },
+            {
+              "requirement_id": "r2",
+              "covered": true,
+              "evidence": [
+                {
+                  "unit_id": "u011",
+                  "quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。",
+                  "fact_indices": [
+                    4
+                  ]
+                },
+                {
+                  "unit_id": "u012",
+                  "quote": "仓库目前没有星数",
+                  "fact_indices": [
+                    4
+                  ]
+                }
+              ],
+              "requirement": "r2 Claude Code 进稿",
+              "expected_status": "direct",
+              "evidence_supported": true,
+              "disclosed_applicable": true,
+              "disclosed_covered": true,
+              "truth_covered": true,
+              "available_fact_indices": [
+                4
+              ],
+              "truth_fact_indices": [
+                4
+              ],
+              "covered_disclosed_fact_indices": [
+                4
+              ],
+              "covered_truth_fact_indices": [
+                4
+              ]
+            },
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": []
+            }
+          ],
+          "coverage_of_disclosed": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u012",
+                    "quote": "为工坊集做过抖音推广",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u011",
+                    "quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。",
+                    "fact_indices": [
+                      4
+                    ]
+                  },
+                  {
+                    "unit_id": "u012",
+                    "quote": "仓库目前没有星数",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "coverage_of_truth": {
+            "status": "completed",
+            "covered": 2,
+            "total": 2,
+            "ratio": 1.0,
+            "fact_covered": 2,
+            "fact_total": 2,
+            "fact_ratio": 1.0,
+            "requirements": [
+              {
+                "requirement_id": "r1",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u012",
+                    "quote": "为工坊集做过抖音推广",
+                    "fact_indices": [
+                      5
+                    ]
+                  }
+                ],
+                "requirement": "r1 抖音推广进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  5
+                ],
+                "truth_fact_indices": [
+                  5
+                ],
+                "covered_disclosed_fact_indices": [
+                  5
+                ],
+                "covered_truth_fact_indices": [
+                  5
+                ]
+              },
+              {
+                "requirement_id": "r2",
+                "covered": true,
+                "evidence": [
+                  {
+                    "unit_id": "u011",
+                    "quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。",
+                    "fact_indices": [
+                      4
+                    ]
+                  },
+                  {
+                    "unit_id": "u012",
+                    "quote": "仓库目前没有星数",
+                    "fact_indices": [
+                      4
+                    ]
+                  }
+                ],
+                "requirement": "r2 Claude Code 进稿",
+                "expected_status": "direct",
+                "evidence_supported": true,
+                "disclosed_applicable": true,
+                "disclosed_covered": true,
+                "truth_covered": true,
+                "available_fact_indices": [
+                  4
+                ],
+                "truth_fact_indices": [
+                  4
+                ],
+                "covered_disclosed_fact_indices": [
+                  4
+                ],
+                "covered_truth_fact_indices": [
+                  4
+                ]
+              }
+            ]
+          },
+          "gap_requirements": [
+            {
+              "requirement_id": "r3",
+              "covered": false,
+              "evidence": [],
+              "requirement": "r3 已上线的 Agent 产品",
+              "expected_status": "gap",
+              "evidence_supported": false,
+              "disclosed_applicable": false,
+              "disclosed_covered": null,
+              "truth_covered": null,
+              "available_fact_indices": [],
+              "truth_fact_indices": [],
+              "covered_disclosed_fact_indices": [],
+              "covered_truth_fact_indices": [],
+              "leaked_into_resume": false,
+              "positive_coverage_applicable": false
+            }
+          ],
+          "covered": 2,
+          "total": 2,
+          "ratio": 1.0
+        },
+        "usage": {
+          "input_tokens": 1952,
+          "output_tokens": 7888,
+          "total_tokens": 9840
+        },
+        "quality_scope": "scored",
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12070-48b9-7c12-9e62-b5762ffc4dc8",
+          "started_at": "2026-10-09T19:33:11.993807+08:00",
+          "usage": {
+            "input_tokens": 1952,
+            "output_tokens": 7888,
+            "total_tokens": 9840
+          }
+        }
+      ]
+    }
+  ],
+  "edits": [
+    {
+      "turn": 5,
+      "instruction": "途记更突出 Agent 设计；工坊集写详细一点；简历里保留抖音推广和 Claude Code；不要编造用户量。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": false,
+        "executed": false,
+        "reason": "途记部分有加强 Agent 设计，补充了“方案设计”和“把模型输出约束在真实候选范围内”；抖音推广、Claude Code 和“无用户量”也都保留。但“工坊集写详细一点”没有实质执行：工坊集条目仅把“用...开发”改成“使用...编写”，信息量没有增加，未写出更详细内容。",
+        "evidence": [
+          {
+            "before_quote": "用 Claude Code 开发工坊集技能，代码仓库公开。",
+            "after_quote": "使用 Claude Code 编写工坊集技能，代码仓库公开。"
+          },
+          {
+            "before_quote": "负责途记的行程推荐模块，针对模型会推荐不存在的店的问题，改为先检索候选地点、再由模型在候选中编排行程。",
+            "after_quote": "负责途记行程推荐模块的方案设计：针对模型会推荐不存在的店的问题，改为先检索候选地点、再由模型在候选中编排行程，把模型输出约束在真实候选范围内。"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1224,
+          "output_tokens": 1761,
+          "total_tokens": 2985
+        },
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12071-a30a-7962-b333-f2270cd96414",
+          "started_at": "2026-10-09T19:34:40.650639+08:00",
+          "usage": {
+            "input_tokens": 1224,
+            "output_tokens": 1761,
+            "total_tokens": 2985
+          }
+        }
+      ]
+    },
+    {
+      "turn": 6,
+      "instruction": "学校改成江北商业大学，计算机科学与技术专业，本科大三。",
+      "turn_status": "completed",
+      "score": {
+        "status": "completed",
+        "substantive_diff": true,
+        "followed": true,
+        "executed": true,
+        "reason": "用户要求把学校改为江北商业大学、专业改为计算机科学与技术、学历为本科大三。after 中 u002 由“江商大”改为“江北商业大学”，u003 由“计算机”改为“计算机科学与技术”，并新增“本科”且保留“大三”，三项要求均已实质执行。",
+        "evidence": [
+          {
+            "before_quote": "江商大",
+            "after_quote": "江北商业大学"
+          },
+          {
+            "before_quote": "计算机",
+            "after_quote": "计算机科学与技术"
+          },
+          {
+            "before_quote": "大三",
+            "after_quote": "本科"
+          },
+          {
+            "before_quote": "大三",
+            "after_quote": "大三"
+          }
+        ],
+        "usage": {
+          "input_tokens": 1294,
+          "output_tokens": 403,
+          "total_tokens": 1697
+        },
+        "judge_code_sha256": "9d3d91fb7101309949fae8f839aa4742f6a275a3d48e100b14ac5bb1901f4c04"
+      },
+      "review_calls": [
+        {
+          "model": "deepseek-v4.1-flash",
+          "status": "completed",
+          "run_id": "01a12071-f590-7601-8b26-23adc4850411",
+          "started_at": "2026-10-09T19:35:01.776462+08:00",
+          "usage": {
+            "input_tokens": 1294,
+            "output_tokens": 403,
+            "total_tokens": 1697
+          }
+        }
+      ]
+    }
+  ],
+  "pairwise": {
+    "status": "not_run_without_comparator"
+  },
+  "human_review": {
+    "status": "pending_claude",
+    "confirmed_new_facts": null
+  }
+}

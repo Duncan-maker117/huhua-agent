@@ -489,6 +489,40 @@ class ExpansionGuardTests(unittest.TestCase):
         self.assertEqual(strip_absence("实现接口并联调。"), "实现接口并联调。")
         self.assertNotIn("没有用户量", strip_absence("先查候选店铺再编排行程；没有用户量"))
 
+    def test_f2_frequency_and_purpose_additions_fail(self):
+        samples = [
+            ("此前主要做社团运营，长期接触群内同学的实际问题，现转向 AI 产品方向", opening("career-switch-01"), "unsupported_frequency_duration:长期"),
+            ("使用 SQL 按商品和日期汇总模拟采购流水，将汇总结果导入表格，供小组后续分析使用",
+             "我用 SQL 按商品和日期汇总采购流水，将汇总结果导入表格", "unsupported_purpose:供"),
+            ("核对汇总结果中的疑似重复记录并标记，保留原始数据，供后续复核", "核对疑似重复的记录并作标记，没有删除原始数据", "unsupported_purpose:供"),
+            ("用于验证效果", "我做了一个原型", "unsupported_purpose:用于"),
+            ("为小组提供清单", "我整理了清单", "unsupported_purpose:提供"),
+            ("多次修改提示", "我改了提示", "unsupported_frequency_duration:多次"),
+        ]
+        for text, source, marker in samples:
+            with self.subTest(text=text):
+                self.assertIn(marker, lexical_fact_errors(text, source))
+        # 来源已有同样说法时放行（语义阶段仍会核对）
+        self.assertEqual([e for e in lexical_fact_errors("供老师查看原型", "原型链接提交给老师，供老师查看")
+                          if e.startswith("unsupported_purpose")], [])
+
+    def test_f5_enumeration_count_is_a_synonym_not_a_new_number(self):
+        source = "我用接口请求手动检查了正常借还、缺少编号和重复归还的情况"
+        self.assertNotIn("unsupported_numbers", "".join(lexical_fact_errors("手动检查正常借还、缺少编号、重复归还三项情况", source)))
+        self.assertIn("unsupported_numbers:3", lexical_fact_errors("手动检查三项情况", "我手动检查了几个情况"))
+
+
+    async def test_f5_role_fact_of_the_same_item_supports_independent(self):
+        facts = [{'id': 'f1', 'item_id': 'p1', 'kind': 'action', 'text': '做行程推荐', 'source_quote': '做行程推荐', 'status': 'active'},
+                 {'id': 'f2', 'item_id': 'p1', 'kind': 'role', 'text': '途记基本是我一个人做的', 'source_quote': '途记基本是我一个人做的', 'status': 'active'}]
+        checked = await guard_bullets([{'id': 'b1', 'item_id': 'p1', 'text': '独立完成行程推荐', 'fact_ids': ['f1']}],
+                                      facts, llm=FakeModel([decision()]))
+        self.assertNotIn('unsupported_responsibility_or_status:独立', checked[0]['lexical_errors'])
+        other = [{**facts[0], 'item_id': 'p1'}, {**facts[1], 'item_id': 'p2'}]
+        checked = await guard_bullets([{'id': 'b1', 'item_id': 'p1', 'text': '独立完成行程推荐', 'fact_ids': ['f1']}],
+                                      other, llm=FakeModel([decision()]))
+        self.assertIn('unsupported_responsibility_or_status:独立', checked[0]['lexical_errors'])
+
     def test_omitting_a_negation_is_allowed_and_reversing_it_is_not(self):
         self.assertNotIn("contradicted_status_limit", lexical_fact_errors("实现接口", "还没上线，没有用户量"))
         self.assertIn("contradicted_status_limit", lexical_fact_errors("项目已上线并有用户量增长", "还没上线，没有用户量"))

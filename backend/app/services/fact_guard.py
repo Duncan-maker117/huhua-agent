@@ -259,6 +259,25 @@ def contradicts_limit(text: str, source: str) -> bool:
     return False
 
 
+def _enumeration_counts(source: str) -> set[int]:
+    """Item counts of coordinated lists in the source: 「A、B和C」→ 3."""
+    counts = set()
+    for clause in re.split(r"[，,。；;\n]", source or ""):
+        if re.search(r"[、和及与]", clause):
+            pieces = [part for part in re.split(r"[、]|和|及|与", clause) if part.strip()]
+            if len(pieces) >= 2:
+                counts.add(len(pieces))
+    return counts
+
+
+_FREQUENCY_MARKERS = ("长期", "持续", "多次", "反复", "经常", "频繁", "定期")
+_PURPOSE_PATTERNS = (
+    (re.compile(r"供[^，。；;]{0,12}?(?:使用|参考|分析|复核|查看|核对|讨论)"), "供"),
+    (re.compile(r"用于[^，。；;]{1,12}"), "用于"),
+    (re.compile(r"为[^，。；;]{1,10}提供"), "提供"),
+)
+
+
 def expansion_errors(text: str, source: str) -> list[str]:
     """Manner, scope, effect, and action words the source did not say."""
     errors = []
@@ -271,6 +290,13 @@ def expansion_errors(text: str, source: str) -> list[str]:
         if phrase in (text or "") and (phrase not in (source or "") or re.search(r"没有.{0,12}" + phrase, source or "")):
             errors.append("unsupported_effect")
             break
+    for marker in _FREQUENCY_MARKERS:
+        if marker in (text or "") and marker not in (source or ""):
+            errors.append("unsupported_frequency_duration:" + marker)
+    for pattern, key in _PURPOSE_PATTERNS:
+        match = pattern.search(text or "")
+        if match and key not in (source or ""):
+            errors.append("unsupported_purpose:" + key)
     if re.search(r"梳理出|总结出|归纳出", text or "") and not re.search(r"梳理出|总结出|归纳出", source or ""):
         errors.append("unsupported_action:梳理出")
     if "具体场景" in (text or "") and "具体场景" not in (source or ""):
@@ -278,9 +304,13 @@ def expansion_errors(text: str, source: str) -> list[str]:
     return errors
 
 
-def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
+def lexical_fact_errors(text: str, source_quote: str, role_context: str = "") -> list[str]:
     errors = []
     extra = extract_numbers(text) - extract_numbers(source_quote)
+    # 「N 类/N 种/N 项」若等于来源并列列举的项数，是计数的同义改写，不算新增数字
+    extra = {value for value in extra
+             if not (value.isdigit() and int(value) in _enumeration_counts(source_quote)
+                     and re.search(r"[0-9一二两三四五六七八九]\s*(?:类|种|项|个|条|方面|部分|情况)", text))}
     if extra:
         errors.append("unsupported_numbers:" + ",".join(sorted(extra)))
     # A prototype can already be public. Its stage alone never establishes
@@ -298,12 +328,14 @@ def lexical_fact_errors(text: str, source_quote: str) -> list[str]:
     for term in RESPONSIBILITY_TERMS:
         if not _affirmed(text, term):
             continue
-        supported = _affirmed(source_quote, term)
+        # 同一条目下任一 active 的 role/team 事实也能支持职责措辞（writer 不必每条都引用）
+        support = f"{source_quote}\n{role_context}" if role_context else source_quote
+        supported = _affirmed(support, term)
         if term == "负责":
-            supported = supported or bool(re.search(r"我(?:写|做|负责)|都是我|是我(?:做|写|设计)的", source_quote))
+            supported = supported or bool(re.search(r"我(?:写|做|负责)|都是我|是我(?:做|写|设计)的", support))
         if term == "独立":
             # 「我一个人做的」就是独立完成的原话，不必逐字出现「独立」。
-            supported = supported or bool(re.search(r"我一个人|一个人(?:做|完成|写)|自己一个人|独自|单独完成", source_quote))
+            supported = supported or bool(re.search(r"我一个人|一个人(?:做|完成|写)|自己一个人|独自|单独完成", support))
         if not supported:
             errors.append("unsupported_responsibility_or_status:" + term)
     if contradicts_limit(text, source_quote):
@@ -361,6 +393,10 @@ SEMANTIC_CONTRACT = """核验每条候选表述是否被其 source_quotes 完整
 14. 来源“核对了清单”→“梳理出清单对不上的具体场景”：fail，新增动作。
 15. 来源“挑出来看错分图片”→“逐张查看错分图片”：fail，方式修饰。
 16. 来源“人工检查分类结果”→“逐条人工检查分类结果”：fail，频次修饰。
+17. 来源“整理汇总结果”→“整理汇总结果，供小组后续分析使用”：fail，新增用途/交付对象。
+18. 来源“核对疑似重复记录并标记”→“……保留原始数据，供后续复核”：fail，新增用途/交付对象。
+19. 来源“把群里反复问的问题放到表格里”→“长期接触群内同学的实际问题”：fail，新增时长/频次修饰。
+20. 来源“手动检查了正常借还、缺少编号和重复归还的情况”→“手动检查三类情况”：pass，并列项计数是同义改写。
 补充正例：
 6. 来源“我用老师提供的代码训练模型，并在验证集评估结果”→“使用老师代码完成训练与评估”：pass，原文明确动作主体和两个阶段。
 7. 来源“我用 SQLite 设计表结构并实现借还接口”→“使用 SQLite 实现接口和数据存储”：pass，method_tool 与本人动作均有原文支持。
@@ -477,7 +513,10 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
             errors.append("wrong_experience_fact")
         sources = [_source_quote(f) for f in cited]
         source = "\n".join(sources)
-        errors.extend(lexical_fact_errors(bullet.get("text", ""), source))
+        role_context = "\n".join(_source_quote(f) for f in index.values()
+                                 if bullet.get("item_id") and f.get("item_id") == bullet["item_id"]
+                                 and f.get("kind") in ("role", "team"))
+        errors.extend(lexical_fact_errors(bullet.get("text", ""), source, role_context))
         # 事实本身可以是「没有用户量」；只有印进简历正文才是缺陷。
         if absence_printed(bullet.get("text", "")):
             errors.append("negative_absence_printed")

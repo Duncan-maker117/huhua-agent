@@ -14,7 +14,7 @@ from app.agents import resume_writer as writer  # noqa: E402
 
 
 INSTRUCTION = "只把第二条压成一条，保留键盘检查搜索操作的本人工作、队友负责数据接口的分工，不改第一条。"
-BAD_TEXT = "我完成键盘检查，排查频繁出现的接口问题"
+BAD_TEXT = "我完成键盘检查，排查出现的接口问题"
 REPAIRED_TEXT = "用键盘检查搜索操作能否完成；数据接口由队友负责"
 TARGETS = ["/projects/0/polished_bullets/1"]
 UNRELATED = "另一个活动中整理报名材料 UNRELATED_ITEM_EVIDENCE"
@@ -89,7 +89,7 @@ def run(main, guard, **kwargs):
 class WriterRepairContextTest(unittest.TestCase):
     def test_semantic_feedback_edit_intent_and_budget_reach_actual_repair_input(self):
         main = CapturingModel(("OnePassOutput", first_output()), ("RepairOutput", repair_output()))
-        guard = CapturingModel(("SemanticBatch", semantic("fail", ["排查频繁出现的接口问题"])),
+        guard = CapturingModel(("SemanticBatch", semantic("fail", ["排查出现的接口问题"])),
                                ("SemanticBatch", semantic("pass")))
         result = run(main, guard)
         self.assertEqual([name for name, _ in main.calls], ["OnePassOutput", "RepairOutput"])
@@ -107,7 +107,7 @@ class WriterRepairContextTest(unittest.TestCase):
         self.assertEqual(feedback["lexical_errors"], [])
         self.assertFalse(feedback["semantic"]["actions_supported"])
         self.assertFalse(feedback["semantic"]["results_supported"])
-        self.assertEqual(feedback["semantic"]["unsupported_spans"], ["排查频繁出现的接口问题"])
+        self.assertEqual(feedback["semantic"]["unsupported_spans"], ["排查出现的接口问题"])
         self.assertEqual(feedback["semantic"]["verdict"], "fail")
         self.assertEqual({row["id"] for row in payload["active_facts"]}, {"f1", "f2", "f3"})
         self.assertEqual({row["item_id"] for row in payload["active_facts"]}, {"p1"})

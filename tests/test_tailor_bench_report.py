@@ -323,6 +323,18 @@ class ReportTest(unittest.TestCase):
         result = report.build_report(self.output)
         self.assertEqual(result["cases"][0]["versions"][0]["score_status"], "invalid_completed_score")
 
+    def test_same_model_judge_is_named_in_the_summary(self):
+        self.manifest()
+        path = self.output / "manifest.json"
+        data = json.loads(path.read_text())
+        data.update(phase="PR4", writer_model="deepseek-v4.1-flash",
+                    judge_model="deepseek-v4.1-flash", same_model_judge=True)
+        path.write_text(json.dumps(data), encoding="utf-8")
+        self.fixture()
+        report.build_report(self.output)
+        self.assertIn("评审与写作同为 deepseek-v4.1-flash，质量分仅供参考，事实以确定性检查和 Claude 复核为准。",
+                      (self.output / "summary.md").read_text())
+
     def test_completed_requires_both_lexical_and_semantic_review(self):
         self.manifest()
         for missing in ("deterministic", "factuality"):

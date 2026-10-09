@@ -730,7 +730,7 @@ def build_report(output: Path) -> dict:
     usage["all_models"] = _sum_usage([case.get(f"{kind}_usage") for case in cases for kind in ("graph", "judge", "simulator")])
     aggregate = {
         "report_version": 2, "private": private, "status": "evaluated_pending_claude" if complete else "incomplete",
-        "run": {key: manifest.get(key) for key in ("phase", "scope", "started_at", "finished_at", "git_commit", "git_branch", "writer_model", "structured_model", "judge_model", "status", "backend_unchanged")},
+        "run": {key: manifest.get(key) for key in ("phase", "scope", "started_at", "finished_at", "git_commit", "git_branch", "writer_model", "structured_model", "judge_model", "same_model_judge", "status", "backend_unchanged")},
         "manifest_problems": problems, "truth_review_status": "approved_by_claude" if cases and all(case["truth_review_status"] == "approved_by_claude" for case in cases) else "pending_claude",
         "historical_review": {"run_id": "20261008-baseline", "reviewer": "Claude", "source": "../../claude-review-response.txt",
                               "confirmed_new_experience_facts": 0, "unsupported_objective_expansion_cases": 1,

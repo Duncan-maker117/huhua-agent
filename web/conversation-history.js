@@ -281,6 +281,14 @@
     } catch (error) { setStatus(`删除失败：${error.message}`, true); }
     finally { deleting = false; button.disabled = false; setBusy(false); }
   }
+  // 流式文本可能比落库的最后一条回复多出前缀（如「正在根据…写这一版」进度语），或由多条回复拼成；
+  // 只要落库的最后一条完整出现在本轮流式文本末尾，就是已保存。
+  function savedReplyMatches(saved, streamed) {
+    if (typeof saved !== 'string' || typeof streamed !== 'string') return false;
+    if (saved === streamed) return true;
+    const tail = saved.trim();
+    return tail.length >= 20 && streamed.trim().endsWith(tail);
+  }
   async function afterTurn() {
     const id = SESSION_ID;
     const expected = messages.at(-1)?.content;
@@ -292,7 +300,7 @@
       $('conversation-title').textContent = activeTitle;
       $('conversation-title').title = activeTitle;
       const last = body.messages?.at(-1);
-      if (last?.role === 'assistant' && last.content === expected) { unsavedChatSessions.delete(id); setStatus(window.HuhuaAccount?.guest() ? window.HuhuaAccount.guestNotice() : '已保存，可从历史对话继续。'); }
+      if (last?.role === 'assistant' && savedReplyMatches(last.content, expected)) { unsavedChatSessions.delete(id); setStatus(window.HuhuaAccount?.guest() ? window.HuhuaAccount.guestNotice() : '已保存，可从历史对话继续。'); }
       else setStatus('本轮回复可能未完整保存，未保存内容仅留在本页，关闭或刷新前请下载恢复稿。', true, afterTurn);
     } catch (error) {
       if (id === SESSION_ID) setStatus('暂时无法确认保存，未保存内容仅留在本页，关闭或刷新前请下载恢复稿。' + error.message, true, afterTurn);

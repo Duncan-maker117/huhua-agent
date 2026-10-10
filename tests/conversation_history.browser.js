@@ -25,6 +25,7 @@ async (page) => {
   let holdStream = null;
   let streamStarted;
   let lastSend = null;
+  let streamMode = '';
   page.removeAllListeners('pageerror');
   page.removeAllListeners('dialog');
   page.on('pageerror', error => errors.push(error.message));
@@ -76,10 +77,12 @@ async (page) => {
       lastSend = req.postDataJSON();
       if (holdStream) { streamStarted?.(); await holdStream; }
       const fixture = fixtures.get(lastSend.session_id);
-      const reply = '**已基于这个对话修改**';
-      fixture.messages.push(lastSend.messages.at(-1), {role: 'assistant', content: reply});
+      const reply = streamMode === 'lost' ? '这条回复没有落库，所以服务端最后一条仍是上一轮的内容。' : streamMode ? '已按已有事实更新右侧待核对草稿，并保留未涉及的内容。' : '**已基于这个对话修改**';
+      // prefix：流式文本多出一段进度前缀，落库只有最终回复；lost：服务端没有保存本轮回复。
+      if (streamMode !== 'lost') fixture.messages.push(lastSend.messages.at(-1), {role: 'assistant', content: reply});
       fixture.updated_at = '2026-10-02T08:00:00Z';
-      await route.fulfill({contentType: 'text/event-stream', body: 'data: ' + JSON.stringify({content: reply}) + '\n\ndata: [DONE]\n\n'});
+      const streamed = streamMode === 'prefix' ? '正在根据你已经确认的经历写这一版…\n\n' + reply : reply;
+      await route.fulfill({contentType: 'text/event-stream', body: 'data: ' + JSON.stringify({content: streamed}) + '\n\ndata: [DONE]\n\n'});
     } else if (path === '/api/resume/current') {
       const fixture = fixtures.get(decodeURIComponent(req.url().split('session_id=')[1] || ''));
       await route.fulfill({json: {data: fixture?.resume_data, has_data: fixture?.has_data || false, stage: fixture?.stage || 'JD_INPUT', has_jd: true, match_enabled: false}});
@@ -167,6 +170,20 @@ async (page) => {
   await page.waitForFunction(() => document.getElementById('btn-send').title === '发送');
   check(lastSend.session_id === 'history-a' && lastSend.messages.length === 1 && lastSend.messages[0].content === '只调整 A 的项目表达', '续聊使用原会话且只发送本轮消息');
   check(fixtures.get('history-b').messages.length === 2, '续聊不会改写其他会话记录');
+
+  streamMode = 'prefix';
+  const afterPrefixTurn = page.waitForResponse(response => response.url().endsWith('/api/chat/conversations/history-a'));
+  await page.locator('#input').fill('再微调一次');
+  await page.locator('#btn-send').click();
+  await afterPrefixTurn;
+  await page.waitForTimeout(400);
+  check(!(await page.locator('#conversation-status').textContent()).includes('可能未完整保存'), '流式文本比落库回复多出进度前缀时仍判为已保存');
+  streamMode = 'lost';
+  await page.locator('#input').fill('这一轮服务端没保存');
+  await page.locator('#btn-send').click();
+  await page.waitForFunction(() => document.getElementById('conversation-status').textContent.includes('可能未完整保存'));
+  check(true, '服务端确实没有保存本轮回复时仍提示可能未完整保存');
+  streamMode = '';
 
   fixtures.get('history-a').messages.push({role: 'user', content: '中断测试的同一用户消息'});
   const incomplete = [...fixtures.get('history-a').messages, {role: 'assistant', content: '**本地未完成片段\n\n[已中断]', interrupted: true}];

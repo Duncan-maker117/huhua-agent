@@ -918,8 +918,8 @@ def unrecorded_notice(collected: dict, latest_human: str) -> str:
 
 
 def _notice_messages(collected: dict, latest_human: str) -> list:
-    notice = unrecorded_notice(collected, latest_human).strip()
-    return [AIMessage(content=notice)] if notice else []
+    notice = unrecorded_notice(collected, latest_human)
+    return [AIMessage(content=notice)] if notice else []  # 保留开头的空行：流式拼接时与上一条回复分段
 
 
 def _latest_human_text(state: dict) -> str:
@@ -1845,7 +1845,7 @@ async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """A draft edit always invokes the writer, even when it adds no new facts."""
     from app.agents.tailor_pipeline import infer_edit_scope
-    from app.services.resume_versions import restore_payload
+    from app.services.resume_versions import education_correction_note, restore_payload
     data = state.get("resume_data") or _serialize_to_resume_data(state)
     message = next((m for m in reversed(state.get('messages', [])) if isinstance(m, HumanMessage)), HumanMessage(content=''))
     text = message.content
@@ -1863,7 +1863,8 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         except ValueError as error:
             return {'messages': [AIMessage(content=str(error))]}
         return {**restored, 'stage': 'EVALUATING', 'resume_draft': resume_to_text(restored['resume_data']),
-                'messages': [AIMessage(content='已恢复上一版文稿；本轮新提供的事实仍保留。')],
+                'messages': [AIMessage(content='已恢复上一版文稿；本轮新提供的事实仍保留。'
+                                       + (('\n\n' + _note) if (_note := education_correction_note(state.get('collected_info'))) else ''))],
                 'change_summary': ['恢复上一版文稿']}
     if state.get('resume_data') and _re.search(
             r"没有更多|只使用我已经提供|没有其他可以确认|没有可以补充", text

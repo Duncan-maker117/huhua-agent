@@ -10,7 +10,7 @@ from app.services.access_control import authorize_session
 from app.services.canonical_resume import InvalidResumeSession, ResumeSaveUnavailable, ResumeRevisionConflict, resume_revision, save_canonical_resume
 from app.services.profile_bridge import account_id, protect_data, protect_state
 from app.services.profile_service import context_to_collected_info, get_context, merge_job_version_import, ProfileRevisionConflict
-from app.services.resume_versions import restore_payload, document_diff
+from app.services.resume_versions import restore_payload, document_diff, education_correction_note
 from app.services.resume_workspace import build_workspace
 from app.services.session_store import load_resume_session, session_lock, SessionStorageUnavailable
 
@@ -57,7 +57,8 @@ async def undo_version(session_id: str, body: VersionUndo, request: Request):
             raise HTTPException(503, "撤销保存失败，当前版本未更改，请重试") from None
         return {**saved, "version_id": proposal["version_id"],
                 "diff": document_diff(stored["resume_data"], saved["data"]),
-                "change_summary": ["已恢复到所选历史版本，事实资料和当前编辑要求保持不变。"],
+                "change_summary": ["已恢复到所选历史版本，事实资料和当前编辑要求保持不变。",
+                                   *filter(None, [education_correction_note(stored.get("collected_info"))])],
                 "workspace": build_workspace({**stored, "resume_meta": proposal["resume_meta"],
                                               "resume_versions": proposal["resume_versions"]}, saved["data"])}
 

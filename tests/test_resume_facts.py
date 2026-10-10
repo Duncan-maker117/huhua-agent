@@ -87,6 +87,13 @@ class ResumeFactsTest(unittest.TestCase):
         self.assertEqual([f["text"] for f in active_facts_for_writer(merged)["projects"][0]["facts"]], ["参与开发"])
         self.assertEqual(merged["field_conflicts"][0]["selected"], "参与开发")
 
+    def test_education_values_never_become_skills(self):
+        from app.services.resume_facts import normalize_fact_store
+        store = normalize_fact_store({
+            "education": [{"item_id": "e1", "school": "哈尔滨商业大学", "major": "计算机科学与技术"}],
+            "skills": [{"name": "计算机科学与技术"}, {"name": "哈尔滨商业大学"}, {"name": "FastAPI"}]})
+        self.assertEqual([skill["name"] for skill in store["skills"]], ["FastAPI"])
+
 
 if __name__ == "__main__":
     unittest.main()

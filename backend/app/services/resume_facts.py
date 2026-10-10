@@ -38,6 +38,24 @@ def _normalized_fact(fact: dict) -> dict | None:
     return result
 
 
+def _fold_value(value) -> str:
+    return re.sub(r"\s+", "", str(value or "")).casefold()
+
+
+def _education_values(store: dict) -> set[str]:
+    """学校/专业/学历/年级的取值不是技能（专业「计算机科学与技术」不能出现在技能栏）。"""
+    values = set()
+    for item in store.get("education") or []:
+        if not isinstance(item, dict):
+            continue
+        values.update(_fold_value(item.get(key)) for key in ("school", "major", "degree", "grade"))
+        for fact in item.get("facts") or []:
+            if isinstance(fact, dict) and fact.get("field") in {"school", "major", "degree", "grade"}:
+                values.add(_fold_value(fact.get("text")))
+    values.discard("")
+    return values
+
+
 def normalize_fact_store(collected: dict | None) -> dict:
     """Upgrade legacy raw descriptions without interpreting polished draft text as evidence."""
     result = copy.deepcopy(collected or {})
@@ -80,6 +98,7 @@ def normalize_fact_store(collected: dict | None) -> dict:
                 item["raw_notes"] = [raw]
     skills = result.get("skills", [])
     if isinstance(skills, list):
+        education_values = _education_values(result)
         normalized_skills = []
         for skill in skills:
             if isinstance(skill, str):
@@ -89,7 +108,7 @@ def normalize_fact_store(collected: dict | None) -> dict:
                 skill.setdefault("source_quote", skill.get("name", ""))
                 skill.setdefault("source", "chat")
                 skill.setdefault("status", "active")
-            if isinstance(skill, dict) and skill.get("name"):
+            if isinstance(skill, dict) and skill.get("name") and _fold_value(skill["name"]) not in education_values:
                 normalized_skills.append(skill)
         result["skills"] = normalized_skills
     return result

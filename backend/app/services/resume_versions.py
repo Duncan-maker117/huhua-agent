@@ -111,3 +111,18 @@ def restore_payload(stored: dict, version_id: str | None = None) -> dict:
     return {'resume_data': cleaned['resume_data'], 'resume_meta': meta,
             'resume_versions': deepcopy(history[:index]), 'version_id': selected['version_id'],
             'diff': document_diff(stored.get('resume_data') or {}, cleaned['resume_data'])}
+
+
+EDUCATION_CORRECTION_NOTE = '学校、专业等基本信息的更正属于事实资料，撤销不会还原；要改回请直接告诉我。'
+
+
+def education_correction_note(collected: dict | None) -> str:
+    """撤销只恢复文稿；用户更正过的教育字段（事实母版）保留。有更正时回执里说清这一点。"""
+    for item in (collected or {}).get('education') or []:
+        if not isinstance(item, dict):
+            continue
+        for fact in item.get('facts') or []:
+            if (isinstance(fact, dict) and fact.get('status') == 'superseded'
+                    and fact.get('field') in {'school', 'major', 'degree', 'grade', 'start_date', 'end_date'}):
+                return EDUCATION_CORRECTION_NOTE
+    return ''

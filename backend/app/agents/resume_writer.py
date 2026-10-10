@@ -513,10 +513,26 @@ def _default_plan(source: dict, role_profile: dict) -> MatchPlan:
     })
 
 
+_LAUNCH_REQUIREMENT = re.compile(r"上线|线上|真实用户|用户数据|用户量|用户规模|数据(?:表现|结果|反馈|驱动)|有.{0,8}(?:产品|项目).{0,8}(?:上线|落地)")
+_LAUNCH_EVIDENCE = re.compile(
+    r"(?<!未)(?<!没)(?<!还没)(?<!尚未)(?:已|正式)?上线|线上|发布到|部署(?:到|在)|真实用户|用户(?:量|数|反馈|访谈|数据|试用)|\d+\s*(?:位|个|名|多)?\s*用户"
+    r"|DAU|MAU|留存|转化|访问量|下载量|调用量|UV|PV", re.I)
+
+
+def _is_launch_requirement(text: str) -> bool:
+    return bool(_LAUNCH_REQUIREMENT.search(text or ""))
+
+
+def _fact_corpus(fact: dict) -> str:
+    return f"{fact.get('text', '')} {fact.get('source_quote', '')}"
+
+
 def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dict, facts: dict) -> dict:
     ordered_reqs = list(dict.fromkeys(row["id"] for row in role_profile.get("requirements", [])
                                       if isinstance(row, dict) and row.get("id")))
     valid_reqs = set(ordered_reqs)
+    req_text = {row["id"]: str(row.get("text") or "") for row in role_profile.get("requirements", [])
+                if isinstance(row, dict) and row.get("id")}
     requirements, seen_reqs = [], set()
     for row in plan.requirements:
         if row.req_id not in valid_reqs or row.req_id in seen_reqs:
@@ -524,6 +540,10 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
         seen_reqs.add(row.req_id)
         refs = list(dict.fromkeys(fid for fid in row.fact_ids if fid in facts))
         status = row.status if refs else "gap"
+        if status != "gap" and _is_launch_requirement(req_text.get(row.req_id, "")) and not any(
+                _LAUNCH_EVIDENCE.search(_fact_corpus(facts[fid])) for fid in refs):
+            # 「上线 / 真实用户 / 数据」类要求，没有对应事实就是缺口，不能拿开源 star、Demo 等凑成可迁移。
+            refs, status = [], "gap"
         requirements.append({"req_id": row.req_id, "status": status,
                              "fact_ids": refs if status != "gap" else [], "angle": row.angle if refs else ""})
     requirements.extend({"req_id": req, "status": "gap", "fact_ids": [], "angle": ""}

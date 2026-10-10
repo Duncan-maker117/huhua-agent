@@ -161,6 +161,50 @@ def _question_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
     return candidates
 
 
+def _playbook_candidates(state: dict, plan: dict, profile: dict, data: dict, already: set[str],
+                         taken: set[str], needed: int) -> list[dict]:
+    """规划器没给够问题时，用岗位手册「高价值追问」补齐：只问该条目事实里还没出现对应线索的，先每条目一个。"""
+    from app.agents.career_prompt import _FOLLOWUP_CUES, playbook_followups
+    known = _known_targets(data)
+    questions = playbook_followups(profile.get("role_family") or "other")
+    if not known or not questions or needed <= 0:
+        return []
+    evidence = active_facts_for_writer(state.get("collected_info") or {})
+    facts_by_item = {item.get("item_id"): " ".join(str(f.get("text") or "") for f in item.get("facts") or [])
+                     for section in ("projects", "work_experience", "internship")
+                     for item in evidence.get(section) or [] if isinstance(item, dict)}
+    lead = [row.get("item_id") for row in plan.get("experience_plan") or [] if row.get("treatment") == "lead"]
+    order = [i for i in lead if i in known] + [i for i in known if i not in lead]
+    per_item: list[list[dict]] = []
+    for item_id in order:
+        text = facts_by_item.get(item_id, "")
+        name = known[item_id][2].get("name") or known[item_id][2].get("company") or "这段经历"
+        rows = []
+        for question in questions:
+            cue = next((cues for keys, cues in _FOLLOWUP_CUES if re.search(keys, question)), "")
+            if cue and re.search(cue, text):
+                continue
+            if re.search(r"职责|分工|独立完成|团队协作|一个人|自己做|自己写", question) and _item_has_role(
+                    state.get("collected_info") or {}, item_id):
+                continue
+            q = f"{name}：{question}"
+            identifier = _question_id(q, item_id, "")
+            if identifier in already or identifier in taken:
+                continue
+            path, label = _question_location(item_id, "", known[item_id], plan, state.get("resume_meta") or {})
+            rows.append({"question_id": identifier, "q": q, "why": "岗位手册里这一类经历最常被追问的信号",
+                         "improves": {"item_id": item_id, "req_id": ""}, "location_path": path,
+                         "location_label": label, "value": 3,
+                         "options": [{"label": "不知道 / 没有", "value": "不知道 / 没有"}]})
+        per_item.append(rows)
+    output = []
+    for depth in range(len(questions)):  # 轮流从每个条目取，避免只问第一个条目
+        for rows in per_item:
+            if depth < len(rows) and len(output) < needed:
+                output.append(rows[depth])
+    return output
+
+
 def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
                               role_profile: dict | None = None,
                               version_number: int | None = None) -> dict:
@@ -207,6 +251,10 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     known = _known_targets(data)
     already = _asked_ids(asked)
     candidates = _question_candidates(state, plan, profile, data, already)
+    if len(candidates) < MAX_QUESTIONS:
+        candidates += _playbook_candidates(state, plan, profile, data, already,
+                                           {row["question_id"] for row in candidates},
+                                           MAX_QUESTIONS - len(candidates))
     selected = sorted(candidates, key=lambda row: -row["value"])[:MAX_QUESTIONS]
     role = ((state.get("jd_info") or {}).get("job_title")
             or (state.get("jd_info") or {}).get("role_direction")
@@ -232,8 +280,16 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
                                 if row.get("status") in {"direct", "transferable"}
                                 and item_facts.get(item_id, set()).intersection(row.get("fact_ids") or [])
                                 and req_text.get(row.get("req_id"))), None)
-            if name and requirement:
-                reasons.append(f"突出了 {name}，它能证明「{req_text[requirement['req_id']]}」。")
+            cited = {fid for bullet in (state.get("resume_meta") or {}).get("bullets", {}).get(item_id) or []
+                     if isinstance(bullet, dict) for fid in bullet.get("fact_ids") or []}
+            written = [fact for item in evidence.get("projects", []) + evidence.get("work_experience", [])
+                       + evidence.get("internship", []) if item.get("item_id") == item_id
+                       for fact in item.get("facts") or []
+                       if fact.get("id") in cited and fact.get("id") in (requirement or {}).get("fact_ids", [])]
+            # 思路句只引用正文实际出现的事实，不把整条 JD 要求当作已被证明。
+            if name and requirement and written:
+                quoted = "」「".join(str(f.get("text") or "")[:24] for f in written[:2])
+                reasons.append(f"突出了 {name}：正文写到「{quoted}」，对应岗位要求「{req_text[requirement['req_id']]}」。")
             if len(reasons) >= 2:
                 break
     if backup_items:
@@ -248,7 +304,9 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     parts = [lead]
     if explain:
         parts.append("\n**这版的思路**：" + " ".join(reasons[:3]))
-        for row in transferable[:2]:
+        in_draft = {fid for rows in (state.get("resume_meta") or {}).get("bullets", {}).values()
+                    for bullet in rows if isinstance(bullet, dict) for fid in bullet.get("fact_ids") or []}
+        for row in [r for r in transferable if not in_draft or in_draft.intersection(r.get("fact_ids") or [])][:2]:
             req = req_text.get(row.get("req_id")) or row.get("text") or ""
             name = next((known[item_id][2].get("name") or known[item_id][2].get("company")
                          for item_id, ids in item_facts.items()

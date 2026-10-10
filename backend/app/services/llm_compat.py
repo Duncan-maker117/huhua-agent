@@ -47,6 +47,21 @@ def _disable_thinking(host: str) -> dict:
     return {"thinking": {"type": "disabled"}}
 
 
+def without_thinking(llm: Any) -> Any:
+    """Return a copy of a DeepSeek chat model with thinking disabled.
+
+    Other providers and test doubles are returned unchanged; the original is
+    never modified.
+    """
+    if not isinstance(llm, ChatOpenAI) or not _is_deepseek(llm):
+        return llm
+    extra_body = {**(llm.extra_body or {})}
+    extra_body.pop("thinking", None)
+    extra_body.pop("enable_thinking", None)
+    extra_body.update(_disable_thinking(_endpoint_host(llm)))
+    return llm.model_copy(update={"extra_body": extra_body})
+
+
 CALL_LABEL_PREFIX = "call:"
 
 

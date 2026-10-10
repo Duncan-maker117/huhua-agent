@@ -792,6 +792,11 @@ async def run_live(cases, args, output, manifest):
         manifest.update(writer_model=settings.LLM_MODEL, structured_model=settings.LLM_STRUCTURED_MODEL,
                         writer_mode=settings.LLM_WRITER_MODE, writer_temperature=settings.LLM_WRITER_TEMPERATURE,
                         writer_max_tokens=settings.LLM_MAX_TOKENS or 4000,
+                        speed_switches={
+                            "LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS": settings.LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS,
+                            "LLM_EXTRACTOR_THINKING": settings.LLM_EXTRACTOR_THINKING,
+                            "LLM_WRITER_EDIT_REUSE_PLAN": settings.LLM_WRITER_EDIT_REUSE_PLAN,
+                            "LLM_JD_DECODER_THINKING": settings.LLM_JD_DECODER_THINKING},
                     judge_model=None if args.graph_only else args.judge_model, judge_temperature=0, judge_reasoning_effort="high",
                     same_model_judge=same_model_judge,
                     graph_temperature=0.7, concurrency=args.concurrency,

@@ -15,7 +15,9 @@ from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from pydantic import BaseModel, ValidationError
 
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
-from app.schemas.writer import MatchPlan, OnePassOutput, RepairOutput, WriterDraft
+from app.config import get_settings
+from app.schemas.writer import (IGNORED_EXTRA_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
+                                RepairOutput, WriterDraft)
 from app.services.fact_guard import guard_bullets, ngram_overlap, strip_absence, validate_skill_groups
 from app.services.speculative import SpeculativeScope
 from app.services.llm_compat import label_run, with_structured_output
@@ -184,6 +186,28 @@ def _safe_validation_errors(error: ValidationError, schema: type[BaseModel]) -> 
     return {"validation_error_count": len(errors), "validation_errors": rows}
 
 
+def _clean_field_names(names: Sequence[Any], limit: int = 5) -> list[str]:
+    """Field names only: [A-Za-z0-9_], 40 chars at most, 5 distinct names at most."""
+    cleaned: list[str] = []
+    for name in names:
+        safe = re.sub(r"[^A-Za-z0-9_]", "", str(name))[:40]
+        if safe and safe not in cleaned:
+            cleaned.append(safe)
+    return cleaned[:limit]
+
+
+def _note_field_names(state: dict, key: str, names: Sequence[Any]) -> None:
+    merged = _clean_field_names([*state.get(key, []), *names])
+    if merged:
+        state[key] = merged
+
+
+def _extra_field_names(error: ValidationError) -> list[str]:
+    """Names of unexpected keys rejected by extra=forbid; never values or messages."""
+    return [entry["loc"][-1] for entry in error.errors(include_input=False, include_context=False, include_url=False)
+            if entry.get("type") == "extra_forbidden" and entry.get("loc") and isinstance(entry["loc"][-1], str)]
+
+
 def _tool_arguments_not_object(error: Exception) -> bool:
     """Recognize only LangChain's direct non-dict tool-args parser branch."""
     if type(error) is not ValueError or not error.args or not isinstance(error.args[0], str):
@@ -219,11 +243,22 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
         "resume-write", json.dumps(payload, ensure_ascii=False),
         contract + "\n\n# 岗位手册\n" + load_skill("role-playbooks/" + playbook), privacy=privacy,
     )
-    structured = label_run(with_structured_output(llm, schema), run_name)
+    # Optional lenient twin: identical name and tool JSON schema, but unknown
+    # keys on titles/bullets/items are dropped (and their names recorded).
+    wire = LENIENT_SCHEMAS.get(schema, schema) if getattr(get_settings(), "LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS", False) else schema
+    structured = label_run(with_structured_output(llm, wire), run_name)
 
     async def invoke(prompt):
-        output = await structured.ainvoke(prompt)
-        return schema.model_validate(privacy.restore(_model_dict(output)))
+        ignored: list[str] = []
+        token = IGNORED_EXTRA_SINK.set(ignored) if wire is not schema else None
+        try:
+            output = await structured.ainvoke(prompt)
+            return wire.model_validate(privacy.restore(_model_dict(output)))
+        finally:
+            if token is not None:
+                IGNORED_EXTRA_SINK.reset(token)
+                if retry_state is not None:
+                    _note_field_names(retry_state, "ignored_extra_fields", ignored)
 
     def schema_structure() -> dict:
         """Trusted type diagram only: no defaults, examples or failed values."""
@@ -259,6 +294,8 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
             feedback = _schema_retry_feedback(error, schema)
             if retry_state is None or feedback is None:
                 raise
+            if isinstance(error, ValidationError):
+                _note_field_names(retry_state, "extra_field_names", _extra_field_names(error))
             if "reason_code" in feedback:
                 retry_state["schema_retry_reason_code"] = feedback["reason_code"]
             else:
@@ -283,6 +320,8 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
             except ValueError as retry_error:
                 retry_feedback = _schema_retry_feedback(retry_error, schema)
                 if retry_feedback is not None:
+                    if isinstance(retry_error, ValidationError):
+                        _note_field_names(retry_state, "extra_field_names", _extra_field_names(retry_error))
                     if "reason_code" in retry_feedback:
                         retry_state["schema_failure_reason_code"] = retry_feedback["reason_code"]
                     else:
@@ -839,6 +878,22 @@ async def _apply_edit_contract(rows: list[dict], *, item_id: str, item_facts: li
     return rows
 
 
+def _reusable_plan(previous: Any, current: Mapping[str, Any]) -> MatchPlan | None:
+    """Previous match plan for an edit round, or None (first draft / no usable plan)."""
+    has_body = any(isinstance(item, dict) and any(isinstance(text, str) and text.strip()
+                                                  for text in item.get(field) or [])
+                   for section, field in (("projects", "polished_bullets"), ("work_experience", "bullets"))
+                   for item in current.get(section) or [])
+    if not has_body or not isinstance(previous, Mapping):
+        return None
+    if not (previous.get("requirements") or previous.get("experience_plan")):
+        return None
+    try:
+        return MatchPlan.model_validate(dict(previous))
+    except ValidationError:
+        return None
+
+
 async def run_resume_writer(collected_info: dict, role_profile: dict, llm, **kwargs) -> dict:
     """See _run_resume_writer. Owns the scope that settles speculative model calls."""
     async with SpeculativeScope() as speculative:
@@ -849,7 +904,8 @@ async def _run_resume_writer(
     collected_info: dict, role_profile: dict, llm, *, current_data: dict | None = None,
     resume_meta: dict | None = None, instruction: str = "", scope: str = "whole",
     targets: Sequence[str] = (), constraints: Mapping[str, Any] | None = None,
-    mode: str = "one_pass", structured_llm=None, _speculative: SpeculativeScope,
+    mode: str = "one_pass", structured_llm=None, previous_plan: Mapping[str, Any] | None = None,
+    _speculative: SpeculativeScope,
 ) -> dict:
     """Plan and write a sourced draft without mutating facts or the current draft.
 
@@ -882,12 +938,20 @@ async def _run_resume_writer(
             for item_id in allowed if item_id in items for fact in items[item_id][1].get("facts") or [] if fact.get("id")}
     plan = _default_plan(source, role_profile)
     draft = WriterDraft()
-    stage = "one_pass" if mode == "one_pass" else "plan"
+    reused_plan = (_reusable_plan(previous_plan or meta.get("match_plan"), current)
+                   if mode == "one_pass" and getattr(get_settings(), "LLM_WRITER_EDIT_REUSE_PLAN", False) else None)
+    stage = "write" if reused_plan else "one_pass" if mode == "one_pass" else "plan"
     writer_diagnostic = {"status": "model_completed", "mode": mode,
                          "schema_retry_count": 0}
+    if reused_plan:
+        writer_diagnostic["plan_reused"] = True
     try:
         async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
-            if mode == "one_pass":
+            if reused_plan:
+                draft = await _call(llm, WriterDraft, {**payload, "match_plan": reused_plan.model_dump()},
+                                    _WRITE_CONTRACT, role_family, retry_state=writer_diagnostic)
+                plan = reused_plan
+            elif mode == "one_pass":
                 combined = await _call(llm, OnePassOutput, payload,
                                        _ONE_PASS_CONTRACT, role_family,
                                        retry_state=writer_diagnostic)
@@ -908,7 +972,7 @@ async def _run_resume_writer(
         elif _tool_arguments_not_object(error):
             writer_diagnostic["error_code"] = "tool_arguments_not_object"
         if isinstance(error, ValidationError):
-            schema = OnePassOutput if mode == "one_pass" else MatchPlan if stage == "plan" else WriterDraft
+            schema = OnePassOutput if stage == "one_pass" else MatchPlan if stage == "plan" else WriterDraft
             writer_diagnostic.update(_safe_validation_errors(error, schema))
     match_plan = _validate_plan(plan, source, role_profile, items, facts)
     if writer_diagnostic.get("status") == "model_fallback":

@@ -302,7 +302,9 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
     kwargs = {'structured_llm': structured_llm, 'constraints': constraints, 'mode': mode}
     written = await run_resume_writer(state.get('collected_info') or {}, profile, llm,
         current_data=base_data, resume_meta=state.get('resume_meta') or {},
-        instruction=turn_instruction(instruction), scope=scope, targets=targets, **kwargs)
+        instruction=turn_instruction(instruction), scope=scope, targets=targets,
+        previous_plan=(state.get('resume_meta') or {}).get('match_plan') or state.get('match_plan') or None,
+        **kwargs)
     if ((written.get('writer_diagnostic') or {}).get('status') == 'model_fallback'
             and _has_visible_experience_body(state.get('resume_data') or {})):
         # Keep valid prior prose without undoing confirmed corrections/removals.

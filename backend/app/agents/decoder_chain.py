@@ -11,6 +11,7 @@ from tenacity import (
 
 from app.agents.prompts import build_jd_decoder_prompt
 from app.schemas.decoder import JdInfo
+from app.services.llm_compat import label_run, without_thinking
 from app.services.role_profile import validate_jd_role_profile
 from app.services.model_privacy import ContactRedactor, redact_model_messages
 
@@ -24,6 +25,15 @@ _LLM_RETRY = retry(
         f"Decoder LLM 重试第 {rs.attempt_number} 次"
     ),
 )
+
+
+def _decoder_model(llm):
+    """Label the call for timing; optionally switch DeepSeek thinking off."""
+    from app.config import get_settings
+
+    if not getattr(get_settings(), "LLM_JD_DECODER_THINKING", True):
+        llm = without_thinking(llm)
+    return label_run(llm, "jd_decoder")
 
 
 @_LLM_RETRY
@@ -79,7 +89,7 @@ async def run_decoder_chain(
         ),
         privacy,
     )
-    output = await llm.ainvoke(messages)
+    output = await _decoder_model(llm).ainvoke(messages)
 
     content = privacy.restore(output.content)
     jd_info, decode_text = _split_output(content)
@@ -105,7 +115,7 @@ async def _run_without_rag(jd_text: str, llm: ChatOpenAI | None) -> dict:
         build_jd_decoder_prompt(jd_text).format_messages(context="", jd_text=jd_text),
         privacy,
     )
-    output = await llm.ainvoke(messages)
+    output = await _decoder_model(llm).ainvoke(messages)
     jd_info, decode_text = _split_output(privacy.restore(output.content))
     jd_info = _validate_jd_info(jd_info, jd_text)
     decoded_items, summary = _parse_decode_text(decode_text)

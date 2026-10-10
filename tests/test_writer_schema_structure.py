@@ -99,7 +99,8 @@ class WriterSchemaStructureTest(unittest.TestCase):
         self.assertEqual(len(model.responses), 1)
         self.assertEqual(state["schema_retry_count"], 1)
         self.assertEqual(OnePassOutput.model_config["extra"], "forbid")
-        self.assertNotIn("PRIVATE_EXTRA_KEY", json.dumps(state))
+        self.assertEqual(state["extra_field_names"], ["PRIVATE_EXTRA_KEY"])
+        self.assertNotIn("PRIVATE_EXTRA_KEY", json.dumps(state["validation_errors"]))
         self.assertNotIn("PRIVATE_EXTRA_VALUE", json.dumps(state))
 
 

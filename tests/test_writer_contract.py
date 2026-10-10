@@ -126,7 +126,10 @@ class WriterContractTest(unittest.TestCase):
                       diagnostic["validation_errors"])
         self.assertIn({"loc": ["writer", "items", 0, "bullets", 0, "<extra>"],
                        "type": "extra_forbidden"}, diagnostic["validation_errors"])
-        self.assertNotIn("SECRET", json.dumps(diagnostic))
+        # Only the (sanitized) key name is diagnostic; values and paths stay hidden.
+        self.assertEqual(diagnostic["extra_field_names"], ["PRIVATE_KEY_SECRET"])
+        self.assertNotIn("PRIVATE_VALUE_SECRET", json.dumps(diagnostic))
+        self.assertNotIn("SECRET", json.dumps(diagnostic["validation_errors"]))
         self.assertEqual(diagnostic["schema_retry_count"], 1)
         self.assertNotIn("PRIVATE_KEY_SECRET", str(model.calls[1][1]))
         self.assertNotIn("PRIVATE_VALUE_SECRET", str(model.calls[1][1]))

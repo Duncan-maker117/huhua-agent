@@ -1,8 +1,9 @@
 """Strict model contracts for JD match planning and sourced resume writing."""
 
-from typing import Literal
+from contextvars import ContextVar
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class WriterSchema(BaseModel):
@@ -97,3 +98,60 @@ class RepairBullet(WriterSchema):
 
 class RepairOutput(WriterSchema):
     bullets: list[RepairBullet] = Field(default_factory=list)
+
+
+# --- Lenient variants -------------------------------------------------------
+# Same names and the same JSON schema as the strict models above (so the tool
+# definition sent to the model is unchanged), but unknown keys on titles,
+# bullets and items are dropped instead of rejected.
+
+IGNORED_EXTRA_SINK: ContextVar[list[str] | None] = ContextVar("writer_ignored_extra_sink", default=None)
+
+
+def _still_forbid_in_schema(schema: dict[str, Any]) -> None:
+    schema["additionalProperties"] = False
+
+
+class _DropsExtra:
+    @model_validator(mode="before")
+    @classmethod
+    def _record_and_ignore_extra(cls, data: Any) -> Any:
+        sink = IGNORED_EXTRA_SINK.get()
+        if sink is not None and isinstance(data, dict):
+            sink.extend(str(key) for key in data if key not in cls.model_fields)
+        return data
+
+
+_LENIENT = ConfigDict(extra="ignore", json_schema_extra=_still_forbid_in_schema)
+
+
+class LenientWrittenTitle(_DropsExtra, WrittenTitle):
+    model_config = _LENIENT
+
+
+class LenientWrittenBullet(_DropsExtra, WrittenBullet):
+    model_config = _LENIENT
+
+
+class LenientWrittenItem(_DropsExtra, WrittenItem):
+    model_config = _LENIENT
+    title: LenientWrittenTitle = Field(default_factory=LenientWrittenTitle)
+    bullets: list[LenientWrittenBullet] = Field(default_factory=list)
+
+
+class LenientWriterDraft(WriterDraft):
+    items: list[LenientWrittenItem] = Field(default_factory=list)
+
+
+class LenientOnePassOutput(OnePassOutput):
+    writer: LenientWriterDraft
+
+
+for _lenient, _name in ((LenientWrittenTitle, "WrittenTitle"), (LenientWrittenBullet, "WrittenBullet"),
+                        (LenientWrittenItem, "WrittenItem"), (LenientWriterDraft, "WriterDraft"),
+                        (LenientOnePassOutput, "OnePassOutput")):
+    _lenient.__name__ = _lenient.__qualname__ = _name
+    _lenient.model_rebuild(force=True)
+
+LENIENT_SCHEMAS: dict[type[BaseModel], type[BaseModel]] = {
+    WriterDraft: LenientWriterDraft, OnePassOutput: LenientOnePassOutput}

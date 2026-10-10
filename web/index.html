@@ -162,15 +162,6 @@
     <!-- 对话消息列表 -->
     <div id="messages" class="hidden w-full max-w-3xl flex-1 min-h-0 overflow-y-auto z-10 px-4 md:px-8 py-8 space-y-6"></div>
 
-    <div id="match-panel" class="hidden w-full max-w-3xl z-10 px-4 md:px-8 pb-2">
-      <div class="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4 text-sm">
-        <div class="font-semibold text-on-surface">岗位匹配参考 · 实验功能</div>
-        <p class="mt-1 text-on-surface-variant">点击后会将岗位要求和简历能力标签发送给 TypeSafe Jev。分数只反映当前简历对这份 JD 的证据覆盖，不代表 ATS 结果或面试概率。</p>
-        <button id="btn-match" class="mt-3 rounded-full bg-primary px-4 py-2 text-on-primary font-semibold disabled:opacity-50">同意并查看匹配</button>
-        <div id="match-result" class="mt-3 hidden max-h-48 overflow-y-auto space-y-2" aria-live="polite"></div>
-      </div>
-    </div>
-
     <!-- 底部 Command Bar -->
     <div id="composer-wrap" class="w-full max-w-4xl px-4 md:px-8 pb-4 z-10 shrink-0">
       <section id="guidance-dock" aria-label="待你补充" hidden></section>
@@ -434,8 +425,6 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     : text;
   const displayText = text || `（已上传 ${sentAttachments.length} 个文件）`;
 
-  clearMatchResult();
-
   if (!quickReply && !keepDraft) {
     inputEl.value = '';
     autoResize();
@@ -603,68 +592,6 @@ const canvasState = {
   templateId: 't001-jianyue',
 };
 
-const matchPanel = document.getElementById('match-panel');
-const matchResult = document.getElementById('match-result');
-const matchButton = document.getElementById('btn-match');
-
-function clearMatchResult() {
-  matchResult.replaceChildren();
-  matchResult.classList.add('hidden');
-}
-
-function setMatchAvailable(available) {
-  matchPanel.classList.toggle('hidden', !available);
-  if (!available) clearMatchResult();
-}
-
-function addMatchLine(text, className = 'text-on-surface-variant') {
-  const line = document.createElement('p');
-  line.className = className;
-  line.textContent = text;
-  matchResult.appendChild(line);
-}
-
-matchButton.addEventListener('click', async () => {
-  if (currentController) return;
-  clearMatchResult();
-  matchResult.classList.remove('hidden');
-  addMatchLine('正在核对这份 JD 与简历…');
-  matchButton.disabled = true;
-  try {
-    const response = await fetch('/api/resume/match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: SESSION_ID }),
-    });
-    if (!response.ok) throw new Error(`请求失败 (${response.status})`);
-    const result = await response.json();
-    matchResult.replaceChildren();
-    if (result.status === 'ready' && typeof result.score === 'number') {
-      addMatchLine(`参考覆盖分 ${Math.round(result.score)}/100`, 'font-bold text-primary');
-    }
-    if (result.message) addMatchLine(result.message);
-    const levels = {
-      missing: '暂无证据',
-      weak: '有相关线索，建议补充具体经历',
-      supported: '有直接经历支撑',
-      unscored: '暂未评估',
-    };
-    for (const item of result.requirements || []) {
-      const level = levels[item.level] || '暂未评估';
-      addMatchLine(`${item.text}：${level}${item.evidence_text ? ` · ${item.evidence_text}` : ''}`);
-    }
-    if (result.status !== 'ready' && !result.message) {
-      addMatchLine('目前无法生成参考分，请先查看投递前核对。');
-    }
-    for (const check of (result.checks || []).slice(0, 3)) addMatchLine(`核对：${check}`);
-  } catch (error) {
-    matchResult.replaceChildren();
-    addMatchLine(`匹配暂不可用：${error.message}`);
-  } finally {
-    matchButton.disabled = false;
-  }
-});
-
 function applyMeta(meta) {
   if (meta.stage) canvasState.stage = meta.stage;
   if (typeof meta.has_data === 'boolean') canvasState.hasData = meta.has_data;
@@ -768,7 +695,6 @@ async function refreshCanvas() {
     if (!r.ok) { if (request === canvasReadRequest && session === SESSION_ID) window.HuhuaWorkspace?.canvasError(); return false; }
     const body = await r.json();
     if (request !== canvasReadRequest || session !== SESSION_ID) return false;
-    setMatchAvailable(Boolean(body.has_data && body.has_jd && body.match_enabled));
     if (body.stage) canvasState.stage = body.stage;
     if (body.workspace) window.HuhuaWorkspace?.update(body.workspace);
     renderStageRail();

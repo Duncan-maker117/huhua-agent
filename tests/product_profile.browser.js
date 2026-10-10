@@ -5,7 +5,7 @@ async (page) => {
   page.removeAllListeners('pageerror');
   page.removeAllListeners('dialog');
   const check = (id, value) => { checks.push({id, passed: Boolean(value)}); if (!value) throw new Error(id); };
-  let authenticated = true, loginAvailable = true, staleEdit = false, applyCount = 0, denySuggestion = false;
+  let authenticated = true, loginAvailable = true, staleEdit = false;
   let revision = 'revision-1', bullet = '完成本地 PDF 合并功能';
   let profile = {profile_id: 'test-profile', revision: 2, facts: [{id:'f1', revision:2, category:'project',subject:'虚构项目',field:'role',value:'负责后端开发',sources:[{id:'source1',kind:'chat',session_id:'profile-fixture',excerpt:'我只负责后端，尚未上线。',recorded_at:'2026-10-04'}]}],preferences:[],conflicts:[{id:'c1',fact_id:'f1',expected_revision:2,subject:'虚构项目',field:'role',current_value:'负责后端开发',proposed_value:'负责全部开发'}],jobs:[{id:'j1',revision:1,name:'虚构AI岗位',session_id:'profile-fixture',stale:true}],archive_status:{pending:0,running:0,failed:1,tasks:[{id:'task1',status:'failed',error_code:'retryable'}]}};
   const workspace = () => ({jd:{},experiences:{items:[]},review:{items:[]},resume:{has_data:true,version:revision},suggestions:[{title:'精简表达',detail:'保留本地实现的事实边界。',source_text:'完成本地 PDF 合并功能',suggested_text:'实现本地 PDF 合并功能'}]});
@@ -31,9 +31,6 @@ async (page) => {
     if(path==='/api/profile/conflicts/c1/resolve') {profile.conflicts=[];return route.fulfill({json:{resolved:true}});}
     if(path==='/api/profile/tasks/task1/retry') {profile.archive_status={pending:1,failed:0,tasks:[]};return route.fulfill({json:{status:'pending'}});}
     if(path==='/api/profile/jobs' || path==='/api/profile/jobs/j1') return route.fulfill({json:{id:'j1',revision:2,...body}});
-    if(path.endsWith('/suggestions/preview')) return route.fulfill({json:{suggestion_id:'s1',revision,source_text:body.source_text,suggested_text:body.suggested_text,reason:'原义不变',evidence:['我完成了本地PDF合并'],can_apply:!denySuggestion,blocking_reason:denySuggestion?'没有上线依据':null}});
-    if(path.endsWith('/suggestions/apply')) {applyCount++;revision='revision-2';bullet='实现本地 PDF 合并功能';return route.fulfill({json:{revision,change_id:'change1',workspace:workspace()}});}
-    if(path.endsWith('/suggestions/undo')) {revision='revision-3';bullet='完成本地 PDF 合并功能';return route.fulfill({json:{revision,workspace:workspace()}});}
     if(path==='/api/resume/current') return route.fulfill({json:current()});
     if(path==='/api/resume/templates') return route.fulfill({json:{templates:[{id:'fixture',name:'测试模板'}]}});
     if(path.startsWith('/api/resume/render/')) return route.fulfill({contentType:'text/html',body:'<!doctype html><html><body>'+bullet+'</body></html>'});
@@ -79,24 +76,6 @@ async (page) => {
   await page.screenshot({path:'evaluation/product-profile-mobile.png'});
   await page.keyboard.press('Escape'); check('drawer-keyboard-close',await page.locator('#profile-overlay').isHidden());
   await page.setViewportSize({width:1440,height:960});
-  await page.getByRole('button',{name:'核对并采用措辞',exact:true}).click();
-  await page.evaluate(() => refreshCanvas());
-  check('proposal-survives-same-revision-refresh',await page.getByLabel('拟采用的建议句',{exact:true}).inputValue()==='实现本地 PDF 合并功能');
-  await page.getByRole('button',{name:'核对依据与改动',exact:true}).click();
-  await page.getByRole('button',{name:'采用这句',exact:true}).waitFor();
-  await page.evaluate(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.textContent==='采用这句');for(let i=0;i<20;i++)b.click();});
-  await page.getByRole('button',{name:'撤销本次采用',exact:true}).waitFor();
-  check('adopt-once',applyCount===1);
-  check('apply-revision-bound',requests.find(r=>r.path.endsWith('/suggestions/apply')).body.expected_revision==='revision-1');
-  await page.waitForFunction(()=>document.getElementById('live-sheet').srcdoc.includes('实现本地 PDF'));
-  check('canonical-preview-updated',true);
-  await page.getByRole('button',{name:'撤销本次采用',exact:true}).click();
-  await page.waitForFunction(()=>document.getElementById('live-sheet').srcdoc.includes('完成本地 PDF'));
-  check('undo-revision-bound',requests.find(r=>r.path.endsWith('/suggestions/undo')).body.expected_revision==='revision-2');
-  denySuggestion=true;
-  await page.getByRole('button',{name:'核对并采用措辞',exact:true}).click();
-  await page.getByRole('button',{name:'核对依据与改动',exact:true}).click();
-  await page.getByText('没有上线依据',{exact:true}).waitFor(); check('ungrounded-suggestion-blocked',await page.getByRole('button',{name:'采用这句',exact:true}).isDisabled());
   check('no-private-browser-storage',await page.evaluate(()=>!Object.keys(localStorage).some(k=>/^huhua_(messages|chat_backup:|chat_recovery:)/.test(k))));
   await page.locator('#btn-account-profile').click();
   await page.getByRole('button',{name:'用于当前简历',exact:true}).click();

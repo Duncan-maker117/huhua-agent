@@ -290,159 +290,12 @@
     pdf.href = '/resume?session=' + encodeURIComponent(callbacks.session?.() || ''); actions.append(pdf);
     card.append(actions); panel.append(card);
   }
-  const adoptedChanges = new Map();
-  let suggestionData = null, activeSuggestionEditor = null;
-  const suggestionVersion = () => workspace.resume?.version ?? paintedVersion;
-  async function suggestionRequest(session, action, payload, controller = new AbortController()) {
-    let timedOut = false;
-    const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, 75000);
-    try {
-      const response = await fetch('/api/resume/session/' + encodeURIComponent(session) + '/suggestions/' + action, {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload), signal: controller.signal,
-      });
-      let value; try { value = await response.json(); } catch (_) { value = {}; }
-      if (!response.ok) {
-        const error = new Error(typeof value.detail === 'string' ? value.detail : value.detail?.message || (response.status === 409 ? '简历已更新，请重新核对最新原句。' : '操作未完成，请重试。'));
-        error.status = response.status; throw error;
-      }
-      return value;
-    } catch (error) {
-      if (timedOut) throw new Error(action === 'apply' || action === 'undo' ? '保存响应超时，请刷新当前简历确认结果后再操作。' : '生成或核对超时，输入内容已保留，请重试。');
-      if (error instanceof TypeError) throw new Error('连接失败，输入内容已保留，请重试。');
-      throw error;
-    } finally { clearTimeout(timeout); }
-  }
-  function closeSuggestionEditor() {
-    activeSuggestionEditor?.cancel(); activeSuggestionEditor = null;
-  }
-  function suggestionEditor(row, item = {}) {
-    const session = callbacks.session?.();
-    if (!session || streaming || !paintedVersion) return;
-    if (activeSuggestionEditor?.session === session && activeSuggestionEditor.form.isConnected) {
-      activeSuggestionEditor.form.querySelector('select')?.focus(); return;
-    }
-    closeSuggestionEditor();
-    const revision = paintedVersion;
-    const form = node('form', undefined, 'suggestion-form');
-    const sourceLabel = node('label', '当前简历原句');
-    const source = node('select'); source.required = true;
-    const candidates = [];
-    for (const [group, fields] of [['projects', ['description', 'role', 'polished_bullets']], ['work_experience', ['bullets']], ['education', ['highlights']]]) {
-      for (const entry of list(suggestionData?.[group])) for (const field of fields) {
-        const values = Array.isArray(entry[field]) ? entry[field] : [entry[field]];
-        for (const value of values) if (typeof value === 'string' && value.trim()) candidates.push(value.trim());
-      }
-    }
-    const placeholder = node('option', '选择当前简历中的一段完整原句'); placeholder.value = ''; source.append(placeholder);
-    for (const value of candidates.filter(value => candidates.filter(candidate => candidate === value).length === 1)) { const option = node('option', value); option.value = value; source.append(option); }
-    source.value = plain(item?.source_text);
-    if (!source.value && source.options.length === 2) source.selectedIndex = 1;
-    sourceLabel.append(source);
-    const instructionLabel = node('label', '改写要求（选填）');
-    const instruction = node('textarea'); instruction.rows = 2; instruction.maxLength = 1000;
-    instruction.placeholder = '例如：写得更简洁，突出个人动作；不新增事实。'; instruction.value = plain(item?.instruction); instructionLabel.append(instruction);
-    const generate = button('生成改写建议', () => runCheck('generate'));
-    const proposedLabel = node('label', '拟采用的建议句');
-    const proposed = node('textarea'); proposed.value = plain(item?.suggested_text); proposed.required = true; proposed.maxLength = 4000; proposed.rows = 3;
-    proposed.placeholder = '先生成一版建议，也可以在这里手动填写。'; proposedLabel.append(proposed);
-    const hint = node('p', '先选原句，再生成建议或手动改写。生成不会修改简历；新增职责、数字或成果，请先补充真实依据。', 'workspace-description');
-    const check = node('button', '核对依据与改动', 'workspace-button workspace-secondary'); check.type = 'submit';
-    const feedback = node('p'); feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
-    const comparison = node('section', undefined, 'suggestion-comparison'); comparison.hidden = true;
-    const reload = button('读取最新原句', async () => {
-      if (pending || streaming || !isCurrent()) return;
-      pending = true; sync();
-      try {
-        const refreshed = await callbacks.refresh?.();
-        if (!isCurrent()) return;
-        if (refreshed === false) throw new Error('读取失败');
-        if (paintedVersion !== suggestionVersion()) { feedback.textContent = '最新简历尚未同步，请稍后再试。'; return; }
-        const draft = {source_text: source.value, suggested_text: proposed.value, instruction: instruction.value};
-        closeSuggestionEditor(); form.remove(); suggestionEditor(row, draft);
-      } catch (_) { if (isCurrent()) feedback.textContent = '读取失败，输入内容已保留，请重试。'; }
-      finally { pending = false; if (isCurrent()) sync(); }
-    }, 'workspace-button workspace-secondary'); reload.hidden = true;
-    if (source.options.length < 2) hint.textContent = '当前还没有可唯一定位的项目、工作或教育原句。先补充经历，或在简历编辑里更正重复内容。';
-    form.append(sourceLabel, instructionLabel, generate, proposedLabel, hint, check, feedback, reload, comparison); row.append(form);
-    let pending = false, stale = false, accepted = null, apply = null, controller = null;
-    const editor = {session, form, sync, cancel: () => controller?.abort()};
-    activeSuggestionEditor = editor;
-    function isCurrent() { return activeSuggestionEditor === editor && callbacks.session?.() === session && form.isConnected; }
-    function invalidate(message) {
-      accepted = null; comparison.replaceChildren(); comparison.hidden = true; apply = null;
-      if (message) feedback.textContent = message;
-    }
-    function markStale() {
-      stale = true; controller?.abort(); invalidate('简历已有新版本。你的输入已保留，请读取最新原句后重新生成或核对。');
-    }
-    function sync() {
-      if (!isCurrent()) return;
-      if (suggestionVersion() !== revision && !stale) markStale();
-      const disabled = pending || streaming || stale;
-      source.disabled = disabled; instruction.disabled = disabled; proposed.disabled = pending || streaming;
-      generate.disabled = disabled || !source.value; check.disabled = disabled || !source.value || !proposed.value.trim();
-      reload.hidden = !stale; reload.disabled = pending || streaming;
-      if (apply) apply.disabled = disabled || accepted?.can_apply !== true;
-      form.setAttribute('aria-busy', String(pending));
-    }
-    function showComparison(result) {
-      accepted = result; comparison.replaceChildren(); comparison.hidden = false;
-      comparison.append(node('h4', '原句'), node('p', result.source_text), node('h4', '建议句'), node('p', result.suggested_text));
-      if (result.reason) comparison.append(node('p', '修改说明：' + plain(result.reason)));
-      const evidence = result.evidence;
-      if (evidence) comparison.append(node('p', '依据：' + (Array.isArray(evidence) ? evidence.map(value => typeof value === 'string' ? value : value.excerpt || value.value || '').join('；') : plain(evidence))));
-      const actions = node('div', undefined, 'workspace-actions');
-      apply = button('采用这句', async () => {
-        if (pending || streaming || stale || !isCurrent() || accepted !== result || result.can_apply !== true) return;
-        if (suggestionVersion() !== revision) { markStale(); sync(); return; }
-        if (source.value.trim() !== result.source_text || proposed.value.trim() !== result.suggested_text) { invalidate('建议句已修改，请重新核对依据后再采用。'); sync(); return; }
-        pending = true; sync(); feedback.textContent = '正在保存…'; controller = new AbortController();
-        try {
-          const saved = await suggestionRequest(session, 'apply', {suggestion_id: result.suggestion_id, expected_revision: result.revision}, controller);
-          if (!isCurrent()) return;
-          adoptedChanges.set(session, {change_id: saved.change_id, revision: saved.revision});
-          closeSuggestionEditor(); form.remove(); await callbacks.refresh?.(); renderSuggestions();
-        } catch (error) { if (isCurrent()) { if (error.status === 409) markStale(); else if (!stale) feedback.textContent = error.message; } }
-        finally { pending = false; if (isCurrent()) sync(); }
-      });
-      actions.append(apply, button('保留原句', () => { if (pending) return; closeSuggestionEditor(); form.remove(); }, 'workspace-button workspace-secondary'));
-      if (result.can_apply !== true) comparison.append(node('p', result.blocking_reason || '当前依据不足，先补充或核对事实后再采用。', 'workspace-missing'));
-      comparison.append(actions);
-      feedback.textContent = result.can_apply === true ? '建议尚未写入简历。核对原句、建议句与依据后，再选择采用；修改建议句后需重新核对。' : '建议尚未写入简历。可以调整措辞后重新核对。';
-    }
-    async function runCheck(action) {
-      if (pending || streaming || stale || !isCurrent()) return;
-      if (suggestionVersion() !== revision) { markStale(); sync(); return; }
-      if (!source.reportValidity() || !instruction.reportValidity() || (action === 'preview' && !proposed.reportValidity())) return;
-      const payload = action === 'generate'
-        ? {source_text: source.value.trim(), expected_revision: revision, ...(instruction.value.trim() ? {instruction: instruction.value.trim()} : {})}
-        : {source_text: source.value.trim(), suggested_text: proposed.value.trim()};
-      invalidate(); pending = true; sync(); feedback.textContent = action === 'generate' ? '正在生成并核对改写建议…' : '正在核对当前简历与事实依据…'; controller = new AbortController();
-      try {
-        const result = await suggestionRequest(session, action, payload, controller);
-        if (!isCurrent() || stale) return;
-        if (suggestionVersion() !== revision || result.revision !== revision) { markStale(); return; }
-        if (result.source_text !== payload.source_text || typeof result.suggested_text !== 'string' || !result.suggested_text.trim() || (result.can_apply === true && !plain(result.suggestion_id))) throw new Error('未收到完整改写建议，输入内容已保留，请重试。');
-        proposed.value = result.suggested_text; showComparison(result);
-      } catch (error) { if (isCurrent() && !stale) { if (error.status === 409) markStale(); else feedback.textContent = error.message; } }
-      finally { pending = false; if (isCurrent()) sync(); }
-    }
-    source.addEventListener('change', () => { invalidate('原句已更换，请生成建议或重新核对。'); sync(); });
-    proposed.addEventListener('input', () => { invalidate(stale ? '简历已有新版本。你的输入已保留，请读取最新原句后重新核对。' : '建议句已修改，请核对依据后再采用。'); sync(); });
-    instruction.addEventListener('input', () => { invalidate('改写要求已修改，请重新生成建议。'); sync(); });
-    form.addEventListener('submit', event => { event.preventDefault(); runCheck('preview'); });
-    sync(); source.focus();
-  }
   function renderSuggestions() {
-    const panel = $('workspace-suggestions');
-    if (activeSuggestionEditor?.session === callbacks.session?.() && activeSuggestionEditor.form.isConnected && hasResume) { activeSuggestionEditor.sync(); return; }
-    closeSuggestionEditor();
-    panel.replaceChildren();
+    const panel = $('workspace-suggestions'); panel.replaceChildren();
     const suggestions = list(workspace.suggestions);
-    const change = adoptedChanges.get(callbacks.session?.());
-    panel.hidden = !suggestions.length && !hasResume && !change;
+    panel.hidden = !suggestions.length;
     if (panel.hidden) return;
-    panel.append(node('h2', '我的建议', 'workspace-heading'), node('p', '这些是修改方向，尚未作为本人事实写入简历。', 'workspace-description'));
+    panel.append(node('h2', '我的建议', 'workspace-heading'), node('p', '这些是修改方向，尚未作为本人事实写入简历。想改哪里，直接在对话里说。', 'workspace-description'));
     suggestions.forEach(item => {
       const row = node('div', undefined, 'workspace-suggestion');
       if (typeof item === 'string') row.append(node('p', item));
@@ -455,29 +308,8 @@
           row.append(detail);
         }
       }
-      if (hasResume) {
-        const open = button('核对并采用措辞', () => { if (row.querySelector('form')) return; suggestionEditor(row, item); }, 'workspace-button workspace-secondary');
-        open.disabled = streaming; row.append(open);
-      }
       panel.append(row);
     });
-    if (hasResume && !suggestions.length) {
-      const row = node('div', undefined, 'workspace-suggestion');
-      row.append(button('核对一处表达修改', () => { if (!row.querySelector('form')) suggestionEditor(row, {}); }, 'workspace-button workspace-secondary')); panel.append(row);
-    }
-    if (change?.change_id) {
-      const note = node('p', '已采用一处表达修改，当前预览与导出使用保存稿。'); note.setAttribute('role', 'status'); panel.append(note);
-      const undo = button('撤销本次采用', async () => {
-        if (undo.disabled || streaming) return;
-        const session = callbacks.session?.(); undo.disabled = true;
-        try {
-          await suggestionRequest(session, 'undo', {change_id: change.change_id, expected_revision: change.revision});
-          if (callbacks.session?.() !== session) return;
-          adoptedChanges.delete(session); note.textContent = '已撤销本次采用，当前保存稿已恢复。'; undo.remove(); await callbacks.refresh?.(); renderSuggestions();
-        } catch (error) { note.textContent = error.message; }
-        finally { undo.disabled = false; }
-      }, 'workspace-button workspace-secondary'); undo.disabled = streaming; panel.append(undo);
-    }
   }
   function renderGuidance() {
     const dock = $('guidance-dock'); dock.replaceChildren();
@@ -542,14 +374,12 @@
     updateStatus();
   }
   function reset() {
-    closeSuggestionEditor(); suggestionData = null;
     webSourceSession = null;
     workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
     paintedVersion = null; status = ''; streaming = false; interactedDuringTurn = false; paintedDuringTurn = false;
     renderJd(); renderExperiences(); renderReview(); renderExport(); renderSuggestions(); renderGuidance(); renderTabs(); updateStatus();
   }
   function canvasResult(body) {
-    suggestionData = body.data || null;
     hasResume = Boolean(body.has_data && body.data);
     const version = body.workspace?.resume?.version ?? body.revision ?? null;
     const changed = hasResume && version !== paintedVersion;

@@ -67,9 +67,6 @@ class Settings(BaseSettings):
     # 简历审查需要读完整份材料；此值覆盖整段公开输出流。
     LLM_REVIEW_TIMEOUT_SECONDS: float = 90.0
 
-    # 用户主动点击岗位匹配时才调用 Jev；凭证仅由服务端环境变量读取。
-    JEV_API_KEY: str = ""
-    JEV_TIMEOUT_SECONDS: float = 8.0
 
     # Optional, server-only. Job URL reading does not require a search key.
     TAVILY_API_KEY: str = ""

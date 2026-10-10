@@ -158,7 +158,6 @@ _chat_requests: dict[tuple[str, str], deque[float]] = defaultdict(deque)
 _all_paid_requests: deque[float] = deque()
 CHAT_WINDOW_SECONDS = 600
 CHAT_REQUEST_LIMIT = 80
-MATCH_REQUEST_LIMIT = 30
 UPLOAD_REQUEST_LIMIT = 30
 GLOBAL_REQUEST_LIMIT = 120
 
@@ -191,7 +190,7 @@ async def security_headers(request: Request, call_next):
 
             return JSONResponse(status_code=413, content={"detail": "文件超过 10MB 上限"})
     paid_path = request.url.path
-    if paid_path in {"/api/chat/stream", "/api/resume/match", "/api/chat/upload"} and request.method == "POST":
+    if paid_path in {"/api/chat/stream", "/api/chat/upload"} and request.method == "POST":
         # Uvicorn may rewrite request.client only for proxies it explicitly
         # trusts. Never use an arbitrary X-Forwarded-For header here.
         client_ip = request.client.host if request.client else "unknown"
@@ -204,7 +203,6 @@ async def security_headers(request: Request, call_next):
             _all_paid_requests.popleft()
         limit = {
             "/api/chat/stream": CHAT_REQUEST_LIMIT,
-            "/api/resume/match": MATCH_REQUEST_LIMIT,
             "/api/chat/upload": UPLOAD_REQUEST_LIMIT,
         }[paid_path]
         if len(timestamps) >= limit or len(_all_paid_requests) >= GLOBAL_REQUEST_LIMIT:

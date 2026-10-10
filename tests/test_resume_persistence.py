@@ -55,7 +55,7 @@ class EditorPersistenceTest(unittest.IsolatedAsyncioTestCase):
         self.request = Request({"type": "http", "method": "GET", "path": "/", "scheme": "http",
                                 "headers": [(b"cookie", ("huhua_workspace=" + self.cookie).encode())],
                                 "server": ("testserver", 80)})
-        settings = SimpleNamespace(LLM_API_KEY="unit-test-placeholder", JEV_API_KEY="", SESSION_RETENTION_DAYS=7,
+        settings = SimpleNamespace(LLM_API_KEY="unit-test-placeholder", SESSION_RETENTION_DAYS=7,
                                    APP_ENV="local", REQUIRE_ACCOUNT=False)
         crypto = DataCrypto({"test": b"x" * 32}, "test")
         self.patches = [
@@ -209,7 +209,7 @@ class EditorPersistenceTest(unittest.IsolatedAsyncioTestCase):
     async def test_database_reads_and_form_saves_do_not_require_a_model_key(self):
         self.seed(data=candidate())
         await self.checkpoint(candidate(), jd_text="产品岗位要求访谈分析")
-        offline = SimpleNamespace(LLM_API_KEY="", JEV_API_KEY="", SESSION_RETENTION_DAYS=0)
+        offline = SimpleNamespace(LLM_API_KEY="", SESSION_RETENTION_DAYS=0)
         with patch("app.api.resume.get_settings", return_value=offline):
             current = await current_resume(self.request, "live")
             self.assertTrue(current["can_save"])

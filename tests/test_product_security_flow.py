@@ -134,7 +134,6 @@ class ProductSecurityFlow(unittest.IsolatedAsyncioTestCase):
             ("DELETE", f"/api/chat/session/{sid}", None),
             ("PUT", "/api/resume/current", {"session_id": sid, "expected_revision": resume_revision(data), "resume_data": data}),
             ("POST", "/api/chat/stream", {"session_id": sid, "messages": [{"role": "user", "content": "请继续"}]}),
-            ("POST", "/api/resume/match", {"session_id": sid}),
         ]
         for method, path, body in calls:
             with self.subTest(path=path):

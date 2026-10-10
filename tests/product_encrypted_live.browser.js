@@ -40,16 +40,7 @@ async (page) => {
     await page.locator('[data-input-path="/basic_info/name"]').waitFor();await page.locator('[data-input-path="/basic_info/name"]').fill('HUHUA_LIVE_EDIT');
     await page.waitForFunction(()=>document.getElementById('save-status').textContent.startsWith('已保存到当前会话'));
     await page.reload();await page.locator('[data-input-path="/basic_info/name"]').waitFor();check('real-editor-refresh',await page.locator('[data-input-path="/basic_info/name"]').inputValue()==='HUHUA_LIVE_EDIT');
-    stage='real-suggestion';await page.goto(base+'/?session='+encodeURIComponent(sessionA));await page.waitForFunction(()=>document.getElementById('workspace-status').textContent.includes('简历已更新'));
-    await page.getByRole('button',{name:/核对并采用措辞|核对一处表达修改/}).first().click();
-    await page.locator('.suggestion-form select').selectOption('本地合并虚构验收');await page.getByLabel('拟采用的建议句',{exact:true}).fill('本地合并虚构验收。');
-    await page.getByRole('button',{name:'核对依据与改动',exact:true}).click();await page.getByRole('button',{name:'采用这句',exact:true}).waitFor();
-    check('punctuation-supported-without-model',await page.getByRole('button',{name:'采用这句',exact:true}).isEnabled());
-    await page.getByRole('button',{name:'采用这句',exact:true}).click();await page.getByRole('button',{name:'撤销本次采用',exact:true}).waitFor();
-    check('real-suggestion-applied',JSON.stringify((await request('/api/resume/current?session_id='+encodeURIComponent(sessionA))).body.data).includes('本地合并虚构验收。'));
-    await page.getByRole('button',{name:'撤销本次采用',exact:true}).click();await page.waitForFunction(()=>![...document.querySelectorAll('button')].some(b=>b.textContent==='撤销本次采用'));
     beforeDelete=(await request('/api/resume/current?session_id='+encodeURIComponent(sessionA))).body.data;
-    check('real-undo',JSON.stringify(beforeDelete).includes('本地合并虚构验收')&&!JSON.stringify(beforeDelete).includes('本地合并虚构验收。'));
     stage='word-export';const download=page.waitForEvent('download');await page.locator('#btn-export-docx').click();const exported=await download;await exported.saveAs('evaluation/product-profile-live-2026-10-04/nora-before-delete.docx');check('word-downloaded',exported.suggestedFilename().endsWith('.docx'));
     stage='delete-fact';await page.locator('#btn-account-profile').click();card=page.locator('[data-fact-id="'+factId+'"]');await card.getByRole('button',{name:'删除',exact:true}).click();await page.getByRole('button',{name:'确认删除这条事实',exact:true}).click();await page.waitForFunction(id=>!document.querySelector('[data-fact-id="'+id+'"]'),factId);
     check('real-fact-deleted',!(await request('/api/profile')).body.facts.some(f=>f.id===factId));

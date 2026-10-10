@@ -14,7 +14,7 @@ def main():
             **os.environ,
             "DATABASE_URL": f"sqlite:///{path / 'application.sqlite3'}",
             "CHECKPOINT_DB_PATH": str(path / "checkpoints.sqlite3"),
-            "LLM_API_KEY": "", "JEV_API_KEY": "", "TAVILY_API_KEY": "", "ENABLE_RAG": "false",
+            "LLM_API_KEY": "", "TAVILY_API_KEY": "", "ENABLE_RAG": "false",
             "SMTP_HOST": "", "SMTP_PASSWORD": "", "SMTP_FROM": "",
             "EMAIL_PROVIDER": "smtp", "RESEND_API_KEY": "", "RESEND_FROM": "",
             "APP_ENV": "local", "REQUIRE_ACCOUNT": "false",

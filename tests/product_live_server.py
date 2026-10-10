@@ -21,7 +21,7 @@ def run(port=8894, *, setup_fixture=None):
         root = Path(directory)
         os.environ.update({
             "APP_ENV": "local", "REQUIRE_ACCOUNT": "true", "AUTH_COOKIE_SECURE": "false",
-            "ALLOW_INSECURE_LOCAL_STORAGE": "false", "LLM_API_KEY": "", "JEV_API_KEY": "", "TAVILY_API_KEY": "",
+            "ALLOW_INSECURE_LOCAL_STORAGE": "false", "LLM_API_KEY": "", "TAVILY_API_KEY": "",
             "ENABLE_RAG": "false", "SMTP_HOST": "", "SMTP_FROM": "", "SMTP_USERNAME": "", "SMTP_PASSWORD": "",
             "EMAIL_PROVIDER": "smtp", "RESEND_API_KEY": "", "RESEND_FROM": "",
             "DATABASE_URL": f"sqlite:///{root / 'app.sqlite3'}",

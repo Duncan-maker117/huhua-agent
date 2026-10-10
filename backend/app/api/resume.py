@@ -16,12 +16,6 @@ from app.agents.resume_graph import _serialize_to_resume_data, get_graph
 from app.config import get_settings
 from app.database import SessionLocal
 from app.schemas.editor import ResumeData
-from app.services.jev_match import (
-    build_jev_payload,
-    build_match_context,
-    call_jev,
-    score_jev_response,
-)
 from app.services.renderer import list_templates, render_resume
 from app.services.resume_pdf import render_resume_pdf
 from app.services.resume_review import review_resume
@@ -48,10 +42,6 @@ from app.services.profile_bridge import protect_data, protect_state
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-class MatchRequest(BaseModel):
-    session_id: str = Field(min_length=1, max_length=128)
 
 
 class SaveResumeRequest(BaseModel):
@@ -105,7 +95,7 @@ async def _current_resume(request: Request, session_id: str):
         try:
             assert_active_resume_session(session_id)
         except InvalidResumeSession:
-            return {"has_data": False, "has_jd": False, "match_enabled": False, "data": None, "stage": "", "revision": None, "can_save": False}
+            return {"has_data": False, "has_jd": False, "data": None, "stage": "", "revision": None, "can_save": False}
         except ResumeSaveUnavailable:
             raise HTTPException(503, detail={"code": "read_unavailable", "message": "暂时无法读取会话，请保留草稿并稍后重试。"})
     config = {"configurable": {"thread_id": session_id}}
@@ -145,8 +135,8 @@ async def _current_resume(request: Request, session_id: str):
             raise HTTPException(
                 status_code=503, detail="暂时无法读取简历，请稍后重试"
             )
-        return {"has_data": False, "has_jd": has_jd, "match_enabled": False, "data": None, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace, **tailor_metadata(vals, rd)}
-    return {"has_data": True, "has_jd": has_jd, "match_enabled": bool(get_settings().JEV_API_KEY), "data": rd, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace, **tailor_metadata(vals, rd)}
+        return {"has_data": False, "has_jd": has_jd, "data": None, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace, **tailor_metadata(vals, rd)}
+    return {"has_data": True, "has_jd": has_jd, "data": rd, "stage": stage, "revision": revision, "can_save": can_save, "workspace": workspace, **tailor_metadata(vals, rd)}
 
 
 @router.put("/current")
@@ -175,86 +165,6 @@ async def save_current_resume(req: SaveResumeRequest, request: Request):
             raise
         except Exception:
             raise HTTPException(503, detail={"code": "save_unavailable", "message": "保存失败，当前草稿仍在本页，请重试或下载备份。"})
-
-
-@router.post("/match")
-async def match_resume(req: MatchRequest, request: Request):
-    """User-triggered, privacy-minimized Jev JD coverage check."""
-    authorize_session(request, req.session_id)
-    async with session_lock(req.session_id):
-        return await _match_resume(req, request)
-
-
-async def _match_resume(req: MatchRequest, request: Request):
-    owner = authorize_session(request, req.session_id)
-    from app.services.runtime_limits import reserve_turn
-    reserve_turn(owner)
-    empty = {"score": None, "requirements": [], "checks": []}
-    if not session_can_read_checkpoint(req.session_id):
-        return {**empty, "status": "no_resume", "message": "当前会话没有可核对的简历。"}
-
-    stored = load_resume_session(req.session_id)
-    resume_data = protect_data(owner, (stored or {}).get("resume_data") or {})
-    jd_info: dict = {}
-    jd_text = ""
-    graph_failed = False
-    settings = get_settings()
-    if settings.LLM_API_KEY:
-        try:
-            graph = get_graph(_llm_for_graph())
-            state = await graph.aget_state(
-                {"configurable": {"thread_id": req.session_id}}
-            )
-            vals = protect_state(owner, (state.values if state else {}) or {})
-            if not resume_data_has_content(resume_data):
-                resume_data = vals.get("resume_data") or {}
-                if not resume_data_has_content(resume_data) and vals:
-                    resume_data = _serialize_to_resume_data(vals)
-            jd_info = vals.get("jd_info") or {}
-            jd_text = vals.get("jd_text") or ""
-        except Exception:
-            graph_failed = True
-
-    if not resume_data_has_content(resume_data):
-        return {**empty, "status": "no_resume", "message": "当前会话没有可核对的简历。"}
-
-    checks = review_resume(resume_data, jd_info)
-    fallback = {**empty, "checks": checks}
-    if not jd_text:
-        status = "unavailable" if graph_failed else "no_jd"
-        message = "暂时无法读取岗位要求，请稍后重试。" if graph_failed else "当前会话没有可核对的 JD。"
-        return {**fallback, "status": status, "message": message}
-    if not settings.JEV_API_KEY:
-        return {**fallback, "status": "unavailable", "message": "岗位匹配参考功能尚未配置。"}
-
-    context = build_match_context(resume_data, jd_info, jd_text)
-    requirements = context["requirements"]
-    recognized = context["outbound_state"]["requirements"]
-    evidence = context["outbound_state"]["evidence"]
-    if not requirements or not recognized or not evidence:
-        return {
-            **fallback,
-            "status": "insufficient",
-            "requirements": [
-                {"id": row["id"], "text": row["text"], "category": row["category"],
-                 "weight": row["weight"], "level": "unscored", "evidence_id": None,
-                 "evidence_text": None}
-                for row in requirements
-            ],
-            "message": "JD 或简历中可识别的能力信息不足，暂时不给参考分。",
-        }
-    try:
-        response = await call_jev(
-            build_jev_payload(context), settings.JEV_API_KEY, settings.JEV_TIMEOUT_SECONDS
-        )
-        result = score_jev_response(context, response)
-    except Exception:
-        return {
-            **fallback,
-            "status": "unavailable",
-            "message": "岗位匹配暂时不可用，请稍后重试。",
-        }
-    return {**result, "checks": checks}
 
 
 def _output_payload(request, data, *, session_id=None, removed_item_ids=(), committed=False):

@@ -97,7 +97,7 @@ def isolated_environment(folder):
         "ACCOUNT_SECRET": base64.b64encode(os.urandom(32)).decode(),
         "EMAIL_PROVIDER": "smtp", "SMTP_HOST": "", "SMTP_FROM": "",
         "SMTP_USERNAME": "", "SMTP_PASSWORD": "", "SMTP_PORT": "587",
-        "RESEND_API_KEY": "", "RESEND_FROM": "", "JEV_API_KEY": "", "TAVILY_API_KEY": "",
+        "RESEND_API_KEY": "", "RESEND_FROM": "", "TAVILY_API_KEY": "",
         "LANGCHAIN_TRACING": "false", "LANGCHAIN_TRACING_V2": "false",
         "LANGSMITH_TRACING": "false", "LANGCHAIN_API_KEY": "", "LANGSMITH_API_KEY": "",
     }

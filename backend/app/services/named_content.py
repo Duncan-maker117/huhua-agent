@@ -153,7 +153,7 @@ def recover_named_facts(message: str, collected: dict, history: list[str], label
 
     返回 (新的 collected, 已回补的词)。取不到的词不处理，由回执报「没有记录到」。"""
     import copy
-    from app.agents.fact_extractor import _fact_kind_for_clause, _quote_has_unquoted_limit
+    from app.agents.fact_extractor import _fact_kind_for_clause, _quote_has_unquoted_limit, _third_person
     from app.services.fact_guard import lexical_fact_errors
     from app.services.resume_facts import new_fact
 
@@ -184,7 +184,7 @@ def recover_named_facts(message: str, collected: dict, history: list[str], label
                     break
         if owner is None or not clause or lexical_fact_errors(clause, clause) or _quote_has_unquoted_limit(clause, clause):
             continue
-        owner.setdefault("facts", []).append(new_fact(clause, kind=_fact_kind_for_clause(clause), quote=clause, source="chat"))
+        owner.setdefault("facts", []).append(new_fact(_third_person(clause), kind=_fact_kind_for_clause(clause), quote=clause, source="chat"))
         notes = owner.setdefault("raw_notes", [])
         if clause not in notes:
             notes.append(clause)

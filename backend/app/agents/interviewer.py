@@ -161,6 +161,20 @@ def _question_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
     return candidates
 
 
+_FIX_FACT = re.compile(r"(?:改成|改为|改用|换成)(.{4,40})")
+_PROBLEM_FACT = re.compile(r"(?:推荐|生成|输出|回答|返回|给出).{0,6}(?:不存在|错误|不准|编造|虚构|幻觉|不对)|幻觉")
+
+
+def _fix_verification_question(name: str, texts: list[str]) -> str:
+    """用户说过「模型出了某问题 → 改成某做法」：追问改完后问题是否还出现、有没有验证（事实里还没验证线索时才问）。"""
+    fix = next((m.group(1).strip("，。,. ") for t in texts if (m := _FIX_FACT.search(t))), "")
+    problem = next((t for t in texts if _PROBLEM_FACT.search(t)), "")
+    if not fix or not problem or re.search(r"验证|测试|评测|对比|样例", " ".join(texts)):
+        return ""
+    problem = re.sub(r"^(?:初期|一开始|起初|最初|早期)", "", problem).strip("，。,. ")
+    return f"改成「{fix}」之后，「{problem}」的情况还会出现吗？有没有拿几个例子试过？"
+
+
 def _playbook_candidates(state: dict, plan: dict, profile: dict, data: dict, already: set[str],
                          taken: set[str], needed: int) -> list[dict]:
     """规划器没给够问题时，用岗位手册「高价值追问」补齐：只问该条目事实里还没出现对应线索的，先每条目一个。"""
@@ -170,6 +184,9 @@ def _playbook_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
     if not known or not questions or needed <= 0:
         return []
     evidence = active_facts_for_writer(state.get("collected_info") or {})
+    evidence_by_item = {item.get("item_id"): [str(f.get("text") or "") for f in item.get("facts") or []]
+                        for section in ("projects", "work_experience", "internship")
+                        for item in evidence.get(section) or [] if isinstance(item, dict)}
     facts_by_item = {item.get("item_id"): " ".join(str(f.get("text") or "") for f in item.get("facts") or [])
                      for section in ("projects", "work_experience", "internship")
                      for item in evidence.get(section) or [] if isinstance(item, dict)}
@@ -180,8 +197,10 @@ def _playbook_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
         text = facts_by_item.get(item_id, "")
         name = known[item_id][2].get("name") or known[item_id][2].get("company") or "这段经历"
         rows = []
-        for question in questions:
-            cue = next((cues for keys, cues in _FOLLOWUP_CUES if re.search(keys, question)), "")
+        specific = _fix_verification_question(name, evidence_by_item.get(item_id, []))
+        for question in ([specific] if specific else []) + questions:
+            cue = "" if question is specific else next(
+                (cues for keys, cues in _FOLLOWUP_CUES if re.search(keys, question)), "")
             if cue and re.search(cue, text):
                 continue
             if re.search(r"职责|分工|独立完成|团队协作|一个人|自己做|自己写", question) and _item_has_role(

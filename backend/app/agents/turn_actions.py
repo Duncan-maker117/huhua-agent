@@ -724,4 +724,4 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
             lines.append(f"✅ {title}")
         else:
             lines.append(f"❌ {title}：没有产生改动")
-    return lines
+    return list(dict.fromkeys(lines))  # refocus+rewrite 同一目标同一原因时只报一行

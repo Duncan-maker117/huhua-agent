@@ -78,6 +78,37 @@ class InterviewerP1Test(unittest.TestCase):
         self.assertFalse(asked & {row["question_id"] for row in again["questions"]})  # 不重复追问
 
 
+class FixVerificationQuestionTest(unittest.TestCase):
+    def state(self, extra=()):
+        base = reply_state()
+        facts = base["collected_info"]["projects"][0]["facts"]
+        facts += [
+            {"id": "f3", "text": "初期模型会推荐不存在的店铺", "source_quote": "一开始模型老推荐不存在的店", "status": "active", "kind": "context"},
+            {"id": "f4", "text": "改为先用高德查询 POI，再让模型从结果中挑选", "source_quote": "后来我改成先用高德查poi再让模型从里面挑", "status": "active", "kind": "action"},
+            *extra]
+        return base
+
+    def test_asks_whether_problem_recurs_after_the_fix(self):
+        result = compose_interviewer_reply(self.state(), version_number=1)
+        first = result["questions"][0]["q"]
+        self.assertIn("还会出现吗", first)
+        self.assertIn("先用高德查询 POI", first)
+        self.assertIn("模型会推荐不存在的店铺", first)
+        self.assertFalse(any("效果不好的时候你是怎么发现的" in row["q"] and row["q"].startswith("mtagent") for row in result["questions"]))
+
+    def test_not_asked_when_verification_already_stated(self):
+        extra = [{"id": "f5", "text": "拿 20 个例子测试过", "source_quote": "拿20个例子测试过", "status": "active", "kind": "action"}]
+        result = compose_interviewer_reply(self.state(extra), version_number=1)
+        self.assertFalse(any("还会出现吗" in row["q"] for row in result["questions"]))
+
+
+class ReceiptDedupeTest(unittest.TestCase):
+    def test_identical_lines_are_reported_once(self):
+        from app.agents.turn_actions import render_operation_report
+        same = {"op": "contract_gap", "target": "途记", "status": "needs_detail", "reason": "同一个原因", "changed": False}
+        self.assertEqual(len(render_operation_report([same, dict(same)], {}, {})), 1)
+
+
 class UndoEducationNoteTest(unittest.TestCase):
     def test_note_only_when_a_field_was_corrected(self):
         from app.services.resume_versions import education_correction_note

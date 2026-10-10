@@ -318,10 +318,16 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
             result["rejected"].append({"text": clause, "reason": "coverage_fallback_failed:" + _reason_code(errors or "limit")})
             result["uncovered"].append(clause)
             continue
-        owner["facts"].append(new_fact(clause, kind=_fact_kind_for_clause(clause), quote=clause,
+        owner["facts"].append(new_fact(_third_person(clause), kind=_fact_kind_for_clause(clause), quote=clause,
                                        source="chat", turn_id=turn_id))
         logger.info("fact_coverage_fallback turn=%s hash=%s", turn_id or "-",
                     hashlib.sha256(clause.encode("utf-8")).hexdigest()[:10])
+
+
+def _third_person(clause: str) -> str:
+    """去掉句首的「我(还/也)」口语主语，其余原文不动（不新增信息）；去完为空则保持原句。"""
+    cleaned = re.sub(r"^(.{0,3}?)我(?:还|也|又|就)?", r"\1", clause, count=1).strip()
+    return cleaned if len(cleaned) >= 4 else clause
 
 
 def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text):

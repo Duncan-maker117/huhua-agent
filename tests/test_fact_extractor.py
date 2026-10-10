@@ -161,9 +161,9 @@ class FactExtractorTest(unittest.IsolatedAsyncioTestCase):
         patch = await extract_facts_patch(self.HANDSON, {}, self._leaky_patch())
         collected = apply_fact_patch({}, patch)
         by_name = {item["name"]: [f["text"] for f in item["facts"]] for item in collected["projects"]}
-        self.assertIn("后来我改成先用高德查poi再让模型从里面挑", by_name["mtagent"])
+        self.assertIn("后来改成先用高德查poi再让模型从里面挑", by_name["mtagent"])
         self.assertIn("一开始模型老推荐不存在的店", by_name["mtagent"])
-        self.assertIn("我还发了抖音推广", by_name["forge skill"])
+        self.assertIn("发了抖音推广", by_name["forge skill"])
         self.assertEqual(patch["uncovered"], [])
         self.assertTrue(any("发布" in row["text"] for row in patch["rejected"]))  # 被拒原因仍然可见
 

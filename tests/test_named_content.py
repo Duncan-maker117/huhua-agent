@@ -50,7 +50,7 @@ class RecoveryTest(unittest.TestCase):
         after, recovered = recover_named_facts(MESSAGE, before, [], LABELS)
         self.assertEqual(recovered, ["抖音推广"])
         forge = after["projects"][1]
-        self.assertIn("我还发了抖音推广", [f["text"] for f in forge["facts"]])
+        self.assertIn("发了抖音推广", [f["text"] for f in forge["facts"]])
         self.assertEqual(len(before["projects"][1]["facts"]), 1)  # 入参不被修改
 
     def test_recovered_from_history_when_notes_lack_it(self):
@@ -59,7 +59,7 @@ class RecoveryTest(unittest.TestCase):
         history = ["还有一个forge skill，开源的，我还发了抖音推广。"]
         after, recovered = recover_named_facts(MESSAGE, base, history, LABELS)
         self.assertEqual(recovered, ["抖音推广"])
-        self.assertIn("我还发了抖音推广", [f["text"] for f in after["projects"][1]["facts"]])
+        self.assertIn("发了抖音推广", [f["text"] for f in after["projects"][1]["facts"]])
 
     def test_never_said_stays_unrecovered(self):
         base = collected()

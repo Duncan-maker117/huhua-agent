@@ -17,7 +17,7 @@
   }
   let callbacks = {}, workspace = {}, active = 'jd', stage = 'JD_INPUT';
   let streaming = false, interactedDuringTurn = false, hasWorkspace = false, paintedDuringTurn = false;
-  let hasResume = false, paintedVersion = null, status = '';
+  let hasResume = false, paintedVersion = null, status = '', resumeData = null;
   const webSourceCache = new Map();
   let webSourceSession = null;
   const answeredGuidance = new Set();
@@ -165,16 +165,71 @@
     renderJd();
     if (sources.length) openTab('jd');
   }
+  const STATUS_LABEL = {direct: '直接证据', transferable: '可迁移', gap: '缺口'};
+  const REQ_TEXT = () => new Map(list(workspace.jd?.info?.role_profile?.requirements).filter(row => row && row.id).map(row => [row.id, plain(row.text)]));
+  // Every visible bullet of the saved draft with its model evidence (aligned by position; {} when hand-edited).
+  function draftBullets() {
+    const rows = [], evidence = workspace.tailor?.resume_meta?.bullets || {};
+    for (const [section, field] of [['projects', 'polished_bullets'], ['work_experience', 'bullets']]) {
+      for (const item of list(resumeData?.[section])) {
+        if (!item || item.hidden === true) continue;
+        const records = list(evidence[item.item_id]);
+        list(item[field]).forEach((text, index) => {
+          if (plain(text).trim()) rows.push({itemId: item.item_id, itemName: plain(item.name || item.company) || '经历', text: plain(text), meta: records[index] || {}});
+        });
+      }
+    }
+    return rows;
+  }
+  function locate(text) {
+    if (!plain(text)) return;
+    callbacks.highlight?.(text);
+    openTab('resume', true);
+  }
+  function bulletButton(text, className = 'match-bullet') {
+    const el = button(text, () => locate(text), className);
+    el.title = '在「写简历」中定位这一条';
+    return el;
+  }
+  function renderMatch(panel) {
+    const requirements = list(workspace.tailor?.match_plan?.requirements).filter(row => row && row.req_id);
+    if (!requirements.length) return;
+    const texts = REQ_TEXT(), bullets = draftBullets();
+    const group = node('section', undefined, 'workspace-group match-table');
+    group.setAttribute('aria-label', '岗位要求对照');
+    group.append(node('h3', '岗位要求 · 你的证据'), node('p', '对照当前简历里已有的经历，不是 ATS 评分，也不代表录用概率。', 'workspace-description'));
+    for (const row of requirements) {
+      const state = STATUS_LABEL[row.status] ? row.status : 'gap';
+      const card = node('article', undefined, 'match-row match-' + state);
+      const head = node('div', undefined, 'match-head');
+      head.append(node('p', texts.get(row.req_id) || row.req_id, 'match-req'), node('span', STATUS_LABEL[state], 'match-badge'));
+      card.append(head);
+      if (state === 'gap') card.append(node('p', '暂无经历支持', 'match-none'));
+      else {
+        if (plain(row.angle)) card.append(node('p', row.angle, 'match-angle'));
+        const hits = bullets.filter(item => list(item.meta.req_ids).includes(row.req_id));
+        if (hits.length) {
+          const ul = node('ul', undefined, 'match-bullets');
+          hits.forEach(item => { const li = node('li'); li.append(node('span', item.itemName, 'match-item-name'), bulletButton(item.text)); ul.append(li); });
+          card.append(ul);
+        } else card.append(node('p', '已有相关资料，当前稿还没有写入对应的一条。', 'match-none'));
+      }
+      group.append(card);
+    }
+    panel.append(group);
+  }
   function renderJd() {
     const panel = $('workspace-panel-jd'); panel.replaceChildren();
     const jd = workspace.jd || {}, info = jd.info || {};
     heading(panel, '目标岗位', '招聘要求保留原句，方便对照你的经历。');
     renderWebSources(panel);
-    if (!plain(jd.raw_text) && !Object.values(info).some(v => plain(v) || list(v).length) && !list(jd.keywords).length) {
+    const hasMatch = list(workspace.tailor?.match_plan?.requirements).length > 0;
+    if (!hasMatch && !plain(jd.raw_text) && !Object.values(info).some(v => plain(v) || list(v).length) && !list(jd.keywords).length) {
       if (currentWebSources().length) empty(panel, '来源资料已保留', '可打开来源核对公开资料，或继续粘贴具体 JD。');
       else empty(panel, '先放进一份 JD', '粘贴招聘原文，或在输入框上传岗位截图、PDF。解析结果会出现在这里。');
       return;
     }
+    if (!plain(jd.raw_text) && !Object.values(info).some(v => plain(v) || list(v).length) && !list(jd.keywords).length) { renderMatch(panel); return; }
     const card = node('article', undefined, 'workspace-card');
     card.append(node('h3', info.job_title || info.target_role || '当前岗位'));
     facts(card, [['公司', info.company], ['学历', info.education], ['经验', info.experience_years], ['薪资', info.salary_range]]);
@@ -183,6 +238,7 @@
       const row = node('div', undefined, 'workspace-tags'); tags.forEach(tag => row.append(node('span', tag))); card.append(row);
     }
     panel.append(card);
+    renderMatch(panel);
     if (plain(info.summary) || list(info.decoded_items).length) {
       const interpretation = node('section', undefined, 'workspace-group');
       interpretation.append(node('h3', '岗位解读'));
@@ -248,11 +304,43 @@
     section(panel, '已提供的奖项与证书', experiences.certificates);
     section(panel, '资料待核对', experiences.verification_notes);
   }
+  function renderTailorChecks(panel) {
+    const rows = draftBullets(), texts = REQ_TEXT();
+    const transferable = rows.filter(row => list(row.meta.flags).includes('transferable'));
+    const metrics = rows.filter(row => row.meta.needs_metric === true && plain(row.meta.metric_question).trim());
+    if (transferable.length) {
+      const group = node('section', undefined, 'workspace-group review-transferable');
+      group.append(node('h3', '可迁移表达 · 请确认是否属实'), node('p', '这些句子借你已有的相关经历来回应岗位要求，不是直接做过同类工作。点击可在简历里定位。', 'workspace-description'));
+      for (const row of transferable) {
+        const card = node('article', undefined, 'workspace-card review-check');
+        const requirement = list(row.meta.req_ids).map(id => texts.get(id)).find(Boolean);
+        card.append(node('p', `由「${row.itemName}」经历迁移表达${requirement ? `「${requirement}」` : '相关'}要求`, 'workspace-emphasis'));
+        card.append(bulletButton(row.text, 'match-bullet review-bullet'));
+        group.append(card);
+      }
+      panel.append(group);
+    }
+    if (metrics.length) {
+      const group = node('section', undefined, 'workspace-group review-metrics');
+      group.append(node('h3', '缺数字 · 补一个更有说服力'), node('p', '点击问题会填进输入框，你补上真实数字后发送；没有就不用补，不会替你估算。', 'workspace-description'));
+      for (const row of metrics) {
+        const card = node('article', undefined, 'workspace-card review-check');
+        card.append(node('p', `「${row.itemName}」：${row.text}`));
+        const ask = button(row.meta.metric_question, () => fill(row.meta.metric_question), 'workspace-button workspace-secondary review-ask');
+        ask.title = '填进输入框';
+        card.append(ask);
+        group.append(card);
+      }
+      panel.append(group);
+    }
+    return transferable.length + metrics.length;
+  }
   function renderReview() {
     const panel = $('workspace-panel-review'); panel.replaceChildren();
     heading(panel, '投递前核对', '先解决影响真实性和岗位表达的问题。');
     const items = list(workspace.review?.items);
     const reply = plain(workspace.review?.reply);
+    const extras = renderTailorChecks(panel);
     if (reply) {
       const report = node('article', undefined, 'workspace-card workspace-review-reply');
       if (window.HuhuaMarkdown) window.HuhuaMarkdown.render(report, reply);
@@ -260,7 +348,7 @@
       panel.append(report);
     }
     if (!items.length) {
-      if (reply) return;
+      if (reply || extras) return;
       empty(panel, hasResume ? '可以检查当前简历' : '有草稿后再一起核对', hasResume ? '检查会指出具体位置、原因和修改方向，待核实的内容由你确认。' : '补充经历后，先在「写简历」查看草稿。', hasResume ? {label: '准备检查当前简历', value: '请检查当前保存的简历，指出需要核实或补充的具体位置。'} : undefined);
       return;
     }
@@ -311,8 +399,58 @@
       panel.append(row);
     });
   }
+  // Follow-up questions the interviewer has put to the user. Any message the user sends closes the ones shown.
+  const closedKey = () => 'huhua_closed_questions:' + (callbacks.session?.() || '');
+  function closedQuestions() {
+    try { const rows = JSON.parse(localStorage.getItem(closedKey()) || '[]'); return new Set(Array.isArray(rows) ? rows : []); }
+    catch (_) { return new Set(); }
+  }
+  function openQuestions() {
+    const closed = closedQuestions();
+    return list(workspace.tailor?.questions).filter(row => row && plain(row.question_id) && plain(row.q) && !closed.has(row.question_id)
+      && list(row.options).some(option => plain(option?.label || option))).slice(0, 3);
+  }
+  function dismissQuestions() {
+    const shown = openQuestions().map(row => row.question_id);
+    if (shown.length) {
+      const closed = closedQuestions(); shown.forEach(id => closed.add(id));
+      try { localStorage.setItem(closedKey(), JSON.stringify([...closed].slice(-60))); } catch (_) { /* The dock only hides; the server keeps no answer state. */ }
+    }
+    renderGuidance();
+  }
+  function renderQuestions(dock, questions) {
+    dock.append(node('p', '想让它更强，回答任意一个就行', 'guidance-label'));
+    for (const row of questions) {
+      const block = node('div', undefined, 'guidance-question-block');
+      block.append(node('h3', row.q, 'guidance-question-text'));
+      const hint = [plain(row.location_label) && '会改进：' + plain(row.location_label), plain(row.why)].filter(Boolean).join(' · ');
+      if (hint) block.append(node('p', hint, 'guidance-why'));
+      const choices = node('div', undefined, 'guidance-options'); choices.setAttribute('aria-label', '选择一个回答，也可以自由输入');
+      for (const option of list(row.options)) {
+        const label = plain(option?.label ?? option), value = plain(option?.value ?? option) || label;
+        if (!label) continue;
+        const chip = button(label, () => { if (!streaming && !choicePending) answerQuestion(row, value); }, 'guidance-option');
+        chip.dataset.questionId = row.question_id;
+        choices.append(chip);
+      }
+      block.append(choices); dock.append(block);
+    }
+    const hint = node('p', '点击即发送完整的回答，也可以直接在下方输入。', 'guidance-hint'); hint.setAttribute('role', 'status'); dock.append(hint);
+  }
+  async function answerQuestion(row, value) {
+    choicePending = true; renderGuidance();
+    try { await callbacks.sendChoice?.(`关于「${plain(row.q)}」：${value}`); }
+    catch (_) { /* send() keeps the turn recoverable. */ }
+    finally { choicePending = false; renderGuidance(); }
+  }
   function renderGuidance() {
     const dock = $('guidance-dock'); dock.replaceChildren();
+    const questions = openQuestions();
+    if (questions.length) {
+      dock.hidden = streaming || choicePending;
+      if (!dock.hidden) renderQuestions(dock, questions);
+      return;
+    }
     const guidance = workspace.guidance;
     const key = guidanceKey();
     dock.hidden = streaming || choicePending || answeredGuidance.has(key) || !guidance || !plain(guidance.question);
@@ -375,18 +513,19 @@
   }
   function reset() {
     webSourceSession = null;
-    workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
+    resumeData = null; workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
     paintedVersion = null; status = ''; streaming = false; interactedDuringTurn = false; paintedDuringTurn = false;
     renderJd(); renderExperiences(); renderReview(); renderExport(); renderSuggestions(); renderGuidance(); renderTabs(); updateStatus();
   }
   function canvasResult(body) {
     hasResume = Boolean(body.has_data && body.data);
+    resumeData = hasResume ? body.data : null;
     const version = body.workspace?.resume?.version ?? body.revision ?? null;
     const changed = hasResume && version !== paintedVersion;
     status = hasResume ? (changed ? '简历已更新 · 已同步到预览' : '当前简历已同步') : (hasWorkspace ? '资料已同步 · 补充经历后逐步成稿' : '补充经历，简历会逐步成稿');
     paintedVersion = version;
     if (streaming) paintedDuringTurn = true;
-    renderReview(); renderExport(); renderSuggestions(); updateStatus();
+    renderJd(); renderReview(); renderExport(); renderSuggestions(); updateStatus();
   }
   function setStreaming(value) {
     streaming = value;
@@ -428,7 +567,7 @@
       }
     });
   }
-  window.HuhuaWorkspace = {refresh: () => callbacks.refresh?.(), init, update, reset, setWebSources, commitWebSources, setStreaming, canvasResult, openTab, setMobileOpen,
+  window.HuhuaWorkspace = {refresh: () => callbacks.refresh?.(), dismissQuestions, init, update, reset, setWebSources, commitWebSources, setStreaming, canvasResult, openTab, setMobileOpen,
     setStage(value) {stage = value; if (!hasWorkspace) active = tabs.find(([, , id]) => id === value)?.[0] || 'jd'; renderTabs();},
     canvasError() {status = '预览同步失败，请刷新重试；当前内容已保留'; updateStatus();},
   };

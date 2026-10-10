@@ -70,7 +70,8 @@
   .tpl-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #c9c3d9; color: #484456; background: #fff; cursor: pointer; }
   .tpl-chip.active { border-color: #5423e7; color: #3c00bd; background: #f0ecff; font-weight: 600; }
 </style>
-<link rel="stylesheet" href="/static/resume-workspace.css?v=20261006-4"/>
+<link rel="stylesheet" href="/static/resume-workspace.css?v=20261010-pr6b"/>
+<link rel="stylesheet" href="/static/change-card.css?v=20261010-pr6b"/>
 </head>
 <body class="bg-background text-on-background overflow-hidden h-screen flex">
 
@@ -287,7 +288,8 @@
   </aside>
 </div>
 
-<script src="/static/resume-workspace.js?v=20261008-export"></script>
+<script src="/static/change-card.js?v=20261010-pr6b"></script>
+<script src="/static/resume-workspace.js?v=20261010-pr6b"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -452,6 +454,10 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   let usedWebTool = Boolean(webTool);
   let toolMessage = '';
   let lastWorkspaceMeta = null;
+  let changeMeta = null;
+  const versionBefore = canvasState.versionId;
+  canvasState.highlight = null;
+  window.HuhuaWorkspace?.dismissQuestions();
   let renderFrame = null;
   const scheduleRender = () => {
     if (renderFrame !== null) return;
@@ -507,7 +513,12 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
       if (data === '[DONE]') { receivedDone = true; return; }
       let parsed;
       try { parsed = JSON.parse(data); } catch { return; }
-      if (parsed.type === 'meta') { if (parsed.workspace) lastWorkspaceMeta = parsed.workspace; applyMeta(parsed); return; }
+      if (parsed.type === 'meta') {
+        if (parsed.workspace) lastWorkspaceMeta = parsed.workspace;
+        // Only a turn that saved a new version gets a card; later meta repeats the same version id.
+        if (parsed.version_id && parsed.version_id !== versionBefore) changeMeta = parsed;
+        applyMeta(parsed); return;
+      }
       if (parsed.type === 'tool_status') {
         usedWebTool = true;
         toolMessage = typeof parsed.message === 'string' ? parsed.message : parsed.status === 'completed' ? '网页资料已获取，正在解读…' : '正在获取网页资料…';
@@ -550,6 +561,13 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   renderAssistant(aiEl, buffer, interrupted);
   aiEl.classList.remove('streaming');
   aiEl.setAttribute('aria-busy', 'false');
+  if (completed && changeMeta && !interrupted) {
+    const card = window.HuhuaChangeCard?.create(changeMeta, {
+      session: () => SESSION_ID, busy: () => Boolean(currentController),
+      onUndone: () => refreshCanvas(), refresh: () => refreshCanvas(),
+    });
+    if (card) aiEl.appendChild(card);
+  }
   messagesEl.scrollTop = messagesEl.scrollHeight;
   messages.push({ role: 'assistant', content: buffer, ...(interrupted ? { interrupted: true } : {}) });
   saveMessages();
@@ -590,9 +608,12 @@ const canvasState = {
   data: null,
   templates: [],
   templateId: 't001-jianyue',
+  versionId: undefined,
+  highlight: null,
 };
 
 function applyMeta(meta) {
+  if (meta.version_id !== undefined) canvasState.versionId = meta.version_id;
   if (meta.stage) canvasState.stage = meta.stage;
   if (typeof meta.has_data === 'boolean') canvasState.hasData = meta.has_data;
   if (meta.workspace) window.HuhuaWorkspace?.update(meta.workspace, { focus: true });
@@ -655,6 +676,27 @@ function scaleSheet() {
   size.style.height = `${297 * 3.78 * scale}px`;
 }
 
+function escapeHtml(value) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+// The preview iframe is sandboxed, so a located bullet is marked in the HTML before it is loaded.
+function applyHighlight(html) {
+  const target = canvasState.highlight;
+  if (!target) return html;
+  const base = escapeHtml(target);
+  for (const variant of [base, base.replace(/"/g, '&quot;'), base.replace(/"/g, '&#34;').replace(/'/g, '&#39;'), target]) {
+    const at = html.indexOf(variant);
+    if (at >= 0) {
+      return html.slice(0, at) + '<mark data-located="1" style="background:#e9e0ff;box-shadow:0 0 0 3px #e9e0ff;border-radius:2px;color:inherit">' + variant + '</mark>' + html.slice(at + variant.length);
+    }
+  }
+  return html;
+}
+function highlightBullet(value) {
+  canvasState.highlight = typeof value === 'string' && value.trim() ? value : null;
+  if (canvasState.data) paintSheet(canvasState.data);
+}
+
 let canvasPaintRequest = 0;
 let canvasReadRequest = 0;
 async function paintSheet(data) {
@@ -675,7 +717,7 @@ async function paintSheet(data) {
     if (!res.ok) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
     const html = await res.text();
     if (request !== canvasPaintRequest) return false;
-    iframe.srcdoc = html;
+    iframe.srcdoc = applyHighlight(html);
     emptyEl.classList.add('hidden');
     wrap.classList.remove('hidden');
     if (exportBtn) exportBtn.disabled = false;
@@ -696,6 +738,7 @@ async function refreshCanvas() {
     const body = await r.json();
     if (request !== canvasReadRequest || session !== SESSION_ID) return false;
     if (body.stage) canvasState.stage = body.stage;
+    if ('version_id' in body) canvasState.versionId = body.version_id;
     if (body.workspace) window.HuhuaWorkspace?.update(body.workspace);
     renderStageRail();
     if (body.has_data && body.data) {
@@ -1021,6 +1064,7 @@ window.HuhuaWorkspace?.init({
   },
   resize: scaleSheet,
   refresh: refreshCanvas,
+  highlight: highlightBullet,
   session: () => SESSION_ID,
 });
 loadTemplates();
@@ -1078,6 +1122,6 @@ document.getElementById('btn-toggle-canvas')?.addEventListener('click', () => {
 });
 
 </script>
-<script src="/static/conversation-history.js?v=20261005-guest"></script>
+<script src="/static/conversation-history.js?v=20261010-pr6b"></script>
 </body>
 </html>

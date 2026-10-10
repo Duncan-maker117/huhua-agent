@@ -88,7 +88,9 @@
     canvasState.data = null;
     canvasState.hasData = false;
     canvasState.stage = 'JD_INPUT';
-    setMatchAvailable(false);
+    canvasState.versionId = undefined;
+    canvasState.highlight = null;
+    window.HuhuaChangeCard?.reset();
     resetGenerateLink();
     $('verification-panel').classList.add('hidden');
     $('canvas-empty').classList.remove('hidden');

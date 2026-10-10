@@ -103,7 +103,7 @@ class RepairOutput(WriterSchema):
 # --- Lenient variants -------------------------------------------------------
 # Same names and the same JSON schema as the strict models above (so the tool
 # definition sent to the model is unchanged), but unknown keys on titles,
-# bullets, items and MatchPlan array elements are dropped instead of rejected.
+# bullets, items, plans and the top-level outputs are dropped instead of rejected.
 
 IGNORED_EXTRA_SINK: ContextVar[list[str] | None] = ContextVar("writer_ignored_extra_sink", default=None)
 
@@ -156,18 +156,22 @@ class LenientPlannedQuestion(_DropsExtra, PlannedQuestion):
     improves: LenientImprovementTarget = Field(default_factory=LenientImprovementTarget)
 
 
-# MatchPlan itself stays strict-on-extra; only its array element objects are lenient.
-class LenientMatchPlan(MatchPlan):
+# Every level drops unknown keys: models keep adding *_note fields at new levels,
+# and no unknown key is ever read into the resume.
+class LenientMatchPlan(_DropsExtra, MatchPlan):
+    model_config = _LENIENT
     requirements: list[LenientRequirementMatch] = Field(default_factory=list)
     experience_plan: list[LenientExperiencePlan] = Field(default_factory=list)
     questions: list[LenientPlannedQuestion] = Field(default_factory=list)
 
 
-class LenientWriterDraft(WriterDraft):
+class LenientWriterDraft(_DropsExtra, WriterDraft):
+    model_config = _LENIENT
     items: list[LenientWrittenItem] = Field(default_factory=list)
 
 
-class LenientOnePassOutput(OnePassOutput):
+class LenientOnePassOutput(_DropsExtra, OnePassOutput):
+    model_config = _LENIENT
     match_plan: LenientMatchPlan
     writer: LenientWriterDraft
 

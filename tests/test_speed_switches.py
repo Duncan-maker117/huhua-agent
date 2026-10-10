@@ -86,21 +86,28 @@ class IgnoreExtraBulletFieldsTest(unittest.TestCase):
         self.assertEqual(sent.model_json_schema()["$defs"]["WrittenBullet"]["additionalProperties"], False)
         self.assertEqual(WriterDraft.model_json_schema(), model.schemas[0].model_fields["writer"].annotation.model_json_schema())
 
-    def test_on_keeps_other_schemas_and_upper_levels_strict(self):
+    def test_on_upper_levels_also_lenient(self):
         top = valid()
         top["writer"]["stray"] = 1
+        top["stray_top"] = 1
         plan_extra = valid()
-        plan_extra["match_plan"]["stray"] = 1
-        for response in (top, plan_extra):
+        plan_extra["match_plan"]["capacity_note"] = 1
+        for response, expected in ((top, ["stray", "stray_top"]), (plan_extra, ["capacity_note"])):
+            model = SchemaSpy(response)
+            state = {"schema_retry_count": 0}
             with patch(WRITER, return_value=settings(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=True)):
-                with self.assertRaises(ValidationError):
-                    call(SchemaSpy(response, response), OnePassOutput, {"schema_retry_count": 0})
-        model = SchemaSpy({**plan(), "stray": 1}, {**plan(), "stray": 1})
+                result = call(model, OnePassOutput, state)
+            self.assertEqual(model.calls, 1)
+            self.assertEqual(sorted(state["ignored_extra_fields"]), expected)
+            for name in expected:
+                self.assertNotIn(name, json.dumps(result.model_dump()))
+        model = SchemaSpy({**plan(), "questions_note": 1})
+        state = {"schema_retry_count": 0}
         with patch(WRITER, return_value=settings(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=True)):
-            with self.assertRaises(ValidationError):
-                call(model, MatchPlan, {"schema_retry_count": 0})
+            call(model, MatchPlan, state)
         self.assertEqual(model.schemas[0].__name__, "MatchPlan")
-        self.assertEqual(model.schemas[0].model_config["extra"], "forbid")
+        self.assertEqual(model.calls, 1)
+        self.assertEqual(state["ignored_extra_fields"], ["questions_note"])
 
     def test_on_match_plan_array_elements_lenient(self):
         response = valid()

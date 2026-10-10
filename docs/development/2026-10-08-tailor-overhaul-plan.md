@@ -316,6 +316,7 @@ opening_turns → agent 回复 → simulate_user 回答 agent 的问题（最多
 PR6 依赖 PR4/PR5 的 API：Codex 在 PR4 完成时在 `docs/development/` 写一页接口说明（SSE 事件新增字段：`change_summary`、`diff`、`version_id`、`questions`、`match_plan`；撤销端点）后 Cursor 开工。
 
 ## 9. 评审记录（Claude 填写）
+- 2026-10-11 **速度优化完成**（0dedff2–0b16aa5，Sonnet 实现 + Claude 评审）。测量口径改为 DeepSeek 官方 deepseek-flash（与线上同 key；百炼欠费）。每次调用加节点标签，`evaluation/tailor-bench/timing_report.py` 出分节点耗时。改动：①互不依赖的调用并行（意图判断‖事实抽取、摘要核验‖逐条核验），等价性有单测；②事实抽取、JD 解码关思考（原 1300–3200 思考 token）；③writer 输出所有层级忽略未知字段（模型常加 `*_note`/`metric_question_options`，原先触发整份重写 6–8s，且 7 次重写失败致编辑未生效）；④计页改用排版结果，不写 PDF（服务器写 PDF 因中文字体子集化需 13s）；⑤错误码 E-MODEL-QUOTA/AUTH/RATE/TIMEOUT/NETWORK/UPSTREAM/INTERNAL。结果（4 例 handson-01/02、ai-pm-01、pm-01）：首稿 19.5–30.8s → 10.4–24.3s，编辑轮 13–26s → 8–16s（9 次中 1 次 16.1s 超目标：writer 9.6s + 守卫修复链 3.9s），JD 轮 13–21s → 6–9s。benchmark：确认新增具体经历 0；writer 回退 2 → 0；编辑执行三次运行 4/8、5/8、3/8，未遵循的均为已知类型（handson 复合指令漏「抖音推广」「写详细点」、ai-pm-01「按 JD 突出」偏同义改写），与开关无关，属样本噪声。轻微扩写疑点 2 条（「可验证的课程原型」「用 Axure 绘制流程」）与基线同级。未采用：编辑轮复用上一版计划（会使编辑轮不再输出思路与可迁移说明）。遗留：writer 偶发不走工具调用（object_missing）仍触发一次重写；PDF 导出在服务器约 13s；writer 轻微扩写仍在。部署时发现并修复：部署包缺 tech_terms.txt/capacity.json，线上旧镜像缺 PDF 渲染依赖。
 - 2026-10-08 Codex 规格评审，Claude 全部采纳：
   1. guard 改为词法初筛 + 语义核验两阶段；提升/增长类移出强度词表（§4.2、§4.5）。
   2. 岗位手册示例存在扩大事实（AI PM 反馈分类、PM 下单页、后端"负责"、算法"F1/选型"），已由 Claude 修正；resume-write 补"换说法≠加动作"与 transferable 不放宽事实。

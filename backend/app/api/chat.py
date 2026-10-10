@@ -28,6 +28,9 @@ from app.services.image_ocr import (
 from app.services.conversation_store import create_conversation, remove_conversation, touch_conversation
 from app.services.account_service import resolve_owner
 from app.services.access_control import authorize_session
+from app.services.error_codes import (
+    HISTORY_UNAVAILABLE, MESSAGES, SESSION_ENDED, TIMEOUT, classify_error, error_log_fields,
+)
 from app.services.runtime_limits import model_slot, reserve_turn
 from app.services.profile_bridge import protect_data, protect_state, prepare_graph_context
 from app.services.canonical_resume import current_canonical
@@ -256,7 +259,7 @@ async def chat_stream(request: Request):
                 # waited for a previous turn. Check the capability again.
                 authorize_session(request, session_id)
                 if session_is_blocked(session_id):
-                    yield f"data: {json.dumps({'error': '会话已结束，请新建对话'}, ensure_ascii=False)}\n\n"
+                    yield f"data: {json.dumps({'error': MESSAGES[SESSION_ENDED], 'code': SESSION_ENDED}, ensure_ascii=False)}\n\n"
                 else:
                     # A checkpoint with no current session row is an orphan
                     # from an old/deleted run. Never continue from its state.
@@ -265,11 +268,11 @@ async def chat_stream(request: Request):
                             {"configurable": {"thread_id": session_id}}
                         )
                         if old_state and old_state.values:
-                            yield f"data: {json.dumps({'error': '会话已结束，请新建对话'}, ensure_ascii=False)}\n\n"
+                            yield f"data: {json.dumps({'error': MESSAGES[SESSION_ENDED], 'code': SESSION_ENDED}, ensure_ascii=False)}\n\n"
                             yield "data: [DONE]\n\n"
                             return
                     if not ensure_resume_session(session_id):
-                        yield f"data: {json.dumps({'error': '会话已结束，请新建对话'}, ensure_ascii=False)}\n\n"
+                        yield f"data: {json.dumps({'error': MESSAGES[SESSION_ENDED], 'code': SESSION_ENDED}, ensure_ascii=False)}\n\n"
                         yield "data: [DONE]\n\n"
                         return
                     persisted = load_resume_session(session_id)
@@ -282,7 +285,7 @@ async def chat_stream(request: Request):
                             {"configurable": {"thread_id": session_id}}
                         )
                         if not snapshot or not snapshot.values:
-                            yield f"data: {json.dumps({'error': '历史对话暂时无法恢复，请稍后重试'}, ensure_ascii=False)}\n\n"
+                            yield f"data: {json.dumps({'error': MESSAGES[HISTORY_UNAVAILABLE], 'code': HISTORY_UNAVAILABLE}, ensure_ascii=False)}\n\n"
                             yield "data: [DONE]\n\n"
                             return
                     touch_conversation(session_id, messages[-1]["content"], owner)
@@ -316,14 +319,17 @@ async def chat_stream(request: Request):
                     logger.info("chat_turn_result status=completed saved=true duration_ms=%d", int((time.monotonic() - generation_started) * 1000))
                     yield f"data: {json.dumps(await _session_meta(session_id, llm), ensure_ascii=False)}\n\n"
             except TimeoutError:
-                logger.warning("chat_turn_result status=timeout saved=unknown")
-                yield f"data: {json.dumps({'error': '本次整理超时，已保存的内容仍在，请稍后重试'}, ensure_ascii=False)}\n\n"
+                logger.warning("chat_turn_result status=timeout saved=unknown code=%s", TIMEOUT)
+                yield f"data: {json.dumps({'error': MESSAGES[TIMEOUT], 'code': TIMEOUT}, ensure_ascii=False)}\n\n"
             except HTTPException as error:
                 logger.warning("chat_turn_result status=unavailable code=%d", error.status_code)
                 yield f"data: {json.dumps({'error': error.detail}, ensure_ascii=False)}\n\n"
-            except Exception:
-                logger.error("stream error")
-                yield f"data: {json.dumps({'error': '生成失败，请稍后重试'}, ensure_ascii=False)}\n\n"
+            except Exception as error:
+                code, message = classify_error(error)
+                _, error_type, status_code = error_log_fields(error)
+                logger.error("chat_turn_result status=error code=%s error_type=%s status_code=%s",
+                             code, error_type, status_code)
+                yield f"data: {json.dumps({'error': message, 'code': code}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(
@@ -392,6 +398,11 @@ async def upload_file(request: Request, response: Response, file: UploadFile = F
     except NoImageTextError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ImageRecognitionError as e:
+        if e.__cause__ is not None:
+            code, message = classify_error(e)
+            if code != "E-INTERNAL":
+                logger.error("image_ocr_failed code=%s error_type=%s", code, error_log_fields(e)[1])
+                raise HTTPException(status_code=503, detail={"code": code, "message": message})
         raise HTTPException(status_code=503, detail=str(e))
     except UnsupportedFileError as e:
         raise HTTPException(status_code=415, detail=str(e))

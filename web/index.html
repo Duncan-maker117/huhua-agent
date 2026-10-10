@@ -527,7 +527,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
       if (parsed.type === 'sources') {
         window.HuhuaWorkspace?.setWebSources(parsed.sources, submittedSession); return;
       }
-      if (typeof parsed.error === 'string') { streamFailed = true; buffer += `\n[错误: ${parsed.error}]`; }
+      if (typeof parsed.error === 'string') { streamFailed = true; buffer += `\n[错误: ${parsed.error}${typeof parsed.code === 'string' && parsed.code ? `（${parsed.code}）` : ''}]`; }
       else if (typeof parsed.content === 'string') buffer += parsed.content;
       scheduleRender();
     };

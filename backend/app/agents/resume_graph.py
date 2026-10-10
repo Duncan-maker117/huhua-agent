@@ -23,6 +23,7 @@ from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
 from app.agents.decoder_chain import run_decoder_chain
+from app.services.error_codes import to_turn_error
 from app.agents.career_prompt import career_messages, career_system
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, stream_public_reply
 from app.agents.triage_chain import (
@@ -2386,8 +2387,11 @@ async def stream_agent(
                         if message.content and message.id not in streamed_reply_ids:
                             pending_replies.append(message.content)
     except Exception as e:
-        logger.error("agent stream error: %s", type(e).__name__)
-        raise RuntimeError("生成失败，请稍后重试") from None
+        turn_error = to_turn_error(e)
+        logger.error("agent stream error code=%s error_type=%s status_code=%s",
+                     turn_error.code, turn_error.error_type, turn_error.status_code)
+        # Original exception text may carry provider details; keep only the code.
+        raise turn_error from None
     finally:
         # Closing a request cancels the graph and its upstream model iterator;
         # do not turn client cancellation into a new error bubble or save an

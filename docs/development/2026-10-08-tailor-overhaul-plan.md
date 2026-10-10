@@ -322,6 +322,7 @@ PR6 依赖 PR4/PR5 的 API：Codex 在 PR4 完成时在 `docs/development/` 写�
   3. 新增 §3.5 存储边界：保存只写文稿，不再用文稿重建事实母版；facts 增加 status，writer 只读 active facts。
   4. backup 改为 `hidden: true` 可逆状态，不走删除。
   5. benchmark 逐版本评分；确认新增事实零容忍；12 例定位为回归集，后续扩至 32 例含留出集。
+- 2026-10-10 **PR6a 验收通过**（989297b/d14467f/bff17d6，Sonnet）：六款模板页眉两行、无照片不占位、项目标题一行、技能每组一行；capacity.json 改为真实渲染测量；real-01 六款模板全部 1 页（改前 4 款 2 页），未缩字号；平铺 skills 与分组同步；unsupported_tool 只对技能词表生效。离线 979/979。浏览器测试：resume_editor 通过（需 APP_ENV=local + REQUIRE_ACCOUNT=false）；resume_sections（仍等 popup）、resume_export（依赖 8898 服务）、resume_persistence 在 PR6a 之前的 df7f400 上同样失败，属既有过期测试，转 PR6b 修。新发现写作问题：real-01 中 Forge Skill 的唯一量化成果「74 GitHub Stars」与抖音推广被丢弃，转 PR6b 同批修（量化事实优先保留）。
 - 2026-10-10 **PR5 验收通过**（b573ebe，Sonnet 接手完成 Q1–Q4、R1–R4、W1–W3、F1–F7、E1–E5）。离线 970/970；v8 全套：编辑执行 21/26（含超时补跑）、首稿 13/13、guard 回退 6/50、negative_absence_printed 0、页面 67/67、确认新增事实 1 条（direction-01「明确各菜品分类的统计口径」，轻微）。已知遗留转入后续：direction-01/handson-01 的"按 JD 突出"仍偏同义改写；平均轮延迟约 35 秒、并发时首轮超时；real-01 两页（转 PR6）；平铺 skills 与分组不同步（转 PR6）；`unsupported_tool` 应只对技能词表生效。
 - 2026-10-09 PR5 v3 评审：**规格修正**——"不丢限制"被实现为"把否定原句拼进 bullet"（`resume_limits.preserve_item_limits`、`fact_guard` 的 missing_negation/missing_status_limit），导致 60 版中 59 版守卫回退、简历出现「还没上线；没有用户量」「没有星数；但没有星数」。红线 3 改为"不说反"，限制事实不要求印出。详见 `evaluation/tailor-bench/claude-pr5-v3-review.txt`。
 - 2026-10-09 Banz：写作、结构化、评审、模拟器全部改用 deepseek-flash，不再使用 deepseek-v4-pro；§7.4 已补同模型评审的偏差控制。

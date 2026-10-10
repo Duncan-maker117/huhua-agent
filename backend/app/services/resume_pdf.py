@@ -31,6 +31,19 @@ def _photo_resource(url: str) -> tuple[str, bytes]:
 
 
 def render_resume_pdf(template_id: str, data: dict) -> bytes:
+    return _render(template_id, data, lambda document: document.write_pdf())
+
+
+def count_resume_pdf_pages(template_id: str, data: dict) -> int:
+    """Page count from the same layout as the exported PDF, without writing it.
+
+    Writing embeds subsetted CJK fonts, which takes seconds on small servers;
+    the page break layout is already final before that step.
+    """
+    return _render(template_id, data, lambda document: len(document.pages))
+
+
+def _render(template_id: str, data: dict, finish):
     if template_id not in {template["id"] for template in list_templates()}:
         raise ValueError("模板不存在")
     # Lazy import: a missing optional native library must not prevent chatting,
@@ -62,7 +75,7 @@ def render_resume_pdf(template_id: str, data: dict) -> bytes:
     </style>"""
     html = html.replace("</head>", style + "</head>")
     try:
-        return HTML(string=html, url_fetcher=PhotoOnlyFetcher()).write_pdf()
+        return finish(HTML(string=html, url_fetcher=PhotoOnlyFetcher()).render())
     except FatalURLFetchingError:
         # WeasyPrint's fatal fetch error inherits BaseException; normalize only
         # this explicit renderer failure so the API can provide a retry path.

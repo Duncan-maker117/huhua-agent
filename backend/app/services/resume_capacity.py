@@ -105,14 +105,15 @@ def measure_rendered_pages(
               "data_hash": resume_data_hash(resume_data),
               "source": "production_render_resume_pdf" if pdf_bytes is None else "caller_supplied_pdf_bytes"}
     try:
-        import pdfplumber
-
         if pdf_bytes is None:
-            from app.services.resume_pdf import render_resume_pdf
+            from app.services.resume_pdf import count_resume_pdf_pages
 
-            pdf_bytes = render_resume_pdf(normalized["template_id"], resume_data)
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            pages = len(pdf.pages)
+            pages = count_resume_pdf_pages(normalized["template_id"], resume_data)
+        else:
+            import pdfplumber
+
+            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                pages = len(pdf.pages)
         if pages < 1:
             raise ValueError("Rendered PDF has no pages")
         result.update(status="rendered", pages=pages, within_page_limit=pages <= normalized["page_limit"])

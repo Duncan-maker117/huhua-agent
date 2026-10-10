@@ -29,6 +29,8 @@ EXACT_FILES = (
     "backend/main.py",
     "data/sample_resume.json",
     "data/jargon_dict.csv",
+    "data/tech_terms.txt",
+    "data/jianlimoban/capacity.json",
     "deploy/Caddyfile",
     "deploy/compose.host-caddy.yaml",
     "deploy/app.env.example",

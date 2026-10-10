@@ -14,7 +14,8 @@ COPY backend/app ./backend/app
 COPY backend/main.py ./backend/main.py
 COPY backend/scripts ./backend/scripts
 COPY web ./web
-COPY data/sample_resume.json data/jargon_dict.csv ./data/
+COPY data/sample_resume.json data/jargon_dict.csv data/tech_terms.txt ./data/
+COPY data/jianlimoban/capacity.json ./data/jianlimoban/capacity.json
 COPY data/jianlimoban/html-template ./data/jianlimoban/html-template
 
 RUN groupadd --gid 10001 huhua \

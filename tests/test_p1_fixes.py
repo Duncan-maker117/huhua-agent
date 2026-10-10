@@ -96,6 +96,14 @@ class FixVerificationQuestionTest(unittest.TestCase):
         self.assertIn("模型会推荐不存在的店铺", first)
         self.assertFalse(any("效果不好的时候你是怎么发现的" in row["q"] and row["q"].startswith("mtagent") for row in result["questions"]))
 
+    def test_problem_phrase_is_cut_before_the_fix_when_one_fact_holds_both(self):
+        state = reply_state()
+        state["collected_info"]["projects"][0]["facts"] += [
+            {"id": "f3", "text": "模型会推荐不存在的店，我改成先查候选再让模型选", "source_quote": "x", "status": "active", "kind": "action"}]
+        first = compose_interviewer_reply(state, version_number=1)["questions"][0]["q"]
+        self.assertIn("「模型会推荐不存在的店」的情况还会出现吗", first)
+        self.assertIn("改成「先查候选再让模型选」", first)
+
     def test_not_asked_when_verification_already_stated(self):
         extra = [{"id": "f5", "text": "拿 20 个例子测试过", "source_quote": "拿20个例子测试过", "status": "active", "kind": "action"}]
         result = compose_interviewer_reply(self.state(extra), version_number=1)

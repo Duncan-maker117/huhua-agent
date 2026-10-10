@@ -171,7 +171,8 @@ def _fix_verification_question(name: str, texts: list[str]) -> str:
     problem = next((t for t in texts if _PROBLEM_FACT.search(t)), "")
     if not fix or not problem or re.search(r"验证|测试|评测|对比|样例", " ".join(texts)):
         return ""
-    problem = re.sub(r"^(?:初期|一开始|起初|最初|早期)", "", problem).strip("，。,. ")
+    problem = re.sub(r"^(?:初期|一开始|起初|最初|早期)", "", problem)
+    problem = re.split(r"[，,；;]\s*(?:我|后来)?\s*(?:改成|改为|改用|换成)", problem)[0].strip("，。,. ")
     return f"改成「{fix}」之后，「{problem}」的情况还会出现吗？有没有拿几个例子试过？"
 
 

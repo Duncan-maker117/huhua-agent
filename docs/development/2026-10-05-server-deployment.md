@@ -21,7 +21,16 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-06 用户反馈修复（最新）
+## 2026-10-11 JD 定制重构上线（最新）
+
+- 镜像 `huhua-agent:20261011-1`，ID `sha256:da8f6f4be8285203beddb2881e5b9a374b9720a260917dfe4aeb71dd19a51dbe`，基于 `20261006-4` 补装 `libpango`、`fonts-noto-cjk` 与 `weasyprint==70.0`（旧镜像缺这三项，PDF 导出此前不可用），并复制 overhaul/tailor 分支 `0b16aa5` 的应用、前端、模板、`tech_terms.txt`、`capacity.json`。构建与切换脚本：`dist/build-20261011-1.sh`、`dist/rehearse-20261011-1.sh`、`dist/release-20261011-1.sh`；部署包 SHA-256 `c80ddd40…791ce9`。
+- 服务器断网测试 1047/1047（跳过 3）。计页改为排版结果（0.12s）；服务器写 PDF 因 CJK 字体子集化约 13s，只影响导出。
+- 数据：库结构 1→2（`resume_sessions.resume_state`），用 `security_migrate.py application-migrate` 新建文件迁移；按 Banz 决定清空旧简历 6 份、对话 5 个、`claimed_history_imports` 3 条，保留账号 3、个人档案 1、档案事实 35；检查点库换为空库。迁移前在副本上演练通过。
+- 停写后配对加密备份 `/opt/huhua-backups/pre-20261011-1/`（app/checkpoints/privacy，privacy digest `3e9f33dc…be3fef`）。旧检查点库保留为数据卷内 `checkpoints.sqlite3.pre-20261011-1`。**原 `huhua.db` 未留改名副本**（脚本对 root-only 卷目录做存在判断未加 sudo，已在脚本中修正），回滚须用上述加密备份恢复原库后切回 `20261006-4`；旧镜像不能直接读新库（版本 2）。`deploy/compose.env.pre-20261011-1` 保留。
+- 线上游客虚构资料验收：JD 8.3s、首稿 12.5s、编辑 12.0s、改学校 1.4s，错误 0。发现 badcase：点名内容按字面核对（「模型乱推荐」未匹配原话「模型老推荐不存在的店」），记入试用期待修。
+- 模型：DeepSeek 官方 `deepseek-flash`，发布时余额约 ¥16，与本地测试共用同一 key。
+
+## 2026-10-06 用户反馈修复（历史）
 
 - 镜像 `huhua-agent:20261006-4`，ID `sha256:313774d4f7c5f9cb0bac75bebcca14eefcc77f7aea2a319771a7ba4d7e49d015`，healthy；宿主 Caddy、原密钥与数据卷保留，无新增 schema/依赖。
 - 多附件分别解析合并、情境追问及公开主页/仓库读取已部署。隔离测试本地470/470、镜像470/470；前端33/33。线上独立游客脱敏导入、真实GitHub+模型一轮、经历不变和来源刷新恢复通过，页面错误0。详情见 `2026-10-06-web-tools.md` 与 `evaluation/feedback-fixes-2026-10-06/`。

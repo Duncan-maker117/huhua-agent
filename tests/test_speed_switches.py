@@ -99,7 +99,36 @@ class IgnoreExtraBulletFieldsTest(unittest.TestCase):
         with patch(WRITER, return_value=settings(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=True)):
             with self.assertRaises(ValidationError):
                 call(model, MatchPlan, {"schema_retry_count": 0})
-        self.assertIs(model.schemas[0], MatchPlan)
+        self.assertEqual(model.schemas[0].__name__, "MatchPlan")
+        self.assertEqual(model.schemas[0].model_config["extra"], "forbid")
+
+    def test_on_match_plan_array_elements_lenient(self):
+        response = valid()
+        mp = response["match_plan"]
+        mp["experience_plan"][0]["target_bullets_note"] = "n"
+        mp["requirements"] = [{"req_id": "r1", "status": "gap", "why-not": 1}]
+        mp["questions"] = [{"q": "?", "improves": {"item_id": "p2", "zz": 1}, "extra_q": 1}]
+        model = SchemaSpy(response)
+        state = {"schema_retry_count": 0}
+        with patch(WRITER, return_value=settings(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=True)):
+            result = call(model, OnePassOutput, state)
+        self.assertEqual(model.calls, 1)
+        self.assertEqual(sorted(state["ignored_extra_fields"]),
+                         ["extra_q", "target_bullets_note", "whynot", "zz"])
+        self.assertNotIn("target_bullets_note", json.dumps(result.model_dump()))
+        from app.schemas.writer import LENIENT_SCHEMAS
+        for strict in (MatchPlan, OnePassOutput):
+            self.assertEqual(LENIENT_SCHEMAS[strict].model_json_schema(), strict.model_json_schema())
+
+    def test_on_standalone_match_plan_lenient(self):
+        data = plan({"p2": "lead"})
+        data["experience_plan"][0]["note"] = "n"
+        model = SchemaSpy(data)
+        with patch(WRITER, return_value=settings(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=True)):
+            result = call(model, MatchPlan, {"schema_retry_count": 0})
+        self.assertEqual(model.schemas[0].__name__, "MatchPlan")
+        self.assertEqual(model.schemas[0].model_json_schema(), MatchPlan.model_json_schema())
+        self.assertEqual(len(result.experience_plan), 1)
 
     def test_on_writer_draft_schema_also_lenient(self):
         model = SchemaSpy(valid(extra=1)["writer"])
@@ -236,10 +265,10 @@ class SettingsDefaultsTest(unittest.TestCase):
     def test_defaults_keep_current_behaviour(self):
         from app.config import Settings
         s = Settings(_env_file=None)
-        self.assertFalse(s.LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS)
-        self.assertTrue(s.LLM_EXTRACTOR_THINKING)
+        self.assertTrue(s.LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS)
+        self.assertFalse(s.LLM_EXTRACTOR_THINKING)
         self.assertFalse(s.LLM_WRITER_EDIT_REUSE_PLAN)
-        self.assertTrue(s.LLM_JD_DECODER_THINKING)
+        self.assertFalse(s.LLM_JD_DECODER_THINKING)
 
 
 if __name__ == "__main__":

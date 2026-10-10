@@ -118,7 +118,9 @@ class WriterContractTest(unittest.TestCase):
             "item_id": "synthetic-paper", "section": "projects", "bullets": [{
                 "fact_ids": ["synthetic-fact-1"], "PRIVATE_KEY_SECRET": "PRIVATE_VALUE_SECRET"}]}]}}
         model = FakeModel(invalid, invalid)
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
+        with mock.patch.object(writer, "get_settings",
+                        return_value=SimpleNamespace(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=False)):
+            result = asyncio.run(run_resume_writer(SOURCE, {}, model))
         diagnostic = result["writer_diagnostic"]
         self.assertEqual(diagnostic["status"], "model_fallback")
         self.assertEqual(diagnostic["error_type"], "ValidationError")

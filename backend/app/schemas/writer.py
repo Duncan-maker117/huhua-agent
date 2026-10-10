@@ -103,7 +103,7 @@ class RepairOutput(WriterSchema):
 # --- Lenient variants -------------------------------------------------------
 # Same names and the same JSON schema as the strict models above (so the tool
 # definition sent to the model is unchanged), but unknown keys on titles,
-# bullets and items are dropped instead of rejected.
+# bullets, items and MatchPlan array elements are dropped instead of rejected.
 
 IGNORED_EXTRA_SINK: ContextVar[list[str] | None] = ContextVar("writer_ignored_extra_sink", default=None)
 
@@ -139,19 +139,46 @@ class LenientWrittenItem(_DropsExtra, WrittenItem):
     bullets: list[LenientWrittenBullet] = Field(default_factory=list)
 
 
+class LenientRequirementMatch(_DropsExtra, RequirementMatch):
+    model_config = _LENIENT
+
+
+class LenientExperiencePlan(_DropsExtra, ExperiencePlan):
+    model_config = _LENIENT
+
+
+class LenientImprovementTarget(_DropsExtra, ImprovementTarget):
+    model_config = _LENIENT
+
+
+class LenientPlannedQuestion(_DropsExtra, PlannedQuestion):
+    model_config = _LENIENT
+    improves: LenientImprovementTarget = Field(default_factory=LenientImprovementTarget)
+
+
+# MatchPlan itself stays strict-on-extra; only its array element objects are lenient.
+class LenientMatchPlan(MatchPlan):
+    requirements: list[LenientRequirementMatch] = Field(default_factory=list)
+    experience_plan: list[LenientExperiencePlan] = Field(default_factory=list)
+    questions: list[LenientPlannedQuestion] = Field(default_factory=list)
+
+
 class LenientWriterDraft(WriterDraft):
     items: list[LenientWrittenItem] = Field(default_factory=list)
 
 
 class LenientOnePassOutput(OnePassOutput):
+    match_plan: LenientMatchPlan
     writer: LenientWriterDraft
 
 
-for _lenient, _name in ((LenientWrittenTitle, "WrittenTitle"), (LenientWrittenBullet, "WrittenBullet"),
+for _lenient, _name in ((LenientRequirementMatch, "RequirementMatch"), (LenientExperiencePlan, "ExperiencePlan"),
+                        (LenientImprovementTarget, "ImprovementTarget"), (LenientPlannedQuestion, "PlannedQuestion"),
+                        (LenientMatchPlan, "MatchPlan"), (LenientWrittenTitle, "WrittenTitle"), (LenientWrittenBullet, "WrittenBullet"),
                         (LenientWrittenItem, "WrittenItem"), (LenientWriterDraft, "WriterDraft"),
                         (LenientOnePassOutput, "OnePassOutput")):
     _lenient.__name__ = _lenient.__qualname__ = _name
     _lenient.model_rebuild(force=True)
 
 LENIENT_SCHEMAS: dict[type[BaseModel], type[BaseModel]] = {
-    WriterDraft: LenientWriterDraft, OnePassOutput: LenientOnePassOutput}
+    MatchPlan: LenientMatchPlan, WriterDraft: LenientWriterDraft, OnePassOutput: LenientOnePassOutput}

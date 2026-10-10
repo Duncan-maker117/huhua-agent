@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
@@ -33,6 +35,13 @@ class Model:
 
 
 def invoke(model, schema=OnePassOutput, state=None):
+    # These tests cover the strict path; the lenient default is tested elsewhere.
+    with patch("app.agents.resume_writer.get_settings",
+               return_value=SimpleNamespace(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=False)):
+        return _invoke(model, schema, state)
+
+
+def _invoke(model, schema, state):
     return asyncio.run(writer._call(model, schema, {"evidence": SOURCE_TEXT},
                                    "Only supplied facts", "other",
                                    retry_state=state if state is not None else {"schema_retry_count": 0}))

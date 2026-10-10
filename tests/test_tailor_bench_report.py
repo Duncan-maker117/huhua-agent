@@ -483,6 +483,7 @@ class ReportTest(unittest.TestCase):
     def test_r1_case_annotations_are_approved_and_keep_gap_out_of_positive_pool(self):
         cases = {p.stem: json.loads(p.read_text()) for p in (ROOT / "evaluation/tailor-bench/cases").glob("*.json")}
         handson = cases.pop("handson-01")
+        self.assertEqual(cases.pop("handson-02")["truth_review_status"], "pending_claude")
         self.assertEqual(handson["truth_review_status"], "pending_claude")
         self.assertIn("抖音", " ".join(handson["must_cover"]))
         self.assertIn("Claude Code", " ".join(handson["must_cover"]))

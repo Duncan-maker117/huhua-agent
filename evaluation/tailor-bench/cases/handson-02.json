@@ -1,0 +1,161 @@
+{
+  "id": "handson-02",
+  "title": "真人式剧本：口语原话、点名突出幻觉与抖音推广、全称更正",
+  "scenario": "handson",
+  "role_family": "ai_pm",
+  "truth_review_status": "pending_claude",
+  "jd_text": "帮我做份简历，想投这个：\nAI 产品经理实习生（Agent 方向）\n岗位职责：\n1. 参与 AI Agent 产品的需求分析与功能设计，撰写 PRD 和交互原型；\n2. 设计评测集，分析大模型输出的问题，推动提示词与策略迭代；\n3. 跟进研发落地，收集用户反馈并持续优化体验。\n任职要求：\n1. 本科及以上在读，计算机/信息相关专业优先；\n2. 熟悉大模型应用（RAG、Agent、Function Calling 等），有实际搭建经验者优先；\n3. 有独立做过产品或项目的经历，能讲清楚自己的思考和取舍；\n4. 加分项：有上线产品或真实用户数据。",
+  "opening_turns": [
+    "我是哈商大计算机大三的。做过几个东西：一个是美团黑客松做的mtagent，旅游路线规划的agent，用fastapi写的，有好几个agent分工，一开始模型老推荐不存在的店，后来我改成先用高德查poi再让模型从里面挑。还有一个forge skill，开源的，就是把自己的说话风格蒸馏成claude code的skill，github有70多个star，我还发了抖音推广。",
+    "mtagent基本是我一个人做的，产品方案和代码都是我。先给我出一版看看"
+  ],
+  "truth_facts": [
+    "我是哈商大计算机专业大三在读；哈商大是哈尔滨商业大学的简称。",
+    "mtagent 是在美团黑客松做的旅游路线规划 Agent，用 FastAPI 写，有好几个 Agent 分工。",
+    "mtagent 一开始模型老推荐不存在的店，后来我改成先用高德查 POI 再让模型从里面挑。",
+    "mtagent 基本是我一个人做的，产品方案和代码都是我。",
+    "forge skill 是开源项目，把自己的说话风格蒸馏成 Claude Code 的 skill，GitHub 有 70 多个 star。",
+    "我为 forge skill 发过抖音推广。"
+  ],
+  "forbidden": {
+    "numbers": [
+      "1000",
+      "30%"
+    ],
+    "claims": [
+      "正式上线",
+      "用户量增长",
+      "主导团队",
+      "准确率提升"
+    ]
+  },
+  "must_cover": [
+    "r1 解决模型推荐不存在的店（幻觉）进稿",
+    "r2 抖音推广进稿"
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "text": "解决模型推荐不存在的店（幻觉）进稿",
+      "evidence_fact_indices": [
+        2
+      ],
+      "keywords": [
+        "不存在",
+        "POI",
+        "高德"
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r2",
+      "text": "抖音推广进稿",
+      "evidence_fact_indices": [
+        5
+      ],
+      "keywords": [
+        "抖音"
+      ],
+      "expected_status": "direct"
+    },
+    {
+      "id": "r3",
+      "text": "有上线产品或真实用户数据",
+      "evidence_fact_indices": [],
+      "keywords": [
+        "上线",
+        "用户"
+      ],
+      "expected_status": "gap"
+    }
+  ],
+  "edit_instructions": [
+    "按JD再改改，mtagent突出一下agent设计和我解决幻觉那块，forge写详细点，抖音推广也写上。学校写全称哈尔滨商业大学，计算机科学与技术专业",
+    "学校改成哈尔滨商业大学，计算机科学与技术专业，本科大三"
+  ],
+  "traps": [
+    "team_vs_person",
+    "no_metrics",
+    "launch_vs_opensource"
+  ],
+  "simulator_topics": [
+    {
+      "keywords": [
+        "职责",
+        "分工",
+        "独立",
+        "团队",
+        "一个人",
+        "谁做"
+      ],
+      "fact_indices": [
+        3
+      ]
+    },
+    {
+      "keywords": [
+        "推广",
+        "抖音",
+        "star",
+        "开源"
+      ],
+      "fact_indices": [
+        4,
+        5
+      ]
+    },
+    {
+      "keywords": [
+        "学校",
+        "专业",
+        "学历",
+        "简称",
+        "全称"
+      ],
+      "fact_indices": [
+        0
+      ]
+    },
+    {
+      "keywords": [
+        "幻觉",
+        "不存在",
+        "POI",
+        "高德",
+        "推荐"
+      ],
+      "fact_indices": [
+        2
+      ]
+    }
+  ],
+  "opening_fact_indices": [
+    [
+      0,
+      1,
+      2,
+      4,
+      5
+    ],
+    [
+      3
+    ]
+  ],
+  "expected_project_names": [
+    "mtagent",
+    "forge skill"
+  ],
+  "disclosed_education": [
+    {
+      "fact_index": 0,
+      "fields": {
+        "school": "哈商大",
+        "major": "计算机",
+        "status": "在读"
+      },
+      "opening_turn_indices": [
+        0
+      ]
+    }
+  ]
+}

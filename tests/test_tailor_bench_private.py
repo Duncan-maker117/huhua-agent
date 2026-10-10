@@ -35,9 +35,9 @@ def reference_resume():
 
 
 class PrivateBoundaryTests(unittest.TestCase):
-    def test_default_remains_twelve_public_cases(self):
+    def test_default_remains_public_cases(self):
         cases = private.load_cases()
-        self.assertEqual(len(cases), 13)
+        self.assertEqual(len(cases), 14)
         self.assertIn("handson-01", {case["id"] for case in cases})
         self.assertFalse(any(private.is_private(case) for case in cases))
 

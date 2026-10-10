@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 
 from app.agents.career_prompt import career_messages
 from app.schemas.facts import FACT_KINDS
-from app.services.llm_compat import with_structured_output
+from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
 
 RESPONSIBILITY_TERMS = ("主导", "牵头", "独立", "带领", "负责人", "负责", "上线", "发布", "落地")
@@ -418,7 +418,8 @@ def _failed(identifier: str, reason: str) -> dict:
             "unsupported_spans": [reason], "verdict": "fail"}
 
 
-async def verify_semantics(pairs: list[dict], llm, *, timeout: float = 45) -> dict[str, dict]:
+async def verify_semantics(pairs: list[dict], llm, *, timeout: float = 45,
+                           run_name: str = "semantic_verify") -> dict[str, dict]:
     """One batch only, no retry. Missing/duplicate IDs and provider errors fail closed."""
     if not pairs:
         return {}
@@ -430,7 +431,7 @@ async def verify_semantics(pairs: list[dict], llm, *, timeout: float = 45) -> di
     privacy = ContactRedactor()
     messages = career_messages(None, json.dumps(pairs, ensure_ascii=False), SEMANTIC_CONTRACT, privacy=privacy)
     try:
-        result = await asyncio.wait_for(with_structured_output(llm, SemanticBatch).ainvoke(messages), timeout)
+        result = await asyncio.wait_for(label_run(with_structured_output(llm, SemanticBatch), run_name).ainvoke(messages), timeout)
         if isinstance(result, BaseModel):
             result = result.model_dump()
         parsed = SemanticBatch.model_validate(privacy.restore(result))
@@ -503,7 +504,8 @@ def _source_quote(fact: dict) -> str:
     return quote if isinstance(quote, str) and quote.strip() else str(fact.get("text", ""))
 
 
-async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(), jd_skills=(), role_terms=(), llm=None) -> list[dict]:
+async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(), jd_skills=(), role_terms=(), llm=None,
+                        run_name: str = "guard_semantic") -> list[dict]:
     """Return per-bullet violations for a writer's at-most-once repair step."""
     index = {fact["id"]: fact for fact in facts if fact.get("status", "active") == "active"}
     # unsupported_tool 只对技能词表里的工具/技术词生效；JD 短语（如「整理用户需求」）
@@ -546,7 +548,7 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
                                                "source_quote": f.get("source_quote") if isinstance(f.get("source_quote"), str) else "",
                                                "quote_origin": "original" if isinstance(f.get("source_quote"), str) and f["source_quote"].strip() else "fact_text_fallback"}
                                               for f in cited]})
-    checked = await verify_semantics(semantic, llm) if semantic else {}
+    checked = await verify_semantics(semantic, llm, run_name=run_name) if semantic else {}
     for result in output:
         if result["id"] in checked:
             result["semantic"] = checked[result["id"]]

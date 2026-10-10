@@ -25,7 +25,7 @@ from typing import Any
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from app.services.llm_compat import with_structured_output
+from app.services.llm_compat import label_run, with_structured_output
 from app.agents.career_prompt import career_messages
 
 logger = logging.getLogger(__name__)
@@ -148,7 +148,7 @@ async def run_triage(
 
     try:
         result: TriageDecision = await wait_for(
-            structured_llm.ainvoke(career_messages(None, user_message, prompt)),
+            label_run(structured_llm, "triage").ainvoke(career_messages(None, user_message, prompt)),
             timeout=TRIAGE_TIMEOUT_SECONDS,
         )
         return result

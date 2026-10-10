@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.services.llm_compat import with_structured_output
+from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor, redact_model_messages
 
 Category = Literal["basic", "education", "project", "work", "skill", "preference"]
@@ -139,7 +139,7 @@ def deterministic_proposals(payload: dict) -> list[ArchiveProposal]:
 
 def make_archivist(llm):
     """Return an async extractor injected into the durable worker at startup."""
-    runnable = with_structured_output(llm, ArchiveBatch)
+    runnable = label_run(with_structured_output(llm, ArchiveBatch), "archivist")
 
     async def extract(payload: dict, context: dict) -> ArchiveBatch:
         if payload.get("source_kind") not in {"self", "manual"}:

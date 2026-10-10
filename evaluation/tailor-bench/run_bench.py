@@ -691,33 +691,72 @@ async def run_live(cases, args, output, manifest):
         def __init__(self):
             self.calls = []
             self.runs = {}
-        def on_chat_model_start(self, serialized, messages, *, run_id, **kwargs):
+            self.chains = {}
+            self.clock = {}
+
+        def on_chain_start(self, serialized, inputs, *, run_id, parent_run_id=None, **kwargs):
+            # Chain names carry the stable call labels set via label_run (run_name "call:<label>").
+            self.chains[str(run_id)] = (kwargs.get("name"), str(parent_run_id) if parent_run_id else None)
+
+        def _label(self, name, parent_run_id, metadata):
+            node = name
+            parent = str(parent_run_id) if parent_run_id else None
+            while True:
+                if isinstance(node, str) and node.startswith("call:"):
+                    return node[len("call:"):]
+                if parent is None or parent not in self.chains:
+                    break
+                node, parent = self.chains[parent]
+            langgraph_node = (metadata or {}).get("langgraph_node")
+            return f"node:{langgraph_node}" if langgraph_node else "unlabeled"
+
+        def on_chat_model_start(self, serialized, messages, *, run_id, parent_run_id=None, **kwargs):
             params = kwargs.get("invocation_params") or {}
             record = {"model": params.get("model_name") or params.get("model"), "status": "started",
-                      "run_id": str(run_id), "started_at": timestamp()}
+                      "run_id": str(run_id), "started_at": timestamp(),
+                      "label": self._label(kwargs.get("name"), parent_run_id, kwargs.get("metadata"))}
             self.runs[str(run_id)] = record
+            self.clock[str(run_id)] = time.monotonic()
             self.calls.append(record)
+
+        def _finish(self, record, run_id):
+            record["ended_at"] = timestamp()
+            started = self.clock.get(str(run_id))
+            record["duration_ms"] = round((time.monotonic() - started) * 1000) if started is not None else None
+
         def on_llm_end(self, response, *, run_id, **kwargs):
             record = self.runs.get(str(run_id))
             if record is None:
                 return
             record["status"] = "completed"
+            self._finish(record, run_id)
+            record["reasoning_tokens"] = None
             usage = (response.llm_output or {}).get("token_usage") or {}
             if usage:
                 record["usage"] = {"input_tokens": usage.get("prompt_tokens", 0),
                                    "output_tokens": usage.get("completion_tokens", 0),
                                    "total_tokens": usage.get("total_tokens", 0)}
-            else:
-                for group in response.generations:
-                    for generation in group:
-                        value = getattr(getattr(generation, "message", None), "usage_metadata", None)
-                        if value:
-                            record["usage"] = {key: value.get(key, 0) for key in ("input_tokens", "output_tokens", "total_tokens")}
-                            return
+                details = usage.get("completion_tokens_details") or {}
+                if isinstance(details, dict) and details.get("reasoning_tokens") is not None:
+                    record["reasoning_tokens"] = details["reasoning_tokens"]
+            for group in response.generations:
+                for generation in group:
+                    value = getattr(getattr(generation, "message", None), "usage_metadata", None)
+                    if not value:
+                        continue
+                    if "usage" not in record:
+                        record["usage"] = {key: value.get(key, 0) for key in ("input_tokens", "output_tokens", "total_tokens")}
+                    details = value.get("output_token_details") or {}
+                    if record["reasoning_tokens"] is None and isinstance(details, dict) \
+                            and details.get("reasoning") is not None:
+                        record["reasoning_tokens"] = details["reasoning"]
+                    return
+
         def on_llm_error(self, error, *, run_id, **kwargs):
             record = self.runs.get(str(run_id))
             if record is not None:
                 record.update(status="error", error_type=type(error).__name__)
+                self._finish(record, run_id)
 
     context = ContextVar("tailor_bench_counter", default=None)
     register_configure_hook(context, inheritable=True)

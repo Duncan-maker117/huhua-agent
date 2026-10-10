@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.agents.career_prompt import career_messages
 from app.services.fact_guard import TERM_FILE, contains_term, extract_numbers, lexical_fact_errors
-from app.services.llm_compat import with_structured_output
+from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
 from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_review import review_resume
@@ -206,7 +206,7 @@ async def review_with_advisor(state: dict, llm) -> dict:
     issues = []
     checked_scope = "current_resume_and_available_jd"
     try:
-        answer = await asyncio.wait_for(with_structured_output(llm, AdvisorOutput).ainvoke(messages),
+        answer = await asyncio.wait_for(label_run(with_structured_output(llm, AdvisorOutput), "advisor").ainvoke(messages),
                                         ADVISOR_TIMEOUT_SECONDS)
         if isinstance(answer, BaseModel):
             answer = answer.model_dump()

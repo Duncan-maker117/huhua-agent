@@ -38,6 +38,7 @@ from app.services.candidate_material import (
 from app.services.resume_review import resume_to_text, review_resume
 from app.services.resume_strategy import build_resume_strategy, has_job_description
 from app.services.resume_workspace import bounded_web_sources
+from app.services.speculative import SpeculativeScope
 
 logger = logging.getLogger(__name__)
 
@@ -1400,7 +1401,25 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     return result
 
 
+def _latest_previous_assistant(messages: list) -> str:
+    return next((m.content for m in reversed(messages)
+                 if isinstance(m, AIMessage) and isinstance(m.content, str)), "")
+
+
+async def _extract_with_previous_assistant(message: str, current: dict, extract_llm, previous_assistant: str) -> dict:
+    token = _previous_assistant.set(previous_assistant)
+    try:
+        return await _extract_info_from_message(message, current, extract_llm)
+    finally:
+        _previous_assistant.reset(token)
+
+
 async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    async with SpeculativeScope() as scope:
+        return await _collecting_turn_impl(state, llm, scope)
+
+
+async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: SpeculativeScope) -> dict:
     """阶段2：收集用户经历。由 Triage 决定走哪条分支（WRAP / ASK_EXP / SUGGEST / READY_TO_BUILD）。"""
     messages = state["messages"]
     collected = copy.deepcopy(state.get("collected_info") or _empty_collected_info())
@@ -1489,6 +1508,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
     # 先分辨资料类型，避免招聘方要求进入候选人事实。
     triage_params = build_state_for_triage(state)
+    extract_task = None
     if state.get("requested_task") == "rewrite_experience":
         decision = TriageDecision(
             action=TriageAction.WRAP_EXPERIENCE,
@@ -1497,6 +1517,12 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         )
     else:
         triage_llm = _make_non_streaming_llm(llm, temperature=0)
+        # Extraction input does not depend on the triage result, only whether it runs.
+        # Start it now; it is discarded below if triage routes the turn to DECODE_JD.
+        if candidate_material and last_human and len(last_human) > 5:
+            extract_task = scope.start(_extract_with_previous_assistant(
+                last_human, collected, _make_non_streaming_llm(llm, temperature=0),
+                _latest_previous_assistant(messages)))
         decision = await run_triage(
             user_message=last_human, llm=triage_llm, **triage_params
         )
@@ -1506,14 +1532,12 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         and last_human
         and len(last_human) > 5
     ):
-        extract_llm = _make_non_streaming_llm(llm, temperature=0)
-        previous_assistant = next((m.content for m in reversed(messages)
-                                   if isinstance(m, AIMessage) and isinstance(m.content, str)), "")
-        token = _previous_assistant.set(previous_assistant)
-        try:
-            collected = await _extract_info_from_message(last_human, collected, extract_llm)
-        finally:
-            _previous_assistant.reset(token)
+        previous_assistant = _latest_previous_assistant(messages)
+        if extract_task is not None:
+            collected = await extract_task
+        else:
+            collected = await _extract_with_previous_assistant(
+                last_human, collected, _make_non_streaming_llm(llm, temperature=0), previous_assistant)
         from app.agents.turn_actions import absorb_education, bind_role_followup
         collected = absorb_education(collected, previous_collected, last_human, source_message.id or "")
         collected = bind_role_followup(collected, previous_assistant, last_human, source_message.id or "")
@@ -1842,7 +1866,27 @@ async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     return result
 
 
+def _router_model(llm):
+    # Scripted writer doubles are not routers. A non-chat model fails closed
+    # into the deterministic plan and does not consume the writer response.
+    if isinstance(llm, ChatOpenAI):
+        return _make_non_streaming_llm(llm, temperature=0)
+
+    class _RouterUnavailable:
+        def with_structured_output(self, schema):
+            return self
+
+        async def ainvoke(self, messages):
+            raise RuntimeError("router_unavailable")
+    return _RouterUnavailable()
+
+
 async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    async with SpeculativeScope() as scope:
+        return await _evaluating_turn_impl(state, llm, scope)
+
+
+async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: SpeculativeScope) -> dict:
     """A draft edit always invokes the writer, even when it adds no new facts."""
     from app.agents.tailor_pipeline import infer_edit_scope
     from app.services.resume_versions import education_correction_note, restore_payload
@@ -1882,12 +1926,18 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     collected = state.get('collected_info') or _empty_collected_info()
     imported = parse_existing_resume(text)
     updated = collected
+    route_task = None
     previous_assistant = next((m.content for m in reversed(state.get('messages', []))
                                if isinstance(m, AIMessage) and isinstance(m.content, str) and m is not message), "")
     if imported:
         updated = _merge_imported_candidate(collected, imported)
     elif _generation_contains_facts(text, editing_existing=True):
         extract_llm = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+        # The router model call never reads the extracted facts (only its post-processing
+        # does), so it runs alongside extraction and is consumed by route_intents below.
+        from app.agents.router import start_route_call
+        route_task = scope.adopt(start_route_call(
+            text, {**state, 'resume_data': data, 'collected_info': collected}, _router_model(llm)))
         token = _previous_assistant.set(previous_assistant)
         try:
             updated = await _extract_info_from_message(text, collected, extract_llm)
@@ -1918,18 +1968,9 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if not imported:
         from app.agents.router import route_intents
         from app.services.edit_plan import execute_edit_plan
-        # Scripted writer doubles are not routers. A non-chat model fails closed
-        # into the deterministic plan and does not consume the writer response.
-        if isinstance(llm, ChatOpenAI):
-            structured = _make_non_streaming_llm(llm, temperature=0)
-        else:
-            class _RouterUnavailable:
-                def with_structured_output(self, schema):
-                    return self
-                async def ainvoke(self, messages):
-                    raise RuntimeError("router_unavailable")
-            structured = _RouterUnavailable()
-        routed = await route_intents(text, {**state, 'resume_data': data, 'collected_info': updated}, structured)
+        structured = _router_model(llm)
+        routed = await route_intents(text, {**state, 'resume_data': data, 'collected_info': updated}, structured,
+                                     prefetched=route_task)
         planned_ops = list(routed.get('edit_plan') or [])
         if planned_ops:
             executed = execute_edit_plan(

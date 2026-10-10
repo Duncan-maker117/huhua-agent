@@ -10,7 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.agents.career_prompt import career_messages
-from app.services.llm_compat import with_structured_output
+from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
 
 
@@ -105,13 +105,9 @@ def _fallback(message: str, has_draft: bool, reason: str, data: dict | None = No
             "edit_plan": [], "reason": reason, "fallback_reason": reason}
 
 
-async def route_intents(message: str, state: dict, llm) -> dict:
-    """Route a turn without changing its fact master or creating model settings.
-
-    The caller supplies a temperature-zero model. A timeout or malformed result
-    remains actionable: whole-document edit when a draft exists, experience intake
-    otherwise. Obvious export/JD/upload pre-routing stays with the graph caller.
-    """
+async def _ask_router(message: str, state: dict, llm) -> dict:
+    """The router model call only. Its input never reads `collected_info`, so it can
+    start before fact extraction finishes. Raises on any failure; the caller falls back."""
     has_draft = _has_draft(state)
     data = state.get("resume_data") or {}
     prior = next((getattr(row, "content", "") for row in reversed(state.get("messages") or [])
@@ -121,14 +117,35 @@ async def route_intents(message: str, state: dict, llm) -> dict:
                "has_draft": has_draft, "outline": _outline(data)}
     privacy = ContactRedactor()
     messages = career_messages(None, json.dumps(payload, ensure_ascii=False), ROUTER_CONTRACT, privacy=privacy)
+    response = await asyncio.wait_for(
+        label_run(with_structured_output(llm, RouteSchema), "router").ainvoke(messages), ROUTER_TIMEOUT_SECONDS)
+    if isinstance(response, BaseModel):
+        response = response.model_dump()
+    elif not isinstance(response, dict):
+        response = json.loads(response.content)
+    return RouteSchema.model_validate(privacy.restore(response)).model_dump()
+
+
+def start_route_call(message: str, state: dict, llm) -> "asyncio.Task[dict]":
+    """Speculatively start the router model call; pass the task to route_intents(prefetched=...).
+
+    `state` must carry the same messages/jd/resume_data that route_intents will receive.
+    """
+    return asyncio.ensure_future(_ask_router(message, state, llm))
+
+
+async def route_intents(message: str, state: dict, llm, *, prefetched=None) -> dict:
+    """Route a turn without changing its fact master or creating model settings.
+
+    The caller supplies a temperature-zero model. A timeout or malformed result
+    remains actionable: whole-document edit when a draft exists, experience intake
+    otherwise. Obvious export/JD/upload pre-routing stays with the graph caller.
+    `prefetched` is a task from start_route_call whose outcome replaces a fresh call.
+    """
+    has_draft = _has_draft(state)
+    data = state.get("resume_data") or {}
     try:
-        response = await asyncio.wait_for(
-            with_structured_output(llm, RouteSchema).ainvoke(messages), ROUTER_TIMEOUT_SECONDS)
-        if isinstance(response, BaseModel):
-            response = response.model_dump()
-        elif not isinstance(response, dict):
-            response = json.loads(response.content)
-        parsed = RouteSchema.model_validate(privacy.restore(response)).model_dump()
+        parsed = await (prefetched if prefetched is not None else _ask_router(message, state, llm))
     except Exception:
         return _fallback(message, has_draft, "router_unavailable", data, state.get("collected_info"))
     intents = list(dict.fromkeys(parsed["intents"]))

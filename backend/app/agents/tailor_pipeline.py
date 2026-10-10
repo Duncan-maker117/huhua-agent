@@ -246,7 +246,7 @@ async def _retain_compressed_body(before: dict, meta: dict, revised: dict, actio
     pairs = [{'id': f'retain_{index}', 'text': text, 'source_quotes': new_texts}
              for index, text in enumerate(old_texts)]
     try:
-        decisions = await verify_semantics(pairs, llm, timeout=30)
+        decisions = await verify_semantics(pairs, llm, timeout=30, run_name="retention_semantic")
         passed = all((decisions.get(row['id']) or {}).get('verdict') == 'pass' for row in pairs)
     except Exception:
         passed = False

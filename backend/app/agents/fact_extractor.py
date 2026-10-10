@@ -11,6 +11,7 @@ import re
 import uuid
 
 from app.schemas.facts import FACT_SECTIONS
+from app.services.llm_compat import label_run
 from app.services.resume_facts import new_fact, normalize_fact_store
 
 logger = logging.getLogger(__name__)
@@ -201,7 +202,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         privacy = ContactRedactor()
         messages = redact_model_messages([SystemMessage(content=_CONTRACT),
                                           HumanMessage(content=json.dumps(payload, ensure_ascii=False))], privacy)
-        response = await llm.ainvoke(messages)
+        response = await label_run(llm, "fact_extractor").ainvoke(messages)
         candidate = privacy.restore(_content(response))
     except Exception:
         return empty
@@ -284,7 +285,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 result["skills"].append({"name": name, "source_quote": quote, "source": "chat", "turn_id": turn_id})
     if semantic_pairs:
         try:
-            checker = semantic_check or (lambda pairs: verify_semantics(pairs, llm))
+            checker = semantic_check or (lambda pairs: verify_semantics(pairs, llm, run_name="extract_verify"))
             verdicts = checker(semantic_pairs)
             if inspect.isawaitable(verdicts):
                 verdicts = await verdicts

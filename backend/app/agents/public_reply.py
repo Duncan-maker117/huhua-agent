@@ -12,6 +12,7 @@ from uuid import uuid4
 from langchain_core.messages import AIMessage
 from langgraph.config import get_config, get_stream_writer
 
+from app.services.llm_compat import label_run
 from app.services.model_privacy import ContactTokenStream, redact_model_messages
 
 logger = logging.getLogger(__name__)
@@ -46,6 +47,7 @@ async def stream_public_reply(
     already visible response.
     """
     messages = redact_model_messages(messages)
+    llm = label_run(llm, "public_reply")
     reply_id = str(uuid4())
     try:
         writer = get_stream_writer()

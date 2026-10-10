@@ -17,7 +17,8 @@ from pydantic import BaseModel, ValidationError
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.schemas.writer import MatchPlan, OnePassOutput, RepairOutput, WriterDraft
 from app.services.fact_guard import guard_bullets, ngram_overlap, strip_absence, validate_skill_groups
-from app.services.llm_compat import with_structured_output
+from app.services.speculative import SpeculativeScope
+from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
 from app.services.resume_capacity import normalize_session_constraints, writer_capacity_budget
 from app.services.resume_facts import active_facts_for_writer
@@ -211,14 +212,14 @@ def _schema_retry_feedback(error: Exception, schema: type[BaseModel]) -> dict | 
 
 
 async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role_family: str,
-                *, retry_state: dict | None = None) -> BaseModel:
+                *, retry_state: dict | None = None, run_name: str = "writer") -> BaseModel:
     privacy = ContactRedactor()
     playbook = ROLE_PLAYBOOKS.get(role_family, ROLE_PLAYBOOKS["other"])
     messages = career_messages(
         "resume-write", json.dumps(payload, ensure_ascii=False),
         contract + "\n\n# 岗位手册\n" + load_skill("role-playbooks/" + playbook), privacy=privacy,
     )
-    structured = with_structured_output(llm, schema)
+    structured = label_run(with_structured_output(llm, schema), run_name)
 
     async def invoke(prompt):
         output = await structured.ainvoke(prompt)
@@ -687,7 +688,8 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                                      else "fact_text_fallback"}
                                     for fact in fact_rows if fact["item_id"] in failed_items]}
         try:
-            output = await _call(writer_llm or model, RepairOutput, payload, _REPAIR_CONTRACT, role_family)
+            output = await _call(writer_llm or model, RepairOutput, payload, _REPAIR_CONTRACT, role_family,
+                                 run_name="writer_repair")
             repairs = {row.id: row for row in output.bullets if row.id in {item["id"] for item in to_repair}}
         except Exception:
             repairs = {}
@@ -712,7 +714,8 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                        needs_metric=proposal.needs_metric, metric_question=proposal.metric_question)
     second = await guard_bullets(repaired, fact_rows, user_skills=user_skills,
                                  jd_skills=role_profile.get("required_skills") or [],
-                                 role_terms=role_profile.get("jd_language") or [], llm=model) if repaired else []
+                                 role_terms=role_profile.get("jd_language") or [], llm=model,
+                                 run_name="guard_semantic_recheck") if repaired else []
     second_verdicts = {row["id"]: row for row in second}
     for row in candidates:
         if row["id"] in originals and not (
@@ -786,7 +789,8 @@ async def _apply_edit_contract(rows: list[dict], *, item_id: str, item_facts: li
                                      "jd_language": role_profile.get("jd_language") or [],
                                      "core_signals": role_profile.get("core_signals") or []}}
         try:
-            output = await _call(llm or model, RepairOutput, payload, _CONTRACT_REPAIR, role_family)
+            output = await _call(llm or model, RepairOutput, payload, _CONTRACT_REPAIR, role_family,
+                                 run_name="writer_contract_repair")
             proposals = {row.id: row for row in output.bullets if row.id in {r["id"] for r in rows}}
         except Exception:
             proposals = {}
@@ -800,7 +804,8 @@ async def _apply_edit_contract(rows: list[dict], *, item_id: str, item_facts: li
         if revised:
             checks = await guard_bullets(revised, list(facts.values()), user_skills=source.get("skills") or [],
                                          jd_skills=role_profile.get("required_skills") or [],
-                                         role_terms=role_profile.get("jd_language") or [], llm=model)
+                                         role_terms=role_profile.get("jd_language") or [], llm=model,
+                                         run_name="guard_semantic_contract")
             passed = {row["id"] for row in checks if row["verdict"] == "pass"}
             for row in rows:
                 new = next((item for item in revised if item["id"] == row["id"] and item["id"] in passed), None)
@@ -834,11 +839,17 @@ async def _apply_edit_contract(rows: list[dict], *, item_id: str, item_facts: li
     return rows
 
 
-async def run_resume_writer(
+async def run_resume_writer(collected_info: dict, role_profile: dict, llm, **kwargs) -> dict:
+    """See _run_resume_writer. Owns the scope that settles speculative model calls."""
+    async with SpeculativeScope() as speculative:
+        return await _run_resume_writer(collected_info, role_profile, llm, _speculative=speculative, **kwargs)
+
+
+async def _run_resume_writer(
     collected_info: dict, role_profile: dict, llm, *, current_data: dict | None = None,
     resume_meta: dict | None = None, instruction: str = "", scope: str = "whole",
     targets: Sequence[str] = (), constraints: Mapping[str, Any] | None = None,
-    mode: str = "one_pass", structured_llm=None,
+    mode: str = "one_pass", structured_llm=None, _speculative: SpeculativeScope,
 ) -> dict:
     """Plan and write a sourced draft without mutating facts or the current draft.
 
@@ -974,7 +985,7 @@ async def run_resume_writer(
                          "required_fact_ids": lost,
                          "current_draft": {item_id: [{"text": b.text, "fact_ids": b.fact_ids}
                                                      for b in writers[item_id].bullets] for item_id in lost}},
-                        _METRIC_REPAIR_CONTRACT, role_family)
+                        _METRIC_REPAIR_CONTRACT, role_family, run_name="writer_metric_repair")
                 for row in repaired.items:
                     if row.item_id in lost and items[row.item_id][0] == row.section:
                         writers[row.item_id] = row
@@ -1015,6 +1026,14 @@ async def run_resume_writer(
                                    "valid_refs": not reasons, "invalid_reasons": reasons})
     if scope != "bullet":
         candidate_rows = _merge_context_only_rows(candidate_rows, facts)
+    # The summary check reads only the draft summary and the fact store, never the bullet
+    # guard/repair outcome, so it runs alongside them and is awaited where it was used.
+    summary_refs = list(dict.fromkeys(draft.summary_fact_ids))
+    summary_task = None
+    if scope == "whole" and draft.summary.strip() and summary_refs and all(fid in facts for fid in summary_refs):
+        summary_task = _speculative.start(guard_bullets(
+            [{"id": "summary", "text": draft.summary, "fact_ids": summary_refs}], list(facts.values()),
+            user_skills=source.get("skills") or [], llm=model, run_name="guard_summary"))
     checked, fallbacks = await _guard_and_repair(
         candidate_rows, facts, source, role_profile, model, role_family, writer_llm=llm,
         instruction=instruction, scope=scope, targets=targets,
@@ -1133,11 +1152,8 @@ async def run_resume_writer(
             output.setdefault("basic_info", {})["objective"] = target_role.strip()[:120]
         # A source-free summary could smuggle facts; use it only when guard can
         # verify a caller-supplied set of active fact references.
-        summary_refs = list(dict.fromkeys(draft.summary_fact_ids))
-        if draft.summary.strip() and summary_refs and all(fid in facts for fid in summary_refs):
-            summary_guard = await guard_bullets([{"id": "summary", "text": draft.summary,
-                                                   "fact_ids": summary_refs}], list(facts.values()),
-                                                  user_skills=source.get("skills") or [], llm=model)
+        if summary_task is not None:
+            summary_guard = await summary_task
             if summary_guard and summary_guard[0]["verdict"] == "pass":
                 output["self_evaluation"] = draft.summary.strip()
                 meta["summary"] = {"fact_ids": summary_refs, "text_hash": _hash(draft.summary.strip())}

@@ -47,6 +47,19 @@ def _disable_thinking(host: str) -> dict:
     return {"thinking": {"type": "disabled"}}
 
 
+CALL_LABEL_PREFIX = "call:"
+
+
+def label_run(runnable: Any, name: str) -> Any:
+    """Name a model call in traces/benchmarks without touching the request.
+
+    Only real LangChain runnables are wrapped; scripted test doubles pass through.
+    """
+    if isinstance(runnable, Runnable):
+        return runnable.with_config(run_name=CALL_LABEL_PREFIX + name)
+    return runnable
+
+
 def with_structured_output(
     llm: ChatOpenAI,
     schema: type[BaseModel] | dict[str, Any],

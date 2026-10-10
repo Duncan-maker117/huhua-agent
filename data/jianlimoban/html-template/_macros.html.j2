@@ -1,0 +1,43 @@
+{#- 六款模板共用的小片段。不是可选模板（不在 renderer.TEMPLATES 里）。 -#}
+
+{#- 页眉第二行：联系方式与可选个人信息，用 · 分隔；空值不渲染。 -#}
+{% macro contact_line(b) -%}
+{%- set labels = {'phone': '', 'email': '', 'location': '', 'gender': '', 'age': '年龄 ', 'birthday': '出生 ', 'ethnicity': '', 'hometown': '籍贯 ', 'political': '', 'height': '身高 '} -%}
+{%- set ns = namespace(n=0) -%}
+{%- for key, label in labels.items() -%}
+  {%- if b.get(key) -%}
+    {%- if ns.n %}<span class="sep"> · </span>{% endif -%}
+    {{ label }}<span data-field-path="/basic_info/{{ key }}">{{ b.get(key) }}</span>
+    {%- set ns.n = ns.n + 1 -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- endmacro %}
+
+{#- 页眉第一行：姓名 + 求职意向。 -#}
+{% macro name_line(b) -%}
+<span class="h-name" data-field-path="/basic_info/name">{{ b.name }}</span>{% if b.objective %}<span class="h-obj">求职意向：<span data-field-path="/basic_info/objective">{{ b.objective }}</span></span>{% endif %}
+{%- endmacro %}
+
+{#- 照片只有上传了才渲染（data URL 已由 renderer 校验）。 -#}
+{% macro photo_box(b) -%}
+{%- if b.photo %}<div class="photo"><img src="{{ b.photo }}" style="width:100%;height:100%;object-fit:cover;border-radius:3px;"></div>{% endif -%}
+{%- endmacro %}
+
+{% macro date_range(item, section, index) -%}
+{%- if item.start_date or item.end_date -%}
+<span class="item-date">{% if item.start_date %}<span data-field-path="/{{ section }}/{{ index }}/start_date">{{ item.start_date }}</span>{% endif %}{% if item.start_date and item.end_date %}—{% endif %}{% if item.end_date %}<span data-field-path="/{{ section }}/{{ index }}/end_date">{{ item.end_date }}</span>{% endif %}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{#- 项目标题行：名称 ｜ 角色 ｜ 时间，一行；日期靠右。 -#}
+{% macro project_head(p, index) -%}
+<div class="item-header project-head">
+  <span class="item-title"><span data-field-path="/projects/{{ index }}/name">{{ p.name }}</span>{% if p.role %} ｜ <span class="item-role" data-field-path="/projects/{{ index }}/role">{{ p.role }}</span>{% endif %}</span>
+  {{ date_range(p, 'projects', index) }}
+</div>
+{%- endmacro %}
+
+{#- 技能：每组一行「组名：项 / 项 / 项」。 -#}
+{% macro skill_rows(groups) -%}
+{% for group_name, items in groups.items() %}{% if items %}<div class="skill-row"><strong><span data-field-path="/skill_groups/{{ group_name | pointer_escape }}" data-field-kind="group-name">{{ group_name }}</span>：</strong>{% for skill in items %}<span data-field-path="/skill_groups/{{ group_name | pointer_escape }}/{{ loop.index0 }}">{{ skill }}</span>{% if not loop.last %} / {% endif %}{% endfor %}</div>{% endif %}{% endfor %}
+{%- endmacro %}

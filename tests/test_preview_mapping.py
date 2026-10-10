@@ -91,8 +91,8 @@ class PreviewMappingTest(unittest.TestCase):
             self.assertIn("/skills/2", paths)
             self.assertIn("/self_evaluation", paths)
             self.assertIn("/certificates/1", paths)
-            # Header degree/school aliases must refer to the same education row.
-            self.assertGreaterEqual(paths.count("/education/0/degree"), 2)
+            # 页眉不再重复学校/学历，它们只在教育栏出现一次。
+            self.assertEqual(paths.count("/education/0/degree"), 1)
 
     def test_multiple_items_and_escaped_group_keys(self):
         data = copy.deepcopy(self.sample)

@@ -1,3 +1,4 @@
+{% import '_macros.html.j2' as m with context -%}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -7,7 +8,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     width: 210mm; min-height: 297mm;
-    padding: 16mm 16mm;
+    padding: 12mm 16mm;
     font-family: 'PingFang SC', 'Noto Sans SC', -apple-system, sans-serif;
     color: #2b2b2b;
     background: #fff;
@@ -18,16 +19,6 @@
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 18px;
   }
-  .title-block { display: flex; align-items: baseline; gap: 12px; }
-  .title-block .cn-wrap {
-    background: #b8d8d8;
-    padding: 4px 28px 4px 18px;
-    border-radius: 4px;
-    transform: skewX(-8deg);
-  }
-  .title-block .cn-wrap span { transform: skewX(8deg); display: inline-block; font-size: 24pt; font-weight: 700; color: #fff; letter-spacing: 4px; }
-  .icons { display: flex; gap: 8px; }
-  .icon-circle { width: 24px; height: 24px; border-radius: 50%; background: #b8d8d8; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11pt; }
   .divider { height: 1px; background: linear-gradient(90deg, #b8d8d8 0%, transparent 100%); margin-bottom: 14px; }
 
   .section-title {
@@ -43,65 +34,38 @@
   }
   .section-title span { display: inline-block; transform: skewX(4deg); }
 
-  .info-row { display: flex; gap: 24px; align-items: flex-start; padding: 4px 8px; }
-  .info-grid {
-    flex: 1;
-    display: grid; grid-template-columns: 1fr 1fr;
-    column-gap: 32px; row-gap: 6px;
-  }
-  .info-item .label { color: #555; display: inline-block; min-width: 56px; }
-  .info-item .label::after { content: '：'; }
-  .photo {
-    width: 95px; height: 120px;
-    background: #d6dbdf;
-    border-radius: 3px;
-    display: flex; align-items: flex-end; justify-content: center;
-    color: #fff; font-size: 8pt;
-    flex: none;
-    position: relative;
-  }
-  .photo::before {
-    content: '照片'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    color: #aaa; font-size: 9pt;
-  }
-  .photo .badge { background: rgba(0,0,0,0.5); padding: 2px 6px; margin-bottom: 4px; border-radius: 2px; }
 
   .item { padding: 0 8px; margin-bottom: 10px; }
   .item-text { font-size: 10pt; color: #333; }
   ul { margin-left: 18px; }
   li { font-size: 9.5pt; margin-bottom: 3px; color: #333; }
   .desc { font-size: 9.5pt; color: #333; padding: 0 8px; }
+
+  /* 页眉：姓名 + 求职意向一行，联系方式一行；无照片不占位 */
+  .header-text { flex: 1; min-width: 0; }
+  .h-name { font-weight: 600; }
+  .h-obj { margin-left: 14px; }
+  .contact .sep { opacity: .55; }
+  .photo { width: 72px; height: 92px; flex: none; border-radius: 3px; overflow: hidden; }
+  .item-header.project-head { white-space: nowrap; }
+  .item-role { font-weight: 400; }
+  .skill-row { margin-bottom: 3px; }
+  .header { align-items: center; gap: 16px; margin-bottom: 6px; }
+  .h-name { font-size: 21pt; letter-spacing: 3px; color: #2d6a6a; }
+  .h-obj { font-size: 11pt; color: #444; }
+  .contact { font-size: 9.5pt; color: #555; margin-top: 2px; }
+  .item-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+  .item-title { font-weight: 600; color: #1a1a1a; }
+  .item-date { color: #2d6a6a; font-size: 9.5pt; }
 </style>
 </head>
 <body>
   <div class="header">
-    <div class="title-block">
-      <div class="cn-wrap"><span>个人简历</span></div>
+    <div class="header-text">
+      <div class="h-line">{{ m.name_line(basic_info) }}</div>
+      <div class="contact">{{ m.contact_line(basic_info) }}</div>
     </div>
-    <div class="icons">
-      <span class="icon-circle">✉</span>
-      <span class="icon-circle">☎</span>
-      <span class="icon-circle">i</span>
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div class="section-title"><span>基本信息</span></div>
-  <div class="info-row">
-    <div class="info-grid">
-      {% if basic_info.name %}<div class="info-item"><span class="label">姓　名</span><span data-field-path="/basic_info/name">{{ basic_info.name }}</span></div>{% endif %}
-      {% if basic_info.objective %}<div class="info-item"><span class="label">求职意向</span><span data-field-path="/basic_info/objective">{{ basic_info.objective }}</span></div>{% endif %}
-      {% if basic_info.birthday %}<div class="info-item"><span class="label">出生年月</span><span data-field-path="/basic_info/birthday">{{ basic_info.birthday }}</span></div>{% endif %}
-      {% if basic_info.ethnicity %}<div class="info-item"><span class="label">民　族</span><span data-field-path="/basic_info/ethnicity">{{ basic_info.ethnicity }}</span></div>{% endif %}
-      {% if basic_info.height %}<div class="info-item"><span class="label">身　高</span><span data-field-path="/basic_info/height">{{ basic_info.height }}</span></div>{% endif %}
-      {% if basic_info.phone %}<div class="info-item"><span class="label">电　话</span><span data-field-path="/basic_info/phone">{{ basic_info.phone }}</span></div>{% endif %}
-      {% if basic_info.political %}<div class="info-item"><span class="label">政治面貌</span><span data-field-path="/basic_info/political">{{ basic_info.political }}</span></div>{% endif %}
-      {% if basic_info.email %}<div class="info-item"><span class="label">邮　箱</span><span data-field-path="/basic_info/email">{{ basic_info.email }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].school %}<div class="info-item"><span class="label">毕业院校</span><span data-field-path="/education/{{ education[0]._source_index }}/school">{{ education[0].school }}</span></div>{% endif %}
-      {% if basic_info.location %}<div class="info-item"><span class="label">住　址</span><span data-field-path="/basic_info/location">{{ basic_info.location }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].degree %}<div class="info-item"><span class="label">学　历</span><span data-field-path="/education/{{ education[0]._source_index }}/degree">{{ education[0].degree }}</span></div>{% endif %}
-    </div>
-    {% if basic_info.photo %}<div class="photo" style="background:none;"><img src="{{ basic_info.photo }}" style="position:relative;z-index:2;width:100%;height:100%;object-fit:cover;border-radius:4px;"></div>{% else %}<div class="photo"><div class="badge">点击更改/替换</div></div>{% endif %}
+    {{ m.photo_box(basic_info) }}
   </div>
 
   {% for section in resume_sections %}
@@ -133,7 +97,7 @@
   {% elif section.kind == 'projects' %}
   {% for p in projects %}{% set p_index = p._source_index %}
   <div class="item">
-    <p class="item-text"><span data-field-path="/projects/{{ p_index }}/name">{{ p.name }}</span>{% if p.role %}，<span data-field-path="/projects/{{ p_index }}/role">{{ p.role }}</span>{% endif %}{% if p.start_date or p.end_date %}，{% if p.start_date %}<span data-field-path="/projects/{{ p_index }}/start_date">{{ p.start_date }}</span>{% endif %}{% if p.start_date and p.end_date %}—{% endif %}{% if p.end_date %}<span data-field-path="/projects/{{ p_index }}/end_date">{{ p.end_date }}</span>{% endif %}{% endif %}</p>
+    {{ m.project_head(p, p_index) }}
     {% if p.polished_bullets %}
     <ul>{% for b in p.polished_bullets %}<li><span data-field-path="/projects/{{ p_index }}/polished_bullets/{{ loop.index0 }}">{{ b }}</span></li>{% endfor %}</ul>
     {% elif p.description %}<p class="item-text"><span data-field-path="/projects/{{ p_index }}/description">{{ p.description }}</span></p>{% endif %}
@@ -143,9 +107,7 @@
   {% elif section.kind == 'skills' %}
 {% if has_grouped_skills %}
   <div class="item">
-    {% for group_name, items in skill_groups.items() %}
-    {% if items %}<div style="margin-bottom:4px;"><strong><span data-field-path="/skill_groups/{{ group_name | pointer_escape }}" data-field-kind="group-name">{{ group_name }}</span>：</strong>{% for skill in items %}<span data-field-path="/skill_groups/{{ group_name | pointer_escape }}/{{ loop.index0 }}">{{ skill }}</span>{% if not loop.last %} / {% endif %}{% endfor %}</div>{% endif %}
-    {% endfor %}
+    {{ m.skill_rows(skill_groups) }}
   </div>
   {% elif skills %}
   <div class="item">

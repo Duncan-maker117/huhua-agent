@@ -1,3 +1,4 @@
+{% import '_macros.html.j2' as m with context -%}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -19,53 +20,6 @@
     display: flex;
     align-items: center;
     gap: 22px;
-  }
-  .photo {
-    width: 88px; height: 110px;
-    background: #2a3847;
-    border: 2px solid #5a7a99;
-    border-radius: 4px;
-    flex: none;
-    display: flex; align-items: center; justify-content: center;
-    color: #8aa0b8; font-size: 9pt;
-  }
-  .header-name-block {
-    flex: none;
-    padding-right: 28px;
-    border-right: 1px solid #5a7a99;
-  }
-  .header-name {
-    font-size: 24pt; font-weight: 600;
-    color: #fff;
-    letter-spacing: 4px;
-  }
-  .header-target {
-    font-size: 9.5pt;
-    color: #a0b8d0;
-    margin-top: 4px;
-    letter-spacing: 1px;
-  }
-  .header-info {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 16px;
-    row-gap: 6px;
-    padding-left: 24px;
-  }
-  .header-info-row {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 9.5pt; color: #c8d8e8;
-  }
-  .header-info-row .dot {
-    width: 5px; height: 5px;
-    background: #6ab0d8;
-    border-radius: 50%;
-    flex: none;
-  }
-  .header-info-row .lbl {
-    color: #8aa8c8;
-    min-width: 40px;
   }
   .body {
     padding: 0 28px 24px;
@@ -103,23 +57,30 @@
   ul { margin-left: 18px; }
   li { font-size: 9.5pt; color: #333; margin-bottom: 3px; }
   .desc { font-size: 9.5pt; color: #333; padding: 0 6px; }
+
+  /* 页眉：姓名 + 求职意向一行，联系方式一行；无照片不占位 */
+  .header-text { flex: 1; min-width: 0; }
+  .h-name { font-weight: 600; }
+  .h-obj { margin-left: 14px; }
+  .contact .sep { opacity: .55; }
+  .photo { width: 72px; height: 92px; flex: none; border-radius: 3px; overflow: hidden; }
+  .item-header.project-head { white-space: nowrap; }
+  .item-role { font-weight: 400; }
+  .skill-row { margin-bottom: 3px; }
+  .header { padding: 14px 28px; gap: 18px; }
+  .h-name { font-size: 20pt; letter-spacing: 3px; color: #fff; }
+  .h-obj { font-size: 10.5pt; color: #a0b8d0; }
+  .contact { font-size: 9.5pt; color: #c8d8e8; margin-top: 2px; }
+  .photo { border: 2px solid #5a7a99; }
 </style>
 </head>
 <body>
   <div class="header">
-    {% if basic_info.photo %}<div class="photo"><img src="{{ basic_info.photo }}" style="width:100%;height:100%;object-fit:cover;border-radius:4px;"></div>{% else %}<div class="photo">照片</div>{% endif %}
-    <div class="header-name-block">
-      <div class="header-name"><span data-field-path="/basic_info/name">{{ basic_info.name }}</span></div>
-      {% if basic_info.objective %}<div class="header-target">求职意向：<span data-field-path="/basic_info/objective">{{ basic_info.objective }}</span></div>{% endif %}
+    <div class="header-text">
+      <div class="h-line">{{ m.name_line(basic_info) }}</div>
+      <div class="contact">{{ m.contact_line(basic_info) }}</div>
     </div>
-    <div class="header-info">
-      {% if basic_info.birthday %}<div class="header-info-row"><span class="dot"></span><span class="lbl">出生年月</span><span data-field-path="/basic_info/birthday">{{ basic_info.birthday }}</span></div>{% endif %}
-      {% if basic_info.ethnicity %}<div class="header-info-row"><span class="dot"></span><span class="lbl">民　族</span><span data-field-path="/basic_info/ethnicity">{{ basic_info.ethnicity }}</span></div>{% endif %}
-      {% if basic_info.phone %}<div class="header-info-row"><span class="dot"></span><span class="lbl">电　话</span><span data-field-path="/basic_info/phone">{{ basic_info.phone }}</span></div>{% endif %}
-      {% if basic_info.email %}<div class="header-info-row"><span class="dot"></span><span class="lbl">邮　箱</span><span data-field-path="/basic_info/email">{{ basic_info.email }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].school %}<div class="header-info-row"><span class="dot"></span><span class="lbl">毕业院校</span><span data-field-path="/education/{{ education[0]._source_index }}/school">{{ education[0].school }}</span></div>{% endif %}
-      {% if has_education_section and education and education[0].degree %}<div class="header-info-row"><span class="dot"></span><span class="lbl">学　历</span><span data-field-path="/education/{{ education[0]._source_index }}/degree">{{ education[0].degree }}</span></div>{% endif %}
-    </div>
+    {{ m.photo_box(basic_info) }}
   </div>
 
   <div class="body">
@@ -164,10 +125,7 @@
   {% elif section.kind == 'projects' %}
       {% for p in projects %}{% set p_index = p._source_index %}
       <div class="item">
-        <div class="item-header">
-          <span class="item-title"><span data-field-path="/projects/{{ p_index }}/name">{{ p.name }}</span>{% if p.role %}　<span data-field-path="/projects/{{ p_index }}/role">{{ p.role }}</span>{% endif %}</span>
-          {% if p.start_date or p.end_date %}<span class="item-date">{% if p.start_date %}<span data-field-path="/projects/{{ p_index }}/start_date">{{ p.start_date }}</span>{% endif %}{% if p.start_date and p.end_date %}—{% endif %}{% if p.end_date %}<span data-field-path="/projects/{{ p_index }}/end_date">{{ p.end_date }}</span>{% endif %}</span>{% endif %}
-        </div>
+        {{ m.project_head(p, p_index) }}
         {% if p.polished_bullets %}
         <ul>{% for b in p.polished_bullets %}<li><span data-field-path="/projects/{{ p_index }}/polished_bullets/{{ loop.index0 }}">{{ b }}</span></li>{% endfor %}</ul>
         {% elif p.description %}
@@ -179,9 +137,7 @@
   {% elif section.kind == 'skills' %}
 {% if has_grouped_skills %}
       <div>
-        {% for group_name, items in skill_groups.items() %}
-        {% if items %}<div style="margin-bottom:4px;"><strong><span data-field-path="/skill_groups/{{ group_name | pointer_escape }}" data-field-kind="group-name">{{ group_name }}</span>：</strong>{% for skill in items %}<span data-field-path="/skill_groups/{{ group_name | pointer_escape }}/{{ loop.index0 }}">{{ skill }}</span>{% if not loop.last %} / {% endif %}{% endfor %}</div>{% endif %}
-        {% endfor %}
+        {{ m.skill_rows(skill_groups) }}
       </div>
     {% elif skills %}
       <div class="info-grid">

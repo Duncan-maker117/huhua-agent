@@ -698,7 +698,7 @@ async function loadTemplates() {
     canvasState.templates = body.templates || [];
     restoreCanvasTemplate();
     rail.innerHTML = canvasState.templates.map(t =>
-      `<button class="tpl-chip ${t.id === canvasState.templateId ? 'active' : ''}" data-id="${t.id}">${t.name}</button>`
+      `<button class="tpl-chip ${t.id === canvasState.templateId ? 'active' : ''}" data-id="${t.id}"${t.fits_one_page === false ? ' title="适合两页"' : ''}>${t.name}${t.fits_one_page === false ? ' · 适合两页' : ''}</button>`
     ).join('');
     rail.querySelectorAll('.tpl-chip').forEach(btn => {
       btn.addEventListener('click', () => {

@@ -1,36 +1,79 @@
 {
-  "version": 1,
-  "status": "heuristic_writer_budget_requires_pdf_render",
+  "version": 2,
+  "status": "measured_by_pdf_render_requires_final_render_check",
+  "line_definition": "用真实 PDF 渲染测量每个模板一页的容量，写入 data/jianlimoban/capacity.json。\n\n用法：DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/measure_template_capacity.py\n定义：\n- chars_per_line：项目 bullet 里连续全角汉字不换行的最大个数。\n- one_page_body_lines：典型结构（页眉 + 教育 1 条 + 实习 1 条 + 项目若干 + 技能 5 组 + 证书 3 条 + 1 行总结）\n  填满一页时，页眉以下的文字行数（含栏目标题与条目标题行）。\n- section_lines：上述满页状态下各栏目占的行数（含栏目标题），合计等于 one_page_body_lines。",
   "templates": {
     "t001-jianyue": {
-      "one_page_body_lines": 38,
-      "chars_per_line": 30,
-      "section_lines": {"education": 4, "work_experience": 10, "projects": 17, "skills": 4, "certificates": 2, "self_evaluation": 1}
+      "one_page_body_lines": 29,
+      "chars_per_line": 47,
+      "section_lines": {
+        "education": 2,
+        "work_experience": 6,
+        "projects": 9,
+        "skills": 6,
+        "certificates": 4,
+        "self_evaluation": 2
+      }
     },
     "t002-jianyue": {
-      "one_page_body_lines": 34,
-      "chars_per_line": 28,
-      "section_lines": {"education": 4, "work_experience": 9, "projects": 15, "skills": 3, "certificates": 2, "self_evaluation": 1}
+      "one_page_body_lines": 31,
+      "chars_per_line": 55,
+      "section_lines": {
+        "education": 2,
+        "work_experience": 7,
+        "projects": 10,
+        "skills": 6,
+        "certificates": 4,
+        "self_evaluation": 2
+      }
     },
     "t004-jianyue": {
-      "one_page_body_lines": 35,
-      "chars_per_line": 29,
-      "section_lines": {"education": 4, "work_experience": 9, "projects": 16, "skills": 3, "certificates": 2, "self_evaluation": 1}
+      "one_page_body_lines": 31,
+      "chars_per_line": 56,
+      "section_lines": {
+        "education": 3,
+        "work_experience": 6,
+        "projects": 10,
+        "skills": 6,
+        "certificates": 4,
+        "self_evaluation": 2
+      }
     },
     "t1000": {
-      "one_page_body_lines": 36,
-      "chars_per_line": 30,
-      "section_lines": {"education": 4, "work_experience": 9, "projects": 17, "skills": 3, "certificates": 2, "self_evaluation": 1}
+      "one_page_body_lines": 32,
+      "chars_per_line": 50,
+      "section_lines": {
+        "education": 2,
+        "work_experience": 6,
+        "projects": 12,
+        "skills": 6,
+        "certificates": 4,
+        "self_evaluation": 2
+      }
     },
     "t1001": {
-      "one_page_body_lines": 36,
-      "chars_per_line": 30,
-      "section_lines": {"education": 4, "work_experience": 9, "projects": 17, "skills": 3, "certificates": 2, "self_evaluation": 1}
+      "one_page_body_lines": 32,
+      "chars_per_line": 50,
+      "section_lines": {
+        "education": 2,
+        "work_experience": 6,
+        "projects": 12,
+        "skills": 6,
+        "certificates": 4,
+        "self_evaluation": 2
+      }
     },
     "t1002-jianyue": {
-      "one_page_body_lines": 34,
-      "chars_per_line": 29,
-      "section_lines": {"education": 4, "work_experience": 9, "projects": 15, "skills": 3, "certificates": 2, "self_evaluation": 1}
+      "one_page_body_lines": 32,
+      "chars_per_line": 50,
+      "section_lines": {
+        "education": 2,
+        "work_experience": 8,
+        "projects": 10,
+        "skills": 6,
+        "certificates": 4,
+        "self_evaluation": 2
+      }
     }
   }
 }

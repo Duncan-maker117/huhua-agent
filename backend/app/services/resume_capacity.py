@@ -82,7 +82,7 @@ def writer_capacity_budget(constraints: Mapping[str, Any]) -> dict[str, Any]:
         "section_lines": {key: value * pages for key, value in row["section_lines"].items()},
         "chars_per_line": chars_per_line,
         "max_bullet_lines": 2,
-        "max_bullet_chars_estimate": chars_per_line * 2,
+        "max_bullet_chars_estimate": min(chars_per_line * 2, 60),
         "bullet_caps": {"lead": 3, "keep": 2, "brief": 1},
         "max_compression_rounds": MAX_COMPRESSION_ROUNDS,
     }

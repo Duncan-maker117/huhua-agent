@@ -1119,6 +1119,7 @@
         const item = button('', 'tpl-item', () => selectTemplate(template));
         item.dataset.templateId = template.id;
         item.append(element('span', 'tpl-name', template.name), element('span', 'tpl-style', template.style || ''));
+        if (template.fits_one_page === false) item.append(element('span', 'tpl-style tpl-two-page', '适合两页'));
         $('template-list').append(item);
       }
       if (currentData) activateData(currentData, 'personal');

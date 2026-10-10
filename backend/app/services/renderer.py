@@ -11,14 +11,15 @@ from app.services.resume_sections import get_resume_sections, visible_items
 ROOT = Path(__file__).resolve().parents[3]
 TEMPLATE_DIR = ROOT / "data" / "jianlimoban" / "html-template"
 
+# fits_one_page=False 的模板在选择处标注「适合两页」（用真实内容渲染超过一页时设置）。
 # 当前上线的 6 款模板。其余模板文件仍在 templates/ 目录下但不对外暴露，便于随时恢复。
 TEMPLATES = [
-    {"id": "t001-jianyue", "name": "简约单栏", "style": "极简 / 标准单栏"},
-    {"id": "t002-jianyue", "name": "深蓝横幅", "style": "商务单栏"},
-    {"id": "t004-jianyue", "name": "灰条夹页", "style": "单栏 / 顶底装饰"},
-    {"id": "t1000", "name": "浅蓝斜切", "style": "单栏 / 色块标题"},
-    {"id": "t1001", "name": "浅蓝色块", "style": "单栏 / 变体"},
-    {"id": "t1002-jianyue", "name": "淡青平行", "style": "单栏 / 平行四边形"},
+    {"id": "t001-jianyue", "name": "简约单栏", "style": "极简 / 标准单栏", "fits_one_page": True},
+    {"id": "t002-jianyue", "name": "深蓝横幅", "style": "商务单栏", "fits_one_page": True},
+    {"id": "t004-jianyue", "name": "灰条夹页", "style": "单栏 / 顶底装饰", "fits_one_page": True},
+    {"id": "t1000", "name": "浅蓝斜切", "style": "单栏 / 色块标题", "fits_one_page": True},
+    {"id": "t1001", "name": "浅蓝色块", "style": "单栏 / 变体", "fits_one_page": True},
+    {"id": "t1002-jianyue", "name": "淡青平行", "style": "单栏 / 平行四边形", "fits_one_page": True},
 ]
 
 _env = Environment(
@@ -31,7 +32,7 @@ _PHOTO_DATA_URL = re.compile(r"\Adata:image/(?:jpeg|png);base64,[A-Za-z0-9+/]+={
 _MAX_PHOTO_URL_LENGTH = 7 * 1024 * 1024
 
 
-def list_templates() -> list[dict[str, str]]:
+def list_templates() -> list[dict[str, Any]]:
     return TEMPLATES
 
 

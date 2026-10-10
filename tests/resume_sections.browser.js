@@ -75,16 +75,17 @@ async (page) => {
   check(payload.sections[0].id === customId && !payload.sections.some((section) => section.kind === 'education'), 'Word发送当前顺序及删除状态');
   check(payload.sections[0].content.includes('\n'), 'Word发送自定义正文');
 
-  await page.evaluate(() => { const native = window.open; window.open = function(...args) { const popup = native.apply(this, args); popup.print = () => { popup.__printCalled = true; }; return popup; }; });
-  const popupPromise = page.waitForEvent('popup');
+  // PDF 现在直接生成并下载（不再弹出打印窗口）：校验发出的请求载荷与下载事件。
+  const pdfRequestPromise = page.waitForRequest((request) => request.url().includes('/api/resume/export/pdf/'));
+  const pdfDownloadPromise = page.waitForEvent('download');
   await page.locator('#btn-export').click();
   await page.getByRole('button', {name: '导出 PDF', exact: true}).click();
-  const popup = await popupPromise;
-  await popup.waitForFunction(() => window.__printCalled === true);
-  check(JSON.stringify(await popup.locator('.section-title [data-field-path^="/sections/"]').allTextContents()) === JSON.stringify(expected), 'PDF打印窗口栏目顺序和标题一致');
-  check(await popup.locator('[data-field-path^="/education/"]').count() === 0, 'PDF不残留删除栏目');
-  check(await popup.locator('script[src*="resume-preview"]').count() === 0, 'PDF不含编辑脚本');
-  await popup.close();
+  const pdfPayload = (await pdfRequestPromise).postDataJSON();
+  const pdfDownload = await pdfDownloadPromise;
+  await pdfDownload.saveAs('/private/tmp/huhua-sections-export.pdf');
+  check(pdfDownload.suggestedFilename().endsWith('.pdf'), 'PDF以文件下载完成');
+  check(pdfPayload.sections[0].id === customId && JSON.stringify(pdfPayload.sections.map((section) => section.id)) === JSON.stringify(payload.sections.map((section) => section.id)), 'PDF发送当前栏目顺序和标题');
+  check(!pdfPayload.sections.some((section) => section.kind === 'education'), 'PDF不残留删除栏目');
 
   await page.setViewportSize({width: 390, height: 844});
   await page.locator('#btn-mobile-edit').click();

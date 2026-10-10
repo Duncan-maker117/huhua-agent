@@ -1,6 +1,6 @@
-// Run against the disposable product_live_server.py fixture on port 8898.
+// Run against the disposable fixture: .venv/bin/python tests/product_live_server.py --port 8765 (needs the /__test__/otp mailbox).
 async (page) => {
-  const origin = 'http://127.0.0.1:8898';
+  const origin = 'http://127.0.0.1:8765';
   const checks = [];
   const check = (ok, label) => { checks.push({label, passed: Boolean(ok)}); if (!ok) throw new Error(label); };
   const errors = []; page.on('pageerror', error => errors.push(error.message));

@@ -101,15 +101,15 @@ async (page) => {
   fail = true;
   await input('/basic_info/name').fill('尚未保存的恢复稿');
   await page.locator('#btn-retry-save').waitFor();
-  check(await page.evaluate((key) => Boolean(sessionStorage.getItem(key)), 'huhua_editor_draft:' + session), '保存失败保留标签页恢复稿');
-  await page.reload();
-  await page.getByRole('button', {name: '恢复未保存草稿', exact: true}).waitFor();
-  check(await input('/basic_info/name').inputValue() === '连续输入的最新稿', '失败后刷新先读服务器旧版，不伪装已保存');
+  // 恢复稿刻意只放内存（见 resume-editor.js keepBackup）：不写 sessionStorage/localStorage，避免个人内容落在浏览器存储里。
+  check(await page.evaluate(() => ![sessionStorage, localStorage].some((store) => Object.keys(store).some((key) => /draft|backup|recover/i.test(key) || String(store.getItem(key)).includes('尚未保存的恢复稿')))), '保存失败不把草稿写进浏览器存储');
+  check(await input('/basic_info/name').inputValue() === '尚未保存的恢复稿', '保存失败后页面仍保留未保存内容');
+  check(await page.locator('#btn-download-draft').isVisible(), '保存失败后可下载草稿备份');
   fail = false;
-  await page.getByRole('button', {name: '恢复未保存草稿', exact: true}).click();
+  await page.locator('#btn-retry-save').click();
   await saved();
-  check(canonical.basic_info.name === '尚未保存的恢复稿', '恢复草稿后可重新保存');
-  check(await page.evaluate((key) => sessionStorage.getItem(key) === null, 'huhua_editor_draft:' + session), '保存成功清除临时恢复内容');
+  check(canonical.basic_info.name === '尚未保存的恢复稿', '重试保存后写入服务器');
+  check(await page.locator('#btn-retry-save').isHidden(), '保存成功后隐藏重试入口');
 
   canonical.basic_info.name = '聊天产生的新版本';
   revision = String(++counter).padStart(64, '0');
@@ -122,6 +122,11 @@ async (page) => {
   await input('/basic_info/name').waitFor();
   check(await input('/basic_info/name').inputValue() === '聊天产生的新版本', '冲突后先备份再载入最新内容');
 
+  // 导出现在绑定真实会话归属；这里的会话是 mock，所以只拦截 Word 响应，请求载荷仍按真实调用校验。
+  await page.route('**/api/resume/export/docx/**', (route) => route.fulfill({
+    status: 200, contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    headers: {'Content-Disposition': "attachment; filename*=UTF-8''%E7%AE%80%E5%8E%86.docx"}, body: 'PK\u0003\u0004fixture',
+  }));
   await input('/basic_info/name').fill('导出前最后一次修改');
   await page.locator('#btn-export').click();
   const exportRequest = page.waitForRequest((request) => request.url().includes('/api/resume/export/docx/'));
@@ -145,5 +150,6 @@ async (page) => {
   await page.evaluate((value) => { window.__resumePersistenceCheck = value; }, report);
   await page.unroute('**/api/resume/current*');
   await page.unroute('**/api/resume/sample');
+  await page.unroute('**/api/resume/export/docx/**');
   return report;
 }

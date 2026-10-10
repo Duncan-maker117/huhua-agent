@@ -899,6 +899,34 @@ def _collected_summary(collected: dict) -> str:
     return "、".join(parts) if parts else "暂无"
 
 
+def _hash_text(text: str) -> str:
+    import hashlib
+    return hashlib.sha256(str(text or "").encode("utf-8")).hexdigest()[:16]
+
+
+def unrecorded_notice(collected: dict, latest_human: str) -> str:
+    """本轮抽取没能记下的原话；只在产生它的那一轮提示一次。"""
+    info = (collected or {}).get("unrecorded") or {}
+    if not info.get("clauses") or info.get("source") != _hash_text(latest_human):
+        return ""
+    recorded = "\n".join(f"{fact.get('text', '')}\n{fact.get('source_quote', '')}"
+                         for section in ("projects", "work_experience", "internship", "education")
+                         for item in (collected.get(section) or []) if isinstance(item, dict)
+                         for fact in item.get("facts") or [] if fact.get("status", "active") == "active")
+    missing = [clause for clause in info["clauses"] if clause not in recorded]  # 后续兜底已原文保留的不再提示
+    return "\n\n" + "\n".join(f"这句我没记下来：「{clause}」，能换个说法吗？" for clause in missing) if missing else ""
+
+
+def _notice_messages(collected: dict, latest_human: str) -> list:
+    notice = unrecorded_notice(collected, latest_human).strip()
+    return [AIMessage(content=notice)] if notice else []
+
+
+def _latest_human_text(state: dict) -> str:
+    return next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)
+                 and isinstance(m.content, str)), "")
+
+
 async def _extract_info_from_message(
     message: str, current: dict, llm: ChatOpenAI,
 ) -> dict:
@@ -911,7 +939,18 @@ async def _extract_info_from_message(
         patch = await extract_facts_patch(
             message, normalized, llm, metadata_context=normalized.get("metadata_context"),
             previous_assistant=_previous_assistant.get())
-        return apply_fact_patch(normalized, patch)
+        result = apply_fact_patch(normalized, patch)
+        uncovered = [str(c) for c in patch.get("uncovered") or []][:3]
+        if uncovered:
+            # 抽取覆盖检查补救失败的子句：记入核对页，并在本轮回复里告知，不静默丢弃。
+            notes = result.setdefault("verification_notes", [])
+            for clause in uncovered:
+                note = f"这句没有记下来：{clause}"
+                if note not in notes:
+                    notes.append(note)
+            result["verification_notes"] = notes[-30:]
+            result["unrecorded"] = {"source": _hash_text(message), "clauses": uncovered}
+        return result
     except Exception as e:
         logger.warning("Info extraction failed: %s", type(e).__name__)
         return normalized
@@ -1565,7 +1604,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         response = await stream_public_reply(
             llm, [sys_msg, _stage_context(reply_state)] + messages
         )
-        base_update["messages"] = [response]
+        base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
 
     # 分支 C：追问经历
@@ -1574,7 +1613,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         response = await stream_public_reply(
             llm, [sys_msg, _stage_context(state)] + messages
         )
-        base_update["messages"] = [response]
+        base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
 
     # 分支 D：兜底推荐方向（硬禁令已写进 prompt）
@@ -1583,7 +1622,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         response = await stream_public_reply(
             llm, [sys_msg, _stage_context(state)] + messages
         )
-        base_update["messages"] = [response]
+        base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
 
     # 分支 E：兜底—— triage 返回了 JD 相关 action（用户中途补贴 JD 等）
@@ -1609,7 +1648,7 @@ async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     response = await stream_public_reply(
         llm, [sys_msg, _stage_context(state)] + messages
     )
-    base_update["messages"] = [response]
+    base_update["messages"] = [response, *_notice_messages(collected, last_human)]
     return base_update
 
 
@@ -1745,7 +1784,8 @@ def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
 async def building_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     result = await _write_resume_update(state, llm)
     suffix, asked = _interview_suffix(state, result)
-    result.update(messages=[AIMessage(content=_writer_reply(result) + suffix)], stage='EVALUATING',
+    notice = unrecorded_notice(result.get('collected_info') or state.get('collected_info'), _latest_human_text(state))
+    result.update(messages=[AIMessage(content=_writer_reply(result) + suffix + notice)], stage='EVALUATING',
                   resume_draft=resume_to_text(result['resume_data']), asked_questions=asked)
     return result
 
@@ -1859,6 +1899,15 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     )
     updated = absorb_education(updated, collected, text, getattr(message, 'id', '') or '')
     updated = bind_role_followup(updated, previous_assistant, text, getattr(message, 'id', '') or '')
+    if not imported:
+        # 点名要写的内容（「抖音推广也写上」）事实库没有时，从 raw_notes / 历史原话回补；都没有则回执里 ⚠。
+        from app.services.named_content import item_label, recover_named_facts
+        labels = [item_label(i) for sec in ('projects', 'work_experience', 'internship')
+                  for i in (updated.get(sec) or []) if isinstance(i, dict)]
+        history = [m.content for m in state.get('messages', [])
+                   if isinstance(m, HumanMessage) and isinstance(m.content, str) and m is not message
+                   and m.id not in set(state.get('non_candidate_message_ids') or [])]
+        updated, _recovered = recover_named_facts(text, updated, history, labels)
     direction = _direction_profile_update(state, text, updated)
     scope, targets = infer_edit_scope(data, text)
     operation_results = []
@@ -1933,6 +1982,9 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     report_rows = detail_gap_rows(
         text, report_rows, before_edit, result.get('resume_meta') or {}, result.get('collected_info') or updated,
         (state.get('jd_info') or {}).get('role_profile') or {})
+    from app.services.named_content import named_content_rows
+    report_rows = named_content_rows(text, report_rows, before_edit, result.get('resume_data') or {},
+                                     result.get('collected_info') or updated)
     report = render_operation_report(report_rows, before_edit, result.get('resume_data') or {})
     if report:
         result['change_summary'] = report[:5]
@@ -1952,6 +2004,7 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if suffix:
         reply += suffix
         result['asked_questions'] = asked
+    reply += unrecorded_notice(updated, text)
     return {**direction, **result, 'stage': 'EVALUATING',
             'resume_draft': resume_to_text(result['resume_data']),
             'messages': [AIMessage(content=reply)]}

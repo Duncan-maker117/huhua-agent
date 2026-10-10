@@ -2,13 +2,18 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import inspect
 import json
+import logging
+import os
 import re
 import uuid
 
 from app.schemas.facts import FACT_SECTIONS
 from app.services.resume_facts import new_fact, normalize_fact_store
+
+logger = logging.getLogger(__name__)
 
 _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch：
 {"items":[{"section":"projects|work_experience|internship|education","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","text":"规范化陈述","source_quote":"本轮连续原文"}],"raw_notes":["本轮相关原话"]}],"basic_info":{},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
@@ -88,13 +93,98 @@ def _quote_has_unquoted_limit(message: str, quote: str) -> bool:
     return True
 
 
+# ── 抽取覆盖检查：动作/结果类子句不得被静默丢弃 ─────────────────────────────
+_CLAUSE_SPLIT = re.compile(r"[，,。；;！!？?：:\n、]+")
+_ACTION_VERB = re.compile(
+    r"做|写|搭|开发|设计|实现|改成|改为|改|优化|发了|发布|发|推广|查|修|解决|提升|降低|增加|减少|完成|负责|带|用|调|"
+    r"训练|部署|上线|测试|分析|整理|蒸馏|获得|拿到|拿了|star|推荐|挑|接入|重构|迁移|爬|抓|标注|评估|对接|拆|统计|获奖|参与|主导|协助|组织|运营")
+_NARRATIVE = re.compile(r"我|本人|后来|一开始|起初|最初|之后|最后|最终|现在|还|已经|做过|做的|写的|搭的|\d")
+_INSTRUCTION = re.compile(
+    r"帮我|给我|请|突出|按JD|按岗位|改改|改一下|写详细|写上|写进|也写|删掉|去掉|精简|压缩|调整|优化一下|换成|"
+    r"能不能|可以吗|是否|要不要|吗|全称|出一版|生成|撤销|导出", re.I)
+_PLAN_OR_NEGATED = re.compile(r"我(?:们)?(?:将|从未|并未|还?没有?|未|不曾|不)|计划|准备|打算|希望|想要|下个月|以后|将来|明天|还没")
+_STATUS_CLAUSE = re.compile(r"开源|未上线|没上线|Demo|原型", re.I)
+_RESULT_CLAUSE = re.compile(r"star|用户|提升|增长|降低|增加|减少|获奖|名|第一|\d", re.I)
+
+
+def _fact_kind_for_clause(clause: str) -> str:
+    """规则判定 kind，不调用模型。"""
+    if _STATUS_CLAUSE.search(clause):
+        return "status_limit"
+    if _RESULT_CLAUSE.search(clause) and re.search(r"\d", clause):
+        return "result_metric"
+    if re.search(r"提升|增长|降低|减少|获奖", clause):
+        return "result_qualitative"
+    if _ACTION_VERB.search(clause):
+        return "action"
+    return "context"
+
+
+def _bigrams(text: str) -> set[str]:
+    return {text[i:i + 2] for i in range(len(text) - 1)} or ({text} if text else set())
+
+
+def _clause_covered(clause: str, quotes: list[str], whole: str = "") -> bool:
+    grams = _bigrams(clause)
+    for quote in quotes:
+        if not quote:
+            continue
+        if clause in quote or quote in clause:
+            return True
+        if grams and len(grams & _bigrams(quote)) / len(grams) >= 0.7:
+            return True
+    # 子句里的动作词全部落在某条已接受事实的原文片段内，也算覆盖（事实只引了子句的后半段）。
+    start = whole.find(clause) if whole else -1
+    verbs = [(start + m.start(), start + m.end()) for m in _ACTION_VERB.finditer(clause)] if start >= 0 else []
+    spans = []
+    for quote in quotes:
+        at = whole.find(quote) if quote and whole else -1
+        if at >= 0:
+            spans.append((at, at + len(quote)))
+    return bool(verbs) and all(any(a >= lo and b <= hi for lo, hi in spans) for a, b in verbs)
+
+
+def uncovered_action_clauses(evidence: str, quotes: list[str]) -> list[str]:
+    """候选人原话中含动作/结果类动词、却没有对应已接受事实的子句（保持原文）。"""
+    from app.services.fact_guard import normalize_text
+    normalized = [normalize_text(q) for q in quotes]
+    whole = normalize_text(evidence)
+    rows = []
+    for raw in _CLAUSE_SPLIT.split(evidence):
+        clause = raw.strip()
+        if len(clause) < 6 or _INSTRUCTION.search(clause) or _PLAN_OR_NEGATED.search(clause) or re.fullmatch(r"(?:我)?(?:还)?做过.{0,6}(?:东西|项目|事情?)", clause):
+            continue
+        if not (_ACTION_VERB.search(clause) and _NARRATIVE.search(clause)):
+            continue
+        if _clause_covered(normalize_text(clause), normalized, whole):
+            continue
+        if clause not in rows:
+            rows.append(clause)
+    return rows
+
+
+def _reason_code(reason) -> str:
+    if isinstance(reason, list):
+        return ",".join(str(r) for r in reason[:3])
+    return str(reason)
+
+
+def _log_rejected(rejected: list[dict], turn_id: str) -> None:
+    """只记错误码与 hash；benchmark（合成数据）设置 HUHUA_RECORD_REJECTED_TEXT=1 时记原文。"""
+    record_text = os.environ.get("HUHUA_RECORD_REJECTED_TEXT") == "1"
+    for row in rejected:
+        digest = hashlib.sha256(str(row.get("text", "")).encode("utf-8")).hexdigest()[:10]
+        extra = f" text={row.get('text')!r}" if record_text else ""
+        logger.info("fact_rejected turn=%s code=%s hash=%s%s", turn_id or "-", _reason_code(row.get("reason")), digest, extra)
+
+
 async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: str = "",
                               metadata_context=None, semantic_check=None,
                               previous_assistant: str = "") -> dict:
     """Reject individual unsupported facts while retaining the rest of a patch."""
     from app.services.fact_guard import lexical_fact_errors, normalize_text, verify_semantics
 
-    empty = {"items": [], "basic_info": {}, "skills": [], "corrections": [], "removals": [], "rejected": []}
+    empty = {"items": [], "basic_info": {}, "skills": [], "corrections": [], "removals": [], "rejected": [], "uncovered": []}
     if not isinstance(message, str) or not message.strip() or llm is None:
         return empty
     visible = normalize_fact_store(collected)
@@ -208,11 +298,49 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             item["facts"] = [fact for fact in item["facts"] if fact["id"] not in failed]
         result["items"] = [item for item in result["items"] if item["facts"] or item["raw_notes"]]
         result["corrections"] = [entry for entry in result["corrections"] if entry["replacement"]["id"] not in failed]
+    _cover_dropped_clauses(result, evidence, turn_id, lexical_fact_errors, normalize_text)
     for item in result["items"]:
         item["raw_notes"].extend(fact["source_quote"] for fact in item["facts"]
                                  if fact["source_quote"] not in item["raw_notes"])
     result["items"] = [item for item in result["items"] if item["facts"] or item["raw_notes"]]
+    _log_rejected(result["rejected"], turn_id)
     return result
+
+
+def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fact_errors, normalize_text) -> None:
+    """未被任何已接受事实覆盖的动作/结果子句：用子句原文作保守事实重试，仍不行则记入 uncovered。"""
+    quotes = [fact["source_quote"] for item in result["items"] for fact in item["facts"]]
+    quotes += [entry["replacement"]["source_quote"] for entry in result["corrections"]]
+    for clause in uncovered_action_clauses(evidence, quotes):
+        owner = _owner_item(result["items"], clause, evidence, normalize_text)
+        errors = lexical_fact_errors(clause, clause) if owner is not None else ["no_owner_item"]
+        if owner is None or errors or _quote_has_unquoted_limit(evidence, clause):
+            result["rejected"].append({"text": clause, "reason": "coverage_fallback_failed:" + _reason_code(errors or "limit")})
+            result["uncovered"].append(clause)
+            continue
+        owner["facts"].append(new_fact(clause, kind=_fact_kind_for_clause(clause), quote=clause,
+                                       source="chat", turn_id=turn_id))
+        logger.info("fact_coverage_fallback turn=%s hash=%s", turn_id or "-",
+                    hashlib.sha256(clause.encode("utf-8")).hexdigest()[:10])
+
+
+def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text):
+    """子句归属：同一句（按句号切分）里已有事实/raw_notes 的经历；跨句不猜归属。"""
+    wanted = normalize_text(clause)
+    sentence = next((part for part in re.split(r"(?<=[。！？!?\n])", evidence) if clause in part), "")
+    sentence_norm = normalize_text(sentence)
+    candidates = [item for item in items if item["section"] in {"projects", "work_experience", "internship"}]
+    for item in candidates:
+        if any(wanted in normalize_text(note) for note in item.get("raw_notes", [])):
+            return item
+    start = sentence.find(clause)
+    best, best_end = None, -1
+    for item in candidates:
+        for fact in item["facts"]:
+            pos = sentence.find(fact["source_quote"]) if sentence else -1
+            if 0 <= pos <= start and pos > best_end and normalize_text(fact["source_quote"]) in sentence_norm:
+                best, best_end = item, pos
+    return best
 
 
 def apply_fact_patch(collected: dict, patch: dict) -> dict:

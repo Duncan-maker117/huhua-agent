@@ -141,6 +141,62 @@ class FactExtractorTest(unittest.IsolatedAsyncioTestCase):
         patch = await extract_facts_patch(message, {}, llm)
         self.assertEqual(patch["items"][0]["facts"][0]["text"], "参与 PaperTool 原型")
 
+    HANDSON = ("我是哈商大计算机大三的。做过几个东西：一个是美团黑客松做的mtagent，旅游路线规划的agent，用fastapi写的，"
+               "有好几个agent分工，一开始模型老推荐不存在的店，后来我改成先用高德查poi再让模型从里面挑。"
+               "还有一个forge skill，开源的，就是把自己的说话风格蒸馏成claude code的skill，github有70多个star，我还发了抖音推广。")
+
+    def _leaky_patch(self):
+        """模型替身：漏掉「改成先查 POI」，并把「发了抖音推广」改写成「发布」（词法拒绝）。"""
+        return FakeLLM({"items": [
+            {"section": "projects", "name": "mtagent", "facts": [
+                {"kind": "deliverable", "text": "旅游路线规划的 agent", "source_quote": "旅游路线规划的agent"},
+                {"kind": "method_tool", "text": "使用 FastAPI 编写", "source_quote": "用fastapi写的"}],
+             "raw_notes": ["一个是美团黑客松做的mtagent，旅游路线规划的agent，用fastapi写的，有好几个agent分工，一开始模型老推荐不存在的店，后来我改成先用高德查poi再让模型从里面挑。"]},
+            {"section": "projects", "name": "forge skill", "facts": [
+                {"kind": "result_metric", "text": "GitHub 有 70 多个 star", "source_quote": "github有70多个star"},
+                {"kind": "action", "text": "在抖音发布推广", "source_quote": "我还发了抖音推广"}],
+             "raw_notes": ["还有一个forge skill，开源的，就是把自己的说话风格蒸馏成claude code的skill，github有70多个star，我还发了抖音推广。"]}]})
+
+    async def test_dropped_action_clauses_are_recovered_conservatively(self):
+        patch = await extract_facts_patch(self.HANDSON, {}, self._leaky_patch())
+        collected = apply_fact_patch({}, patch)
+        by_name = {item["name"]: [f["text"] for f in item["facts"]] for item in collected["projects"]}
+        self.assertIn("后来我改成先用高德查poi再让模型从里面挑", by_name["mtagent"])
+        self.assertIn("一开始模型老推荐不存在的店", by_name["mtagent"])
+        self.assertIn("我还发了抖音推广", by_name["forge skill"])
+        self.assertEqual(patch["uncovered"], [])
+        self.assertTrue(any("发布" in row["text"] for row in patch["rejected"]))  # 被拒原因仍然可见
+
+    async def test_unrecoverable_clause_is_reported_not_dropped_silently(self):
+        patch = await extract_facts_patch("我还发了抖音推广", {}, FakeLLM({}))
+        self.assertEqual(patch["uncovered"], ["我还发了抖音推广"])
+        self.assertFalse(patch["items"])
+
+    async def test_instruction_clauses_are_not_turned_into_facts(self):
+        message = "按JD再改改，mtagent突出一下agent设计，forge写详细点，抖音推广也写上。学校写全称哈尔滨商业大学"
+        patch = await extract_facts_patch(message, {}, FakeLLM({}))
+        self.assertEqual(patch["uncovered"], [])
+        self.assertFalse(patch["items"])
+
+    async def test_rejections_are_logged_with_code_and_hash_only(self):
+        message = "我在 PaperTool 做了原型，未上线。"
+        llm = FakeLLM({"items": [{"section": "projects", "name": "PaperTool", "facts": [
+            {"kind": "result_metric", "text": "服务了100万用户", "source_quote": "做了原型，未上线"}]}]})
+        import logging
+        previous = logging.root.manager.disable
+        logging.disable(logging.NOTSET)  # 其他用例可能全局关闭了日志
+        self.addCleanup(logging.disable, previous)
+        import os
+        from unittest import mock
+        patcher = mock.patch.dict(os.environ, {"HUHUA_RECORD_REJECTED_TEXT": "0"})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        with self.assertLogs("app.agents.fact_extractor", level="INFO") as logs:
+            await extract_facts_patch(message, {}, llm)
+        joined = "\n".join(logs.output)
+        self.assertIn("fact_rejected", joined)
+        self.assertNotIn("100万", joined)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -678,6 +678,9 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
         if op == "contract_gap":
             lines.append(f"⚠ {row.get('target')}：{row.get('reason')}")
             continue
+        if op == "named_gap":
+            lines.append(f"⚠ {row.get('target')}：{row.get('reason')}")
+            continue
         if op == "need_detail":
             lines.append(f"⚠ {row.get('target')}：现有资料都已写进去了，想写得更详细需要你补充，比如：{row.get('reason')}")
             continue

@@ -98,3 +98,22 @@ def jd_terms_from_profile(profile: Mapping | None) -> list[str]:
     terms = [*(profile.get("required_skills") or []), *(profile.get("jd_language") or [])]
     terms += [row.get("signal", "") for row in profile.get("core_signals") or [] if isinstance(row, dict)]
     return [term for term in terms if isinstance(term, str)]
+
+
+def sync_flat_skills(data: dict) -> bool:
+    """有分组时，平铺 skills 由分组按顺序展开（去重），不再保留旧的整句。返回是否有改动。"""
+    groups = data.get("skill_groups")
+    if not isinstance(groups, dict) or not any(isinstance(v, list) and v for v in groups.values()):
+        return False
+    flat: list[str] = []
+    seen: set[str] = set()
+    for values in groups.values():
+        for value in values if isinstance(values, list) else ():
+            text = value.get("name", "") if isinstance(value, dict) else str(value)
+            key = _key(text)
+            if key and key not in seen:
+                seen.add(key)
+                flat.append(text.strip())
+    changed = data.get("skills") != flat
+    data["skills"] = flat
+    return changed

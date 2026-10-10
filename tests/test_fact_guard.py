@@ -540,3 +540,14 @@ class E5Tests(unittest.TestCase):
         from app.services.fact_guard import SEMANTIC_CONTRACT
         for phrase in ("新增归因/诊断", "定位为候选由模型自行生成", "结果升级", "本地演示通过"):
             self.assertIn(phrase, SEMANTIC_CONTRACT)
+
+
+class UnsupportedToolVocabularyTests(unittest.IsolatedAsyncioTestCase):
+    async def test_jd_phrases_are_not_tool_names_but_vocabulary_terms_still_are(self):
+        facts = [fact('访谈了三位同学，整理成文档')]
+        bullets = [{'id': 'jd', 'text': '整理用户需求并形成文档', 'fact_ids': ['f1']},
+                   {'id': 'tool', 'text': '使用 Docker 整理文档', 'fact_ids': ['f1']}]
+        result = await guard_bullets(bullets, facts, jd_skills=['整理用户需求'],
+                                     role_terms=['整理用户需求', '需求分析'])
+        self.assertEqual([e for e in result[0]['lexical_errors'] if e.startswith('unsupported_tool')], [])
+        self.assertIn('unsupported_tool:Docker', result[1]['lexical_errors'])

@@ -143,14 +143,14 @@ class EditPlanTest(unittest.TestCase):
         self.assertEqual(result["data"]["basic_info"]["objective"], "")
         self.assertEqual(result["data"]["projects"][1]["name"], "Project Delta")
 
-    def test_clean_format_deduplicates_visible_skills_without_erasing_flat_list(self):
+    def test_clean_format_deduplicates_visible_skills_and_flat_list_follows_groups(self):
         data = document()
         data["skills"] = ["Python", " python ", "SQL"]
         data["skill_groups"] = {"开发": ["Python", "SQL"], "数据": ["sql", "Excel"]}
         result = execute_edit_plan(data, {}, [{"op": "clean_format", "target": "技能", "args": {}}],
                                    instruction="精简重复技能")
         self.assertEqual(result["operation_results"][0]["status"], "done")
-        self.assertEqual(result["data"]["skills"], ["Python", "SQL"])
+        self.assertEqual(result["data"]["skills"], ["Python", "SQL", "Excel"])
         self.assertEqual(result["data"]["skill_groups"],
                          {"开发": ["Python", "SQL"], "数据": ["Excel"]})
         self.assertEqual(data["skills"], ["Python", " python ", "SQL"])

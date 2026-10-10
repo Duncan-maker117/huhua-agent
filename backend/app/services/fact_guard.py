@@ -506,7 +506,9 @@ def _source_quote(fact: dict) -> str:
 async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(), jd_skills=(), role_terms=(), llm=None) -> list[dict]:
     """Return per-bullet violations for a writer's at-most-once repair step."""
     index = {fact["id"]: fact for fact in facts if fact.get("status", "active") == "active"}
-    vocabulary = _terms([*jd_skills, *role_terms, *[s.get("name", "") if isinstance(s, dict) else s for s in user_skills]])
+    # unsupported_tool 只对技能词表里的工具/技术词生效；JD 短语（如「整理用户需求」）
+    # 和用户自己的技能不是需要核验的工具名。
+    vocabulary = _terms()
     output, semantic = [], []
     for number, bullet in enumerate(bullets):
         identifier = bullet.get("id") or str(number)

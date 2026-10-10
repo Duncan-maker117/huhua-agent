@@ -253,6 +253,8 @@ def _dedupe_skills(data: dict) -> bool:
                                 if isinstance(values, list)}
     if isinstance(data.get("skills"), list):
         data["skills"] = unique(data["skills"], set())
+    from app.services.skill_groups import sync_flat_skills
+    sync_flat_skills(data)
     return before != (data.get("skills"), data.get("skill_groups"))
 
 

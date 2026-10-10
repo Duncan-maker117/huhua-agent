@@ -1087,6 +1087,8 @@ async def run_resume_writer(
                     continue
                 item["hidden"] = prior_hidden.get(item["item_id"], False)
         changes = [line for line in changes if "备用" not in line]
+    from app.services.skill_groups import sync_flat_skills
+    sync_flat_skills(output)
     return {"resume_data": output, "resume_meta": meta, "match_plan": match_plan,
             "omitted": omitted, "change_summary": changes, "guard_fallbacks": fallbacks,
             "changed_items": changed_items, "writer_diagnostic": writer_diagnostic,

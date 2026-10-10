@@ -404,6 +404,16 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     }
 
 
+def _open_questions(values: dict, canonical: dict, plan: dict, meta: dict) -> list:
+    """Interviewer questions already asked and still open (answered/closed ones are dropped)."""
+    from app.agents.interviewer import open_questions
+    try:
+        return copy.deepcopy(open_questions({**values, 'resume_data': canonical, 'match_plan': plan,
+                                             'resume_meta': meta}))
+    except Exception:
+        return []
+
+
 def tailor_metadata(values: dict, canonical: dict) -> dict:
     """UI contract uses sanitized committed snapshots, never an ahead checkpoint diff."""
     from app.services.resume_versions import document_diff, valid_bullet_metadata
@@ -430,7 +440,7 @@ def tailor_metadata(values: dict, canonical: dict) -> dict:
     diff = document_diff(previous, canonical) if meta.get('version_id') else []
     return {'version_id': meta.get('version_id'), 'diff': diff,
             'change_summary': copy.deepcopy(meta.get('change_summary') or []),
-            'match_plan': copy.deepcopy(plan), 'questions': copy.deepcopy(plan.get('questions') or [])[:3],
+            'match_plan': copy.deepcopy(plan), 'questions': _open_questions(values, canonical, plan, meta),
             'resume_meta': meta, 'session_constraints': copy.deepcopy(values.get('session_constraints') or {}),
             'page_check': copy.deepcopy(meta.get('page_check') or {}),
             'can_undo': bool(history)}

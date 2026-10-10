@@ -12,7 +12,7 @@
 | `diff` | 按条目折叠的 `{section,item_id,before,after}`；新增/缺失侧为 null；排序变化另有 `field:"order"` |
 | `change_summary` | 至多五条修改说明；具体改动以 diff 为准 |
 | `match_plan` | requirements 的 `req_id/status/fact_ids/angle`，experience_plan 的分级与原因，section_order/questions |
-| `questions` | 至多三条 `{q,why,improves:{item_id,req_id},options,value}`；PR5 将补已问/关闭去重 |
+| `questions` | PR6b 起为 interviewer 已提出且仍未回答的追问，至多三条 `{question_id,q,why,improves,location_path,location_label,options:[{label,value}],value}`；已回答/关闭（`asked_questions` 状态非 `asked`）的不再返回；前端点击发送「关于「q」：选项」，并在本机记录已关闭的 question_id |
 | `resume_meta.bullets[item_id]` | 每条的 `fact_ids/req_ids/flags/needs_metric/metric_question/text_hash`；手工改文失效后不再展示旧模型依据 |
 | `session_constraints` | 当前持续生效的 `page_limit/language/template_id` |
 | `page_check` | `status:rendered|render_error|stale`、实测 `pages:number|null`、`page_limit`、`within_page_limit:boolean|null`；null 不能表示合规 |

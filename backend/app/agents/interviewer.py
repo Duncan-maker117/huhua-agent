@@ -122,6 +122,45 @@ def education_question(state: dict) -> tuple[str, list]:
     return note, asked
 
 
+def _question_candidates(state: dict, plan: dict, profile: dict, data: dict, already: set[str]) -> list[dict]:
+    """All displayable follow-up questions for known visible items, minus `already`."""
+    known = _known_targets(data)
+    valid_reqs = {row.get("id") for row in profile.get("requirements") or [] if isinstance(row, dict)}
+    valid_reqs.update(row.get("req_id") for row in plan.get("requirements") or [] if isinstance(row, dict))
+    candidates = []
+    for candidate in plan.get("questions") or []:
+        if not isinstance(candidate, dict):
+            continue
+        q = str(candidate.get("q") or "").strip()
+        if re.search(r"和「[^」]{1,40}」(?:直接)?相关的部分", q):
+            continue  # 把岗位信号名套进模板的问句不用，改由手册问句/模型原生问句承担
+        improvement = candidate.get("improves") or {}
+        item_id, req_id = improvement.get("item_id") or "", improvement.get("req_id") or ""
+        if not q or item_id not in known or (req_id and req_id not in valid_reqs):
+            continue
+        identifier = _question_id(q, item_id, req_id)
+        if identifier in already:
+            continue
+        if re.search(r"职责|分工|独立完成|团队协作|一个人", q) and _item_has_role(
+            state.get("collected_info") or {}, item_id
+        ):
+            continue
+        path, label = _question_location(item_id, req_id, known[item_id], plan,
+                                         state.get("resume_meta") or {})
+        options = [{"label": str(option)[:60], "value": str(option)}
+                   for option in candidate.get("options") or [] if isinstance(option, str) and option.strip()][:3]
+        options.append({"label": "不知道 / 没有", "value": "不知道 / 没有"})
+        try:
+            value = max(1, min(5, int(candidate.get("value") or 1)))
+        except (TypeError, ValueError):
+            value = 1
+        candidates.append({"question_id": identifier, "q": q, "why": str(candidate.get("why") or ""),
+                           "improves": {"item_id": item_id, "req_id": req_id},
+                           "location_path": path, "location_label": label,
+                           "options": options, "value": value})
+    return candidates
+
+
 def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
                               role_profile: dict | None = None,
                               version_number: int | None = None) -> dict:
@@ -166,40 +205,8 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
                                          and row.get("question_id") in {"role_direction", "experience"}]),
                 "next_action": "ask"}
     known = _known_targets(data)
-    valid_reqs = {row.get("id") for row in profile.get("requirements") or [] if isinstance(row, dict)}
-    valid_reqs.update(row.get("req_id") for row in plan.get("requirements") or [] if isinstance(row, dict))
     already = _asked_ids(asked)
-    candidates = []
-    for candidate in plan.get("questions") or []:
-        if not isinstance(candidate, dict):
-            continue
-        q = str(candidate.get("q") or "").strip()
-        if re.search(r"和「[^」]{1,40}」(?:直接)?相关的部分", q):
-            continue  # 把岗位信号名套进模板的问句不用，改由手册问句/模型原生问句承担
-        improvement = candidate.get("improves") or {}
-        item_id, req_id = improvement.get("item_id") or "", improvement.get("req_id") or ""
-        if not q or item_id not in known or (req_id and req_id not in valid_reqs):
-            continue
-        identifier = _question_id(q, item_id, req_id)
-        if identifier in already:
-            continue
-        if re.search(r"职责|分工|独立完成|团队协作|一个人", q) and _item_has_role(
-            state.get("collected_info") or {}, item_id
-        ):
-            continue
-        path, label = _question_location(item_id, req_id, known[item_id], plan,
-                                         state.get("resume_meta") or {})
-        options = [{"label": str(option)[:60], "value": str(option)}
-                   for option in candidate.get("options") or [] if isinstance(option, str) and option.strip()][:3]
-        options.append({"label": "不知道 / 没有", "value": "不知道 / 没有"})
-        try:
-            value = max(1, min(5, int(candidate.get("value") or 1)))
-        except (TypeError, ValueError):
-            value = 1
-        candidates.append({"question_id": identifier, "q": q, "why": str(candidate.get("why") or ""),
-                           "improves": {"item_id": item_id, "req_id": req_id},
-                           "location_path": path, "location_label": label,
-                           "options": options, "value": value})
+    candidates = _question_candidates(state, plan, profile, data, already)
     selected = sorted(candidates, key=lambda row: -row["value"])[:MAX_QUESTIONS]
     role = ((state.get("jd_info") or {}).get("job_title")
             or (state.get("jd_info") or {}).get("role_direction")
@@ -285,3 +292,19 @@ def record_interview_answer(asked_questions: list, question_id: str, answer: str
     return {"asked_questions": rows, "status": status,
             "candidate_turn": normalized if status == "answered_pending_extraction" else "",
             "facts_added": False}
+
+
+def open_questions(state: dict) -> list[dict]:
+    """Questions already put to the user and still unanswered; a closed one never reappears."""
+    plan = state.get("match_plan") or {}
+    status = {row.get("question_id"): row.get("status") for row in state.get("asked_questions") or []
+              if isinstance(row, dict)}
+    if not status:
+        return []
+    profile = (state.get("jd_info") or {}).get("role_profile") or {}
+    data = state.get("resume_data") or {}
+    try:
+        rows = _question_candidates(state, plan, profile, data, set())
+    except Exception:
+        return []
+    return [row for row in rows if status.get(row["question_id"]) == "asked"][:MAX_QUESTIONS]

@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.agents.interviewer import (  # noqa: E402
-    compose_interviewer_reply, first_draft_ready, record_interview_answer,
+    compose_interviewer_reply, first_draft_ready, open_questions, record_interview_answer,
 )
 
 
@@ -103,6 +103,34 @@ class TailorInterviewerTest(unittest.TestCase):
         self.assertEqual(substantive["status"], "answered_pending_extraction")
         self.assertFalse(substantive["facts_added"])
         self.assertEqual(substantive["candidate_turn"], "我把分类表交给项目组讨论")
+
+    def test_open_questions_exclude_unasked_and_closed(self):
+        current = state()
+        self.assertEqual(open_questions(current), [])  # 还没问过，不是待答追问
+        first = compose_interviewer_reply(current)
+        current["asked_questions"] = first["asked_questions"]
+        shown = open_questions(current)
+        self.assertEqual([row["question_id"] for row in shown], [row["question_id"] for row in first["questions"]])
+        self.assertTrue(all(row["options"][-1]["value"] == "不知道 / 没有" for row in shown))
+        closed = record_interview_answer(current["asked_questions"], shown[0]["question_id"], "不知道 / 没有")
+        current["asked_questions"] = closed["asked_questions"]
+        remaining = [row["question_id"] for row in open_questions(current)]
+        self.assertNotIn(shown[0]["question_id"], remaining)
+        self.assertEqual(len(remaining), len(shown) - 1)
+
+    def test_workspace_tailor_metadata_exposes_only_open_questions(self):
+        from app.services.resume_workspace import tailor_metadata
+        current = state()
+        first = compose_interviewer_reply(current)
+        values = {k: current[k] for k in ("jd_info", "collected_info", "match_plan")}
+        values["asked_questions"] = first["asked_questions"]
+        canonical = current["resume_data"]
+        shown = tailor_metadata(values, canonical)["questions"]
+        self.assertEqual(len(shown), 3)
+        self.assertTrue(all(row["question_id"] and row["options"] for row in shown))
+        values["asked_questions"] = record_interview_answer(
+            first["asked_questions"], shown[0]["question_id"], "有，用于周会讨论")["asked_questions"]
+        self.assertEqual(len(tailor_metadata(values, canonical)["questions"]), 2)
 
 
 if __name__ == "__main__":

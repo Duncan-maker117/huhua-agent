@@ -59,6 +59,10 @@ match_plan.requirements、experience_plan、questions 也必须是数组；不�
 一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
+_METRIC_REPAIR_CONTRACT = """上一版草稿漏掉了 required_fact_ids 中的量化成果事实（kind=result_metric）。
+只重写 allowed_item_ids 中的条目：每个条目的 bullets 必须引用其 required_fact_ids 里的全部事实，
+可与同条目的相关动作合并成一条，也可替换信息量最小的 bullet；条数不得超过 match_plan 里该条目的 target_bullets。
+数字与成果只能照 active facts 原样使用，不新增、不换算、不夸大。current_draft 是上一版正文，供你保留其余有效 bullet。严格输出 WriterDraft。"""
 _REPAIR_CONTRACT = """只修复列表中违反事实边界的 bullet，每个原样返回 id。
 只使用对应 item 的 active facts，fact_ids 必须属于该 item；不得修改其他 bullet 或标题。
 source_quote 非空时以原始来源为准，text 是整理表述，不能推翻或扩展原始来源；quote_origin=fact_text_fallback 才表示旧事实缺原文。
@@ -66,6 +70,43 @@ violations.guard 是 JSON 诊断资料，semantic 中的失败维度和 unsuppor
 结合原 instruction、scope、targets、constraints 和 capacity_budget 修复，容量只是估计，不代表已经符合实际页数。只写有原文支持的原因、频率、用途，不补原因、不升级频率、不添加用途，不把原型写成未上线。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
 无法安全修复就不返回该条，系统会回退为原事实文本。严格输出 RepairOutput。"""
+
+
+def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
+                          treatment: Mapping[str, str], caps: Mapping[str, int]) -> dict[str, list[str]]:
+    """lead/keep 条目里没有被前 cap 条 bullet 引用的 result_metric 事实。"""
+    missing: dict[str, list[str]] = {}
+    for item_id, written in writers.items():
+        if treatment.get(item_id) not in {"lead", "keep"} or caps.get(item_id, 0) <= 0 or item_id not in items:
+            continue
+        cited = {fid for bullet in written.bullets[:caps[item_id]] for fid in bullet.fact_ids}
+        wanted = [fact["id"] for fact in items[item_id][1].get("facts") or []
+                  if fact.get("id") and fact.get("kind") == "result_metric" and _body_fact(fact)
+                  and str(fact.get("text") or "").strip()]
+        lost = [fid for fid in wanted if fid not in cited]
+        if lost:
+            missing[item_id] = lost
+    return missing
+
+
+def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
+                           missing: Mapping[str, Sequence[str]], caps: Mapping[str, int]) -> None:
+    """确定性兜底：把事实原句补成最后一条；满额时替换该条目信息量最小的 bullet。"""
+    from app.schemas.writer import WrittenBullet
+    for item_id, fact_ids in missing.items():
+        written, cap = writers[item_id], caps[item_id]
+        by_id = {fact["id"]: fact for fact in items[item_id][1].get("facts") or [] if fact.get("id")}
+        protected = set(fact_ids)
+        bullets = list(written.bullets[:cap])
+        for fid in fact_ids:
+            text = strip_absence(by_id[fid].get("text") or "").strip()
+            if not text:
+                continue
+            while len(bullets) >= cap:
+                removable = [b for b in bullets if not protected.intersection(b.fact_ids)] or bullets[:-1] or bullets
+                bullets.remove(min(removable, key=lambda b: han_length(b.text)))
+            bullets.append(WrittenBullet(text=text, fact_ids=[fid]))
+        written.bullets = bullets
 
 
 class WriterOutputShapeError(ValueError):
@@ -901,6 +942,29 @@ async def run_resume_writer(
         for item_id in allowed:
             if target_caps[item_id] == 0 and item_id not in writers:
                 writers[item_id] = WrittenItem(item_id=item_id, section=items[item_id][0])
+    if scope in {"whole", "item"} and writers:
+        # 量化成果是页面上最硬的证据：lead/keep 条目必须引用；缺失带清单修复一次，仍缺则确定性补条。
+        lost = _missing_metric_facts(writers, items, treatment, target_caps)
+        if lost and writer_diagnostic.get("status") == "model_completed":
+            try:
+                async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
+                    repaired = await _call(
+                        llm, WriterDraft,
+                        {**payload, "match_plan": match_plan, "allowed_item_ids": sorted(lost),
+                         "required_fact_ids": lost,
+                         "current_draft": {item_id: [{"text": b.text, "fact_ids": b.fact_ids}
+                                                     for b in writers[item_id].bullets] for item_id in lost}},
+                        _METRIC_REPAIR_CONTRACT, role_family)
+                for row in repaired.items:
+                    if row.item_id in lost and items[row.item_id][0] == row.section:
+                        writers[row.item_id] = row
+                writer_diagnostic["metric_repair"] = "attempted"
+            except Exception as error:
+                writer_diagnostic["metric_repair"] = "failed:" + _safe_error_type(error)
+            lost = _missing_metric_facts(writers, items, treatment, target_caps)
+        if lost:
+            _append_metric_bullets(writers, items, lost, target_caps)
+            writer_diagnostic["metric_appended"] = sum(len(v) for v in lost.values())
     candidate_rows = []
     for item_id, written in writers.items():
         _, item = indexed_output.get(item_id, (None, None))

@@ -21,7 +21,16 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-11 JD 定制重构上线（最新）
+## 2026-10-11 PR8 主线流程上线（最新）
+
+- 镜像 `huhua-agent:20261011-2`（sha256:775776dfad20…），基于 `20261011-1` 只替换代码/前端/模板；无 schema 迁移、未清数据（会话 3、账号 3、档案事实 51 保留）。代码 `dbe2c86`。
+- 包：`huhua-deploy-20261011-2.tar.gz`（0df82934…），`huhua-tests-20261011-2.tar.gz`（d7abf2ac…）；脚本 `dist/{build,rehearse,release}-20261011-2.sh`。
+- 容器测试 1257 项：除 1 项需 node 的前端测试（镜像无 node）外全过；macOS 打的测试包含 `._*` AppleDouble 文件会导致 3 项读用例报错，删除后通过——下次打包加 `COPYFILE_DISABLE=1`。
+- 演练：新镜像在线上库与 checkpoint 副本上启动健康。切换前加密备份 `/opt/huhua-backups/pre-20261011-2/`（app 3d985239…、checkpoints 41e88f20…、privacy 26fc96ca…）。
+- 回滚：`deploy/compose.env.pre-20261011-2` 拷回 `deploy/compose.env` 后 `compose up -d --no-build --no-deps --wait app`（数据库未改动，可直接回旧镜像）。
+- 线上验收（游客、虚构资料，浏览器）：开场、JD、出方案卡、按推荐写成稿、征求意见均正常；`LLM_PLAN_CONFIRM=True`。
+
+## 2026-10-11 JD 定制重构上线（历史）
 
 - 镜像 `huhua-agent:20261011-1`，ID `sha256:da8f6f4be8285203beddb2881e5b9a374b9720a260917dfe4aeb71dd19a51dbe`，基于 `20261006-4` 补装 `libpango`、`fonts-noto-cjk` 与 `weasyprint==70.0`（旧镜像缺这三项，PDF 导出此前不可用），并复制 overhaul/tailor 分支 `0b16aa5` 的应用、前端、模板、`tech_terms.txt`、`capacity.json`。构建与切换脚本：`dist/build-20261011-1.sh`、`dist/rehearse-20261011-1.sh`、`dist/release-20261011-1.sh`；部署包 SHA-256 `c80ddd40…791ce9`。
 - 服务器断网测试 1047/1047（跳过 3）。计页改为排版结果（0.12s）；服务器写 PDF 因 CJK 字体子集化约 13s，只影响导出。

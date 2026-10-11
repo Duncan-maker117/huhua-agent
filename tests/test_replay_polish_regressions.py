@@ -225,30 +225,6 @@ class PositioningPolishRegression(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(output['structure_plan']['recommended']['positioning'], raw['recommended']['positioning'])
         self.assertTrue(output['writer_diagnostic']['positioning_semantic_relaxed'])
 
-    async def test_missing_and_empty_positioning_recover_only_literal_fact_supported_thesis_clause(self):
-        for missing in (True, False):
-            raw = card()
-            raw['recommended']['thesis'] = '修复跨语言记忆污染，展示产品实践。'
-            if missing:
-                del raw['recommended']['positioning']
-            else:
-                raw['recommended']['positioning'] = ''
-            output = await run_resume_writer(source(), {}, PlanModel([('StructurePlan', raw)]), phase='plan')
-            self.assertEqual(output['structure_plan']['recommended']['positioning'], '修复跨语言记忆污染')
-            diagnostic = output['writer_diagnostic']
-            self.assertEqual(diagnostic['positioning_model_output'], 'missing' if missing else 'empty')
-            self.assertEqual(diagnostic['positioning_rejected_reason'], 'empty')
-            self.assertEqual(diagnostic['positioning_source'], 'derived')
-            self.assertEqual(diagnostic['positioning_fallback_reason'], 'supported_thesis_clause')
-
-    async def test_no_supported_thesis_derives_from_lead_facts_with_diagnostic_reason(self):
-        raw = card()
-        raw['recommended'].update(positioning='', thesis='突出观察到落地的产品思考')
-        output = await run_resume_writer(source(), {}, PlanModel([('StructurePlan', raw)]), phase='plan')
-        self.assertEqual(output['structure_plan']['recommended']['positioning'], 'EchoKit：修复跨语言记忆污染')
-        self.assertEqual(output['writer_diagnostic']['positioning_source'], 'derived')
-        self.assertEqual(output['writer_diagnostic']['positioning_fallback_reason'], 'lead_experience_facts')
-
     async def test_new_numbers_and_tools_are_rejected_even_with_fake_semantic_pass(self):
         for sentence in ('带来10000用户', '使用 Kubernetes 做产品实践'):
             raw = card()

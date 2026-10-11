@@ -97,43 +97,6 @@ def positioning_guard_rows(card: dict, facts: dict) -> list[dict]:
             if (sentence := str(row.get('positioning') or '').strip()) and len(sentence) <= 40]
 
 
-def _derive_positioning(plan: dict, source: dict, profile: dict, items: dict, facts: dict) -> tuple[str, str]:
-    """Use literal evidence and fixed connectors only; never copy JD outcomes."""
-    supported = {normalize_text(clause) for fact in facts.values()
-                 if fact.get('kind') in PERSONAL_ACTION_KINDS
-                 for clause in personal_action_clauses(fact.get('source_quote') or fact.get('text'))}
-    for clause in re.split(r'[。；;，,！？!?]', plan.get('thesis') or ''):
-        candidate = phrase_prefix(clause, 40)
-        if candidate and normalize_text(candidate) in supported:
-            return candidate, 'supported_thesis_clause'
-    # Lead order is the confirmed emphasis. A name or background alone does
-    # not establish that the candidate did any work.
-    for entry in sorted(plan.get('experience_plan') or [], key=lambda row: row['treatment'] != 'lead'):
-        if entry['treatment'] == 'backup':
-            continue
-        item = items[entry['item_id']][1]
-        name = item.get('name') or item.get('company') or ''
-        for fact in item.get('facts') or []:
-            if fact.get('kind') not in PERSONAL_ACTION_KINDS:
-                continue
-            for clause in personal_action_clauses(fact.get('source_quote') or fact.get('text')):
-                action = phrase_prefix(clause, 40)
-                if not action:
-                    continue
-                sentence = f'{name}：{action}' if name and len(name) + len(action) + 1 <= 40 else action
-                education = next(iter(source.get('education') or []), {})
-                education_fields = {fact['field']: fact['text'] for fact in education.get('facts') or []
-                                    if fact.get('field') in {'major', 'degree', 'grade'}}
-                education_text = ''.join(education_fields.get(key, '') for key in ('major', 'degree', 'grade'))
-                if education_text and len(education_text) + len(sentence) + 1 <= 40:
-                    sentence = education_text + '，' + sentence
-                target = str(profile.get('target_role') or '').strip()
-                if target and len(sentence) + len(target) + 3 <= 40:
-                    sentence += '；求职' + target
-                return sentence, 'lead_experience_facts'
-    return '', 'no_personal_action_facts'
-
-
 async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict,
                                   *, llm=None, positioning_checks: dict | None = None, diagnostic: dict | None = None) -> dict:
     from app.agents.resume_writer import _validate_plan
@@ -172,17 +135,9 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                   'semantic_result_missing' if not check else
                   'semantic_rejected' if check.get('verdict') != 'pass' and not synthesis_supported else '')
         plan['positioning'] = sentence if not reason else ''
-        fallback, fallback_reason = '', ''
-        if reason == 'empty':
-            fallback, fallback_reason = _derive_positioning(plan, source, profile, items, facts)
-            plan['positioning'] = fallback
-        elif reason in {'semantic_result_missing', 'semantic_rejected'} or (not reason and row.get('positioning_source') == 'derived'):
-            # Revalidating a confirmed, deterministically derived sentence must
-            # not make it disappear merely because a model verdict is absent.
-            candidate, candidate_reason = _derive_positioning(plan, source, profile, items, facts)
-            if sentence and sentence == candidate:
-                fallback, fallback_reason = candidate, candidate_reason
-                plan['positioning'] = fallback
+        # A sentence stitched from fact fragments reads worse than no line at
+        # all; an empty positioning simply leaves the header line out.
+        fallback, fallback_reason = '', ('model_empty' if reason == 'empty' else '')
         if fallback:
             plan['positioning_source'] = 'derived'
         if diagnostic is not None and index == 0:

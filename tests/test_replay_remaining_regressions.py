@@ -248,35 +248,6 @@ class ReceiptReasonRegression(unittest.TestCase):
 
 
 class DerivedPositioningRegression(unittest.IsolatedAsyncioTestCase):
-    async def test_three_plan_cards_and_confirmed_write_keep_derived_positioning_with_no_added_claims(self):
-        raw = card()
-        for row in [raw['recommended'], *raw['alternatives']]:
-            row.update(positioning='', thesis='突出观察到落地的产品思考')
-        collected = source()
-        collected['education'] = [{'item_id': 'edu', 'school': '虚构大学', 'facts': [
-            {**fact('major', '计算机'), 'field': 'major', 'kind': 'context'},
-            {**fact('degree', '本科'), 'field': 'degree', 'kind': 'context'},
-            {**fact('grade', '在读'), 'field': 'grade', 'kind': 'context'}]}]
-        profile = {'target_role': 'AI 产品实习'}
-        before = deepcopy(collected)
-        for _ in range(3):
-            model = PlanModel([('StructurePlan', raw)])
-            output = await run_resume_writer(collected, profile, model, phase='plan')
-            self.assertEqual(model.calls, ['StructurePlan'])
-            self.assertEqual(output['writer_diagnostic']['positioning_source'], 'derived')
-            self.assertEqual(output['writer_diagnostic']['positioning_fallback_reason'], 'lead_experience_facts')
-            selected = select_plan(output['structure_plan'])
-            self.assertEqual(selected['positioning'], '计算机本科在读，EchoKit：修复跨语言记忆污染；求职AI 产品实习')
-            self.assertTrue(output['structure_plan']['alternatives'][0]['positioning'])
-        for missing_ids in ([], ['plan_positioning_0']):
-            model = PlanModel([('WriterDraft', writer_draft())], missing_ids=missing_ids)
-            written = await run_resume_writer(collected, profile, model, phase='write', previous_plan=selected)
-            self.assertEqual(written['resume_data']['summary'], selected['positioning'])
-            self.assertEqual(written['confirmed_plan']['positioning'], selected['positioning'])
-            self.assertEqual(written['writer_diagnostic']['positioning_source'], 'derived')
-            self.assertTrue(written['resume_meta']['summary']['fact_ids'])
-        self.assertEqual(collected, before)
-
     async def test_deleted_or_other_subject_facts_and_background_do_not_make_a_positioning(self):
         collected = source()
         for section in ('projects', 'open_source'):
@@ -289,7 +260,7 @@ class DerivedPositioningRegression(unittest.IsolatedAsyncioTestCase):
         output = await run_resume_writer(collected, {}, PlanModel([('StructurePlan', raw)]), phase='plan')
         self.assertEqual(output['structure_plan']['recommended']['positioning'], '')
         self.assertEqual(output['writer_diagnostic']['positioning_source'], 'empty')
-        self.assertEqual(output['writer_diagnostic']['positioning_fallback_reason'], 'no_personal_action_facts')
+        self.assertEqual(output['writer_diagnostic']['positioning_fallback_reason'], 'model_empty')
 
 
 if __name__ == '__main__':

@@ -29,7 +29,9 @@
 
 {% macro layout_styles() -%}
 .positioning { font-size: 10pt; line-height: 1.5; margin-top: 3px; }
-.awards-compact { line-height: 1.5; }
+.section, .item { break-inside: auto; page-break-inside: auto; }
+.section-title { break-after: avoid; page-break-after: avoid; }
+.awards-compact { line-height: 1.5; break-inside: auto; orphans: 1; widows: 1; }
 .award-details { margin-top: 4px; }
 {%- endmacro %}
 

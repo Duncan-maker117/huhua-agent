@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[3]
 CAPACITY_PATH = ROOT / "data" / "jianlimoban" / "capacity.json"
 DEFAULT_TEMPLATE_ID = "t001-jianyue"
 MAX_COMPRESSION_ROUNDS = 2
-EXPERIENCE_SECTIONS = ("work_experience", "projects")
+EXPERIENCE_SECTIONS = ("work_experience", "projects", "open_source")
 
 
 def resume_data_hash(resume_data: Mapping[str, Any]) -> str:
@@ -226,8 +226,7 @@ def plan_compression(
     # actions; otherwise it may target a bullet we just hid or trimmed.
     projected = apply_deterministic_compression(resume_data, actions)
     bullets = _visible_bullets(projected)
-    if bullets:
-        longest = max(bullets, key=lambda row: row["characters"])
+    for longest in sorted(bullets, key=lambda row: row['characters'], reverse=True)[:2 if small_overflow else 1]:
         chars_per_line = writer_capacity_budget(constraints or {})["chars_per_line"]
         actions.append({"op": "shorten_bullet", "target": longest["path"],
                         "current_chars": longest["characters"],

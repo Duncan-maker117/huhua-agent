@@ -51,7 +51,7 @@ class TailorPipelineTest(unittest.TestCase):
                 meta = {'bullets': {'lead': [{'fact_ids': ['lead-f'], 'text_hash': text_hash('L' * 130)}]}}
                 state = {"resume_data": deepcopy(original), "resume_meta": meta,
                          "resume_versions": [], "collected_info": {'projects': [{'item_id': 'lead', 'facts': [
-                             {'id': 'lead-f', 'text': 'L' * 130, 'status': 'active'}]}]}, "jd_info": {"role_profile": {}}}
+                             {'id': 'lead-f', 'kind': 'action', 'text': 'L' * 130, 'status': 'active'}]}]}, "jd_info": {"role_profile": {}}}
                 calls = []
 
                 async def fake_writer(_collected, _profile, _llm, **kwargs):
@@ -115,9 +115,9 @@ class TailorPipelineTest(unittest.TestCase):
         original = base()
         state = {"resume_data": deepcopy(original), "resume_meta": {"version_id": "before-v1"},
                  "resume_versions": [], "collected_info": {"projects": [{'item_id': 'lead', 'facts': [
-                     {'id': 'lead-f', 'text': 'L' * 130, 'status': 'active'}]}],
+                     {'id': 'lead-f', 'kind': 'action', 'text': 'L' * 130, 'status': 'active'}]}],
                      "work_experience": [{"item_id": "keep", "facts": [
-                     {"id": f"k{i}", "text": text, "source_quote": text, "status": "active"}
+                     {"id": f"k{i}", "kind": "action", "text": text, "source_quote": text, "status": "active"}
                      for i, text in enumerate(original['work_experience'][0]['bullets'])]}]},
                  "jd_info": {"role_profile": {"seniority": "intern"}}}
         untouched_state = deepcopy(state)

@@ -12,7 +12,7 @@ from app.services.resume_capacity import (
 )
 from app.services.resume_versions import prepare_version, text_hash, valid_bullet_metadata
 from app.services.resume_limits import preserve_item_limits
-from app.services.resume_facts import active_facts_for_writer
+from app.services.resume_facts import active_facts_for_writer, PERSONAL_ACTION_KINDS, personal_action_clauses
 from app.services.fact_guard import verify_semantics
 
 
@@ -171,7 +171,7 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
 
 def _compression_item(data: dict, action: dict) -> tuple[str, dict] | None:
     parts = str(action.get('target', '')).split('/')
-    if len(parts) < 3 or parts[1] not in {'projects', 'work_experience'} or not parts[2].isdigit():
+    if len(parts) < 3 or parts[1] not in {'projects', 'work_experience', 'open_source'} or not parts[2].isdigit():
         return None
     rows = data.get(parts[1]) or []
     index = int(parts[2])
@@ -192,7 +192,7 @@ def _supported_compression_body(item: dict, section: str, meta: dict, collected:
             or any(not isinstance(body[index], str) or not body[index].strip() for index in selected)):
         return None
     source = active_facts_for_writer(collected)
-    sections = ('projects',) if section == 'projects' else ('work_experience', 'internship')
+    sections = ('work_experience', 'internship') if section == 'work_experience' else (section,)
     facts = {fact['id'] for key in sections for row in source.get(key) or []
              if row.get('item_id') == item.get('item_id') for fact in row.get('facts') or [] if fact.get('id')}
     records = (meta.get('bullets') or {}).get(item.get('item_id')) or []
@@ -243,9 +243,27 @@ async def _retain_compressed_body(before: dict, meta: dict, revised: dict, actio
         return before, meta, 'invalid_or_unverified_compressed_bullet'
     old_texts = prior if indices is None else [prior[index] for index in indices]
     new_texts = proposed if indices is None else [proposed[index] for index in indices]
+    source = active_facts_for_writer(collected)
+    sections = ('work_experience', 'internship') if section == 'work_experience' else (section,)
+    personal_refs = {fact['id'] for key in sections for item in source.get(key) or []
+                     if item.get('item_id') == original_item.get('item_id') for fact in item.get('facts') or []
+                     if fact.get('kind', 'action') in PERSONAL_ACTION_KINDS and personal_action_clauses(
+                         fact.get('source_quote') or fact.get('text'))}
+    # Only a bullet that carried the candidate's own action must keep one;
+    # legacy facts without a kind are treated as actions.
+    prior_rows = (meta.get('bullets') or {}).get(original_item.get('item_id')) or []
+    selected_indices = list(range(len(proposed))) if indices is None else indices
+    for index in selected_indices:
+        prior = (prior_rows if indices is None else [prior_rows[index]] if index < len(prior_rows) else [])
+        if not personal_refs.intersection(fid for row in prior for fid in row.get('fact_ids') or []):
+            continue
+        refs = proposed_meta['bullets'][original_item['item_id']][index]['fact_ids']
+        if not personal_refs.intersection(refs) or not personal_action_clauses(proposed[index]):
+            return before, meta, 'personal_action_missing'
     # Reverse entailment checks retention, independently from the writer's
     # forward fact guard. Matching citation IDs alone never proves retention.
-    pairs = [{'id': f'retain_{index}', 'text': text, 'source_quotes': new_texts}
+    pairs = [{'id': f'retain_{index}', 'text': text, 'source_quotes': new_texts,
+              'claim_kind': 'compression_retention'}
              for index, text in enumerate(old_texts)]
     try:
         decisions = await verify_semantics(pairs, llm, timeout=30, run_name="retention_semantic")
@@ -413,7 +431,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                 writer_used = True
                 request = ('将目标经历当前全部已核验的句子合并成恰好一条；保留每条的本人行动、产物、成果、'
                            'PR 编号、团队分工和状态限制，不能只保留第一条。不能新增信息。' if is_merge else
-                           f"在保留事实、否定和原型限制的前提下缩短目标句，约{action['target_max_chars_estimate']}字以内。不能新增信息。")
+                           f"在保留本人行动、事实、否定和原型限制的前提下缩短目标句，约{action['target_max_chars_estimate']}字以内。不能新增信息。")
                 compression_instruction = f"本轮原始编辑要求：\n{turn_instruction(instruction)}\n\n本次容量压缩：{request}"
                 revised = await run_resume_writer(state.get('collected_info') or {}, profile, llm,
                     current_data=data, resume_meta=meta,

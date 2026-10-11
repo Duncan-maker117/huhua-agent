@@ -7,6 +7,7 @@ import re
 from app.schemas.writer import MatchPlan
 from app.services.fact_guard import (TERM_FILE, contains_term, guard_bullets,
                                      lexical_fact_errors, ngram_overlap, normalize_text, validate_skill_groups)
+from app.services.resume_facts import PERSONAL_ACTION_KINDS, personal_action_clauses
 
 SECTION_LABELS = {'education': '教育经历', 'work_experience': '工作/实习经历',
                   'projects': '项目经历', 'open_source': '开源贡献', 'awards': '竞赛荣誉',
@@ -83,6 +84,9 @@ def select_plan(card: dict, index: int = 0) -> dict | None:
         result['experience_plan'] = [deepcopy(diffs.get(row['item_id'], row)) for row in result['experience_plan']]
         for key in ('label', 'positioning', 'thesis', 'section_order'):
             result[key] = deepcopy(alternative[key])
+        result.pop('positioning_source', None)
+        if alternative.get('positioning_source') == 'derived':
+            result['positioning_source'] = 'derived'
     return result
 
 
@@ -91,6 +95,43 @@ def positioning_guard_rows(card: dict, facts: dict) -> list[dict]:
              'semantic_only': True, 'claim_kind': 'positioning'}
             for index, row in enumerate([card['recommended'], *(card.get('alternatives') or [])[:2]])
             if (sentence := str(row.get('positioning') or '').strip()) and len(sentence) <= 40]
+
+
+def _derive_positioning(plan: dict, source: dict, profile: dict, items: dict, facts: dict) -> tuple[str, str]:
+    """Use literal evidence and fixed connectors only; never copy JD outcomes."""
+    supported = {normalize_text(clause) for fact in facts.values()
+                 if fact.get('kind') in PERSONAL_ACTION_KINDS
+                 for clause in personal_action_clauses(fact.get('source_quote') or fact.get('text'))}
+    for clause in re.split(r'[。；;，,！？!?]', plan.get('thesis') or ''):
+        candidate = phrase_prefix(clause, 40)
+        if candidate and normalize_text(candidate) in supported:
+            return candidate, 'supported_thesis_clause'
+    # Lead order is the confirmed emphasis. A name or background alone does
+    # not establish that the candidate did any work.
+    for entry in sorted(plan.get('experience_plan') or [], key=lambda row: row['treatment'] != 'lead'):
+        if entry['treatment'] == 'backup':
+            continue
+        item = items[entry['item_id']][1]
+        name = item.get('name') or item.get('company') or ''
+        for fact in item.get('facts') or []:
+            if fact.get('kind') not in PERSONAL_ACTION_KINDS:
+                continue
+            for clause in personal_action_clauses(fact.get('source_quote') or fact.get('text')):
+                action = phrase_prefix(clause, 40)
+                if not action:
+                    continue
+                sentence = f'{name}：{action}' if name and len(name) + len(action) + 1 <= 40 else action
+                education = next(iter(source.get('education') or []), {})
+                education_fields = {fact['field']: fact['text'] for fact in education.get('facts') or []
+                                    if fact.get('field') in {'major', 'degree', 'grade'}}
+                education_text = ''.join(education_fields.get(key, '') for key in ('major', 'degree', 'grade'))
+                if education_text and len(education_text) + len(sentence) + 1 <= 40:
+                    sentence = education_text + '，' + sentence
+                target = str(profile.get('target_role') or '').strip()
+                if target and len(sentence) + len(target) + 3 <= 40:
+                    sentence += '；求职' + target
+                return sentence, 'lead_experience_facts'
+    return '', 'no_personal_action_facts'
 
 
 async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict,
@@ -131,23 +172,23 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                   'semantic_result_missing' if not check else
                   'semantic_rejected' if check.get('verdict') != 'pass' and not synthesis_supported else '')
         plan['positioning'] = sentence if not reason else ''
-        fallback = ''
-        if index == 0 and reason:
-            # Recover only complete thesis clauses that exactly match an active
-            # source quote. Narrative similarity alone cannot justify resume prose.
-            supported = {normalize_text(str(fact.get('source_quote') or fact.get('text') or '').strip().rstrip('。；;，,！？!?'))
-                         for fact in facts.values()}
-            for clause in re.split(r'[。；;，,！？!?]', plan['thesis']):
-                candidate = phrase_prefix(clause, 40)
-                if candidate and normalize_text(candidate) in supported:
-                    fallback = candidate
-                    break
+        fallback, fallback_reason = '', ''
+        if reason == 'empty':
+            fallback, fallback_reason = _derive_positioning(plan, source, profile, items, facts)
             plan['positioning'] = fallback
+        elif reason in {'semantic_result_missing', 'semantic_rejected'} or (not reason and row.get('positioning_source') == 'derived'):
+            # Revalidating a confirmed, deterministically derived sentence must
+            # not make it disappear merely because a model verdict is absent.
+            candidate, candidate_reason = _derive_positioning(plan, source, profile, items, facts)
+            if sentence and sentence == candidate:
+                fallback, fallback_reason = candidate, candidate_reason
+                plan['positioning'] = fallback
+        if fallback:
+            plan['positioning_source'] = 'derived'
         if diagnostic is not None and index == 0:
             diagnostic['positioning_rejected_reason'] = reason
-            diagnostic['positioning_source'] = 'thesis' if fallback else 'empty' if reason else 'model'
-            diagnostic['positioning_fallback_reason'] = ('supported_thesis_clause' if fallback else
-                                                         'no_fact_supported_thesis_clause' if reason else '')
+            diagnostic['positioning_source'] = 'derived' if fallback else 'empty' if reason else 'model'
+            diagnostic['positioning_fallback_reason'] = fallback_reason
             diagnostic['positioning_semantic_relaxed'] = bool(not reason and check.get('verdict') != 'pass')
             if reason and check.get('semantic'):
                 # Fixed failure dimensions only; do not log model prose or PII.
@@ -181,12 +222,14 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
             alternative['label'] += f"（备选{len(result['alternatives']) + 1}）"
         baseline = {row['item_id']: row for row in recommended['experience_plan']}
         result['alternatives'].append({**{key: alternative[key] for key in ('label', 'positioning', 'thesis', 'section_order')},
+                                      **({'positioning_source': 'derived'} if alternative.get('positioning_source') == 'derived' else {}),
                                       'experience_plan': [row for row in alternative['experience_plan'] if row != baseline[row['item_id']]]})
     if not result['alternatives']:
         # The model can fail; still offer a transparent conservative alternative.
         diffs = [{**row, 'treatment': 'keep', 'target_bullets': 2} for row in recommended['experience_plan']
                  if row['treatment'] != 'keep']
-        result['alternatives'] = [{'label': '经历均衡型', 'positioning': '', 'thesis': '',
+        result['alternatives'] = [{'label': '经历均衡型', 'positioning': recommended['positioning'], 'thesis': '',
+                                   **({'positioning_source': 'derived'} if recommended.get('positioning_source') == 'derived' else {}),
                                    'section_order': list(recommended['section_order']), 'experience_plan': diffs}]
     return result
 
@@ -312,12 +355,12 @@ def plan_summary(plan: dict, collected: dict, profile: dict | None = None) -> st
         reason = re.sub(r'^[「“]?' + re.escape(name) + r'[」”]?\s*', '', reason).strip(' ：:，,；;。')
         reason = re.sub(r'^的', '', reason)
         limit = max(0, min(20, remaining))
-        reason = phrase_prefix(reason, limit) or ('按已确认方案重点展示' if limit >= 10 else '')
+        reason = phrase_prefix(reason, limit, first_phrase=True)
         parts.append(f'{name}（{reason}）' if reason else name)
     return thesis + ('\n重点：' + '、'.join(parts) if parts else '')
 
 
-def phrase_prefix(text: str, limit: int, *, first_sentence: bool = False) -> str:
+def phrase_prefix(text: str, limit: int, *, first_sentence: bool = False, first_phrase: bool = False) -> str:
     """Keep a whole phrase, ending only at punctuation outside paired marks."""
     text = str(text or '').strip().rstrip('。；;，,')
     pairs = {'(': ')', '（': '）', '[': ']', '【': '】', '「': '」', '『': '』', '“': '”', '‘': '’'}
@@ -339,6 +382,8 @@ def phrase_prefix(text: str, limit: int, *, first_sentence: bool = False) -> str
         period = char == '.' and (index + 1 == len(text) or text[index + 1].isspace())
         if not stack and (char in '。；;，,！？!?' or period):
             boundaries.append(index)
+            if first_phrase:
+                return text[:index].strip() if 0 < index <= limit else ''
             if first_sentence and sentence_end is None and (char in '。！？!?' or period):
                 sentence_end = index
         if index == len(text) - 1 and not stack:

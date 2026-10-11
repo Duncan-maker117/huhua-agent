@@ -276,7 +276,8 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         result = await graph.building_node(state(), FakeModel([('StructurePlan', RuntimeError('offline'))]))
         self.assertTrue(result['pending_plan']['alternatives'])
         self.assertNotIn('resume_data', result)
-        self.assertEqual(result['pending_plan']['recommended']['positioning'], '')
+        self.assertEqual(result['pending_plan']['recommended']['positioning'], '纸舟计划：整理用户反馈并分类')
+        self.assertEqual(result['pending_plan']['recommended']['positioning_source'], 'derived')
         self.assertTrue(all(row['reason'] for row in result['pending_plan']['recommended']['experience_plan']))
 
     async def test_writer_failure_preserves_confirmed_omission(self):

@@ -59,7 +59,7 @@ class SmallOverflowRegression(unittest.TestCase):
     def test_real_t001_two_spilled_skill_lines_fit_after_compacting_without_deleting_experience(self):
         data = {'basic_info': {'name': '虚构候选人', 'objective': 'AI 产品实习'},
                 'projects': [{'name': '虚构项目', 'polished_bullets': [
-                    '整理用户反馈并分类，记录测试样例和已有功能的限制。'] * 29}],
+                    '整理用户反馈并分类，记录测试样例和已有功能的限制。'] * 30}],
                 'skill_groups': deepcopy(GROUPS)}
         with patch.dict(_env.filters, {'display_skill_rows': lambda groups: [[entry] for entry in groups.items()]}):
             old = measure_rendered_pages(data, {'page_limit': 1})
@@ -79,7 +79,7 @@ class SmallOverflowRegression(unittest.TestCase):
         new = measure_rendered_pages(data, {'page_limit': 1})
         self.assertEqual(new['pages'], 1)
         self.assertEqual(new['overflow_height_px'], 0)
-        self.assertEqual(len(data['projects'][0]['polished_bullets']), 29)
+        self.assertEqual(len(data['projects'][0]['polished_bullets']), 30)
 
     def test_small_overflow_prefers_merging_brief_bullets_and_never_hides_first(self):
         _, data, meta = fixture()
@@ -159,7 +159,7 @@ class PlanCopyRegression(unittest.TestCase):
         plan['experience_plan'][0]['reason'] = 'EchoKit 修复记忆污染，体现核验能力。'
         summary = plan_summary(plan, source())
         self.assertEqual(summary.splitlines()[0], thesis)
-        self.assertEqual(summary.splitlines()[1], '重点：EchoKit（修复记忆污染，体现核验能力）')
+        self.assertEqual(summary.splitlines()[1], '重点：EchoKit（修复记忆污染）')
         self.assertLessEqual(len('**这版的思路**：' + summary), 150)
 
     def test_long_thesis_and_reason_end_at_phrases_with_no_partial_words_or_open_marks(self):
@@ -238,16 +238,16 @@ class PositioningPolishRegression(unittest.IsolatedAsyncioTestCase):
             diagnostic = output['writer_diagnostic']
             self.assertEqual(diagnostic['positioning_model_output'], 'missing' if missing else 'empty')
             self.assertEqual(diagnostic['positioning_rejected_reason'], 'empty')
-            self.assertEqual(diagnostic['positioning_source'], 'thesis')
+            self.assertEqual(diagnostic['positioning_source'], 'derived')
             self.assertEqual(diagnostic['positioning_fallback_reason'], 'supported_thesis_clause')
 
-    async def test_no_supported_thesis_leaves_empty_with_diagnostic_reason(self):
+    async def test_no_supported_thesis_derives_from_lead_facts_with_diagnostic_reason(self):
         raw = card()
         raw['recommended'].update(positioning='', thesis='突出观察到落地的产品思考')
         output = await run_resume_writer(source(), {}, PlanModel([('StructurePlan', raw)]), phase='plan')
-        self.assertEqual(output['structure_plan']['recommended']['positioning'], '')
-        self.assertEqual(output['writer_diagnostic']['positioning_source'], 'empty')
-        self.assertEqual(output['writer_diagnostic']['positioning_fallback_reason'], 'no_fact_supported_thesis_clause')
+        self.assertEqual(output['structure_plan']['recommended']['positioning'], 'EchoKit：修复跨语言记忆污染')
+        self.assertEqual(output['writer_diagnostic']['positioning_source'], 'derived')
+        self.assertEqual(output['writer_diagnostic']['positioning_fallback_reason'], 'lead_experience_facts')
 
     async def test_new_numbers_and_tools_are_rejected_even_with_fake_semantic_pass(self):
         for sentence in ('带来10000用户', '使用 Kubernetes 做产品实践'):

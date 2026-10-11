@@ -97,6 +97,7 @@ def _render(template_id: str, data: dict, finish):
       .section-title, .item-header { break-after: avoid; }
       .header, .photo, .item-header { break-inside: avoid; }
       p, li { orphans: 2; widows: 2; }
+      .awards-compact { orphans: 1; widows: 1; }
     </style>"""
     html = html.replace("</head>", style + "</head>")
     try:

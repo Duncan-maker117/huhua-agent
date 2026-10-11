@@ -73,6 +73,9 @@ match_plan.requirements、experience_plan、questions 也必须是数组；不�
 一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
+_COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
+_WRITE_CONTRACT += '\n' + _COMPRESSION_ACTION_CONTRACT
+_ONE_PASS_CONTRACT += '\n' + _COMPRESSION_ACTION_CONTRACT
 _METRIC_REPAIR_CONTRACT = """上一版草稿漏掉了 required_fact_ids 中的量化成果事实（kind=result_metric）。
 只重写 allowed_item_ids 中的条目：每个条目的 bullets 必须引用其 required_fact_ids 里的全部事实，
 可与同条目的相关动作合并成一条，也可替换信息量最小的 bullet；条数不得超过 match_plan 里该条目的 target_bullets。

@@ -9,6 +9,31 @@ from app.schemas.facts import FACT_FIELDS, FACT_KINDS, FACT_LABELS, FACT_SECTION
 from app.services.resume_field_hygiene import is_project_status, trim_name_punctuation
 
 
+PERSONAL_ACTION_KINDS = frozenset({'action', 'method_tool', 'deliverable'})
+_OTHER_ACTOR = re.compile(r'维护者|队友|同事|导师|老师|团队|他人|其他人|对方|客户|maintainer|teammate', re.I)
+_SELF_ACTOR = re.compile(r'(?:本人|自己|我)(?!们|的(?:队友|同事|导师|老师|团队))')
+
+
+def personal_action_clauses(text: str) -> list[str]:
+    """Conservative subject filter; implicit resume subjects mean the candidate.
+
+    A third party remains the subject through comma-separated clauses until an
+    explicit candidate subject appears. This is a rejection filter, not proof
+    of entailment: compression still needs the existing semantic check.
+    """
+    kept = []
+    for sentence in re.split(r'[。；;！？!?\n]', str(text or '')):
+        other_subject = False
+        for clause in re.split(r'[，,]', sentence):
+            clause = clause.strip()
+            other, own = _OTHER_ACTOR.search(clause), _SELF_ACTOR.search(clause)
+            if other or own:
+                other_subject = bool(other and (not own or other.start() < own.start()))
+            if clause and not other_subject:
+                kept.append(clause)
+    return kept
+
+
 def new_fact(text: str, *, kind: str = "action", quote: str | None = None,
              source: str = "chat", turn_id: str = "", source_name: str = "") -> dict:
     quote = (quote if quote is not None else text).strip()

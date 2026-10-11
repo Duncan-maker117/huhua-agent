@@ -190,7 +190,7 @@ class LayoutRegression(unittest.TestCase):
     def test_three_lead_names_and_twenty_character_reasons_fit_150_characters(self):
         planned = select_plan(card())
         planned['thesis'] = '围绕已有经历说明分析问题和完成验证的过程。' * 12
-        planned['experience_plan'] = [{'item_id': iid, 'treatment': 'lead', 'reason': '解释为什么重点写这段经历以及如何支撑岗位要求' * 6}
+        planned['experience_plan'] = [{'item_id': iid, 'treatment': 'lead', 'reason': '展示已确认实践，' + '解释为什么重点写这段经历以及如何支撑岗位要求' * 6}
                                       for iid in ('p1', 'o1', 'a1')]
         summary = plan_summary(planned, source(), PROFILE)
         self.assertLessEqual(len('**这版的思路**：' + summary), 150)

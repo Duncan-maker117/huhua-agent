@@ -53,7 +53,7 @@ def document_diff(before: dict, after: dict) -> list[dict]:
         if old_order != new_order and set(old_order) == set(new_order):
             changes.append({'section': section, 'item_id': None, 'field': 'order',
                             'before': old_order, 'after': new_order})
-    for field in ('basic_info', 'skills', 'skill_groups', 'certificates', 'summary', 'self_evaluation', 'sections'):
+    for field in ('basic_info', 'skills', 'skill_groups', 'certificates', 'summary', 'self_evaluation', 'sections', 'layout'):
         if before.get(field) != after.get(field):
             changes.append({'section': field, 'item_id': None,
                             'before': deepcopy(before.get(field)), 'after': deepcopy(after.get(field))})

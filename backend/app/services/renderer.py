@@ -9,15 +9,17 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoe
 
 from app.services.resume_sections import get_resume_sections, visible_items
 from app.services.skill_groups import display_skill_rows
+from app.services.resume_layout import layout_css_values, resume_density
 
 ROOT = Path(__file__).resolve().parents[3]
 TEMPLATE_DIR = ROOT / "data" / "jianlimoban" / "html-template"
 
 # fits_one_page=False 的模板在选择处标注「适合两页」（用真实内容渲染超过一页时设置）。
-# 当前上线的 6 款模板。其余模板文件仍在 templates/ 目录下但不对外暴露，便于随时恢复。
+# 当前可选模板。其余模板文件保留但不对外暴露，便于随时恢复。
 TEMPLATES = [
     {"id": "t001-jianyue", "name": "简约单栏", "style": "极简 / 标准单栏", "fits_one_page": True},
     {"id": "t002-jianyue", "name": "深蓝横幅", "style": "商务单栏", "fits_one_page": True},
+    {"id": "t003-shenlan", "name": "深蓝细线", "style": "清爽单栏 / 细线分区", "fits_one_page": True},
     {"id": "t004-jianyue", "name": "灰条夹页", "style": "单栏 / 顶底装饰", "fits_one_page": True},
     {"id": "t1000", "name": "浅蓝斜切", "style": "单栏 / 色块标题", "fits_one_page": True},
     {"id": "t1001", "name": "浅蓝色块", "style": "单栏 / 变体", "fits_one_page": True},
@@ -46,6 +48,7 @@ def safe_link_url(value: str) -> str:
 
 
 _env.filters["safe_link_url"] = safe_link_url
+_env.filters['link_label'] = lambda value: str(value) if len(str(value)) <= 60 else '链接'
 
 _PHOTO_DATA_URL = re.compile(r"\Adata:image/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}\Z")
 _MAX_PHOTO_URL_LENGTH = 7 * 1024 * 1024
@@ -78,6 +81,8 @@ def render_resume(template_id: str, data: dict[str, Any], interactive: bool = Fa
         "resume_sections": sections,
         "has_education_section": any(section["kind"] == "education" for section in sections),
         "has_grouped_skills": any((data.get("skill_groups") or {}).values()),
+        "layout_density": resume_density(data),
+        "layout_css": layout_css_values(template_id, data),
     })
     if interactive:
         # Only our static bridge is executable; resume values still use Jinja autoescape.

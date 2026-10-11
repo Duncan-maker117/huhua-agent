@@ -17,6 +17,7 @@ from docx.shared import Inches, Mm, Pt
 
 from app.services.resume_sections import get_resume_sections, visible_items
 from app.services.resume_field_hygiene import award_label, contribution_title
+from app.services.resume_layout import layout_css_values, resume_density
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,17 @@ def _decode_photo_data_url(data_url: str) -> bytes | None:
         return None
 
 
-def _add_section_heading(doc, text: str) -> None:
+def _add_section_heading(doc, text: str, data: dict) -> None:
     if not text:
         return
     p = doc.add_paragraph()
     run = p.add_run(text)
     run.bold = True
-    run.font.size = Pt(13)
+    values = layout_css_values('t001-jianyue', data)
+    run.font.size = Pt(float(values['section-font-size'][:-2]) if resume_density(data) else 13)
+    if resume_density(data):
+        p.paragraph_format.space_before = Pt(float(values['section-top'][:-2]) * .75)
+        p.paragraph_format.space_after = Pt(float(values['section-bottom'][:-2]) * .75)
 
 
 def _add_kv_line(doc, label: str, value: str) -> None:
@@ -116,8 +121,12 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
         doc.add_paragraph(" | ".join(opt_parts))
     if basic.get("availability"):
         doc.add_paragraph("可实习时间：" + basic["availability"])
-    for link in basic.get("links") or []:
-        doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")
+    if basic.get('links'):
+        p = doc.add_paragraph()
+        for index, link in enumerate(basic['links']):
+            if index:
+                p.add_run(' · ')
+            _add_link(p, link)
     if data.get("summary"):
         doc.add_paragraph(data["summary"])
 
@@ -134,9 +143,10 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
             has_content = bool(data.get(kind))
         if not has_content:
             continue
-        _add_section_heading(doc, resume_section["title"])
+        _add_section_heading(doc, resume_section["title"], data)
         _add_section_body(doc, data, resume_section)
 
+    configure_docx_layout(doc, data)
     buf = io.BytesIO()
     doc.save(buf)
     return buf.getvalue()
@@ -206,10 +216,14 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
         for _, item in items:
             if kind == "open_source":
                 date = f"{item.get('start_date', '')}—{item.get('end_date', '')}".strip("—")
-                doc.add_paragraph().add_run(contribution_title(item) + (" / " + date if date else "")).bold = True
+                title = doc.add_paragraph()
+                title.add_run(contribution_title(item) + (" / " + date if date else "")).bold = True
+                for link in item.get('links') or []:
+                    title.add_run(' · ')
+                    _add_link(title, link, label='链接')
             for _, bullet in item["_display_bullets"]:
                 doc.add_paragraph((item["name"] + "：" if kind == "awards" and len(items) > 1 else "") + bullet, style="List Bullet")
-            for link in item.get("links") or []:
+            for link in (item.get("links") or []) if kind == 'awards' else []:
                 doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")
 
     elif kind == "skills":
@@ -238,3 +252,70 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
         if section["content"]:
             for line in section["content"].replace("\r\n", "\n").replace("\r", "\n").split("\n"):
                 doc.add_paragraph(line)
+
+
+def _add_link(paragraph, link: dict, *, label: str = '') -> None:
+    from docx.oxml import OxmlElement
+    from docx.opc.constants import RELATIONSHIP_TYPE
+    from app.services.renderer import safe_link_url
+
+    url = str(link.get('url') or '')
+    safe = safe_link_url(url)
+    text = label or f"{link.get('text', '')}：{url if len(url) <= 60 else '链接'}"
+    if not safe:
+        paragraph.add_run(f"{link.get('text', '')}：{url}")
+        return
+    node = OxmlElement('w:hyperlink')
+    node.set(qn('r:id'), paragraph.part.relate_to(safe, RELATIONSHIP_TYPE.HYPERLINK, is_external=True))
+    run = OxmlElement('w:r')
+    value = OxmlElement('w:t')
+    value.text = text
+    run.append(value)
+    node.append(run)
+    paragraph._p.append(node)
+
+
+def configure_docx_layout(doc, data: dict) -> None:
+    """Apply the same density to generic Word and legacy filled templates."""
+    density = resume_density(data)
+    doc.core_properties.keywords = f'resume-density={density}'
+    if not density:
+        return
+    values = layout_css_values('t001-jianyue', data)
+    font = float(values['body-font-size'][:-2])
+    # Word's built-in default is already 1.15, unlike the HTML templates.
+    # Tightening must not expand Word to the HTML density-one line height.
+    line = (1.15, 1.1, 1.05, 1.0)[density]
+    for name in ('Normal', 'List Bullet'):
+        style = doc.styles[name]
+        style.font.size = Pt(font if name == 'Normal' else float(values['content-font-size'][:-2]))
+        style.paragraph_format.line_spacing = line
+        style.paragraph_format.space_before = Pt(0)
+        style.paragraph_format.space_after = Pt(float(values['li-gap' if name == 'List Bullet' else 'item-gap'][:-2]) * .75)
+    factor = (1, 1, .92, .88)[density]
+    for section in doc.sections:
+        section.top_margin = int(section.top_margin * factor)
+        section.bottom_margin = int(section.bottom_margin * factor)
+        section.left_margin = int(section.left_margin * factor)
+        section.right_margin = int(section.right_margin * factor)
+    # Legacy templates have direct formatting in table cells and runs. Normalize
+    # those overrides as well, retaining large identity/heading text.
+    def paragraphs(parent):
+        yield from parent.paragraphs
+        for table in parent.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    yield from paragraphs(cell)
+    headings = {section['title'] for section in get_resume_sections(data)}
+    for paragraph in paragraphs(doc):
+        previous_line = paragraph.paragraph_format.line_spacing
+        paragraph.paragraph_format.line_spacing = min(previous_line, line) if isinstance(previous_line, float) else line
+        if paragraph.text in headings:
+            continue
+        for name in ('space_before', 'space_after'):
+            existing = getattr(paragraph.paragraph_format, name)
+            if existing is not None:
+                setattr(paragraph.paragraph_format, name, int(existing * (1, .65, .5, .4)[density]))
+        for run in paragraph.runs:
+            if run.font.size is not None and run.font.size.pt <= 11:
+                run.font.size = Pt(font)

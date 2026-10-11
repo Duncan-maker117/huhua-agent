@@ -157,6 +157,11 @@
           if (!result.saved || !result.revision) throw new Error('保存结果未确认，请重试或下载草稿备份。');
           for (const [id, sequence] of removedSnapshot) if (pendingRemovedItems.get(id) === sequence) pendingRemovedItems.delete(id);
           if (result.data) mergeReturnedItemIds(result.data, snapshot, references);
+          if (result.data?.layout && JSON.stringify(state.data.layout) === JSON.stringify(snapshot.layout)) {
+            const layoutChanged = JSON.stringify(state.data.layout) !== JSON.stringify(result.data.layout);
+            state.data.layout = structuredClone(result.data.layout);
+            if (layoutChanged && state.revision === version) renderPreview();
+          }
           state.serverRevision = result.revision;
           state.savedVersion = version;
           state.saveFailed = false;

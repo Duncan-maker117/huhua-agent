@@ -397,6 +397,8 @@ def deterministic_compound_plan(message: str, data: dict | None = None) -> list[
     labels = _item_labels(data)
     ops = []
     for clause in edit_clauses(message):
+        from app.services.resume_layout import density_operations
+        ops.extend(density_operations(clause))
         target = _match_label(clause, labels) or _ordinal_target(clause)
         if re.search(r"[一二两12]\s*页", clause):
             number = 2 if re.search(r"[两2]\s*页", clause) else 1
@@ -460,6 +462,9 @@ def _requested_op(op: dict, message: str) -> bool:
         # 「先给我出一版看看」这类回答没有编辑意图，不能凭空生成改写项再报 ❌。
         return False
     if kind == "set_constraint":
+        if any(key in (op.get('args') or {}) for key in ('density_delta', 'density_source')):
+            from app.services.resume_layout import density_operations
+            return any(row['args'] == op.get('args') for row in density_operations(message))
         return bool(re.search(r"[一二两12]\s*页", message or ""))
     if kind == "set_field":
         if (op.get("args") or {}).get("field") == "objective":
@@ -471,7 +476,7 @@ def _requested_op(op: dict, message: str) -> bool:
     return True
 
 
-_DETERMINISTIC_OPS = {"set_field", "clean_format", "move_item"}
+_DETERMINISTIC_OPS = {"set_field", "clean_format", "move_item", "set_constraint"}
 _EDUCATION_CLAUSE = re.compile(r"学校|专业|学历|本科|硕士|博士|大专|年级|大[一二三四]|研[一二三]")
 
 
@@ -482,6 +487,8 @@ def deterministic_only(message: str, planned_ops: list[dict], writer_requests: l
     Project and work prose must stay byte-for-byte identical to the previous version.
     """
     if writer_requests or direction:
+        return False
+    if any(op.get('op') == 'set_constraint' and op.get('target') != 'density' for op in planned_ops):
         return False
     if planned_ops and any(op.get("op") == "move_item" for op in planned_ops):
         moved_ids = {op.get("target") for op in planned_ops if op.get("op") == "move_item"}
@@ -702,6 +709,9 @@ def uncovered_edit_clauses(message: str, plan: list[dict], data: dict | None = N
 
 
 def _clause_has_op(clause: str, plan: list[dict], labels: list[str], data: dict | None = None) -> bool:
+    from app.services.resume_layout import density_operations
+    if density_operations(clause) and any(op.get('op') == 'set_constraint' and op.get('target') == 'density' for op in plan):
+        return True
     if re.search(r"学校|专业|学历|写全称|填", clause) and any(
         op.get("op") == "set_field" for op in plan
     ):
@@ -812,7 +822,9 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
             topic = str(row.get("target") or "").strip()
             lines.append(f"✅ 已遵守：未写{topic}" if topic else "✅ 已遵守这条限制")
             continue
-        if op == "set_field":
+        if op == 'set_constraint' and row.get('target') == 'density':
+            title = '调整排版'
+        elif op == "set_field":
             field_name = {"school": "学校", "major": "专业", "degree": "学历", "grade": "年级",
                           "name": "姓名", "phone": "电话", "email": "邮箱"}.get(row.get("field") or "", "")
             title = f"修改{field_name}" if field_name else "修改经历信息"

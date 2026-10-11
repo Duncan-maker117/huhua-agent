@@ -14,6 +14,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
+from app.services.resume_layout import resume_density
+
 
 ROOT = Path(__file__).resolve().parents[3]
 CAPACITY_PATH = ROOT / "data" / "jianlimoban" / "capacity.json"
@@ -94,40 +96,60 @@ def measure_rendered_pages(
     *,
     pdf_bytes: bytes | None = None,
 ) -> dict[str, Any]:
-    """Count pages in a production-rendered PDF, with failure left unknown.
+    """Select the loosest one-page layout, then bind the final measurement.
 
     Supplied PDF bytes must have been produced for this exact resume version by
-    the caller. Omitting them calls the production renderer directly.
+    the caller. Only the selected layout is committed into resume_data; callers
+    must persist that document with the returned data_hash. No content changes.
     """
     normalized = normalize_session_constraints(constraints)
+    original_density = resume_density(resume_data)
+    manual = (resume_data.get('layout') or {}).get('density_source') == 'user'
+    automatic = normalized['page_limit'] == 1 and not manual
+    candidates = range(4) if automatic else (original_density,)
     result = {"status": "render_error", "pages": None, "page_limit": normalized["page_limit"],
               "within_page_limit": None, "template_id": normalized["template_id"],
               "data_hash": resume_data_hash(resume_data),
               "source": "production_render_resume_pdf" if pdf_bytes is None else "caller_supplied_pdf_bytes"}
     try:
-        if pdf_bytes is None:
-            from app.services.resume_pdf import measure_resume_pdf_layout
+        attempts = []
+        for density in candidates:
+            candidate = deepcopy(resume_data)
+            if automatic and (density or candidate.get('layout')):
+                candidate['layout'] = {**(candidate.get('layout') or {}), 'density': density, 'density_source': 'auto'}
+            if pdf_bytes is None or density != original_density:
+                from app.services.resume_pdf import measure_resume_pdf_layout
 
-            layout = measure_resume_pdf_layout(normalized["template_id"], resume_data, normalized['page_limit'])
-            result.update(layout)
-            pages = layout['pages']
-        else:
-            import pdfplumber
+                layout = measure_resume_pdf_layout(normalized['template_id'], candidate, normalized['page_limit'])
+                pages = layout['pages']
+            else:
+                import pdfplumber
 
-            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-                pages = len(pdf.pages)
-                overflow_pages = pdf.pages[normalized['page_limit']:]
-                heights = [max((char['bottom'] for char in page.chars), default=0)
-                           - min((char['top'] for char in page.chars), default=0) for page in overflow_pages]
-                if overflow_pages and any(page.chars for page in overflow_pages):
-                    result.update(overflow_height_px=round(sum(heights) * 96 / 72, 2),
-                                  overflow_page_ratio=round(sum(height / page.height for height, page
-                                                               in zip(heights, overflow_pages)), 4),
-                                  overflow_lines=sum(len({round(char['top'], 0) for char in page.chars})
-                                                     for page in overflow_pages))
-        if pages < 1:
-            raise ValueError("Rendered PDF has no pages")
-        result.update(status="rendered", pages=pages, within_page_limit=pages <= normalized["page_limit"])
+                with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+                    pages = len(pdf.pages)
+                    layout = {}
+                    overflow_pages = pdf.pages[normalized['page_limit']:]
+                    heights = [max((char['bottom'] for char in page.chars), default=0)
+                               - min((char['top'] for char in page.chars), default=0) for page in overflow_pages]
+                    if overflow_pages and any(page.chars for page in overflow_pages):
+                        layout.update(overflow_height_px=round(sum(heights) * 96 / 72, 2),
+                                      overflow_page_ratio=round(sum(height / page.height for height, page
+                                                                   in zip(heights, overflow_pages)), 4),
+                                      overflow_lines=sum(len({round(char['top'], 0) for char in page.chars})
+                                                         for page in overflow_pages))
+            if pages < 1:
+                raise ValueError('Rendered PDF has no pages')
+            attempts.append({'density': density, 'pages': pages})
+            if pages <= normalized['page_limit'] or density == candidates[-1]:
+                if automatic and 'layout' in candidate:
+                    resume_data['layout'] = candidate['layout']
+                result.update(layout, status='rendered', pages=pages,
+                              within_page_limit=pages <= normalized['page_limit'], density=density,
+                              density_source='user' if manual else 'auto', density_attempts=attempts,
+                              data_hash=resume_data_hash(resume_data))
+                if pdf_bytes is not None and density != original_density:
+                    result['source'] = 'production_render_resume_pdf'
+                break
     except Exception as exc:
         result["error_type"] = type(exc).__name__
     return result
@@ -148,15 +170,18 @@ def revalidate_committed_page_check(resume_data: dict[str, Any], resume_meta: di
     """Render the exact committed draft, tracking sanitization separately from fit."""
     result = deepcopy(resume_meta or {})
     previous = result.get("page_check")
-    if not isinstance(previous, dict) or not previous:
-        return result
+    if not isinstance(previous, dict):
+        previous = {}
     effective = dict(constraints or {})
     for field in ("page_limit", "template_id"):
         if field not in effective and previous.get(field) is not None:
             effective[field] = previous[field]
+    legacy_overflow = (effective.get('page_limit', 1) == 1 and previous.get('within_page_limit') is False
+                       and (resume_data.get('layout') or {}).get('density_source') != 'user'
+                       and not previous.get('density_attempts'))
     if (previous.get("status") == "rendered" and previous.get("data_hash") == resume_data_hash(resume_data)
             and all(previous.get(field) == effective.get(field) for field in ("page_limit", "template_id"))
-            and not content_changed):
+            and not content_changed and not legacy_overflow):
         return result
     measured = measure_rendered_pages(resume_data, effective)
     if content_changed:

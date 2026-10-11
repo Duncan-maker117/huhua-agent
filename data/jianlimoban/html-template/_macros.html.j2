@@ -7,13 +7,13 @@
 {%- for key, label in labels.items() -%}
   {%- if b.get(key) -%}
     {%- if ns.n %}<span class="sep"> · </span>{% endif -%}
-    {{ label }}<span data-field-path="/basic_info/{{ key }}">{{ b.get(key) }}</span>
+    <span class="contact-token">{{ label }}<span data-field-path="/basic_info/{{ key }}">{{ b.get(key) }}</span></span>
     {%- set ns.n = ns.n + 1 -%}
   {%- endif -%}
 {%- endfor -%}
 {%- for link in b.get('links', []) -%}
   {%- if ns.n %}<span class="sep"> · </span>{% endif -%}
-  <span data-field-path="/basic_info/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/basic_info/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" rel="noopener noreferrer">{{ link.url }}</a>{% else %}{{ link.url }}{% endif %}</span>
+  <span class="contact-token"><span data-field-path="/basic_info/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/basic_info/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" title="{{ link.url }}" rel="noopener noreferrer">{{ link.url | link_label }}</a>{% else %}{{ link.url }}{% endif %}</span></span>
   {%- set ns.n = ns.n + 1 -%}
 {%- endfor -%}
 {%- endmacro %}
@@ -27,12 +27,20 @@
 {%- if text %}<div class="positioning" data-field-path="/summary">{{ text }}</div>{% endif -%}
 {%- endmacro %}
 
+{% macro density_styles() -%}
+:root { {% for name, value in layout_css.items() %}--{{ name }}: {{ value }}; {% endfor %} }
+{%- endmacro %}
+
 {% macro layout_styles() -%}
-.positioning { font-size: 10pt; line-height: 1.5; margin-top: 3px; }
+.positioning { font-size: var(--summary-font-size); line-height: var(--summary-line-height); margin-top: 3px; }
 .section, .item { break-inside: auto; page-break-inside: auto; }
 .section-title { break-after: avoid; page-break-after: avoid; }
-.awards-compact { line-height: 1.5; break-inside: auto; orphans: 1; widows: 1; }
+.awards-compact { line-height: var(--summary-line-height); break-inside: auto; orphans: 1; widows: 1; }
 .award-details { margin-top: 4px; }
+.contact { line-height: 1.4; }
+.contact-token, .contact-link { display: inline-block; white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+.contact a, .contact-links a { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+.contribution-link { white-space: nowrap; font-weight: 400; }
 {%- endmacro %}
 
 {#- 照片只有上传了才渲染（data URL 已由 renderer 校验）。 -#}
@@ -66,7 +74,7 @@
 {% for item in awards %}{% set index = item._source_index %}
 {% if item._display_bullets or item.links %}<div class="item award-details">
 {% if item._display_bullets %}<ul>{% for bullet_index, bullet in item._display_bullets %}<li>{% if awards | length > 1 %}<span class="item-title">{{ item.name }}：</span>{% endif %}<span data-field-path="/awards/{{ index }}/bullets/{{ bullet_index }}">{{ bullet }}</span></li>{% endfor %}</ul>{% endif %}
-{% for link in item.links | default([]) %}<div class="item-sub"><span data-field-path="/awards/{{ index }}/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/awards/{{ index }}/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" rel="noopener noreferrer">{{ link.url }}</a>{% else %}{{ link.url }}{% endif %}</span></div>{% endfor %}
+{% for link in item.links | default([]) %}<div class="item-sub"><span data-field-path="/awards/{{ index }}/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/awards/{{ index }}/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" title="{{ link.url }}" rel="noopener noreferrer">{{ link.url | link_label }}</a>{% else %}{{ link.url }}{% endif %}</span></div>{% endfor %}
 </div>{% endif %}
 {% endfor %}
 {% else %}
@@ -74,12 +82,19 @@
 {% set index = item._source_index %}
 <div class="item">
   <div class="item-header">
-    <span class="item-title"><span data-field-path="/{{ kind }}/{{ index }}/name">{{ item.name }}</span>{% if item.summary %}（<span data-field-path="/open_source/{{ index }}/summary">{{ item.summary }}</span>）{% endif %}{% if item.pr %}｜ <span data-field-path="/{{ kind }}/{{ index }}/pr">{{ item.pr }}</span>{% endif %}</span>
+    <span class="item-title">{{ contribution_title(item, index) }}</span>
     {{ date_range(item, kind, index) }}
   </div>
   {% if item._display_bullets %}<ul>{% for bullet_index, bullet in item._display_bullets %}<li><span data-field-path="/{{ kind }}/{{ index }}/bullets/{{ bullet_index }}">{{ bullet }}</span></li>{% endfor %}</ul>{% endif %}
-  {% for link in item.links | default([]) %}<div class="item-sub"><span data-field-path="/{{ kind }}/{{ index }}/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/{{ kind }}/{{ index }}/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" rel="noopener noreferrer">{{ link.url }}</a>{% else %}{{ link.url }}{% endif %}</span></div>{% endfor %}
 </div>
 {% endfor %}
 {% endif %}
+{%- endmacro %}
+
+{% macro contribution_title(item, index) -%}
+{%- set first = (item.links | default([]) | first) -%}
+{%- if first and first.url | safe_link_url %}<a href="{{ first.url | safe_link_url }}" rel="noopener noreferrer">{% endif -%}
+<span data-field-path="/open_source/{{ index }}/name">{{ item.name }}</span>{% if item.summary %}（<span data-field-path="/open_source/{{ index }}/summary">{{ item.summary }}</span>）{% endif %}{% if item.pr %}｜ <span data-field-path="/open_source/{{ index }}/pr">{{ item.pr }}</span>{% endif %}
+{%- if first and first.url | safe_link_url %}</a>{% endif -%}
+{%- for link in item.links | default([]) %}<span class="contribution-link"> · <span data-field-path="/open_source/{{ index }}/links/{{ loop.index0 }}/text">{% if not loop.first or not item.pr %}{{ link.text }}{% endif %}</span><span data-field-path="/open_source/{{ index }}/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" title="{{ link.url }}" rel="noopener noreferrer">{% if loop.first %}链接{% else %}{{ link.url | link_label }}{% endif %}</a>{% else %}{{ link.url }}{% endif %}</span></span>{% endfor -%}
 {%- endmacro %}

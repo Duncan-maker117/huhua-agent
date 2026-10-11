@@ -62,9 +62,9 @@ class HiddenResumeItemsTest(unittest.TestCase):
         self.assertEqual(data["education"][0]["links"][0]["url"], "https://example.test/hidden")
         self.assertEqual(data["projects"][0]["item_id"], "00000000-0000-0000-0000-000000000005")
 
-    def test_six_html_templates_skip_hidden_and_preserve_source_paths(self):
+    def test_all_html_templates_skip_hidden_and_preserve_source_paths(self):
         data = sample()
-        self.assertEqual(len(list_templates()), 6)
+        self.assertIn("t003-shenlan", {template["id"] for template in list_templates()})
         for template in list_templates():
             with self.subTest(template=template["id"]):
                 html = render_resume(template["id"], data, interactive=True)

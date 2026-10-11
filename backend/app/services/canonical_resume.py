@@ -143,6 +143,8 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
         authoritative = stored_state if stored_state.get("authoritative") else previous_values
         facts = protect_data(owner, authoritative.get("collected_info") or {}, db=db)
         canonical = copy.deepcopy(data)
+        if 'layout' not in canonical and current.get('layout'):
+            canonical['layout'] = copy.deepcopy(current['layout'])
         from app.services.skill_groups import sync_flat_skills
         sync_flat_skills(canonical)
         if owner.startswith("account:"):

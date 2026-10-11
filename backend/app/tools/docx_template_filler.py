@@ -414,7 +414,8 @@ def fill_template_bytes(
         # the complete structured exporter rather than silently truncating them.
         from app.agents.resume_graph import _serialize_to_resume_data
         from app.tools.resume_data_docx import resume_data_to_docx
-        return resume_data_to_docx(_serialize_to_resume_data({"collected_info": collected_info}))
+        return resume_data_to_docx(_serialize_to_resume_data({"collected_info": collected_info,
+            "resume_data": {"layout": collected_info['layout']} if collected_info.get('layout') else {}}))
 
     with zipfile.ZipFile(template_path, "r") as z:
         files = {n: z.read(n) for n in z.namelist()}
@@ -432,6 +433,16 @@ def fill_template_bytes(
     with open(out.name, "rb") as f:
         result = f.read()
     Path(out.name).unlink(missing_ok=True)
+    from app.services.resume_layout import resume_density
+    if resume_density(collected_info):
+        import io
+        from docx import Document
+        from app.tools.resume_data_docx import configure_docx_layout
+        document = Document(io.BytesIO(result))
+        configure_docx_layout(document, collected_info)
+        buffer = io.BytesIO()
+        document.save(buffer)
+        result = buffer.getvalue()
     return result
 
 

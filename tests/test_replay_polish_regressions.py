@@ -58,6 +58,8 @@ class SmallOverflowRegression(unittest.TestCase):
 
     def test_real_t001_two_spilled_skill_lines_fit_after_compacting_without_deleting_experience(self):
         data = {'basic_info': {'name': '虚构候选人', 'objective': 'AI 产品实习'},
+                # Isolate skill packing from the automatic density selection.
+                'layout': {'density': 0, 'density_source': 'user'},
                 'projects': [{'name': '虚构项目', 'polished_bullets': [
                     '整理用户反馈并分类，记录测试样例和已有功能的限制。'] * 30}],
                 'skill_groups': deepcopy(GROUPS)}

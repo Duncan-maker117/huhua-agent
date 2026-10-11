@@ -82,7 +82,8 @@ class FactDraftStorageTests(unittest.IsolatedAsyncioTestCase):
         state = (await self.graph.aget_state(config)).values
         self.assertEqual(state['resume_data'], data)
         self.assertEqual(state['collected_info'], facts)
-        self.assertEqual(state['resume_meta'], {'marker': 'committed'})
+        self.assertEqual(state['resume_meta'], load_resume_session(sid)['resume_meta'])
+        self.assertEqual(state['resume_meta']['marker'], 'committed')
         self.assertEqual(state['resume_versions'], [])
         with self.engine.connect() as conn:
             raw = conn.execute(text('SELECT resume_state FROM resume_sessions WHERE session_id=:sid'), {'sid': sid}).scalar()

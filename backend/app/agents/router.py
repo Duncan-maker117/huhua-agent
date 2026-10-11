@@ -159,6 +159,9 @@ async def _ask_router(message: str, state: dict, llm) -> dict:
 
     The input never reads `collected_info`. The caller handles model failures.
     """
+    from app.services.resume_layout import density_only_request, density_operations
+    if _has_draft(state) and density_only_request(message):
+        return RouteSchema(intents=['edit'], edit_plan=density_operations(message)).model_dump()
     if is_greeting(message) or (is_advice(message) and not explicit_edit_requested(message)):
         intents = ["greeting"] if is_greeting(message) else ["advice"]
         if intents == ["advice"] and advice_contains_facts(message):

@@ -334,6 +334,8 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
     if not saved:
         return data
     merged = dict(data)
+    if 'layout' in saved:
+        merged['layout'] = copy.deepcopy(saved['layout'])
     basic = dict(merged.get("basic_info") or {})
     old_basic = saved.get("basic_info") or {}
     if "photo" in old_basic and "photo" not in basic:
@@ -1977,7 +1979,8 @@ def _writer_reply(result: dict) -> str:
         reply += "\n\n本次修改：\n" + "\n".join('· ' + text for text in result['change_summary'])
     page = result.get('page_check') or {}
     if page.get('status') == 'rendered':
-        reply += f"\n\n所选模板实际为 {page['pages']} 页。"
+        from app.services.resume_layout import resume_density
+        reply += f"\n\n当前排版为 {resume_density(data)} 档，所选模板实际为 {page['pages']} 页。"
         if page.get('within_page_limit') is False and preserved_existing:
             reply += f"当前稿仍超过 {page['page_limit']} 页要求，本轮尚未完成压缩。"
         if page.get('within_page_limit') is False:
@@ -2346,7 +2349,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         result['resume_meta'] = meta
     reply = _writer_reply(result)
     if report:
-        reply = _re.sub(r'\n\n本次修改：[\s\S]*$', '', reply)
+        reply = _re.sub(r'\n\n本次修改：[^\n]*(?:\n· [^\n]*)*', '', reply)
         reply += '\n\n本次修改：\n' + '\n'.join('· ' + line for line in report)
         if not any(line.startswith('✅') for line in report):
             reply = '这轮没有完成你点名的修改。\n\n本次修改：\n' + '\n'.join('· ' + line for line in report)

@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const FIELDS = {name: '名称', role: '角色', company: '公司', position: '职位', title: '职位', start_date: '开始时间', end_date: '结束时间', school: '学校', degree: '学历', major: '专业'};
-  const SECTIONS = {projects: '项目', work_experience: '工作 / 实习', education: '教育', skills: '技能', skill_groups: '技能', basic_info: '基本信息', certificates: '证书', self_evaluation: '个人总结', sections: '栏目设置', open_source: '开源贡献', awards: '竞赛荣誉', summary: '定位'};
+  const SECTIONS = {projects: '项目', work_experience: '工作 / 实习', education: '教育', skills: '技能', skill_groups: '技能', basic_info: '基本信息', certificates: '证书', self_evaluation: '个人总结', sections: '栏目设置', open_source: '开源贡献', awards: '竞赛荣誉', summary: '定位', layout: '排版'};
   const MARKER = /^\s*(✅|⚠️?|❌)\s*/u;
   const cards = [];
   const text = value => typeof value === 'string' || typeof value === 'number' ? String(value) : '';

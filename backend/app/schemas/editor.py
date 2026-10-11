@@ -103,7 +103,13 @@ class ResumeSection(BaseModel):
         return value
 
 
+class ResumeLayout(BaseModel):
+    density: int = Field(default=0, ge=0, le=3, strict=True)
+    density_source: Literal['auto', 'user'] = 'auto'
+
+
 class ResumeData(BaseModel):
+    layout: ResumeLayout | None = Field(default=None, exclude_if=lambda value: value is None)
     basic_info: BasicInfo = BasicInfo()
     education: list[EducationItem] = []
     work_experience: list[WorkItem] = []

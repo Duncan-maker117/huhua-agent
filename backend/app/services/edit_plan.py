@@ -263,7 +263,7 @@ def _dedupe_skills(data: dict) -> bool:
 
 
 def _constraint_overrides(args: dict, instruction: str) -> tuple[dict, str]:
-    allowed = {key: args[key] for key in ("page_limit", "language", "template_id") if key in args}
+    allowed = {key: args[key] for key in ("page_limit", "language", "template_id", "density_delta", "density_source") if key in args}
     if not allowed:
         return {}, "没有可设置的约束"
     if "page_limit" in allowed and not _number_in_instruction(allowed["page_limit"], instruction, "页"):
@@ -274,6 +274,12 @@ def _constraint_overrides(args: dict, instruction: str) -> tuple[dict, str]:
             return {}, "语言没有出现在本轮用户原话中"
     if "template_id" in allowed and not _literal_in(str(allowed["template_id"]), instruction):
         return {}, "模板编号没有出现在本轮用户原话中"
+    layout_args = {key: allowed[key] for key in ('density_delta', 'density_source') if key in allowed}
+    if layout_args:
+        from app.services.resume_layout import density_operations
+        if (('density_delta' in layout_args and type(layout_args['density_delta']) is not int)
+                or not any(op['args'] == layout_args for op in density_operations(instruction))):
+            return {}, '排版要求没有出现在本轮用户原话中'
     return allowed, ""
 
 
@@ -530,11 +536,22 @@ def execute_edit_plan(
                 results.append(_result(index, op, target, "cannot", error))
                 continue
             try:
+                layout_args = {key: overrides.pop(key) for key in ('density_delta', 'density_source') if key in overrides}
                 updated = normalize_session_constraints(limits, overrides=overrides)
             except (TypeError, ValueError):
                 results.append(_result(index, op, target, "cannot", "约束值不在支持范围内"))
                 continue
             changed = updated != limits
+            if layout_args:
+                from app.services.resume_layout import resume_density
+                layout = {**(output.get('layout') or {}), 'density': resume_density(output)}
+                if 'density_delta' in layout_args:
+                    layout.update(density=max(0, min(3, layout['density'] + layout_args['density_delta'])),
+                                  density_source='user')
+                else:
+                    layout['density_source'] = 'auto'
+                changed |= layout != output.get('layout')
+                output['layout'] = layout
             limits = updated
             results.append(_result(index, op, target, "done", "" if changed else "already_satisfied",
                                    changed=changed))

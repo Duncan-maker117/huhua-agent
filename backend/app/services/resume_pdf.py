@@ -90,7 +90,7 @@ def _render(template_id: str, data: dict, finish):
     # Templates already carry their own horizontal padding and 210mm width.
     # Page margins reserve space on every page, including long resumes.
     style = """<style>
-      @page { size: A4; margin: 10mm 0; }
+      @page { size: A4; margin: var(--page-margin-y, 10mm) 0; }
       body { display: block !important; min-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; }
       .bottom-bar { margin-top: 12px; }
       .icons, .icon-circle { flex-shrink: 0; }

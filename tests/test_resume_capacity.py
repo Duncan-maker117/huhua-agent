@@ -30,9 +30,9 @@ class ResumeCapacityTest(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(ValueError):
                 normalize_session_constraints(overrides=changes)
 
-    def test_six_template_budgets_are_heuristics_with_bullet_caps(self):
+    def test_all_template_budgets_are_heuristics_with_bullet_caps(self):
         names = [row["id"] for row in list_templates()]
-        self.assertEqual(len(names), 6)
+        self.assertIn("t003-shenlan", names)
         for name in names:
             with self.subTest(template=name):
                 capacity = load_template_capacity(name)

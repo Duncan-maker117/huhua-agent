@@ -5,36 +5,37 @@
 <meta charset="UTF-8">
 <title>{{ basic_info.name }} · 个人简历</title>
 <style>
+  {{ m.density_styles() }}
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     width: 210mm; min-height: 297mm;
-    padding: 12mm 16mm;
+    padding: var(--page-y) var(--page-x);
     font-family: 'PingFang SC', 'Noto Sans SC', -apple-system, sans-serif;
     color: #2b2b2b;
     background: #fff;
-    font-size: 10.5pt;
-    line-height: 1.7;
+    font-size: var(--body-font-size);
+    line-height: var(--line-height);
   }
   .section-title {
     background: #ededed;
-    padding: 6px 14px;
-    font-size: 11.5pt; font-weight: 600;
+    padding: var(--section-padding-y) var(--section-padding-right) var(--section-padding-y) var(--section-padding-left);
+    font-size: var(--section-font-size); font-weight: 600;
     color: #1a1a1a;
     border-radius: 3px;
-    margin: 14px 0 8px;
+    margin: var(--section-top) 0 var(--section-bottom);
   }
 
-  .item { padding: 0 14px; margin-bottom: 14px; }
+  .item { padding: 0 14px; margin-bottom: var(--item-gap); }
   .item-header {
     display: flex; justify-content: space-between; align-items: baseline;
-    margin-bottom: 4px;
+    margin-bottom: var(--item-header-gap);
   }
-  .item-title { font-weight: 600; font-size: 10.5pt; color: #1a1a1a; }
+  .item-title { font-weight: 600; font-size: var(--item-title-size); color: #1a1a1a; }
   .item-date { color: #777; font-size: 9.5pt; }
-  .item-sub { color: #555; font-size: 9.5pt; margin-bottom: 4px; }
+  .item-sub { color: #555; font-size: 9.5pt; margin-bottom: var(--sub-gap); }
   ul { margin-left: 18px; }
-  li { margin-bottom: 3px; font-size: 10pt; color: #333; }
-  .desc { font-size: 10pt; color: #333; padding: 0 14px; }
+  li { margin-bottom: var(--li-gap); font-size: var(--content-font-size); color: #333; }
+  .desc { font-size: var(--content-font-size); color: #333; padding: 0 14px; }
 
   /* 页眉：姓名 + 求职意向一行，联系方式一行；无照片不占位 */
   .header-text { flex: 1; min-width: 0; }
@@ -44,7 +45,7 @@
   .photo { width: 72px; height: 92px; flex: none; border-radius: 3px; overflow: hidden; }
   .item-header.project-head { white-space: nowrap; }
   .item-role { font-weight: 400; }
-  .skill-row { margin-bottom: 3px; }
+  .skill-row { margin-bottom: var(--skill-gap); }
   .header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 6px; }
   .h-name { font-size: 22pt; letter-spacing: 3px; color: #1a1a1a; }
   .h-obj { font-size: 11.5pt; color: #444; }
@@ -52,7 +53,7 @@
   {{ m.layout_styles() }}
 </style>
 </head>
-<body>
+<body data-density="{{ layout_density }}">
   <div class="header">
     <div class="header-text">
       <div class="h-line">{{ m.name_line(basic_info) }}</div>

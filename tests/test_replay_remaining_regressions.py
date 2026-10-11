@@ -19,7 +19,7 @@ from app.services.resume_pdf import count_resume_pdf_pages, render_resume_pdf
 from app.services.structure_plan import plan_summary, select_plan
 from test_compression_retention import metadata, pass_decision
 from test_replay_plan_intake_regressions import PlanModel
-from test_structure_plan import card, fact, source, writer_draft
+from test_structure_plan import card, fact, source
 
 
 OWN = '在 DNS 被污染的代理网络下发现网页抓取失败并提交初版修复'
@@ -144,6 +144,8 @@ class ThreeLinePageRegression(unittest.IsolatedAsyncioTestCase):
                     meta['bullets'][item['item_id']] = metadata(texts, [[fid] for fid in ids])
         plan = {'experience_plan': [{'item_id': iid, 'treatment': 'lead', 'target_bullets': 1}
                                     for iid in ('lead', 'keep', 'oss')]}
+        # Exercise content compression with an explicitly locked layout.
+        data['layout'] = {'density': 0, 'density_source': 'user'}
         state = {'collected_info': collected, 'resume_data': deepcopy(data), 'resume_meta': meta,
                  'confirmed_plan': plan, 'jd_info': {'role_profile': {}}}
         before = deepcopy(state)

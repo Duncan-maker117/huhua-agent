@@ -298,9 +298,9 @@ async def apply_deterministic_update(state: dict, base_data: dict, instruction: 
     current = state.get('resume_data') or {}
     data = deepcopy(current)
     data['education'] = deepcopy(base_data.get('education') or current.get('education') or [])
+    measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
     version = prepare_version(state.get('previous_resume_data', current), state.get('resume_meta') or {}, state.get('resume_versions') or [],
                               data, deepcopy(state.get('resume_meta') or {}), label='确认资料更新')
-    measurement = await asyncio.to_thread(measure_rendered_pages, version['resume_data'], constraints)
     diagnostic = {'status': 'not_called', 'reason': 'deterministic_only'}
     version['resume_meta'].update(page_check=measurement, writer_diagnostic=diagnostic,
                                   guard_fallbacks=[], change_summary=[])
@@ -335,6 +335,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         from app.services.resume_versions import document_diff
         preserved = _preserve_supported_body(state, base_data)
         data, meta = preserved['resume_data'], preserved['resume_meta']
+        measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
         diff = document_diff(state['resume_data'], data)
         if diff:
             version = prepare_version(state['resume_data'], state.get('resume_meta') or {},
@@ -345,7 +346,6 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
             version = {**preserved, 'version_id': meta.get('version_id'), 'changed': False, 'diff': []}
         data = version['resume_data']
         meta = valid_bullet_metadata(data, version['resume_meta'])
-        measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
         diagnostic = {**deepcopy(written['writer_diagnostic']),
                       'fallback_action': 'preserved_existing_draft',
                       'deterministic_updates_applied': bool(diff)}

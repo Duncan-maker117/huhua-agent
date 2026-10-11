@@ -78,3 +78,9 @@
 
 ### 后续
 面试官挑刺、GitHub 证据导入、具名内容语义匹配。
+
+## 9. P2 本地实施记录
+
+2026-10-11：仅完成 B1–B4，保留已提交 P1，未实施 P3/P4。新增开源贡献/竞赛荣誉和页头 links/availability，全链路接入事实、档案、writer、canonical、六款 HTML/PDF、Word 与编辑器；奖学金统一保留为教育 highlights。显式栏目纠正使用 move_item，保留条目身份、正文、来源和历史；列表逐条补齐，数量单位替换由 fact guard 拦截。
+
+全量离线测试 **1106/1106**（本次新增 33 项），实际 PDF/Word 字段检查、Python 编译、JS 语法和差异检查通过；旧数据可选字段无需 SQL/schema 迁移。原 TLS 测试改为仅在沙箱禁 bind 时用 socket pair 适配最低拨号层，保留真实 TLS/SNI/证书验证。浏览器交互仍受沙箱/本地协议限制，未完成；未调用真实模型、未 commit/push/部署。逐文件说明和验证边界见 [P2 验收记录](2026-10-11-pr8-p2-verification.md)。

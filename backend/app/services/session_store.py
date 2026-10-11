@@ -45,6 +45,8 @@ def resume_data_has_content(resume_data: dict | None) -> bool:
         resume_data.get("work_experience")
         or resume_data.get("projects")
         or resume_data.get("education")
+        or resume_data.get("open_source")
+        or resume_data.get("awards")
         or any(value for key, value in basic.items() if key != "objective")
         # A JD-derived objective alone is not candidate content; explicit
         # editor drafts carry section metadata, even when their body is empty.
@@ -191,10 +193,14 @@ def save_resume_session(
             from app.services.profile_bridge import protect_data
             from app.services.resume_provenance import validate_item_ids, register_fact_items
             from app.services.resume_review import resume_to_text
-            register_fact_items(db, owner.split(":", 1)[1], session_id, collected_info or {}, resume_data)
+            moved_ids = [item_id for operation in (resume_meta or {}).get("operation_results") or []
+                         if operation.get("op") == "move_item" and operation.get("status") == "done"
+                         for item_id in operation.get("affected_item_ids") or []]
+            register_fact_items(db, owner.split(":", 1)[1], session_id, collected_info or {}, resume_data,
+                                moved_item_ids=moved_ids)
             validate_item_ids(db, owner.split(":", 1)[1], session_id, previous_data, resume_data)
             row.resume_data = protect_data(owner, row.resume_data, db=db)
-            has_bindings = any(item.get("item_id") for group in ("projects", "education", "work_experience")
+            has_bindings = any(item.get("item_id") for group in ("projects", "education", "work_experience", "open_source", "awards")
                                for item in (row.resume_data.get(group) or []))
             row.resume_draft = (resume_to_text(row.resume_data) if has_bindings
                                 else protect_data(owner, row.resume_draft, db=db))

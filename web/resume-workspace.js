@@ -170,7 +170,7 @@
   // Every visible bullet of the saved draft with its model evidence (aligned by position; {} when hand-edited).
   function draftBullets() {
     const rows = [], evidence = workspace.tailor?.resume_meta?.bullets || {};
-    for (const [section, field] of [['projects', 'polished_bullets'], ['work_experience', 'bullets']]) {
+    for (const [section, field] of [['projects', 'polished_bullets'], ['work_experience', 'bullets'], ['open_source', 'bullets']]) {
       for (const item of list(resumeData?.[section])) {
         if (!item || item.hidden === true) continue;
         const records = list(evidence[item.item_id]);
@@ -277,18 +277,20 @@
     const experiences = workspace.experiences || {}, items = list(experiences.items);
     heading(panel, '已收集的经历', '来自你提供的资料；缺少的细节单独标出。');
     const basic = experiences.basic_info || workspace.basic_info || {};
-    facts(panel, [['姓名', basic.name], ['求职方向', basic.objective || basic.target_role || basic.job_intention], ['学校', basic.school], ['学历', basic.degree], ['邮箱', basic.email], ['电话', basic.phone]]);
+    facts(panel, [['姓名', basic.name], ['求职方向', basic.objective || basic.target_role || basic.job_intention], ['学校', basic.school], ['学历', basic.degree], ['邮箱', basic.email], ['电话', basic.phone], ['可实习时间', basic.availability]]);
+    facts(panel, list(basic.links).map(link => [link.text, link.url]));
     for (const education of list(experiences.education)) {
       const card = node('article', undefined, 'workspace-card');
       card.append(node('h3', education.school || '教育经历'));
       facts(card, [['专业', education.major], ['学历', education.degree], ['时间', [education.start_date, education.end_date].filter(Boolean).join(' — ')]]);
+      if (education.highlights) card.append(node('p', education.highlights));
       panel.append(card);
     }
     if (!items.length) empty(panel, '从一件做过的事开始', '项目、实习、课程作业或自己做的小工具都可以。先说做了什么，再一起补细节。', {label: '从一个项目开始', value: '我想先补充一个项目经历：'});
     for (const item of items) {
       const card = node('article', undefined, 'workspace-card');
       card.append(node('h3', item.name || '待命名经历'));
-      facts(card, [['类型', ({project:'项目',work:'工作 / 实习',education:'教育'})[item.kind] || item.kind], ['职责', item.role], ['时间', item.period]]);
+      facts(card, [['类型', ({project:'项目',work:'工作 / 实习',education:'教育',open_source:'开源贡献',awards:'竞赛荣誉'})[item.kind] || item.kind], ['职责', item.role], ['时间', item.period]]);
       bulletList(card, item.bullets);
       if (list(item.missing).length) {
         const missing = node('div', undefined, 'workspace-missing-box');

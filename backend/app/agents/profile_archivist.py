@@ -10,11 +10,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor, redact_model_messages
 
-Category = Literal["basic", "education", "project", "work", "skill", "preference"]
+Category = Literal["basic", "education", "project", "work", "open_source", "awards", "skill", "preference"]
 FactField = Literal[
     "name", "phone", "email", "location", "objective", "school", "degree",
     "major", "start_date", "end_date", "company", "title", "role", "status",
     "description", "result", "skill", "preference", "tool", "deliverable",
+    "summary", "pr", "level", "date", "highlights", "link", "github", "website", "availability",
 ]
 
 
@@ -34,10 +35,12 @@ class ArchiveProposal(BaseModel):
     @model_validator(mode="after")
     def category_fields(self):
         allowed = {
-            "basic": {"name", "phone", "email", "location", "objective"},
-            "education": {"school", "degree", "major", "start_date", "end_date", "description", "result"},
+            "basic": {"name", "phone", "email", "location", "objective", "link", "github", "website", "availability"},
+            "education": {"school", "degree", "major", "start_date", "end_date", "highlights", "description", "result"},
             "project": {"name", "role", "status", "start_date", "end_date", "description", "result", "tool", "deliverable"},
             "work": {"company", "title", "role", "start_date", "end_date", "description", "result", "deliverable"},
+            "open_source": {"name", "summary", "pr", "description", "result", "link", "start_date", "end_date"},
+            "awards": {"name", "level", "date", "description", "result", "link"},
             "skill": {"skill", "tool"},
             "preference": {"preference"},
         }
@@ -50,7 +53,7 @@ class ArchiveProposal(BaseModel):
 
 class ArchiveBatch(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    proposals: list[ArchiveProposal] = Field(default_factory=list, max_length=30)
+    proposals: list[ArchiveProposal] = Field(default_factory=list, max_length=120)
 
 
 def _compact(text: str) -> str:
@@ -90,9 +93,16 @@ def validate_grounding(proposal: ArchiveProposal, payload: dict, context: dict) 
         persistent = ("以后", "今后", "默认", "长期", "每次", "一直", "我喜欢", "我偏好", "我习惯")
         if not any(word in text for word in persistent) or any(word in scope for word in ("这次", "本次", "这份")):
             return False
-    if proposal.category in {"project", "work", "education"}:
+    if proposal.category in {"project", "work", "education", "open_source", "awards"}:
         known = {_compact(fact.get("subject", "")) for fact in context.get("facts", [])}
-        if _compact(proposal.subject) not in text and _compact(proposal.subject) not in known:
+        labelled_subject = False
+        if proposal.category == "open_source":
+            from app.services.candidate_sections import parse_labelled_items
+            labelled_subject = any(
+                _compact(proposal.subject) == _compact((item["name"] + " " + item.get("pr", "")).strip())
+                and quote in _compact(item["raw_notes"][0])
+                for item in parse_labelled_items(payload.get("human_text", "")).get("open_source", []))
+        if _compact(proposal.subject) not in text and _compact(proposal.subject) not in known and not labelled_subject:
             return False
     if proposal.operation == "correct":
         # A semantic model alone cannot silently label a conflicting claim a
@@ -131,6 +141,27 @@ def deterministic_proposals(payload: dict) -> list[ArchiveProposal]:
         if isinstance(value, str) and value.strip() and _compact(value) in _compact(text):
             result.append(ArchiveProposal(category="basic", subject="基础信息", field=field,
                                           value=value.strip(), evidence_quote=value.strip()))
+    from app.agents.fact_extractor import _candidate_evidence
+    from app.services.candidate_sections import parse_header_fields, parse_labelled_items
+    evidence = _candidate_evidence(text)
+    header = parse_header_fields(evidence)
+    for link in header.get("links") or []:
+        result.append(ArchiveProposal(category="basic", subject=link["text"], field="link",
+                                      value=link["url"], evidence_quote=link["url"]))
+    if header.get("availability"):
+        result.append(ArchiveProposal(category="basic", subject="基础信息", field="availability",
+                                      value=header["availability"], evidence_quote=header["availability"]))
+    for category, items in parse_labelled_items(evidence).items():
+        for item in items:
+            subject = (item["name"] + " " + item.get("pr", "")).strip() if category == "open_source" else item["name"]
+            for fact in item["facts"]:
+                field = fact.get("field") or "description"
+                value = fact["text"] if fact.get("field") else fact["source_quote"]
+                result.append(ArchiveProposal(category=category, subject=subject, field=field,
+                                              value=value, evidence_quote=value))
+            for link in item.get("links") or []:
+                result.append(ArchiveProposal(category=category, subject=subject, field="link",
+                                              value=link["url"], evidence_quote=link["url"]))
     if payload.get("source_kind") == "manual":
         for item in payload.get("confirmed_facts", [])[:30]:
             result.append(ArchiveProposal.model_validate(item))
@@ -150,7 +181,7 @@ value 必须逐字取自本轮 human_text 的 evidence_quote，保留否定、�
 未知时间留空。当前任务的临时表达要求不是长期偏好。无法判断本人归属时不输出。
 已有字段出现矛盾默认 add，由程序生成冲突；只有用户明确纠错才 correct，并填上下文事实 revision。
 state_change 仅用于明确时间状态变化；今天讲过去不会自动覆盖较新的状态。
-不能根据重复次数认定已核实，不能推断职责、数字、结果。最多输出30项。
+开源贡献用 open_source，每个PR分别以「仓库名 PR号」为subject，name只含仓库名，summary保留星数等简介，pr保留编号/链接，description/result保留本人贡献和结果。竞赛荣誉用awards，每个奖项分别记录name/level/date。列表必须逐条收录。教育专业、学历、起止时间分别记录，奖学金统一放education.highlights。页头链接用basic.link（subject为GitHub/个人主页等标签），实习时间用availability。保留数量原单位，不把次数解释成调用/请求。不能根据重复次数认定已核实，不能推断职责、数字、结果。最多输出120项。
 """
         # Only scoped facts, never all account history or raw contacts, are given
         # to a model. Contacts handled by deterministic extraction above.

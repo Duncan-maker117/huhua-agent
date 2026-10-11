@@ -212,6 +212,11 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         "ethnicity": base_basic.get("ethnicity") or opt.get("ethnicity", ""),
         "height": base_basic.get("height") or opt.get("height", ""),
     }
+    for key in ("links", "availability"):
+        if key in base_basic:
+            basic_info[key] = copy.deepcopy(base_basic[key])
+    if not basic_info.get("links") and base_basic.get("github"):
+        basic_info["links"] = [{"text": "GitHub", "url": base_basic["github"]}]
     if "photo" in base_basic:
         basic_info["photo"] = base_basic["photo"]
     # An existing draft defines explicit values, including deliberate blanks.
@@ -281,10 +286,21 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         _work(_active_item(i)) for i in collected.get("internship", [])
     ]
     education = [_edu(_active_item(e)) for e in collected.get("education", [])]
+    open_source = []
+    for entry in collected.get("open_source", []):
+        item = _active_item(entry)
+        open_source.append({**_presentation(item), **{key: item.get(key, "") for key in
+                           ("name", "summary", "pr", "start_date", "end_date")},
+                            "bullets": item.get("bullets") or item.get("description", "").splitlines()})
+    awards = []
+    for entry in collected.get("awards", []):
+        item = _active_item(entry)
+        awards.append({**_presentation(item), **{key: item.get(key, "") for key in ("name", "level", "date")},
+                       "bullets": item.get("bullets") or item.get("description", "").splitlines()})
 
     # Short, first-person experience fallback. Existing resume documents use
     # the section parser, so one long document can never become one project.
-    if not projects and not work_experience and not education and not saved_resume:
+    if not projects and not work_experience and not education and not open_source and not awards and not saved_resume:
         fallback = _harvest_projects_from_messages(messages)
         projects = fallback
 
@@ -293,6 +309,8 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         "education": education,
         "work_experience": work_experience,
         "projects": projects,
+        "open_source": open_source,
+        "awards": awards,
         "skills": [skill.get("name", "") if isinstance(skill, dict) else skill
                    for skill in collected.get("skills", [])
                    if not isinstance(skill, dict) or skill.get("status", "active") == "active"],
@@ -337,13 +355,16 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
         # Choosing ungrouped skills is also an explicit editor choice.
         merged["skill_groups"] = {}
 
-    for section in ("projects", "work_experience", "education"):
+    for section in ("projects", "work_experience", "education", "open_source", "awards"):
         old_items = saved.get(section) or []
         by_id = {item.get("item_id"): item for item in old_items if item.get("item_id")}
-        label_key = {"projects": "name", "work_experience": "company", "education": "school"}[section]
-        by_name = {item.get(label_key): item for item in old_items if item.get(label_key)}
+        label_key = {"projects": "name", "work_experience": "company", "education": "school", "open_source": "name", "awards": "name"}[section]
+        def identity(item):
+            label = item.get(label_key)
+            return (label, item.get("pr", "")) if section == "open_source" else (label, item.get("level", ""), item.get("date", "")) if section == "awards" else label
+        by_name = {identity(item): item for item in old_items if item.get(label_key)}
         for item in merged.get(section) or []:
-            old = by_id.get(item.get("item_id")) or by_name.get(item.get(label_key))
+            old = by_id.get(item.get("item_id")) or by_name.get(identity(item))
             if not old:
                 continue
             for field in ("hidden", "links"):
@@ -407,7 +428,7 @@ def _snippet_was_extracted(previous: dict, collected: dict, snippet: str) -> boo
     return any(
         experience not in previous.get(section, [])
         and _snippet_matches_experience(snippet, experience)
-        for section in ("projects", "work_experience", "internship")
+        for section in ("projects", "work_experience", "internship", "open_source")
         for experience in collected.get(section, [])
     )
 
@@ -524,6 +545,9 @@ def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
     for key, value in imported.get("basic_info", {}).items():
         if not value:
             continue
+        if key == "links":
+            basic.setdefault("links", []).extend(link for link in value if link not in basic["links"])
+            continue
         if basic.get(key) and basic[key] != value:
             conflict = {"scope": "basic_info", "name": "个人信息", "field": key,
                         "values": [{"value": basic[key], "source": "用户明确陈述"}, {"value": value, "source": "导入材料"}],
@@ -535,14 +559,17 @@ def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
 
     for section in FACT_SECTIONS:
         target_items = result.setdefault(section, [])
-        identity_field = {"projects": "name", "education": "school", "work_experience": "company", "internship": "company"}[section]
-        known = {item.get(identity_field, "").strip().casefold(): item for item in target_items
+        identity_field = {"projects": "name", "education": "school", "work_experience": "company", "internship": "company", "open_source": "name", "awards": "name"}[section]
+        def item_identity(item):
+            label = item.get(identity_field, "").strip().casefold()
+            return (label, item.get("pr", "")) if section == "open_source" else (label, item.get("level", ""), item.get("date", "")) if section == "awards" else label
+        known = {item_identity(item): item for item in target_items
                  if isinstance(item, dict) and item.get(identity_field)}
         for source_item in imported.get(section, []):
             if not isinstance(source_item, dict):
                 continue
-            label = source_item.get(identity_field, "").strip().casefold()
-            if not label:
+            label = item_identity(source_item)
+            if not source_item.get(identity_field):
                 continue
             existing = known.get(label)
             if existing is None:
@@ -632,7 +659,7 @@ def _apply_explicit_project_removals(collected: dict, text: str) -> dict:
 def _new_raw_note_owner(collected: dict, previous: dict, text: str) -> dict | None:
     """Use an extractor's unique, current-turn note attachment as ownership evidence."""
     added_notes = []
-    for section in ("projects", "work_experience", "internship"):
+    for section in ("projects", "work_experience", "internship", "open_source"):
         for item in collected.get(section, []):
             if text not in item.get("raw_notes", []):
                 continue
@@ -667,11 +694,11 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     corrected = _apply_explicit_project_removals(collected, text)
     if corrected != collected:
         return corrected
-    previous_ids = {fact.get("id") for section in ("projects", "work_experience", "internship")
+    previous_ids = {fact.get("id") for section in ("projects", "work_experience", "internship", "open_source")
                     for item in previous.get(section, []) for fact in item.get("facts", [])}
     if any(fact.get("id") not in previous_ids and fact.get("source") == "chat"
            and fact.get("source_quote") and fact["source_quote"] in text
-           for section in ("projects", "work_experience", "internship")
+           for section in ("projects", "work_experience", "internship", "open_source")
            for item in collected.get(section, []) for fact in item.get("facts", [])):
         return collected
     # Ambiguous negations/corrections need the semantic extractor, not append-only fallback.
@@ -679,14 +706,14 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
         return collected
     matches = [
         item
-        for key in ("projects", "work_experience", "internship")
+        for key in ("projects", "work_experience", "internship", "open_source")
         for item in collected.get(key, [])
         if _snippet_matches_experience(text, item)
     ]
     # A short answer about ownership/status is not a newly discovered project.
     # If extraction could not resolve its subject, keep it in the conversation
     # rather than creating a generic experience and asking the same question.
-    if not matches and any(collected.get(key) for key in ("projects", "work_experience", "internship")) and _re.fullmatch(
+    if not matches and any(collected.get(key) for key in ("projects", "work_experience", "internship", "open_source")) and _re.fullmatch(
         r"(?:这个|该项目|项目)?[，,\s]*(?:是)?(?:我|本人|我们团队)?(?:是)?(?:自己|独立|一起)?"
         r"(?:完成|开发|做|负责)(?:的|了)?[。.!！\s]*", text,
     ):
@@ -719,7 +746,7 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
         return collected
     result = normalize_fact_store(collected)
     if len(matches) == 1:
-        for key in ("projects", "work_experience", "internship"):
+        for key in ("projects", "work_experience", "internship", "open_source"):
             for item in result.get(key, []):
                 if item.get("item_id") == matches[0].get("item_id") or (
                     not matches[0].get("item_id") and
@@ -871,6 +898,8 @@ def _has_minimum_info(collected: dict) -> bool:
         collected.get("work_experience")
         or collected.get("internship")
         or collected.get("projects")
+        or collected.get("open_source")
+        or collected.get("awards")
     )
 
 
@@ -901,6 +930,9 @@ def _collected_summary(collected: dict) -> str:
         parts.append(f"实习经历 {len(collected['internship'])} 条")
     if collected.get("projects"):
         parts.append(f"项目经历 {len(collected['projects'])} 条")
+    for key, label in (("open_source", "开源贡献"), ("awards", "竞赛荣誉")):
+        if collected.get(key):
+            parts.append(f"{label} {len(collected[key])} 条")
     if collected.get("skills"):
         parts.append(f"技能 {len(collected['skills'])} 项")
     if collected.get("personal_summary"):
@@ -919,7 +951,7 @@ def unrecorded_notice(collected: dict, latest_human: str) -> str:
     if info.get("source") != _hash_text(latest_human):
         return ""
     recorded = "\n".join(f"{fact.get('text', '')}\n{fact.get('source_quote', '')}"
-                         for section in ("projects", "work_experience", "internship", "education")
+                         for section in ("projects", "work_experience", "internship", "education", "open_source", "awards")
                          for item in (collected.get(section) or []) if isinstance(item, dict)
                          for fact in item.get("facts") or [] if fact.get("status", "active") == "active")
     missing = [clause for clause in info.get("clauses") or [] if clause not in recorded]  # 后续兜底已原文保留的不再提示
@@ -1512,7 +1544,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         education_count = len(imported["education"])
         document_count = len(imported.get("imported_documents") or [])
         counts = [f"{project_count} 段项目", f"{education_count} 条教育经历"]
-        for key, label in (("skills", "条技能记录"), ("certificates", "条奖项/活动")):
+        for key, label in (("open_source", "条开源贡献"), ("awards", "条竞赛荣誉"), ("skills", "条技能记录"), ("certificates", "条奖项/活动")):
             if imported.get(key):
                 counts.append(f"{len(imported[key])} {label}")
         scope = f"{document_count} 份资料" if document_count else "资料"
@@ -1810,7 +1842,7 @@ def _writer_reply(result: dict) -> str:
     data = result['resume_data']
     counts = []
     for key, label in (("projects", "段项目"), ("work_experience", "段工作/实习"),
-                       ("education", "条教育经历"), ("skills", "条技能"), ("certificates", "条奖项/活动")):
+                       ("education", "条教育经历"), ("open_source", "条开源贡献"), ("awards", "条竞赛荣誉"), ("skills", "条技能"), ("certificates", "条奖项/活动")):
         rows = [item for item in data.get(key) or [] if not isinstance(item, dict) or not item.get('hidden')]
         if rows:
             counts.append(f"{len(rows)} {label}")
@@ -2040,6 +2072,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             executed = execute_edit_plan(
                 data, edit_constraints, routed['edit_plan'], collected_info=updated, instruction=text)
             data = executed['data']
+            updated = executed['collected_info']
             edit_constraints = executed['constraints']
             operation_results = executed['operation_results']
             if executed['writer_requests'] and not (updated != collected or direction):
@@ -2073,6 +2106,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             text, planned_ops, writer_requests, collected, updated, direction):
         result = await _update_without_writer(
             {**state, **direction, 'collected_info': updated, 'resume_data': data,
+             'previous_resume_data': before_edit,
              'session_constraints': edit_constraints or state.get('session_constraints') or {}}, text)
     else:
         result = await _write_resume_update(
@@ -2151,7 +2185,7 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
     from app.agents.tailor_pipeline import turn_instruction
     data = state.get('resume_data') or {}
     has_body = any(not item.get('hidden') and (item.get('polished_bullets') or item.get('bullets') or item.get('description'))
-                   for section in ('projects', 'work_experience') for item in data.get(section) or []
+                   for section in ('projects', 'work_experience', 'open_source', 'awards') for item in data.get(section) or []
                    if isinstance(item, dict))
     if not has_body:
         return False
@@ -2164,7 +2198,7 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
         if not _re.search(edit_words, clause):
             continue
         clause = clause.strip()
-        for section in ('projects', 'work_experience'):
+        for section in ('projects', 'work_experience', 'open_source', 'awards'):
             for item in data.get(section) or []:
                 name = item.get('name') or item.get('company') or ''
                 if name:

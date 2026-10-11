@@ -7,6 +7,8 @@ DEFAULT_SECTIONS = (
     ("education", "教育背景"),
     ("work_experience", "实习经历"),
     ("projects", "项目经历"),
+    ("open_source", "开源贡献"),
+    ("awards", "竞赛荣誉"),
     ("skills", "技能证书"),
     ("certificates", "证书"),
     ("self_evaluation", "自我评价"),

@@ -13,6 +13,10 @@ def resume_to_text(data: dict) -> str:
         lines.append(contact.strip(" ·"))
     if basic.get("objective"):
         lines.append(f"求职意向：{basic['objective']}")
+    if basic.get("availability"):
+        lines.append(f"可实习时间：{basic['availability']}")
+    for link in basic.get("links") or []:
+        lines.append(f"{link.get('text', '')}：{link.get('url', '')}")
     for section in get_resume_sections(data):
         key = section['kind']
         heading = section['title']
@@ -39,11 +43,13 @@ def resume_to_text(data: dict) -> str:
         lines.append(f"\n## {heading}")
         for item in items:
             title = item.get("company") or item.get("name") or item.get("school") or "[待填写]"
-            detail = item.get("title") or item.get("role") or ' · '.join(part for part in (item.get('major'), item.get('degree')) if part) or ""
+            detail = item.get("title") or item.get("role") or ' · '.join(part for part in (item.get('major'), item.get('degree'), item.get('pr'), item.get('summary'), item.get('level')) if part) or ""
             lines.append(" · ".join(part for part in (title, detail) if part))
             dates = ' — '.join(str(item.get(k) or '') for k in ('start_date', 'end_date')).strip(' —')
             if dates:
                 lines.append(dates)
+            if key == "awards" and item.get("date"):
+                lines.append(item["date"])
             bullets = item.get("bullets") or item.get("polished_bullets") or []
             if not bullets and item.get("description"):
                 bullets = [item["description"]]
@@ -51,6 +57,8 @@ def resume_to_text(data: dict) -> str:
                 lines.append(f"- {bullet}")
             if key == 'education' and item.get('highlights'):
                 lines.append(item['highlights'])
+            for link in item.get("links") or []:
+                lines.append(f"{link.get('text', '')}：{link.get('url', '')}")
     return "\n".join(lines)
 
 
@@ -83,7 +91,7 @@ def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
         checks.append("补全姓名。")
     if not basic.get("phone") and not basic.get("email"):
         checks.append("补全至少一种联系方式。")
-    if not (visible_items(data, "work_experience") or visible_items(data, "projects")):
+    if not (visible_items(data, "work_experience") or visible_items(data, "projects") or visible_items(data, "open_source")):
         checks.append("补充至少一段能证明能力的工作或项目经历。")
     text = resume_to_text(data)
     if re.search(r"\d+(?:[.,]\d+)?%?\*", text):

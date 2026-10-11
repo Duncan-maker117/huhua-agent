@@ -187,7 +187,7 @@ def sanitize_fact_history(state, *, original=None):
     if not isinstance(state, dict) or "collected_info" not in state:
         return state
     result = copy.deepcopy(state)
-    sections = ("projects", "education", "work_experience", "internship")
+    sections = ("projects", "education", "work_experience", "internship", "open_source", "awards")
     active = {fact.get("id") for section in sections
               for item in (result.get("collected_info") or {}).get(section, [])
               for fact in item.get("facts", []) if fact.get("status", "active") == "active"}
@@ -244,7 +244,7 @@ def sanitize_fact_history(state, *, original=None):
                 stale_hashes = {entry.get("text_hash") for entry in records if set(entry.get("fact_ids") or []) - active}
                 facts = obsolete.get(item_id, [])
                 for field in ("name", "school", "company", "degree", "major", "role", "title", "start_date",
-                              "end_date", "duration", "description", "raw_description", "highlights", "bullets", "polished_bullets"):
+                              "end_date", "duration", "summary", "pr", "level", "date", "description", "raw_description", "highlights", "bullets", "polished_bullets"):
                     value = item.get(field)
                     if isinstance(value, list):
                         item[field] = [text for text in value if not unsupported(text, facts, field)

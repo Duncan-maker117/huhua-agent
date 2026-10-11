@@ -10,18 +10,20 @@ import os
 import re
 import uuid
 
-from app.schemas.facts import FACT_SECTIONS
+from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.llm_compat import label_run, without_thinking
 from app.services.resume_facts import new_fact, normalize_fact_store
 
 logger = logging.getLogger(__name__)
 
 _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch：
-{"items":[{"section":"projects|work_experience|internship|education","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","text":"规范化陈述","source_quote":"本轮连续原文"}],"raw_notes":["本轮相关原话"]}],"basic_info":{},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
+{"items":[{"section":"projects|work_experience|internship|education|open_source|awards","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","field":"结构字段可选","text":"规范化陈述","source_quote":"本轮连续原文"}],"links":[{"text":"PR或链接名","url":"用户提供的链接"}],"raw_notes":["本轮相关原话"]}],"basic_info":{"links":[{"text":"GitHub或个人主页","url":"原文URL/域名/账号"}],"availability":"可实习时间原文"},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
 口语可转书面，但不能新增数字、动作、职责、成果或工具；否定、计划、Demo、未上线必须保留。归属已有经历须用已有 item_id。
 更正旧事实用 corrections，删除事实用 removals；删除文稿的句子不等于删除事实。
 JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
-教育信息（学校、专业、学历、年级）归 education，不要建成项目。学校简称保持原词，不要自行扩写成全称。
+教育的学校、专业、学历、起止时间分别标 field=school/major/degree/start_date/end_date；奖学金标 highlights，保留在 education，不重复放 awards。学校简称保持原词，不要自行扩写全称，不能压成「就读于某大学」一句。
+开源贡献归 open_source，name 用仓库/项目名，简介（如星数）标 summary，PR号或链接标 pr，本人贡献和结果分别为正文事实；每个PR一条item，不能把「自己」当项目名。竞赛荣誉归 awards，名称、级别/名次、时间分别标 name/level/date。
+用户一次列出多个PR、多个奖项时必须逐条收录，不得只收第一条。数字及其单位（人/次/个/条）保留，不能把「20次」解释为「20次调用/请求」。
 半句话中已经说清的团队规模、本人分工等分别抽取；未完成的尾巴不影响前面的事实，不猜缺失内容。
 不要返回整份 collected_info，不要添加未知字段。"""
 
@@ -270,7 +272,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             result["rejected"].append({"text": str(raw_item["name"]), "reason": "item_name_not_in_candidate_message"})
             continue
         raw_facts = raw_item.get("facts") if isinstance(raw_item.get("facts"), list) else []
-        facts = [fact for raw in raw_facts if (fact := validated(raw))]
+        facts = []
+        for raw in raw_facts:
+            if fact := validated(raw):
+                if raw.get("field") in FACT_FIELDS[raw_item["section"]]:
+                    fact["field"] = raw["field"]
+                facts.append(fact)
         raw_notes = raw_item.get("raw_notes") if isinstance(raw_item.get("raw_notes"), list) else []
         notes = [note for note in raw_notes
                  if isinstance(note, str) and note.strip() and normalize_text(note) in normalize_text(evidence)]
@@ -279,6 +286,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         result["items"].append({"section": raw_item["section"], "item_id": item_id or str(uuid.uuid4()),
                                 "name": str(raw_item.get("name", "")).strip(), "facts": facts,
                                 "raw_notes": list(dict.fromkeys(notes))})
+        links = raw_item.get("links") or []
+        accepted = [link for link in links if isinstance(link, dict)
+                    and isinstance(link.get("url"), str) and link["url"] in evidence
+                    and isinstance(link.get("text"), str) and link["text"] in evidence]
+        if accepted:
+            result["items"][-1]["links"] = accepted
     for raw in candidate.get("corrections", []) if isinstance(candidate.get("corrections"), list) else []:
         if not isinstance(raw, dict) or (raw.get("item_id"), raw.get("fact_id")) not in known:
             if isinstance(raw, dict):
@@ -286,6 +299,11 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             continue
         replacement = validated(raw.get("replacement"))
         if replacement:
+            old = next(fact for section in FACT_SECTIONS for item in visible.get(section, [])
+                       if item.get("item_id") == raw["item_id"] for fact in item.get("facts", [])
+                       if fact.get("id") == raw["fact_id"])
+            if old.get("field"):
+                replacement["field"] = old["field"]
             result["corrections"].append({"item_id": raw["item_id"], "fact_id": raw["fact_id"], "replacement": replacement})
     for raw in candidate.get("removals", []) if isinstance(candidate.get("removals"), list) else []:
         if isinstance(raw, dict) and (raw.get("item_id"), raw.get("fact_id")) in known:
@@ -295,8 +313,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     basic = candidate.get("basic_info")
     if isinstance(basic, dict):
         for key, value in basic.items():
-            if key in {"name", "phone", "email", "location", "city", "github", "objective"} and isinstance(value, str) and value.strip() and normalize_text(value) in normalize_text(evidence) and not _quote_has_unquoted_limit(evidence, value):
-                result["basic_info"][key] = value.strip()
+            if key in {"name", "phone", "email", "location", "city", "github", "objective", "availability"} and isinstance(value, str) and value.strip() and normalize_text(value) in normalize_text(evidence) and not _quote_has_unquoted_limit(evidence, value):
+                result["basic_info"]["location" if key == "city" else key] = value.strip()
+            elif key == "links" and isinstance(value, list):
+                result["basic_info"][key] = [link for link in value if isinstance(link, dict)
+                    and isinstance(link.get("url"), str) and link["url"] in evidence
+                    and isinstance(link.get("text"), str) and link["text"].lower() in evidence.lower()]
     skills = candidate.get("skills")
     if isinstance(skills, list):
         for value in skills:
@@ -328,6 +350,36 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             owner = owners[0]
             result["items"].append({"section": owner["section"], "item_id": owner["item_id"],
                                     "name": owner["name"], "facts": [], "raw_notes": [evidence]})
+    from app.services.candidate_sections import parse_header_fields, parse_labelled_items
+    header = parse_header_fields(evidence)
+    for key, value in header.items():
+        if key == "links":
+            existing = result["basic_info"].setdefault("links", [])
+            existing.extend(link for link in value if link not in existing)
+        else:
+            result["basic_info"].setdefault(key, value)
+    claimed_rows = set()
+    for section, rows in parse_labelled_items(evidence, turn_id=turn_id).items():
+        for row in rows:
+            quote = row["raw_notes"][0]
+            # An explicitly labelled row supplies the section and repository title,
+            # even when a model incorrectly called it a project named 「自己」.
+            owner = next((item for item in result["items"] if id(item) not in claimed_rows and any(
+                fact.get("field") in {None, "pr"} and fact.get("source_quote")
+                and normalize_text(fact["source_quote"]) in normalize_text(quote)
+                for fact in item["facts"])), None)
+            if owner is None:
+                owner = {"section": section, "item_id": row["item_id"], "name": row["name"],
+                         "facts": [], "raw_notes": []}
+                result["items"].append(owner)
+            claimed_rows.add(id(owner))
+            owner.update(section=section, name=row["name"])
+            known_quotes = {fact["source_quote"] for fact in owner["facts"]}
+            owner["facts"].extend(fact for fact in row["facts"] if fact["source_quote"] not in known_quotes
+                                  or fact.get("field"))
+            owner["raw_notes"].extend(note for note in row["raw_notes"] if note not in owner["raw_notes"])
+            if row.get("links"):
+                owner["links"] = row["links"]
     coverage_evidence = evidence + (" " + tail if tail else "")
     _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text)
     for item in result["items"]:
@@ -366,7 +418,7 @@ def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text):
     wanted = normalize_text(clause)
     sentence = next((part for part in re.split(r"(?<=[。！？!?\n])", evidence) if clause in part), "")
     sentence_norm = normalize_text(sentence)
-    candidates = [item for item in items if item["section"] in {"projects", "work_experience", "internship"}]
+    candidates = [item for item in items if item["section"] in {"projects", "work_experience", "internship", "open_source", "awards"}]
     for item in candidates:
         if any(wanted in normalize_text(note) for note in item.get("raw_notes", [])):
             return item
@@ -403,10 +455,12 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
             continue
         item = by_id.get(item_id)
         if item is None:
-            label = {"projects": "name", "education": "school", "internship": "company", "work_experience": "company"}[section]
+            label = FACT_LABELS[section]
             item = {"item_id": item_id, label: entry.get("name", ""), "facts": [], "raw_notes": []}
             result.setdefault(section, []).append(item)
             by_id[item_id] = item
+        if entry.get("links"):
+            item.setdefault("links", []).extend(link for link in entry["links"] if link not in item["links"])
         existing = {fact.get("id") for fact in item.setdefault("facts", [])}
         item["facts"].extend(copy.deepcopy(fact) for fact in entry.get("facts", []) if fact.get("id") not in existing)
         notes = item.setdefault("raw_notes", [])

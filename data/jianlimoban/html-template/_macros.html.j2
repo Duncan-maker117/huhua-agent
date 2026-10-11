@@ -2,7 +2,7 @@
 
 {#- 页眉第二行：联系方式与可选个人信息，用 · 分隔；空值不渲染。 -#}
 {% macro contact_line(b) -%}
-{%- set labels = {'phone': '', 'email': '', 'location': '', 'gender': '', 'age': '年龄 ', 'birthday': '出生 ', 'ethnicity': '', 'hometown': '籍贯 ', 'political': '', 'height': '身高 '} -%}
+{%- set labels = {'phone': '', 'email': '', 'location': '', 'gender': '', 'age': '年龄 ', 'birthday': '出生 ', 'ethnicity': '', 'hometown': '籍贯 ', 'political': '', 'height': '身高 ', 'availability': '可实习时间：'} -%}
 {%- set ns = namespace(n=0) -%}
 {%- for key, label in labels.items() -%}
   {%- if b.get(key) -%}
@@ -10,6 +10,11 @@
     {{ label }}<span data-field-path="/basic_info/{{ key }}">{{ b.get(key) }}</span>
     {%- set ns.n = ns.n + 1 -%}
   {%- endif -%}
+{%- endfor -%}
+{%- for link in b.get('links', []) -%}
+  {%- if ns.n %}<span class="sep"> · </span>{% endif -%}
+  <span data-field-path="/basic_info/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/basic_info/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" rel="noopener noreferrer">{{ link.url }}</a>{% else %}{{ link.url }}{% endif %}</span>
+  {%- set ns.n = ns.n + 1 -%}
 {%- endfor -%}
 {%- endmacro %}
 
@@ -40,4 +45,20 @@
 {#- 技能：每组一行「组名：项 / 项 / 项」。 -#}
 {% macro skill_rows(groups) -%}
 {% for group_name, items in groups.items() %}{% if items %}<div class="skill-row"><strong><span data-field-path="/skill_groups/{{ group_name | pointer_escape }}" data-field-kind="group-name">{{ group_name }}</span>：</strong>{% for skill in items %}<span data-field-path="/skill_groups/{{ group_name | pointer_escape }}/{{ loop.index0 }}">{{ skill }}</span>{% if not loop.last %} / {% endif %}{% endfor %}</div>{% endif %}{% endfor %}
+{%- endmacro %}
+
+{% macro contribution_sections(section) -%}
+{% set kind = section.kind %}
+{% for item in (open_source if kind == 'open_source' else awards) %}
+{% set index = item._source_index %}
+<div class="item">
+  <div class="item-header">
+    <span class="item-title"><span data-field-path="/{{ kind }}/{{ index }}/name">{{ item.name }}</span>{% if kind == 'open_source' and item.pr %} ｜ <span data-field-path="/{{ kind }}/{{ index }}/pr">{{ item.pr }}</span>{% elif kind == 'awards' and item.level %} ｜ <span data-field-path="/awards/{{ index }}/level">{{ item.level }}</span>{% endif %}</span>
+    {% if kind == 'open_source' %}{{ date_range(item, kind, index) }}{% elif item.date %}<span class="item-date" data-field-path="/awards/{{ index }}/date">{{ item.date }}</span>{% endif %}
+  </div>
+  {% if kind == 'open_source' and item.summary %}<div class="item-sub" data-field-path="/open_source/{{ index }}/summary">{{ item.summary }}</div>{% endif %}
+  {% if item.bullets %}<ul>{% for bullet in item.bullets %}<li><span data-field-path="/{{ kind }}/{{ index }}/bullets/{{ loop.index0 }}">{{ bullet }}</span></li>{% endfor %}</ul>{% endif %}
+  {% for link in item.links | default([]) %}<div class="item-sub"><span data-field-path="/{{ kind }}/{{ index }}/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/{{ kind }}/{{ index }}/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" rel="noopener noreferrer">{{ link.url }}</a>{% else %}{{ link.url }}{% endif %}</span></div>{% endfor %}
+</div>
+{% endfor %}
 {%- endmacro %}

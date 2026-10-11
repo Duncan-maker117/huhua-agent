@@ -1,6 +1,6 @@
 """Offline public-web boundaries plus a real local TLS/HTTPX transport check."""
 import asyncio
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, nullcontext
 from datetime import datetime, timedelta, timezone
 import gzip
 import json
@@ -503,9 +503,31 @@ class WebResearchTests(unittest.IsolatedAsyncioTestCase):
             def transport(**kwargs):
                 self.assertFalse(kwargs["trust_env"])
                 return original_transport(verify=client_ctx, **kwargs)
-            server = await asyncio.start_server(serve, "127.0.0.1", 0, ssl=server_ctx)
-            port = server.sockets[0].getsockname()[1]
             loop = asyncio.get_running_loop()
+            connections = []
+            try:
+                server = await asyncio.start_server(serve, "127.0.0.1", 0, ssl=server_ctx)
+                port = server.sockets[0].getsockname()[1]
+                dial_patch = nullcontext()
+            except PermissionError:
+                # Managed sandboxes forbid listen/bind. Replace only TCP dialing
+                # with a connected socket pair; HTTPX, TLS, SNI and certificate
+                # validation still run unchanged over real encrypted sockets.
+                import anyio
+                from httpcore._backends.anyio import AnyIOBackend, AnyIOStream
+                server, port = None, 8443
+                async def dial(_backend, host, port, **kwargs):
+                    self.assertEqual((host, port), ("127.0.0.1", 8443))
+                    client_socket, server_socket = socket.socketpair()
+                    client_socket.setblocking(False)
+                    server_socket.setblocking(False)
+                    reader = asyncio.StreamReader()
+                    task = asyncio.create_task(loop.connect_accepted_socket(
+                        lambda: asyncio.StreamReaderProtocol(reader, client_connected_cb=serve),
+                        server_socket, ssl=server_ctx))
+                    connections.append(task)
+                    return AnyIOStream(await anyio.abc.SocketStream.from_socket(client_socket))
+                dial_patch = patch.object(AnyIOBackend, "connect_tcp", dial)
             previous_handler = loop.get_exception_handler()
             def expected_tls_reset(loop, context):
                 if (context.get("message") == "Error on transport creation for incoming connection"
@@ -517,7 +539,7 @@ class WebResearchTests(unittest.IsolatedAsyncioTestCase):
                     loop.default_exception_handler(context)
             loop.set_exception_handler(expected_tls_reset)
             try:
-                with self.assertNoLogs("httpx", level="INFO"), patch.object(web.httpx, "AsyncHTTPTransport", transport), patch.dict("os.environ", {"HTTPS_PROXY": "http://127.0.0.1:1"}):
+                with dial_patch, self.assertNoLogs("httpx", level="INFO"), patch.object(web.httpx, "AsyncHTTPTransport", transport), patch.dict("os.environ", {"HTTPS_PROXY": "http://127.0.0.1:1"}):
                     async with web._public_response(f"https://jobs.example.test:{port}/role?x=1", "127.0.0.1") as actual:
                         body = await web._bounded_body(actual)
                     self.assertIn("岗位职责", body.decode())
@@ -528,8 +550,12 @@ class WebResearchTests(unittest.IsolatedAsyncioTestCase):
                         async with web._public_response(f"https://wrong.example.test:{port}/role", "127.0.0.1"):
                             self.fail("Wrong hostname certificate must never be accepted")
             finally:
-                server.close()
-                await server.wait_closed()
+                if server is not None:
+                    server.close()
+                    await server.wait_closed()
+                for result in await asyncio.gather(*connections, return_exceptions=True):
+                    if isinstance(result, BaseException):
+                        self.assertIsInstance(result, ConnectionResetError)
                 await asyncio.sleep(0)
                 loop.set_exception_handler(previous_handler)
 

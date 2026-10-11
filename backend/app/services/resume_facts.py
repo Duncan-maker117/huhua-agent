@@ -5,7 +5,7 @@ import copy
 import re
 import uuid
 
-from app.schemas.facts import FACT_KINDS, FACT_SECTIONS, FACT_SOURCES, FACT_STATUSES
+from app.schemas.facts import FACT_FIELDS, FACT_KINDS, FACT_LABELS, FACT_SECTIONS, FACT_SOURCES, FACT_STATUSES
 
 
 def new_fact(text: str, *, kind: str = "action", quote: str | None = None,
@@ -81,7 +81,8 @@ def normalize_fact_store(collected: dict | None) -> dict:
                 facts = [new_fact(line, quote=line, source=source) for line in _lines(raw)]
                 for field, kind in (("role", "role"), ("title", "role"), ("degree", "context"),
                                     ("major", "context"), ("start_date", "context"), ("end_date", "context"),
-                                    ("duration", "context"), ("highlights", "action")):
+                                    ("duration", "context"), ("highlights", "action"), ("summary", "context"),
+                                    ("pr", "context"), ("level", "context"), ("date", "context")):
                     value = item.get(field)
                     if isinstance(value, str) and value.strip() and value.strip() not in {fact["text"] for fact in facts}:
                         fact = new_fact(value, kind=kind, quote=value, source=source)
@@ -117,7 +118,7 @@ def normalize_fact_store(collected: dict | None) -> dict:
 def _editor_texts(item: dict, section: str) -> list[str]:
     if section == "projects":
         bullets = item.get("polished_bullets") or []
-    elif section in {"work_experience", "internship"}:
+    elif section in {"work_experience", "internship", "open_source", "awards"}:
         bullets = item.get("bullets") or []
     else:
         bullets = item.get("highlights") or []
@@ -129,7 +130,8 @@ def _editor_texts(item: dict, section: str) -> list[str]:
 
 def _editor_statements(item: dict, section: str) -> list[str]:
     statements = _editor_texts(item, section)
-    for field in ("description", "role", "title", "start_date", "end_date", "duration", "highlights"):
+    for field in ("description", "role", "title", "degree", "major", "start_date", "end_date", "duration", "highlights",
+                  "summary", "pr", "level", "date"):
         value = item.get(field)
         if isinstance(value, str) and value.strip():
             statements.extend(_lines(value))
@@ -148,7 +150,7 @@ def append_editor_facts(previous_facts: dict, old_draft: dict, new_draft: dict,
     result = normalize_fact_store(previous_facts)
     basic = result.setdefault("basic_info", {})
     for key, value in (new_draft.get("basic_info") or {}).items():
-        if isinstance(value, (str, int, float)):
+        if isinstance(value, (str, int, float)) or (key == "links" and isinstance(value, list)):
             basic[key] = value
     old_skills = {skill.casefold() for skill in _editor_skills(old_draft)}
     known_skills = {skill["name"].casefold() for skill in result.get("skills", [])}
@@ -160,8 +162,15 @@ def append_editor_facts(previous_facts: dict, old_draft: dict, new_draft: dict,
     for section in FACT_SECTIONS:
         old_items = old_draft.get(section) or []
         old_by_id = {item.get("item_id"): item for item in old_items if isinstance(item, dict) and item.get("item_id")}
-        def identity(value: dict) -> str:
-            return str(value.get("name") or value.get("company") or value.get("school") or "").strip().casefold()
+        def identity(value: dict):
+            label = str(value.get("name") or value.get("company") or value.get("school") or "").strip().casefold()
+            if not label:
+                return ""
+            if section == "open_source":
+                return label, value.get("pr", "")
+            if section == "awards":
+                return label, value.get("level", ""), value.get("date", "")
+            return label
         old_by_identity = {identity(item): item for item in old_items if isinstance(item, dict) and identity(item)}
         new_items = new_draft.get(section) or []
         stored = result.setdefault(section, [])
@@ -178,9 +187,8 @@ def append_editor_facts(previous_facts: dict, old_draft: dict, new_draft: dict,
             item_id = item.get("item_id") or old.get("item_id")
             target = by_id.get(item_id) if item_id else None
             if target is None:
-                label = item.get("name") or item.get("company") or item.get("school")
                 target = next((candidate for candidate in stored if isinstance(candidate, dict)
-                               and label and label == (candidate.get("name") or candidate.get("company") or candidate.get("school"))), None)
+                               and identity(item) and identity(item) == identity(candidate)), None)
                 if target:
                     item_id = target.get("item_id")
             if target is None and index < len(stored) and isinstance(stored[index], dict) and not item_id and identity(stored[index]) == identity(item):
@@ -191,16 +199,33 @@ def append_editor_facts(previous_facts: dict, old_draft: dict, new_draft: dict,
             if target is None:
                 if not identity(item) and not _editor_statements(item, section):
                     continue
-                label_key = {"projects": "name", "education": "school", "internship": "company", "work_experience": "company"}[section]
+                label_key = FACT_LABELS[section]
                 target = {"item_id": item_id, label_key: item.get(label_key, ""), "facts": [], "raw_notes": []}
                 stored.append(target)
             by_id[item_id] = target
+            if "links" in item:
+                target["links"] = copy.deepcopy(item["links"])
             old_texts = set(_editor_statements(old, section))
             already = {fact.get("text") for fact in target.get("facts", []) if fact.get("status", "active") == "active"}
             for value in _editor_statements(item, section):
                 if value not in old_texts and value not in already:
                     target.setdefault("facts", []).append(new_fact(value, quote=value, source="editor", turn_id=turn_id))
                     already.add(value)
+            for field in FACT_FIELDS[section]:
+                value = item.get(field)
+                if isinstance(value, str) and value and value != old.get(field):
+                    active = [fact for fact in target.get("facts", []) if fact.get("field") == field
+                              and fact.get("status", "active") == "active"]
+                    if not any(fact.get("text") == value for fact in active):
+                        for fact in active:
+                            fact["status"] = "superseded"
+                        fact = next((entry for entry in target.get("facts", [])
+                                     if entry.get("text") == value and entry.get("status", "active") == "active"), None)
+                        if fact is None:
+                            fact = new_fact(value, quote=value, source="editor", turn_id=turn_id, kind="context")
+                            target.setdefault("facts", []).append(fact)
+                        fact["field"] = field
+                    target[field] = value
     return result
 
 
@@ -221,6 +246,6 @@ def active_facts_for_writer(collected: dict) -> dict:
                       if fact.get("status") == "active"]
             if not active:
                 continue
-            result[section].append({key: copy.deepcopy(item[key]) for key in ("item_id", "name", "company", "school", "hidden") if key in item}
+            result[section].append({key: copy.deepcopy(item[key]) for key in ("item_id", "name", "company", "school", "hidden", "links") if key in item}
                                    | {"facts": active})
     return result

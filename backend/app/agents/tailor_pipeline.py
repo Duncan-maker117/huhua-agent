@@ -41,7 +41,7 @@ def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
     """Unambiguous named/ordinal selections; PR5 router handles compound intents."""
     matches = []
     aliases = {}
-    for section in ('projects', 'work_experience'):
+    for section in ('projects', 'work_experience', 'open_source'):
         for item in data.get(section) or []:
             name = item.get('name') or item.get('company')
             if not isinstance(name, str) or not item.get('item_id'):
@@ -67,7 +67,7 @@ def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
 
 
 def _has_visible_experience_body(data: dict) -> bool:
-    for section, field in (('projects', 'polished_bullets'), ('work_experience', 'bullets')):
+    for section, field in (('projects', 'polished_bullets'), ('work_experience', 'bullets'), ('open_source', 'bullets')):
         for item in data.get(section) or []:
             if not isinstance(item, dict) or item.get('hidden'):
                 continue
@@ -126,11 +126,12 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
     current = state.get('resume_data') or {}
     data = deepcopy(base_data)
     meta = deepcopy(state.get('resume_meta') or {})
-    active_refs = {fact['id'] for section in ('projects', 'work_experience', 'internship', 'education')
+    active_refs = {fact['id'] for section in ('projects', 'work_experience', 'internship', 'education', 'open_source', 'awards')
                    for item in source.get(section) or [] for fact in item.get('facts') or []}
     for section, source_sections, body_fields in (
         ('projects', ('projects',), ('description', 'polished_bullets')),
         ('work_experience', ('work_experience', 'internship'), ('description', 'bullets')),
+        ('open_source', ('open_source',), ('bullets',)),
     ):
         active_items = {item['item_id'] for source_section in source_sections
                         for item in source.get(source_section) or []}
@@ -278,7 +279,7 @@ async def apply_deterministic_update(state: dict, base_data: dict, instruction: 
     current = state.get('resume_data') or {}
     data = deepcopy(current)
     data['education'] = deepcopy(base_data.get('education') or current.get('education') or [])
-    version = prepare_version(current, state.get('resume_meta') or {}, state.get('resume_versions') or [],
+    version = prepare_version(state.get('previous_resume_data', current), state.get('resume_meta') or {}, state.get('resume_versions') or [],
                               data, deepcopy(state.get('resume_meta') or {}), label='确认资料更新')
     measurement = await asyncio.to_thread(measure_rendered_pages, version['resume_data'], constraints)
     diagnostic = {'status': 'not_called', 'reason': 'deterministic_only'}

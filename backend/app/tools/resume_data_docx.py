@@ -113,6 +113,10 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
             opt_parts.append(f"{label} {basic[k]}")
     if opt_parts:
         doc.add_paragraph(" | ".join(opt_parts))
+    if basic.get("availability"):
+        doc.add_paragraph("可实习时间：" + basic["availability"])
+    for link in basic.get("links") or []:
+        doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")
 
     # 预览与 Word 共享栏目顺序、标题与可见性；正文仍取原有字段。
     for resume_section in get_resume_sections(data):
@@ -121,7 +125,7 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
             has_content = bool(resume_section["title"] or resume_section["content"])
         elif kind == "skills":
             has_content = any((data.get("skill_groups") or {}).values()) or bool(data.get("skills"))
-        elif kind in {"education", "work_experience", "projects"}:
+        elif kind in {"education", "work_experience", "projects", "open_source", "awards"}:
             has_content = bool(visible_items(data, kind))
         else:
             has_content = bool(data.get(kind))
@@ -190,6 +194,17 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
                     doc.add_paragraph(b, style="List Bullet")
             elif proj.get("description"):
                 doc.add_paragraph(proj["description"])
+
+    elif kind in {"open_source", "awards"}:
+        for _, item in visible_items(data, kind):
+            parts = (item.get("name"), item.get("pr"), item.get("summary"),
+                     f"{item.get('start_date', '')}—{item.get('end_date', '')}".strip("—")) if kind == "open_source" else (
+                item.get("name"), item.get("level"), item.get("date"))
+            doc.add_paragraph().add_run(" / ".join(value for value in parts if value)).bold = True
+            for bullet in item.get("bullets") or []:
+                doc.add_paragraph(bullet, style="List Bullet")
+            for link in item.get("links") or []:
+                doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")
 
     elif kind == "skills":
         # 分组技能优先，fallback 到 flat skills。

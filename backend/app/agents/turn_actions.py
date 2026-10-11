@@ -23,8 +23,8 @@ _ROLE_ANSWER = re.compile(r"一个人|都是我|独立|我负责|我写|我做|�
 
 _AWARD_LINE = re.compile(r"竞赛|比赛|大赛|杯|奖|证书")
 _EDU_HEADER = re.compile(
-    r"(?ms)^[ \t#]*(?:教育背景|教育经历|教育)[ \t]*$\n(.*?)(?=^[ \t#]*(?:项目经历|项目|实习经历|工作经历|实习|"
-    r"技能|专业技能|奖项|荣誉|获奖|证书|自我评价|个人评价|个人定位)[ \t]*$|\Z)")
+    r"(?ms)^[ \t#]*(?:教育背景|教育经历|教育)[ \t]*[：:]?[ \t]*(?:\n)?(.*?)(?=^[ \t#]*(?:项目经历|项目|实习经历|工作经历|实习|"
+    r"开源贡献|竞赛荣誉|竞赛和荣誉|竞赛与荣誉|技能|专业技能|奖项|荣誉|获奖|证书|自我评价|个人评价|个人定位)[ \t]*[：:]?|\Z)")
 
 
 def _clauses(message: str) -> list[str]:
@@ -63,7 +63,8 @@ def parse_education_fields(message: str) -> dict[str, str]:
     fields: dict[str, str] = {}
     section = _EDU_HEADER.search(message)
     # 有「教育背景」栏目时只从该栏取，避免奖项/项目行里的「…大学」干扰
-    for clause in _clauses(section.group(1) if section and section.group(1).strip() else message):
+    education_text = section.group(1) if section and section.group(1).strip() else message
+    for clause in _clauses(education_text):
         school_hint = _school_token(clause)
         if not _EDU_WORD.search(clause) and not school_hint:
             continue
@@ -84,10 +85,22 @@ def parse_education_fields(message: str) -> dict[str, str]:
         degree = re.search(r"本科|硕士|博士|专科", clause)
         if degree:
             fields["degree"] = degree.group(0)
+            if "major" not in fields:
+                before = clause[:degree.start()].strip(" （(：: ")
+                before = re.split(r"大学|学院|[｜|·]", before)[-1].strip(" （(：: ")
+                if re.fullmatch(r"[\u4e00-\u9fffA-Za-z与和]{2,30}", before) and not re.search(r"就读|学历|我是|学校", before):
+                    fields["major"] = before
         grade = re.search(r"大[一二三四]|研[一二三]", clause)
         if grade:
             fields["grade"] = grade.group(0)
     school = fields.get("school") or ""
+    if fields:
+        dates = re.search(r"(20\d{2}[./年-]\d{1,2}月?)\s*[—–~～至-]\s*(20\d{2}[./年-]\d{1,2}月?|至今)", education_text)
+        if dates:
+            fields.update(start_date=dates[1], end_date=dates[2])
+        scholarship = re.search(r"[^，,。；;\n]*(?:奖学金)[^，,。；;\n]*", education_text)
+        if scholarship:
+            fields["highlights"] = scholarship[0].strip()
     if school and "major" not in fields:
         middle = re.search(re.escape(school) + r"([\u4e00-\u9fff]{2,12}?)(?:大[一二三四]|在读|的|$)", message)
         if middle:
@@ -154,8 +167,9 @@ def absorb_education(collected: dict, previous: dict | None, message: str, turn_
         if active and active.get("text") == value:
             target[field] = value
             continue
-        if active:
-            active["status"] = "superseded"
+        for old in target["facts"]:
+            if old.get("field") == field and old.get("status", "active") == "active":
+                old["status"] = "superseded"
         fact = new_fact(value, kind="context", quote=quote, turn_id=turn_id)
         fact["field"] = field
         target.setdefault("facts", []).append(fact)
@@ -231,10 +245,16 @@ def overlay_education(collected: dict, resume: dict | None) -> dict:
         grade = ""
         for fact in facts:
             field = fact.get("field")
-            if field in {"school", "degree", "major", "start_date", "end_date"} and fact.get("text"):
+            if field in {"school", "degree", "major", "start_date", "end_date", "highlights"} and fact.get("text"):
                 row[field] = fact["text"]
             elif field == "grade" and fact.get("text"):
                 grade = fact["text"]
+        body = [fact["text"] for fact in facts if not fact.get("field") and fact.get("text")]
+        for text in body:
+            if re.search(r"奖学金|荣誉|获奖", text) and text not in row["highlights"]:
+                row["highlights"] = "\n".join(filter(None, (row["highlights"], text)))
+        if item.get("links"):
+            row["links"] = deepcopy(item["links"])
         if grade and grade not in row["highlights"]:
             row["highlights"] = (row["highlights"] + " " + grade).strip()
         if item.get("hidden") is True:
@@ -278,7 +298,7 @@ def edit_clauses(message: str) -> list[str]:
 
 def _item_labels(data: dict | None) -> list[str]:
     labels = []
-    for section in ("projects", "work_experience", "education"):
+    for section in ("projects", "work_experience", "education", "open_source", "awards"):
         for item in (data or {}).get(section) or []:
             if isinstance(item, dict):
                 label = item.get("name") or item.get("company") or item.get("school") or ""
@@ -352,7 +372,7 @@ def _same_target(left: str, right: str, data: dict | None) -> bool:
     if left == right or name_matches(left, right) or name_matches(right, left):
         return True
     names = {}
-    for section in ("projects", "work_experience", "education"):
+    for section in ("projects", "work_experience", "education", "open_source", "awards"):
         for item in (data or {}).get(section) or []:
             if isinstance(item, dict) and item.get("item_id"):
                 label = str(item.get("name") or item.get("company") or item.get("school") or "")
@@ -398,7 +418,7 @@ def _requested_op(op: dict, message: str) -> bool:
     return True
 
 
-_DETERMINISTIC_OPS = {"set_field", "clean_format"}
+_DETERMINISTIC_OPS = {"set_field", "clean_format", "move_item"}
 _EDUCATION_CLAUSE = re.compile(r"学校|专业|学历|本科|硕士|博士|大专|年级|大[一二三四]|研[一二三]")
 
 
@@ -410,6 +430,23 @@ def deterministic_only(message: str, planned_ops: list[dict], writer_requests: l
     """
     if writer_requests or direction:
         return False
+    if planned_ops and any(op.get("op") == "move_item" for op in planned_ops):
+        moved_ids = {op.get("target") for op in planned_ops if op.get("op") == "move_item"}
+        moved_ids.update(item.get("item_id") for section in ("projects", "work_experience", "internship", "open_source", "awards")
+                         for item in (before or {}).get(section) or []
+                         if (item.get("name") or item.get("company")) in moved_ids)
+        def unrelated(store):
+            result = deepcopy(store or {})
+            for section in ("projects", "work_experience", "internship", "open_source", "awards"):
+                result[section] = [item for item in result.get(section) or []
+                                   if item.get("item_id") not in moved_ids
+                                   and (item.get("name") or item.get("company")) not in moved_ids]
+                if not result[section]:
+                    result.pop(section)
+            result.pop("education", None)
+            return result
+        return (all(op.get("op") in _DETERMINISTIC_OPS for op in planned_ops)
+                and unrelated(before) == unrelated(after))
     if any(key != "education" and (before or {}).get(key) != (after or {}).get(key)
            for key in set(before or {}) | set(after or {})):
         return False
@@ -515,6 +552,15 @@ def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
 
     「求职意向就写 X」always becomes a literal set_field; the writer never rewrites it."""
     plan = _choose_edit_plan(message, data, model_plan, collected, router_failed=router_failed)
+    moves = section_move_ops(message, data)
+    if moves:
+        moved_targets = {move["target"] for move in moves}
+        explicit_writing = re.search(r"重写|改写|润色|精简|压缩|突出|展开|写详细", message)
+        plan = [op for op in plan if op.get("op") != "move_item" and not (
+            op.get("op") in {"rewrite", "refocus", "compress"} and not explicit_writing
+            and (not op.get("target") or op.get("target") in moved_targets
+                 or op.get("target") in {"whole", "all", "resume", "projects", "项目经历"}))]
+        plan.extend(moves)
     value = explicit_objective(message)
     if value:
         plan = [op for op in plan if not (op.get("op") == "set_field"
@@ -522,6 +568,31 @@ def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
         plan.append({"op": "set_field", "target": "basic_info",
                      "args": {"field": "objective", "value": value}})
     return plan
+
+
+def section_move_ops(message: str, data: dict | None) -> list[dict]:
+    """Explicit reclassification is a field edit, not a request to rewrite prose."""
+    from app.services.edit_plan import SECTION_ALIASES, ITEM_SECTIONS
+    destination = ""
+    for alias, kind in SECTION_ALIASES.items():
+        if kind not in ITEM_SECTIONS or len(alias) < 2:
+            continue
+        if re.search(r"(?:这是|这个是|这条是|这段是|属于|放到|放进|移到|移入|挪到|归入|改成|改为)\s*[「『]?" + re.escape(alias), message):
+            destination = kind
+            break
+    if not destination or re.search(r"不要(?:放到|移到|改成)|别(?:放到|移到|改成)", message):
+        return []
+    target = _match_label(message, _item_labels(data)) or _ordinal_target(message)
+    if not target:
+        candidates = [item for section in ITEM_SECTIONS for item in (data or {}).get(section) or []
+                      if isinstance(item, dict) and not item.get("hidden")]
+        if len(candidates) == 1:
+            target = candidates[0].get("item_id") or _item_labels(data)[0]
+    args = {"section": destination}
+    renamed = re.search(r"(?:标题|仓库名|名称)(?:用|写成|改成|是|为)\s*[「『“]?([^」』”，,。；;]+)", message)
+    if renamed:
+        args["name"] = renamed[1].strip()
+    return [{"op": "move_item", "target": target, "args": args}]
 
 
 def _choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
@@ -606,7 +677,7 @@ def _clause_has_op(clause: str, plan: list[dict], labels: list[str], data: dict 
 
 def _display_target(target: str, before: dict, after: dict) -> str:
     for document in (before, after):
-        for section in ("projects", "work_experience", "education"):
+        for section in ("projects", "work_experience", "education", "open_source", "awards"):
             for item in document.get(section) or []:
                 if isinstance(item, dict) and item.get("item_id") == target:
                     return str(item.get("name") or item.get("company") or item.get("school") or target)
@@ -659,11 +730,11 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
     labels = {"rewrite": "改写", "compress": "压缩", "refocus": "调整重点", "set_field": "修改字段",
               "delete_item": "删除", "hide_item": "隐藏", "cap_bullets": "限制条数",
               "remove_section": "去掉栏目", "set_constraint": "更新篇幅要求", "clean_format": "清理格式",
-              "honor": "已遵守"}
+              "honor": "已遵守", "move_item": "移动栏目"}
     hidden_targets = {"", "whole", "understand", "set_field", "set_constraint"}
 
     def find(document: dict, item_id: str):
-        for section in ("projects", "work_experience", "education"):
+        for section in ("projects", "work_experience", "education", "open_source", "awards"):
             for item in document.get(section) or []:
                 if isinstance(item, dict) and item.get("item_id") == item_id:
                     return item

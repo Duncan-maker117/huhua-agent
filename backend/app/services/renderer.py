@@ -1,6 +1,7 @@
 """HTML 简历渲染服务：Jinja2 模板 + ResumeData → HTML 字符串。"""
 
 import re
+from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,22 @@ _env = Environment(
 )
 _env.filters["pointer_escape"] = lambda value: str(value).replace("~", "~0").replace("/", "~1")
 
+
+def safe_link_url(value: str) -> str:
+    value = str(value or "").strip()
+    if re.search(r"[\s<>\"']", value):
+        return ""
+    if not re.match(r"https?://", value, re.I) and re.fullmatch(r"[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?:/[^\s]*)?", value):
+        value = "https://" + value
+    try:
+        parts = urlsplit(value)
+        return value if parts.scheme in {"http", "https"} and parts.hostname else ""
+    except ValueError:
+        return ""
+
+
+_env.filters["safe_link_url"] = safe_link_url
+
 _PHOTO_DATA_URL = re.compile(r"\Adata:image/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}\Z")
 _MAX_PHOTO_URL_LENGTH = 7 * 1024 * 1024
 
@@ -50,7 +67,7 @@ def render_resume(template_id: str, data: dict[str, Any], interactive: bool = Fa
     sections = get_resume_sections(data)
     visible = {
         kind: [{**item, "_source_index": index} for index, item in visible_items(data, kind)]
-        for kind in ("education", "work_experience", "projects")
+        for kind in ("education", "work_experience", "projects", "open_source", "awards")
     }
     html = template.render(**{
         **data,

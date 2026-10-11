@@ -14,7 +14,7 @@ from sqlalchemy import select
 from app.models.profile import ProfileFact, ProfileJobVersion, new_id
 
 
-COLLECTIONS = ("education", "work_experience", "projects")
+COLLECTIONS = ("education", "work_experience", "projects", "open_source", "awards")
 PAYLOAD_KEY = "projection_v1"
 
 
@@ -62,13 +62,15 @@ def _content_signature(collection, item):
     """Exact substantive content, excluding only display identity and empty defaults."""
     fields = {"projects": ("role", "start_date", "end_date", "description", "polished_bullets"),
               "education": ("degree", "major", "start_date", "end_date", "highlights"),
-              "work_experience": ("title", "start_date", "end_date", "bullets")}[collection]
+              "work_experience": ("title", "start_date", "end_date", "bullets"),
+              "open_source": ("summary", "pr", "start_date", "end_date", "bullets"),
+              "awards": ("level", "date", "bullets")}[collection]
     content = {key: item[key] for key in fields if item.get(key) not in (None, "", [])}
     # An identity-only item has no independent payload to compare.
     return json.dumps(content, ensure_ascii=False, sort_keys=True) if content else None
 
 
-def register_fact_items(db, account_id, session_id, collected_info, proposed):
+def register_fact_items(db, account_id, session_id, collected_info, proposed, *, moved_item_ids=()):
     """Register server-created identities from extractor state, never editor input."""
     authoritative = _item_index(collected_info)
     candidates = _item_index(proposed)
@@ -78,7 +80,11 @@ def register_fact_items(db, account_id, session_id, collected_info, proposed):
     known = projection.setdefault("items", {})
     additions = {key: collection for key, (collection, _) in candidates.items()
                  if key not in known and key in authoritative and authoritative[key][0] == collection}
-    if not additions:
+    moves = {key: collection for key, (collection, _) in candidates.items()
+             if key in set(moved_item_ids) and key in known and not known[key].get("removed")
+             and key in authoritative and authoritative[key][0] == collection
+             and known[key].get("collection") != collection}
+    if not additions and not moves:
         return
     # Even a trusted extractor cannot move another session's opaque identities.
     for other in db.scalars(select(ProfileJobVersion).where(ProfileJobVersion.session_id != session_id)).all():
@@ -86,6 +92,17 @@ def register_fact_items(db, account_id, session_id, collected_info, proposed):
             raise _conflict()
     for item_id, collection in additions.items():
         known[item_id] = {"collection": collection, "fields": {}}
+    for item_id, collection in moves.items():
+        entry = known[item_id]
+        previous = entry.setdefault("previous_collections", [])
+        if entry["collection"] not in previous:
+            previous.append(entry["collection"])
+        entry["collection"] = collection
+        # Body bindings must protect both the old version and the moved body.
+        refs = [ref for field in ("description", "polished_bullets", "bullets")
+                for ref in entry.get("fields", {}).get(field, [])]
+        if refs:
+            entry.setdefault("fields", {})["polished_bullets" if collection == "projects" else "bullets"] = refs
     payload[PAYLOAD_KEY] = projection
     _write_payload(db, account_id, session_id, row, payload)
 
@@ -119,7 +136,7 @@ def validate_item_ids(db, account_id, session_id, current, proposed, *, removed_
         if registered is None:
             if new_items.get(item_id) != collection:
                 raise _conflict()
-        elif registered.get("removed") or registered.get("collection") != collection:
+        elif registered.get("removed") or collection not in {registered.get("collection"), *registered.get("previous_collections", [])}:
             raise _conflict()
     # The committed source itself must also still belong to this session's map.
     if any(item_id not in known for item_id in current_items):

@@ -403,6 +403,18 @@ def fill_template_bytes(
     """读取模版 → 替换 → 返回填好的 docx bytes。"""
     if not template_path.exists():
         raise FileNotFoundError(f"模版不存在: {template_path}")
+    basic = collected_info.get("basic_info") or {}
+    education_details = any(item.get("start_date") or item.get("end_date") or item.get("highlights")
+                            or any(fact.get("field") in {"start_date", "end_date", "highlights"}
+                                   and fact.get("status", "active") == "active" for fact in item.get("facts") or [])
+                            for item in collected_info.get("education") or [])
+    if (collected_info.get("open_source") or collected_info.get("awards") or basic.get("links")
+            or basic.get("github") or basic.get("availability") or education_details):
+        # Fixed legacy sample slots cannot hold arbitrary PR/award lists. Use
+        # the complete structured exporter rather than silently truncating them.
+        from app.agents.resume_graph import _serialize_to_resume_data
+        from app.tools.resume_data_docx import resume_data_to_docx
+        return resume_data_to_docx(_serialize_to_resume_data({"collected_info": collected_info}))
 
     with zipfile.ZipFile(template_path, "r") as z:
         files = {n: z.read(n) for n in z.namelist()}

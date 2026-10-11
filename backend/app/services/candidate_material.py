@@ -9,6 +9,7 @@ import copy
 import re
 
 from app.services.resume_facts import new_fact
+from app.services.candidate_sections import SECTION_LABELS, parse_header_fields, parse_labelled_items
 
 _PROJECT_SECTION = re.compile(r"^项目经历(?:\s*[（(].*[）)])?$")
 _EDUCATION_SECTION = re.compile(r"^教育(?:背景|经历)(?:\s*[（(].*[）)])?$")
@@ -152,6 +153,8 @@ def _project_heading(line: str) -> dict | None:
 def _looks_like_document(text: str) -> bool:
     if _NON_CANDIDATE.search(text):
         return False
+    if any(parse_labelled_items(text).values()):
+        return True
     lines = _resume_lines(text)
     sections = {
         name for name, pattern in (("projects", _PROJECT_SECTION), ("education", _EDUCATION_SECTION),
@@ -191,6 +194,12 @@ def _education(line: str) -> dict | None:
     parts = [part.strip().rstrip("。") for part in re.split(r"[·•|｜，,]", line) if part.strip()]
     if len(parts) < 2 or not re.search(r"大学|学院|学校", parts[0]):
         return None
+    from app.agents.turn_actions import parse_education_fields
+    fields = parse_education_fields(line)
+    if fields.get("school") and fields.get("degree") and fields.get("major"):
+        return {"school": fields["school"], "major": fields.get("major", ""),
+                "degree": fields["degree"], "start_date": fields.get("start_date", ""),
+                "end_date": fields.get("end_date", ""), "highlights": fields.get("highlights", "")}
     degree_match = re.search(r"[（(](本科|硕士|博士|专科)[）)]", parts[1])
     degree = degree_match.group(1) if degree_match else next((part for part in parts[2:] if part in {"本科", "硕士", "博士", "专科"}), "")
     return {
@@ -221,7 +230,9 @@ def _parse_document(text: str) -> dict | None:
     result = {"basic_info": {}, "education": [], "projects": [], "skills": [], "certificates": [], "verification_notes": notes,
               "metadata_context": []}
     summary_lines: list[str] = []
+    result.update(parse_labelled_items(text, source="import"))
     basic = result["basic_info"]
+    basic.update(parse_header_fields(text))
     section = "intro"
     current: dict | None = None
     heading_uncertain = False
@@ -260,6 +271,10 @@ def _parse_document(text: str) -> dict | None:
             next_section = "projects"
         elif _SKILL_SECTION.fullmatch(line):
             next_section = "skills"
+        elif line.rstrip("：:") in SECTION_LABELS:
+            next_section = SECTION_LABELS[line.rstrip("：:")]
+        elif any(line.startswith(label + sep) for label in SECTION_LABELS for sep in ("：", ":")):
+            next_section = SECTION_LABELS[next(label for label in SECTION_LABELS if line.startswith(label))]
         elif _AWARD_SECTION.fullmatch(line):
             next_section = "certificates"
         elif line in {"自我评价", "个人总结", "个人定位"}:
@@ -378,7 +393,7 @@ def parse_existing_resume(text: str, *, user_fields: dict | None = None) -> dict
     parsed = [(name, result) for name, body in _documents(text) if (result := _parse_document(body))]
     if not parsed:
         return None
-    merged = {"basic_info": {}, "education": [], "projects": [], "skills": [], "certificates": [],
+    merged = {"basic_info": {}, "education": [], "projects": [], "open_source": [], "awards": [], "skills": [], "certificates": [],
               "verification_notes": [], "imported_documents": [], "field_conflicts": [], "personal_summary": "",
               "metadata_context": []}
     owners: dict[tuple, list[dict]] = {}
@@ -427,11 +442,26 @@ def parse_existing_resume(text: str, *, user_fields: dict | None = None) -> dict
         merged["field_conflicts"].append(conflict)
 
     for source, result in parsed:
+        for section in ("open_source", "awards"):
+            for item in result.get(section) or []:
+                identity = (item.get("name"), item.get("pr")) if section == "open_source" else (item.get("name"), item.get("level"), item.get("date"))
+                existing = next((old for old in merged[section] if (
+                    (old.get("name"), old.get("pr")) if section == "open_source" else
+                    (old.get("name"), old.get("level"), old.get("date"))) == identity), None)
+                if existing is None:
+                    merged[section].append(copy.deepcopy(item))
+                else:
+                    known = {fact["text"] for fact in existing["facts"]}
+                    existing["facts"].extend(fact for fact in item["facts"] if fact["text"] not in known)
         merged["metadata_context"].extend({"source": source, "text": line} for line in result.get("metadata_context", []))
         merged["imported_documents"].append({"name": source, "project_count": len(result["projects"]),
                                              "education_count": len(result["education"])})
         for field in result["basic_info"]:
-            merge_field(merged["basic_info"], result["basic_info"], field, ("basic_info", "个人信息"), source)
+            if field == "links":
+                links = merged["basic_info"].setdefault("links", [])
+                links.extend(link for link in result["basic_info"][field] if link not in links)
+            else:
+                merge_field(merged["basic_info"], result["basic_info"], field, ("basic_info", "个人信息"), source)
         for item in result["education"]:
             identity = (item["school"].casefold(), item["major"].casefold())
             if identity not in schools:

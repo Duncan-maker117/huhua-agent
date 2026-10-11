@@ -151,11 +151,11 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
     """
     result, metadata = deepcopy(data), deepcopy(meta)
     source = active_facts_for_writer(collected_info)
-    source_items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship")
+    source_items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship", "open_source")
                     for item in source.get(section, []) if isinstance(item, dict)}
     allowed = set(item_ids)
     fallbacks = []
-    for section in ("projects", "work_experience"):
+    for section in ("projects", "work_experience", "open_source"):
         field = "polished_bullets" if section == "projects" else "bullets"
         for item in result.get(section, []):
             identifier = item.get("item_id")
@@ -171,16 +171,17 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
             if isinstance(item.get("description"), str):
                 item["description"] = "\n".join(
                     cleaned for line in item["description"].splitlines() if (cleaned := strip_absence(line)))
+            role_field = "summary" if section == "open_source" else "role"
             visible = "\n".join([str(item.get("name") or ""), str(item.get("company") or ""),
-                                 str(item.get("role") or ""), *bullets])
+                                 str(item.get(role_field) or ""), *bullets])
             strippable = any(isinstance(text, str) and strip_stage_phrases(text) != text for text in bullets)
-            if phase and not _phase_label(" ".join(str(item.get(key) or "") for key in ("name", "company", "role"))) \
+            if phase and not _phase_label(" ".join(str(item.get(key) or "") for key in ("name", "company", role_field))) \
                     and (strippable or not _phase_label(visible)):
-                role = str(item.get("role") or "").strip()
-                item["role"] = f"{role} · {phase}".strip(" ·")
+                role = str(item.get(role_field) or "").strip()
+                item[role_field] = f"{role} · {phase}".strip(" ·")
             authorized = None if bullet_indices is None else {
                 index for index in bullet_indices.get(identifier, set()) if isinstance(index, int)}
-            header = " ".join(str(item.get(key) or "") for key in ("name", "company", "role"))
+            header = " ".join(str(item.get(key) or "") for key in ("name", "company", role_field))
             if _phase_label(header):
                 # 标题行已表达阶段，bullet 里的「在课程原型中…」「以原型形式…」重复短语去掉
                 bullets = [strip_stage_phrases(text) if isinstance(text, str) and (

@@ -3,6 +3,11 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
+class ItemLink(BaseModel):
+    text: str
+    url: str
+
+
 class BasicInfo(BaseModel):
     name: str = ""
     phone: str = ""
@@ -19,11 +24,8 @@ class BasicInfo(BaseModel):
     height: str = ""
     # 头像 data URL（data:image/jpeg;base64,... 或 data:image/png;base64,...）；空则模板显示占位
     photo: str = ""
-
-
-class ItemLink(BaseModel):
-    text: str
-    url: str
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
+    availability: str = Field(default="", exclude_if=lambda value: not value)
 
 
 class EducationItem(BaseModel):
@@ -62,10 +64,32 @@ class ProjectItem(BaseModel):
     links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
+class OpenSourceItem(BaseModel):
+    item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
+    name: str = ""
+    summary: str = ""
+    pr: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    bullets: list[str] = Field(default_factory=list)
+    hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
+
+
+class AwardItem(BaseModel):
+    item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
+    name: str = ""
+    level: str = ""
+    date: str = ""
+    bullets: list[str] = Field(default_factory=list)
+    hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
+
+
 class ResumeSection(BaseModel):
     id: str = Field(min_length=1, max_length=128)
     kind: Literal[
-        "education", "work_experience", "projects", "skills",
+        "education", "work_experience", "projects", "open_source", "awards", "skills",
         "certificates", "self_evaluation", "custom",
     ]
     title: str = Field(max_length=100)
@@ -84,6 +108,8 @@ class ResumeData(BaseModel):
     education: list[EducationItem] = []
     work_experience: list[WorkItem] = []
     projects: list[ProjectItem] = []
+    open_source: list[OpenSourceItem] = Field(default_factory=list, exclude_if=lambda value: not value)
+    awards: list[AwardItem] = Field(default_factory=list, exclude_if=lambda value: not value)
     # flat 技能（旧字段，兼容保留）
     skills: list[str] = []
     # 分组技能：{"技术栈": ["Java","Python"], "AI 工具": ["Claude Code", ...]}

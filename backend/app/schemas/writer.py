@@ -61,7 +61,7 @@ class WrittenBullet(WriterSchema):
 
 class WrittenItem(WriterSchema):
     item_id: str
-    section: Literal["projects", "work_experience"]
+    section: Literal["projects", "work_experience", "open_source"]
     title: WrittenTitle = Field(default_factory=WrittenTitle)
     bullets: list[WrittenBullet] = Field(default_factory=list)
 

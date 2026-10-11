@@ -232,7 +232,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     # populate its panels from an older collected_info object in that case.
     source = canonical if canonical else facts
     fact_items = []
-    for key, kind in (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习")):
+    for key, kind in (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉")):
         for item in facts.get(key) or []:
             if isinstance(item, dict) and _active_fact_rows(item):
                 fact_items.append((key, kind, item))
@@ -240,7 +240,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     if fact_items:
         hidden_ids = {
             item.get("item_id"): bool(item.get("hidden"))
-            for key, _kind in (("projects", ""), ("work_experience", ""), ("internship", ""))
+            for key, _kind in (("projects", ""), ("work_experience", ""), ("internship", ""), ("open_source", ""), ("awards", ""))
             for item in (canonical or {}).get(key) or [] if isinstance(item, dict) and item.get("item_id")
         }
         for _key, kind, item in fact_items:
@@ -252,11 +252,11 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
             if not bullets:
                 bullets = [fact.get("text", "") for fact in _active_fact_rows(item) if not fact.get("field")]
             missing = []
-            if not role and not _role_is_described(item):
+            if _key not in {"open_source", "awards"} and not role and not _role_is_described(item):
                 missing.append("你的职责与分工")
             if not bullets:
                 missing.append("具体动作与交付物")
-            if not (item.get("start_date") or item.get("end_date")):
+            if _key not in {"open_source", "awards"} and not (item.get("start_date") or item.get("end_date")):
                 missing.append("经历时间")
             items.append({
                 "name": str(name), "kind": kind, "role": str(role),
@@ -265,7 +265,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
                 "period": " — ".join(str(item.get(k)) for k in ("start_date", "end_date") if item.get(k)),
                 "bullets": bullets, "missing": missing,
             })
-    for key, kind in (() if fact_items else (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"))):
+    for key, kind in (() if fact_items else (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉"))):
         for item in source.get(key) or []:
             if not isinstance(item, dict):
                 continue
@@ -273,11 +273,11 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
             role = item.get("role") or item.get("title") or ""
             bullets = _strings(item.get("polished_bullets") or item.get("bullets") or item.get("description"))
             missing = []
-            if not role and not _role_is_described(item):
+            if key not in {"open_source", "awards"} and not role and not _role_is_described(item):
                 missing.append("你的职责与分工")
             if not bullets:
                 missing.append("具体动作与交付物")
-            if not (item.get("start_date") or item.get("end_date")):
+            if key not in {"open_source", "awards"} and not (item.get("start_date") or item.get("end_date")):
                 missing.append("经历时间")
             items.append({
                 "name": str(name), "kind": kind, "role": str(role),

@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-11 PR8 P2 本地完成：按本轮明确范围仅修 B1–B4，保留已提交 P1，未做 P3/P4。开源贡献按 PR 分条、荣誉结构化、页头链接/实习时间及教育专业/学历/日期/奖学金贯通事实→档案→writer→canonical→六款 HTML/PDF/Word→编辑器；奖学金统一在教育 highlights。move_item 保留条目 ID、正文和服务端来源绑定，数量单位替换由词法 guard 拦截。新增 33 项虚构/fake-model 回归，全量 1106/1106 通过；TLS 原测试用禁 bind 时的 socket pair 夹具保留真实握手/证书验证；无需数据库迁移。浏览器交互仍被环境阻止，不能宣称通过；未调用真实模型、未 commit/push/部署。详情和逐文件说明：`docs/development/2026-10-11-pr8-p2-verification.md`。
+
 2026-10-11 PR8 P1：按 `docs/development/2026-10-11-pr8-mainline-flow.md` 仅实现对话意图与开场，未做 P2–P4。新增 greeting / advice 和独立只读对话节点：各阶段寒暄友好介绍入口；老用户只展示档案姓名与去重经历数量；建议给 2–3 个经 fact guard 核验的选项，不改稿、不建版本，同轮新事实仍提取并保留归档来源，只有明确改稿指令进入改稿。B5 拆开明确缺内容的尾巴（如「分别是」），完整前缀照常提取/按原文补救，尾巴单独提示；归属不明确不猜。新增 26 项虚构资料/fake-model 单测全部通过。全量 `.venv/bin/python scripts/run_tests.py` 为 1073 项：1072 通过，1 项现有本地 TLS 监听测试因沙箱拒绝 bind（Operation not permitted）报错；改动前 1047 项基线也有同一错误，不能宣称全绿。diff 检查通过，Ruff 除基线已有 E402 外通过。未改前端、未调用真实模型、未 commit/push/部署；须在允许本地监听的环境复跑全量。
 
 2026-10-09 Tailor PR4 v5：已本地提交ada326e并完成新公开/私有全套（官方Flash；公开Pro独立评分，私有graph-only）。公开12例70轮69版（68可见），58评分/11无稿；仅补评2个引用错误后21/24（87.5%，3失败），仍未验收。25writer诊断24完成1回退，7结构重试恢复6；事实/编辑Judge仍漏检有时→常等越界，确认新增事实待Claude。私有44facts/6skills和完整主档保持、node/SQL/PDF绑定正确，最终2/2/2/1条、5/8目标满足，但2页；第二轮仅新执行2/14操作（9原已满足、3失败），未达golden。MAIN887/887（含21个PR5独立测试），clean864通过/2私有fixture跳过。旧基线218及v4公开102文件哈希不变。引号限制去重候选在pr4/candidates/v6-limits.patch，103项相关离线通过但未合入/未实时验证。PR5八文件仍未接graph。Ghostty工具安全限制拒绝访问，Claude交接已备未送；不能跳过§8门槛。未push、部署或迁移真实库。
@@ -78,6 +80,8 @@
 历史启用边界：2026-10-04 曾切换本地加密副本到 `huhua-account-v1.db` / `checkpoints-account-v1.sqlite3` 并验证 API，旧数据库保留；来源见 `docs/development/2026-10-04-login-activation.md`。Resend 当时只确认服务商接受一封已授权验证码，收件与真实登录未确认。测试发件域仅支持注册邮箱，对外需发信域验证；聊天中暴露过的旧密钥需轮换，不保存其值。跨对话档案的早期真实模型验收是连接失败，不因本轮“改写六例”通过而改写历史结论。
 
 ## 下一步
+
+本轮主线先审 PR8 P2 diff 与验收记录，在允许启动浏览器的环境补 P2 编辑/预览交互验证；当前授权止于 P2，不自动开始 P3/P4或提交发布。
 
 先让Claude读取 evaluation/tailor-bench/claude-pr4-review-request.txt 与 pr4/summary.md、fact-review-v5.md、runtime-review-v5.md，按§7.6/§8复核事实与误杀，并确认下一修复：明确用户条数应约束模型计划；上游完整性需当前轮次/来源/归属契约；schema透明失败；引号/同义限制候选需审边界。不是再充值或重复当前run的问题。工具明确拒绝访问Ghostty，无法自行送达，已准备可直接转交文件。先修复后另开run，旧v5保持；确认新增事实0且编辑≥90%后再接PR5。PR6模板/API交接尚未验收。
 

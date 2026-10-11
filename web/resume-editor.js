@@ -14,6 +14,8 @@
     {id: 'education', kind: 'education', title: '教育背景'},
     {id: 'work_experience', kind: 'work_experience', title: '实习经历'},
     {id: 'projects', kind: 'projects', title: '项目经历'},
+    {id: 'open_source', kind: 'open_source', title: '开源贡献'},
+    {id: 'awards', kind: 'awards', title: '竞赛荣誉'},
     {id: 'skills', kind: 'skills', title: '技能证书'},
     {id: 'certificates', kind: 'certificates', title: '证书'},
     {id: 'self_evaluation', kind: 'self_evaluation', title: '自我评价'},
@@ -30,7 +32,7 @@
     sessionInvalid: false, requireAccount: true, sampleSource: null, creatingDraft: false, createdDraftSession: null,
   };
   const removedSections = new Map();
-  const itemGroups = ['projects', 'education', 'work_experience'];
+  const itemGroups = ['projects', 'education', 'work_experience', 'open_source', 'awards'];
   const pendingRemovedItems = new Map();
   let trackedItemIds = new Set(), removalSequence = 0;
   const sampleReadOnly = () => state.mode === 'sample' && state.requireAccount;
@@ -227,7 +229,7 @@
   function normaliseData(data) {
     const copy = JSON.parse(JSON.stringify(data || {}));
     if (!copy.basic_info || typeof copy.basic_info !== 'object') copy.basic_info = {};
-    for (const key of ['education', 'work_experience', 'projects', 'skills', 'certificates']) {
+    for (const key of ['education', 'work_experience', 'projects', 'open_source', 'awards', 'skills', 'certificates']) {
       if (!Array.isArray(copy[key])) copy[key] = [];
     }
     if (!copy.skill_groups || Array.isArray(copy.skill_groups) || typeof copy.skill_groups !== 'object') copy.skill_groups = {};
@@ -236,6 +238,11 @@
     }
     for (const item of copy.work_experience) if (!Array.isArray(item.bullets)) item.bullets = [];
     for (const item of copy.projects) if (!Array.isArray(item.polished_bullets)) item.polished_bullets = [];
+    for (const kind of ['open_source', 'awards']) for (const item of copy[kind]) {
+      if (!Array.isArray(item.bullets)) item.bullets = [];
+      if (!Array.isArray(item.links)) item.links = [];
+    }
+    if (!Array.isArray(copy.basic_info.links)) copy.basic_info.links = [];
     if (!Array.isArray(copy.verification_notes)) copy.verification_notes = [];
     if (!Array.isArray(copy.sections)) {
       copy.sections = builtinSections.map((section) => ({...section, content: '', title: section.kind === 'projects' ? copy.experience_section_title || section.title : section.title}));
@@ -519,6 +526,8 @@
     const builders = {
       education: buildEducationContent, work_experience: buildWorkContent,
       projects: buildProjectsContent, skills: buildSkillsContent,
+      open_source: body => buildContributionContent(body, 'open_source'),
+      awards: body => buildContributionContent(body, 'awards'),
       certificates: buildCertificatesContent, self_evaluation: buildEvaluationContent,
     };
     state.data.sections.forEach((meta, index) => {
@@ -546,9 +555,11 @@
       ['name', '姓名', false, 'name'], ['phone', '电话', false, 'tel'],
       ['email', '邮箱', true, 'email'], ['location', '所在城市'],
       ['hometown', '籍贯'], ['objective', '求职意向', true],
+      ['availability', '可实习时间', true],
       ['gender', '性别'], ['birthday', '出生年月'], ['age', '年龄'],
       ['ethnicity', '民族'], ['political', '政治面貌'], ['height', '身高'],
     ]) field(basicGrid, label, pointer('basic_info', key), data.basic_info[key], {full, autocomplete});
+    buildLinksContent(basic, data.basic_info.links, ['basic_info', 'links']);
     if (data.basic_info.photo) {
       const actions = element('div', 'photo-actions');
       actions.append(button('移除头像', 'text-button remove', () => changeStructure(() => { data.basic_info.photo = ''; })));
@@ -565,7 +576,7 @@
       for (const [key, label, full] of [['school', '学校', true], ['major', '专业'], ['degree', '学历'], ['start_date', '开始时间'], ['end_date', '结束时间']]) {
         field(grid, label, pointer('education', index, key), item[key], {full});
       }
-      field(grid, '课程与成绩', pointer('education', index, 'highlights'), item.highlights, {full: true, multiline: true});
+      field(grid, '课程、成绩与荣誉', pointer('education', index, 'highlights'), item.highlights, {full: true, multiline: true});
     });
     education.append(button('＋ 添加教育经历', 'add-button', () => changeStructure(() => data.education.push({school: '', major: '', degree: '', start_date: '', end_date: '', highlights: ''}))));
   }
@@ -610,6 +621,32 @@
       }
     });
     projects.append(button('＋ 添加项目', 'add-button', () => changeStructure(() => data.projects.push({name: '', role: '', start_date: '', end_date: '', description: '', polished_bullets: []}))));
+  }
+
+  function buildLinksContent(container, links, keys) {
+    links.forEach((link, index) => {
+      const box = itemEditor(container, `链接 ${index + 1}`, () => links.splice(index, 1));
+      const grid = element('div', 'field-grid'); box.append(grid);
+      field(grid, '链接名称', pointer(...keys, index, 'text'), link.text);
+      field(grid, '网址 / 账号', pointer(...keys, index, 'url'), link.url, {full: true});
+    });
+    container.append(button('＋ 添加链接', 'add-button', () => changeStructure(() => links.push({text: '', url: ''}))));
+  }
+
+  function buildContributionContent(container, kind) {
+    const rows = state.data[kind], openSource = kind === 'open_source';
+    rows.forEach((item, index) => {
+      const box = itemEditor(container, `${openSource ? '开源贡献' : '竞赛荣誉'} ${index + 1}`, () => rows.splice(index, 1));
+      const grid = element('div', 'field-grid'); box.append(grid);
+      const fields = openSource ? [['name', '仓库 / 项目名'], ['summary', '简介（如星数）'], ['pr', 'PR 号或链接'], ['start_date', '开始时间'], ['end_date', '结束时间']]
+        : [['name', '名称'], ['level', '级别 / 名次'], ['date', '时间（可选）']];
+      for (const [key, label] of fields) field(grid, label, pointer(kind, index, key), item[key], {full: true});
+      stringList(box, item.bullets, [kind, index, 'bullets'], openSource ? '本人贡献与结果' : '补充说明', true);
+      buildLinksContent(box, item.links, [kind, index, 'links']);
+    });
+    container.append(button(`＋ 添加${openSource ? '开源贡献' : '竞赛荣誉'}`, 'add-button', () => changeStructure(() => rows.push(
+      openSource ? {name: '', summary: '', pr: '', start_date: '', end_date: '', bullets: [], links: []}
+        : {name: '', level: '', date: '', bullets: [], links: []}))));
   }
 
   function buildSkillsContent(skills) {

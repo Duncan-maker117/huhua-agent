@@ -12,7 +12,7 @@ from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_sections import DEFAULT_SECTIONS
 
 
-ITEM_SECTIONS = ("projects", "work_experience", "education")
+ITEM_SECTIONS = ("projects", "work_experience", "education", "open_source", "awards")
 WRITER_OPS = {"rewrite", "compress", "refocus"}
 SECTION_ALIASES = {"项目": "projects", "项目经历": "projects", "projects": "projects",
                    "工作": "work_experience", "经历": "work_experience", "实习": "work_experience",
@@ -22,18 +22,22 @@ SECTION_ALIASES = {"项目": "projects", "项目经历": "projects", "projects":
                    "证书": "certificates", "certificates": "certificates",
                    "自我评价": "self_evaluation", "个人总结": "self_evaluation",
                    "self_evaluation": "self_evaluation"}
+SECTION_ALIASES.update({"开源贡献": "open_source", "开源经历": "open_source", "open_source": "open_source",
+                        "竞赛荣誉": "awards", "竞赛和荣誉": "awards", "竞赛与荣誉": "awards", "awards": "awards"})
 BASIC_FIELDS = {"name", "phone", "email", "location", "objective", "gender", "age", "birthday",
-                "hometown", "political", "ethnicity", "height"}
+                "hometown", "political", "ethnicity", "height", "availability"}
 HEADER_FIELDS = {"projects": {"name", "role", "start_date", "end_date"},
                  "work_experience": {"company", "title", "start_date", "end_date"},
-                 "education": {"school", "degree", "major", "start_date", "end_date"}}
+                 "education": {"school", "degree", "major", "start_date", "end_date"},
+                 "open_source": {"name", "summary", "pr", "start_date", "end_date"},
+                 "awards": {"name", "level", "date"}}
 FIELD_LABELS = {"name": ("姓名",), "phone": ("电话", "手机号"), "email": ("邮箱",),
                 "location": ("地点", "所在地", "城市"), "objective": ("求职意向", "目标岗位"),
                 "role": ("角色", "职责"), "title": ("职位", "岗位"),
                 "start_date": ("开始时间", "起始时间", "日期"),
                 "end_date": ("结束时间", "截止时间", "日期")}
 _ORDINAL = re.compile(r"第([一二两三四五六七八九十\d]+)(?:个|段|条)?(项目|经历|工作|实习|教育)")
-_ITEM_POINTER = re.compile(r"^/(projects|work_experience|education)/(\d+)(?:/([^/]+)(?:/(\d+))?)?$")
+_ITEM_POINTER = re.compile(r"^/(projects|work_experience|education|open_source|awards)/(\d+)(?:/([^/]+)(?:/(\d+))?)?$")
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
 
 
@@ -133,7 +137,7 @@ def _section_scope_explicit(target: str, instruction: str) -> bool:
     if section not in ITEM_SECTIONS:
         return False
     labels = {"projects": "项目", "work_experience": "(?:工作|实习|经历)",
-              "education": "教育"}
+              "education": "教育", "open_source": "开源(?:贡献|经历)", "awards": "竞赛(?:和|与)?荣誉"}
     label = labels[section]
     return bool(re.search(rf"(?:所有|全部|每个|各个|各|[一二两三四五六七八九十\d]+个).{{0,6}}{label}"
                           rf"|{label}.{{0,6}}(?:各|全部|都)", instruction))
@@ -298,6 +302,77 @@ def execute_edit_plan(
         op = str(raw.get("op") or "")
         target = str(raw.get("target") or "")
         args = raw.get("args") if isinstance(raw.get("args"), dict) else {}
+        if op == "move_item":
+            destination = SECTION_ALIASES.get(str(args.get("section") or ""))
+            from app.agents.turn_actions import section_move_ops
+            requested = section_move_ops(instruction, output)
+            if destination not in {"open_source", "awards", "projects", "work_experience"} or not any(
+                    (entry.get("args") or {}).get("section") == destination for entry in requested):
+                results.append(_result(index, op, target, "needs_confirmation", "未明确要求移动到该栏目"))
+                continue
+            rows, error = _resolve_items(output, target)
+            if error or len(rows) != 1:
+                results.append(_result(index, op, target, "needs_confirmation", error or "请明确要移动哪一个条目"))
+                continue
+            section, item_index, item = rows[0]
+            requested_targets = [entry.get("target") for entry in requested if entry.get("target")]
+            if not _target_mentioned(target, rows, instruction) and not (
+                    len(requested_targets) == 1 and requested_targets[0] in {target, item.get("item_id"), _label(item)}):
+                results.append(_result(index, op, target, "needs_confirmation", "移动目标未明确指认"))
+                continue
+            source_item = next((entry for group in (*ITEM_SECTIONS, "internship")
+                                for entry in original_facts.get(group) or [] if entry.get("item_id") == item.get("item_id")), {})
+            name = str(args.get("name") or "").strip()
+            if name and not _literal_in(name, instruction):
+                results.append(_result(index, op, target, "cannot", "新标题没有出现在本轮原话中"))
+                continue
+            fields = {}
+            if destination == "open_source":
+                from app.services.candidate_sections import contribution_fields
+                for quote in [*source_item.get("raw_notes", []), *[fact.get("source_quote", "") for fact in source_item.get("facts", [])]]:
+                    for line in quote.splitlines():
+                        candidate = contribution_fields(line)
+                        if candidate.get("name") and candidate.get("pr") and (
+                                not item.get("pr") or _fold(item["pr"]) == _fold(candidate["pr"])):
+                            fields = candidate
+                            break
+                    if fields:
+                        break
+            name = name or fields.get("name") or _label(item)
+            if name in {"自己", "本人", "我", "开源贡献", "竞赛荣誉", ""}:
+                results.append(_result(index, op, target, "needs_confirmation", "请提供该条目的仓库名或奖项名"))
+                continue
+            moved = {key: deepcopy(value) for key, value in item.items()
+                     if key in {"item_id", "hidden", "links", *HEADER_FIELDS[destination]}}
+            moved.update(fields)
+            moved["company" if destination == "work_experience" else "name"] = name
+            body = item.get("polished_bullets") or item.get("bullets") or (item.get("description") or "").splitlines()
+            moved["polished_bullets" if destination == "projects" else "bullets"] = deepcopy(body)
+            if destination == "projects":
+                moved["description"] = ""
+            changed = section != destination or moved != item
+            output[section].pop(item_index)
+            output.setdefault(destination, []).append(moved)
+            if source_item:
+                for group in (*ITEM_SECTIONS, "internship"):
+                    original_facts[group] = [entry for entry in original_facts.get(group) or []
+                                             if entry.get("item_id") != item.get("item_id")]
+                source_item["name" if destination != "work_experience" else "company"] = name
+                original_facts.setdefault(destination, []).append(source_item)
+                from app.services.resume_facts import new_fact
+                for field, value in {**fields, "name" if destination != "work_experience" else "company": name}.items():
+                    if not value or any(fact.get("field") == field and fact.get("text") == value
+                                        and fact.get("status", "active") == "active" for fact in source_item.get("facts", [])):
+                        continue
+                    fact = new_fact(value, kind="context", quote=value)
+                    fact["field"] = field
+                    source_item.setdefault("facts", []).append(fact)
+            if output.get("sections") is not None and not any(entry.get("kind") == destination for entry in output["sections"]):
+                output["sections"].append({"id": destination, "kind": destination,
+                                          "title": dict(DEFAULT_SECTIONS)[destination], "content": ""})
+            results.append(_result(index, op, target, "done", "" if changed else "already_satisfied",
+                                   changed=changed, affected=[item.get("item_id", "")]))
+            continue
         if op == "clean_format" and SECTION_ALIASES.get(target) == "skills":
             if not re.search(r"技能.{0,8}(?:重复|精简|去重|整理)|(?:重复|精简|去重|整理).{0,8}技能", instruction):
                 results.append(_result(index, op, target, "needs_confirmation", "未明确要求整理技能栏目"))
@@ -349,7 +424,7 @@ def execute_edit_plan(
                     continue
                 changed = False
                 for section, _, item in rows:
-                    field = "polished_bullets" if section == "projects" else "bullets" if section == "work_experience" else ""
+                    field = "polished_bullets" if section == "projects" else "bullets" if section in {"work_experience", "open_source", "awards"} else ""
                     if not field:
                         continue
                     if field and isinstance(item.get(field), list) and len(item[field]) > n:
@@ -477,4 +552,4 @@ def execute_edit_plan(
         writer_requests.append({"scope": scope, "targets": list(dict.fromkeys(target for target in targets if target)),
                                 "instruction": instruction})
     return {"data": output, "constraints": limits, "operation_results": results,
-            "writer_requests": writer_requests}
+            "writer_requests": writer_requests, "collected_info": original_facts}

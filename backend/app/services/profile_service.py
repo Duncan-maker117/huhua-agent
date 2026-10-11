@@ -520,7 +520,7 @@ def get_profile_summary(db, account_id):
         data = _open(row)
         if row.category == "basic" and data.get("field") == "name" and not name:
             name = data.get("value") or ""
-        if row.category in {"project", "work", "education"} and data.get("subject"):
+        if row.category in {"project", "work", "education", "open_source", "awards"} and data.get("subject"):
             experiences.add((row.category, data["subject"]))
     return {"has_facts": bool(rows), "name": name, "experience_count": len(experiences)}
 
@@ -593,6 +593,8 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
     result.setdefault("education", [])
     result.setdefault("work_experience", [])
     result.setdefault("projects", [])
+    result.setdefault("open_source", [])
+    result.setdefault("awards", [])
     result.setdefault("skills", [])
 
     def bind(item, collection, field, fact):
@@ -605,7 +607,7 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
         if matching is None:
             matching = new_fact(fact["value"], source="import", kind="context")
             if field not in {"description", "bullets", "polished_bullets"}:
-                matching["field"] = field
+                matching["field"] = "link" if field == "links" else field
             evidence.append(matching)
         references = matching.setdefault("profile_refs", [])
         if reference not in references:
@@ -620,35 +622,57 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
         if not isinstance(value, str) or not value:
             continue
         if category == "basic":
-            if field in {"name", "phone", "email", "location", "objective"}:
+            if field in {"link", "github", "website"}:
+                label = fact.get("subject") if field == "link" else "GitHub" if field == "github" else "个人主页"
+                link = {"text": label or "链接", "url": value}
+                if link not in result["basic_info"].setdefault("links", []):
+                    result["basic_info"]["links"].append(link)
+            elif field in {"name", "phone", "email", "location", "objective", "availability"}:
                 if not result["basic_info"].get(field):
                     result["basic_info"][field] = value
         elif category == "skill":
             if value not in [entry.get("name") if isinstance(entry, dict) else entry for entry in result["skills"]]:
                 result["skills"].append(value)
-        elif category in {"project", "work", "education"}:
+        elif category in {"project", "work", "education", "open_source", "awards"}:
             collection, identity = {"project": ("projects", "name"),
                                     "work": ("work_experience", "company"),
-                                    "education": ("education", "school")}[category]
+                                    "education": ("education", "school"), "open_source": ("open_source", "name"),
+                                    "awards": ("awards", "name")}[category]
             subject = fact.get("subject", "")
             items = result[collection]
-            item = next((entry for entry in items if entry.get(identity) == subject), None)
+            item = next((entry for entry in items if entry.get("profile_subject", entry.get(identity)) == subject), None)
             if item is None:
-                item = {identity: subject}
+                item = {identity: subject, **({"profile_subject": subject} if category in {"open_source", "awards"} else {})}
                 items.append(item)
             plain_fields = {
                 "project": {"role", "start_date", "end_date", "description"},
                 "work": {"title", "start_date", "end_date"},
-                "education": {"degree", "major", "start_date", "end_date"},
+                "education": {"degree", "major", "start_date", "end_date", "highlights"},
+                "open_source": {"name", "summary", "pr", "start_date", "end_date"},
+                "awards": {"name", "level", "date"},
             }[category]
             if field in plain_fields:
-                if not item.get(field):
+                if not item.get(field) or (category in {"open_source", "awards"} and field == "name" and item[field] == subject):
                     item[field] = value
                     bind(item, collection, field, fact)
                 elif item[field] == value:
                     # Explicitly selecting the exact same fact establishes its
                     # source, while a different manual value remains unbound.
                     bind(item, collection, field, fact)
+            elif category in {"open_source", "awards"} and field == "link":
+                link = {"text": value, "url": value}
+                if link not in item.setdefault("links", []):
+                    item["links"].append(link)
+                bind(item, collection, "links", fact)
+            elif category == "education" and field in {"description", "result"}:
+                lines = (item.get("highlights") or "").splitlines()
+                if value not in lines:
+                    item["highlights"] = "\n".join([*filter(None, lines), value])
+                bind(item, collection, "highlights", fact)
+            elif category in {"open_source", "awards"} and field in {"description", "result"}:
+                if value not in item.setdefault("bullets", []):
+                    item["bullets"].append(value)
+                bind(item, collection, "bullets", fact)
             elif category == "work" and field in {"description", "result", "role", "deliverable"}:
                 if value not in item.setdefault("bullets", []):
                     item["bullets"].append(value)
@@ -688,9 +712,9 @@ def get_projection_guard(db, account_id):
 
 
 _PROJECTION_CATEGORIES = {"basic_info": "basic", "basic": "basic", "education": "education",
-                          "projects": "project", "work_experience": "work",
+                          "projects": "project", "work_experience": "work", "open_source": "open_source", "awards": "awards",
                           "skills": "skill", "skill_groups": "skill"}
-_PROJECTION_IDENTITIES = {"project": "name", "education": "school", "work": "company"}
+_PROJECTION_IDENTITIES = {"project": "name", "education": "school", "work": "company", "open_source": "name", "awards": "name"}
 _PROSE_FIELDS = {"description", "bullets", "polished_bullets", "highlights", "content", "text"}
 
 
@@ -857,6 +881,8 @@ def sanitize_projection(db, account_id, projection):
             category = scope.get("category") or value.get("category")
             subject = value.get(_PROJECTION_IDENTITIES.get(category, "")) or value.get("subject") or scope.get("subject")
             own_scope = {**scope, "category": category, "subject": subject}
+            if category == "basic" and "url" in value:
+                own_scope.update(subject=value.get("text"), field="link")
             if value.get("fact_id"):
                 own_scope["fact_id"] = value["fact_id"]
             # Structured extracted facts retain profile references separately
@@ -874,6 +900,8 @@ def sanitize_projection(db, account_id, projection):
             result = {}
             for key, item in value.items():
                 child_scope = {**own_scope, "field": value.get("field") if key == "value" else key}
+                if category == "basic" and key == "url":
+                    child_scope["field"] = "link"
                 if key in _PROJECTION_CATEGORIES:
                     child_scope = {"category": _PROJECTION_CATEGORIES[key]}
                 result[key] = walk(item, child_scope)

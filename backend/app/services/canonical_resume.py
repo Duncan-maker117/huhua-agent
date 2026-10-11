@@ -92,6 +92,8 @@ def editor_facts(data: dict, previous: dict | None = None) -> dict:
         "work_experience": copy.deepcopy(data.get("work_experience") or []),
         "internship": [],
         "projects": copy.deepcopy(data.get("projects") or []),
+        "open_source": copy.deepcopy(data.get("open_source") or []),
+        "awards": copy.deepcopy(data.get("awards") or []),
         "skills": skills,
         "skill_groups": groups,
         "certificates": copy.deepcopy(data.get("certificates") or []),

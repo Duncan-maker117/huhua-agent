@@ -131,6 +131,14 @@ class WorkspaceProjectionTest(unittest.TestCase):
         self.assertIn("已上线", options)
         self.assertNotIn("先生成草稿", options)
 
+    def test_reply_question_asks_first_of_a_numbered_list_without_target_suffix(self):
+        reply = ("已更新。\n\n**想让它更强，回答任意一个就行**：\n"
+                 "1. 改完之后还会推荐不存在的店吗？（会改进：示例项目 第 1 条）\n"
+                 "2. 有没有拿几个例子试过？（会改进：示例项目 第 1 条）\n"
+                 "3. 你怎么判断做得好不好？（会改进：示例项目 第 2 条）")
+        self.assertEqual(_reply_question(reply), "改完之后还会推荐不存在的店吗？")
+        self.assertEqual(_reply_question("好的。\n\n**需要你补充**：你本人负责哪一步？"), "你本人负责哪一步？")
+
     def test_reply_question_ignores_examples_quotes_and_code(self):
         reply = '你具体负责哪部分？\n\n> 是否上线？\n\n例如：有没有实际使用？\n\n```text\n怎么实现的？\n```\n\n“是否跑通？”'
         self.assertEqual(_reply_question(reply), "你具体负责哪部分？")

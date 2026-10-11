@@ -100,16 +100,22 @@ def _reply_question(reply: str) -> str:
     """
     cleaned = re.sub(r"```[\s\S]*?```", "", reply)
     groups, current = [], []
+    numbered = []  # Parallel to groups: each numbered list item is its own question.
     explicit_section = False
     for raw in cleaned.splitlines():
         line = raw.strip()
-        if not line or line.startswith(">"):
+        item = bool(re.match(r"\d+[.)、]\s*", line))
+        if not line or line.startswith(">") or (item and current):
             if current:
                 groups.append(" ".join(current))
+                numbered.append(current_item)
                 current = []
-            continue
+            if not line or line.startswith(">"):
+                continue
+        if not current:
+            current_item = item
         line = re.sub(r"^(?:#{1,6}\s*|[-*+]\s+|\d+[.)、]\s*)", "", line).strip(" *")
-        header = re.match(r"(?:【)?(?:需要你补充|请你补充|待你补充)(?:】)?\s*[:：]?\s*(.*)", line)
+        header = re.match(r"(?:【)?(?:需要你补充|请你补充|待你补充)(?:】)?\**\s*[:：]?\s*(.*)", line)
         if header:
             explicit_section = True
             line = header.group(1).strip(" *")
@@ -129,10 +135,18 @@ def _reply_question(reply: str) -> str:
             current.append(sentence)
         elif current:
             groups.append(" ".join(current))
+            numbered.append(current_item)
             current = []
     if current:
         groups.append(" ".join(current))
-    return groups[-1][:300] if groups else ""
+        numbered.append(current_item)
+    if not groups:
+        return ""
+    # A trailing numbered list is ordered by value: ask its first question.
+    last = len(groups) - 1
+    while last > 0 and numbered[last] and numbered[last - 1]:
+        last -= 1
+    return re.sub(r"\s*[（(]会改进[:：][^）)]*[）)]\s*$", "", groups[last])[:300]
 
 
 def _next_step_options() -> list[tuple[str, str]]:

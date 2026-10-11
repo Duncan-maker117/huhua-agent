@@ -38,14 +38,16 @@ SKILL_HEADINGS = {"技术", "技术栈", "编程语言", "开发工具", "开发
                   "产品能力", "设计工具", "办公工具", "协作工具", "语言", "语言能力", "专业技能", "其他",
                   "产品方法", "AI 与 Agent", "开发", "内容运营"}
 _PLAN_CONTRACT = """先按岗位要求和 active facts 做匹配计划。只引用给出的 fact_id/item_id；
-direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；
+direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；reason 用要求原文，不用 requirement/signal id；
 提问最多三条，任何已更正或删除的旧事实不在输入中。严格输出 MatchPlan。"""
 _STRUCTURE_CONTRACT = """先定方案，不写正文。输出 StructurePlan：recommended 是完整匹配计划，另含 label、positioning、thesis；alternatives 给1–2个备选。
-positioning 不超过30字，将放在简历 summary；thesis 用一句说明这份简历要让面试官记住什么。所有说法只能由 active facts 支持，不能把 JD 或公司业务写成候选人事实。
+positioning 不超过30字，将放在简历页头 summary；thesis 用一句说明这份简历要让面试官记住什么。所有说法只能由 active facts 支持，不能把 JD 或公司业务写成候选人事实。
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
+reason、thesis 等面向用户的文本用要求原文或岗位信号原文，不写 r1/r2/s2 等内部编号；编号仅用于结构化引用字段。
 section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/positioning/thesis/section_order，experience_plan 只列相对推荐的差异。
 requirements/questions 沿用匹配计划，最多3个问题。用户给出的结构取舍必须遵守。严格输出 StructurePlan。"""
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。保留数量的原单位及对象（人/次/个/条）；「20次」不得改成「20次调用/请求」。开源贡献必须用仓库名作标题，每个PR及其本人贡献、结果都要保留；教育与竞赛荣誉按结构字段保留，不能压成一句。
+开源 PR 号在标题行，bullet 不重复 PR 号前缀；summary 是页头定位句，自我评价只保留用户真正提供的自评。
 match_plan 含 thesis/positioning 时，这是用户已确认的主线和定位；围绕该主线组织重点，严格遵守 section_order 和 experience_plan 的取舍，不能自行换主线、改顺序或把备用经历写回来。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
@@ -59,6 +61,7 @@ _ONE_PASS_CONTRACT = """本次只调用一次工具，顶层严格输出 OnePass
 {"match_plan": MatchPlan 对象, "writer": WriterDraft 对象}。
 match_plan 内先按岗位要求和 active facts 做匹配计划；只引用给出的 fact_id/item_id。
 direct 是直接经历，transferable 要标注，gap 不得硬写；按相关性决定 lead/keep/brief/backup；提问最多三条。
+reason 用要求原文，不用 requirement/signal id。开源 PR 号在标题行，bullet 不重复 PR 号前缀；summary 是页头定位句，自我评价只保留用户真正提供的自评。
 writer 必须依据同一个 match_plan 写目标 items，每条 bullet 引用同一 item 的 active fact_ids。
 保留数量原单位及对象（人/次/个/条），「20次」不得改成「20次调用/请求」。开源贡献每个PR的本人贡献与结果都要保留，标题用仓库名；教育与竞赛荣誉按结构字段保留，不能压成一句。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
@@ -623,9 +626,10 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
         if target.req_id and target.req_id not in valid_reqs:
             continue
         questions.append(row.model_dump())
-    return {"requirements": requirements, "experience_plan": experience,
+    from app.services.structure_plan import readable_plan
+    return readable_plan({"requirements": requirements, "experience_plan": experience,
             "section_order": order, "summary_angle": plan.summary_angle,
-            "questions": questions}
+            "questions": questions}, role_profile)
 
 
 def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict,
@@ -945,6 +949,9 @@ async def _run_resume_writer(
         raise ValueError("mode must be one_pass or two_pass")
     if phase not in {"full", "plan", "write"}:
         raise ValueError("Unknown writer phase")
+    from app.services.structure_plan import readable_plan
+    if previous_plan:
+        previous_plan = readable_plan(dict(previous_plan), role_profile)
     source, items, facts = _source_evidence(collected_info)
     current = deepcopy(current_data or {})
     from app.services.resume_field_hygiene import project_role
@@ -1175,6 +1182,8 @@ async def _run_resume_writer(
         candidate_rows = _merge_context_only_rows(candidate_rows, facts)
     # The summary check reads only the draft summary and the fact store, never the bullet
     # guard/repair outcome, so it runs alongside them and is awaited where it was used.
+    from app.services.structure_plan import user_plan_text
+    draft.summary = user_plan_text(draft.summary, role_profile)
     summary_refs = list(dict.fromkeys(draft.summary_fact_ids))
     summary_task = None
     if phase != "write" and scope == "whole" and draft.summary.strip() and summary_refs and all(fid in facts for fid in summary_refs):
@@ -1275,7 +1284,8 @@ async def _run_resume_writer(
             output[section].sort(key=lambda row: item_rank.get(row.get("item_id"), len(item_rank))
                                  if isinstance(row, dict) else len(item_rank))
         _apply_section_order(output, match_plan["section_order"], current_data)
-        output["self_evaluation"] = ""
+        output["self_evaluation"] = collected_info.get("personal_summary") or collected_info.get("self_evaluation") or ""
+        output.pop("summary", None)
         meta.pop("summary", None)
         # A partial model list is not a deletion request. Preserve supported
         # existing groups and fill any source skills omitted by the writer.
@@ -1311,12 +1321,21 @@ async def _run_resume_writer(
         if summary_task is not None:
             summary_guard = await summary_task
             if summary_guard and summary_guard[0]["verdict"] == "pass":
-                output["self_evaluation"] = draft.summary.strip()
+                output["summary"] = draft.summary.strip()
                 meta["summary"] = {"fact_ids": summary_refs, "text_hash": _hash(draft.summary.strip())}
     output, meta, limit_fallbacks = preserve_item_limits(
         output, meta, collected_info, item_ids=list(by_item),
         bullet_indices=bullet_targets if scope == "bullet" else None)
     fallbacks.extend(limit_fallbacks)
+    # Canonical text and provenance hashes must agree with the compact display.
+    from app.services.resume_field_hygiene import strip_pr_prefix
+    for item in output.get("open_source") or []:
+        if item.get("item_id") not in by_item:
+            continue
+        records = meta.get("bullets", {}).get(item.get("item_id"), [])
+        item["bullets"] = [strip_pr_prefix(text, item.get("pr")) for text in item.get("bullets") or []]
+        for text, record in zip(item["bullets"], records):
+            record["text_hash"] = _hash(text)
     before_items = {item.get("item_id"): item for section in SECTIONS
                     for item in current.get(section, []) if isinstance(item, dict) and item.get("item_id")}
     before_positions = {item.get("item_id"): (section, index) for section in SECTIONS

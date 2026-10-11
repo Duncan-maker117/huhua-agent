@@ -57,6 +57,7 @@
   .item-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
   .item-title { font-weight: 600; color: #1a1a1a; }
   .item-date { color: #2d6a6a; font-size: 9.5pt; }
+  {{ m.layout_styles() }}
 </style>
 </head>
 <body>
@@ -64,6 +65,7 @@
     <div class="header-text">
       <div class="h-line">{{ m.name_line(basic_info) }}</div>
       <div class="contact">{{ m.contact_line(basic_info) }}</div>
+      {{ m.positioning_line(summary) }}
     </div>
     {{ m.photo_box(basic_info) }}
   </div>

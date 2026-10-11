@@ -16,6 +16,7 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Mm, Pt
 
 from app.services.resume_sections import get_resume_sections, visible_items
+from app.services.resume_field_hygiene import award_label, contribution_title
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,8 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
         doc.add_paragraph("可实习时间：" + basic["availability"])
     for link in basic.get("links") or []:
         doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")
+    if data.get("summary"):
+        doc.add_paragraph(data["summary"])
 
     # 预览与 Word 共享栏目顺序、标题与可见性；正文仍取原有字段。
     for resume_section in get_resume_sections(data):
@@ -196,13 +199,16 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
                 doc.add_paragraph(proj["description"])
 
     elif kind in {"open_source", "awards"}:
-        for _, item in visible_items(data, kind):
-            parts = (item.get("name"), item.get("pr"), item.get("summary"),
-                     f"{item.get('start_date', '')}—{item.get('end_date', '')}".strip("—")) if kind == "open_source" else (
-                item.get("name"), item.get("level"), item.get("date"))
-            doc.add_paragraph().add_run(" / ".join(value for value in parts if value)).bold = True
+        items = visible_items(data, kind)
+        if kind == "awards":
+            p = doc.add_paragraph("；".join(award_label(item) for _, item in items))
+            p.paragraph_format.space_after = Pt(3)
+        for _, item in items:
+            if kind == "open_source":
+                date = f"{item.get('start_date', '')}—{item.get('end_date', '')}".strip("—")
+                doc.add_paragraph().add_run(contribution_title(item) + (" / " + date if date else "")).bold = True
             for _, bullet in item["_display_bullets"]:
-                doc.add_paragraph(bullet, style="List Bullet")
+                doc.add_paragraph((item["name"] + "：" if kind == "awards" and len(items) > 1 else "") + bullet, style="List Bullet")
             for link in item.get("links") or []:
                 doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")
 

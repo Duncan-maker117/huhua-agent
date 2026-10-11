@@ -281,9 +281,9 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
             or data.get("basic_info", {}).get("objective") or "目标岗位")
     version = version_number if version_number is not None else (len(state.get("resume_versions") or []) + 1)
     lead = f"已按「{role}」更新第 {version} 版简历，右侧可以查看。"
-    from app.services.structure_plan import plan_summary
+    from app.services.structure_plan import plan_summary, user_plan_text
     confirmed = state.get("confirmed_plan") or (state.get("resume_meta") or {}).get("confirmed_plan") or {}
-    reasons = [plan_summary(confirmed, state.get("collected_info") or {})] if confirmed else []
+    reasons = [plan_summary(confirmed, state.get("collected_info") or {}, profile)] if confirmed else []
     evidence = active_facts_for_writer(state.get('collected_info') or {})
     item_facts = {item.get('item_id'): {fact.get('id') for fact in item.get('facts') or []}
                   for section in ('projects', 'work_experience', 'internship', 'open_source')
@@ -323,7 +323,15 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     note, asked = education_question({**state, "asked_questions": asked})
     if note:
         parts.append(note)
-    return {"text": "\n".join(parts), "questions": selected, "guidance": guidance,
+    for row in selected:
+        for field in ('q', 'why', 'location_label'):
+            row[field] = user_plan_text(row.get(field), profile)
+        for option in row.get('options') or []:
+            for field in ('label', 'value'):
+                option[field] = user_plan_text(option.get(field), profile)
+    for field in ('title', 'question', 'why'):
+        guidance[field] = user_plan_text(guidance.get(field), profile)
+    return {"text": user_plan_text("\n".join(parts), profile), "questions": selected, "guidance": guidance,
             "asked_questions": asked, "ready_for_first_draft": ready, "next_action": "done"}
 
 

@@ -559,6 +559,7 @@
       ['gender', '性别'], ['birthday', '出生年月'], ['age', '年龄'],
       ['ethnicity', '民族'], ['political', '政治面貌'], ['height', '身高'],
     ]) field(basicGrid, label, pointer('basic_info', key), data.basic_info[key], {full, autocomplete});
+    if (data.summary) field(basicGrid, '个人定位', pointer('summary'), data.summary, {full: true});
     buildLinksContent(basic, data.basic_info.links, ['basic_info', 'links']);
     if (data.basic_info.photo) {
       const actions = element('div', 'photo-actions');

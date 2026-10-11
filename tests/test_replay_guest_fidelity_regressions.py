@@ -159,7 +159,7 @@ class PositioningDiagnosticRegression(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(model.batches[0][0]['claim_kind'], 'positioning')
         written = await run_resume_writer(collected, {}, model, phase='write',
                                           previous_plan=select_plan(planned['structure_plan']))
-        self.assertEqual(written['resume_data']['self_evaluation'], sentence)
+        self.assertEqual(written['resume_data']['summary'], sentence)
         self.assertIn(sentence, render_resume('t001-jianyue', written['resume_data']))
         self.assertEqual(sum(row['id'] == 'plan_positioning_0' for row in model.batches[-1]), 1)
 

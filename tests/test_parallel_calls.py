@@ -377,7 +377,7 @@ class WriterSummaryParallelTest(unittest.IsolatedAsyncioTestCase):
         guards = [span for span in model.spans if span[0] == "SemanticBatch"]
         self.assertGreaterEqual(guards[1][1], guards[0][2])
         self.assertEqual(parallel, reference)
-        self.assertEqual(parallel["resume_data"]["self_evaluation"], "整理并分类用户反馈")
+        self.assertEqual(parallel["resume_data"]["summary"], "整理并分类用户反馈")
 
     async def test_summary_failure_closed_like_serial(self):
         src, role, model = self.build()

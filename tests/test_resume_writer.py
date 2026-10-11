@@ -146,7 +146,8 @@ class ResumeWriterTest(unittest.TestCase):
                                             "writer": draft([item("p2", "projects", [(text, ["f3"])])],
                                                             summary=text, summary_fact_ids=["f3"])})])
         result = run(source(), ROLE, model, current_data={"self_evaluation": "旧母版个人总结"})
-        self.assertEqual(result["resume_data"]["self_evaluation"], text)
+        self.assertEqual(result["resume_data"]["summary"], text)
+        self.assertFalse(result["resume_data"]["self_evaluation"])
         self.assertEqual(result["resume_meta"]["summary"], {
             "fact_ids": ["f3"], "text_hash": hashlib.sha256(text.encode()).hexdigest()})
 

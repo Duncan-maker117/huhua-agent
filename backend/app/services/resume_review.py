@@ -3,6 +3,7 @@
 import re
 
 from app.services.resume_sections import get_resume_sections, visible_items
+from app.services.resume_field_hygiene import award_label, contribution_title
 
 
 def resume_to_text(data: dict) -> str:
@@ -17,6 +18,8 @@ def resume_to_text(data: dict) -> str:
         lines.append(f"可实习时间：{basic['availability']}")
     for link in basic.get("links") or []:
         lines.append(f"{link.get('text', '')}：{link.get('url', '')}")
+    if data.get('summary'):
+        lines.append(data['summary'])
     for section in get_resume_sections(data):
         key = section['kind']
         heading = section['title']
@@ -41,17 +44,18 @@ def resume_to_text(data: dict) -> str:
         if not items:
             continue
         lines.append(f"\n## {heading}")
+        if key == 'awards':
+            lines.append('；'.join(award_label(item) for item in items))
         for item in items:
             title = item.get("company") or item.get("name") or item.get("school") or "[待填写]"
             detail = item.get("title") or item.get("role") or ' · '.join(part for part in (item.get('major'), item.get('degree'), item.get('pr'), item.get('summary'), item.get('level')) if part) or ""
-            lines.append(" · ".join(part for part in (title, detail) if part))
+            if key != 'awards':
+                lines.append(contribution_title(item) if key == 'open_source' else " · ".join(part for part in (title, detail) if part))
             dates = ' — '.join(str(item.get(k) or '') for k in ('start_date', 'end_date')).strip(' —')
             if dates:
                 lines.append(dates)
-            if key == "awards" and item.get("date"):
-                lines.append(item["date"])
             bullets = item.get("bullets") or item.get("polished_bullets") or []
-            if key == "awards":
+            if key in {"awards", "open_source"}:
                 bullets = [bullet for _, bullet in item["_display_bullets"]]
             if not bullets and item.get("description"):
                 bullets = [item["description"]]

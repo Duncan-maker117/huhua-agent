@@ -16,6 +16,38 @@ ALIASES = {'教育': 'education', '工作': 'work_experience', '实习': 'work_e
            '技能': 'skills', '证书': 'certificates'}
 
 
+def user_plan_text(text: str, profile: dict | None = None) -> str:
+    """Translate internal requirement/signal references only in prose slots."""
+    profile = profile or {}
+    labels = {row.get('id'): str(row.get('text') or '')[:40]
+              for row in profile.get('requirements') or []}
+    labels.update({row.get('id'): str(row.get('signal') or '')[:40]
+                   for row in profile.get('core_signals') or []})
+    value = re.sub(r'(?<![A-Za-z0-9_])[rs]\d+(?![A-Za-z0-9_])',
+                   lambda match: labels.get(match[0], ''), str(text or ''))
+    value = re.sub(r'([、/，,；;])(?:\s*[、/，,；;])+', r'\1', value)
+    return value.strip(' 、/，,；;')
+
+
+def readable_plan(plan: dict, profile: dict | None = None) -> dict:
+    result = deepcopy(plan)
+    for field in ('label', 'thesis', 'positioning', 'summary_angle'):
+        if field in result:
+            result[field] = user_plan_text(result[field], profile)
+    for entry in result.get('experience_plan') or []:
+        entry['reason'] = user_plan_text(entry.get('reason'), profile)
+    for entry in result.get('requirements') or []:
+        if 'angle' in entry:
+            entry['angle'] = user_plan_text(entry['angle'], profile)
+    for row in result.get('questions') or []:
+        for field in ('q', 'why'):
+            if field in row:
+                row[field] = user_plan_text(row[field], profile)
+        if 'options' in row:
+            row['options'] = [user_plan_text(option, profile) for option in row['options']]
+    return result
+
+
 def plan_action(text: str, card: dict | None = None) -> tuple[str, int]:
     cleaned = re.sub(r'\s+', '', text).rstrip('。！!')
     if re.search(r'重新定方案|重定方案|主线.{0,8}(?:换|改)|(?:换|改).{0,6}主线|定位.{0,8}(?:换|改)', cleaned):
@@ -64,6 +96,9 @@ def positioning_guard_rows(card: dict, facts: dict) -> list[dict]:
 async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict,
                                   *, llm=None, positioning_checks: dict | None = None, diagnostic: dict | None = None) -> dict:
     from app.agents.resume_writer import _validate_plan
+    # Verify the same wording that will be shown/written, including ID expansion.
+    card = {'recommended': readable_plan(card['recommended'], profile),
+            'alternatives': [readable_plan(row, profile) for row in card.get('alternatives') or []]}
     if positioning_checks is None:
         checks = await guard_bullets(positioning_guard_rows(card, facts), list(facts.values()),
                                      user_skills=source.get('skills') or [], llm=llm)
@@ -113,7 +148,7 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                 detail = next((text for text, fact in zip(texts, item['facts']) if not fact.get('field')), texts[0])
                 relationship = (f"可对应岗位的「{requirements.get(match['req_id'], '')}」" if match else '尚无事实直接对应当前 JD 要求')
                 entry['reason'] = f"「{name}」记录了「{detail}」；{relationship}。"
-        return plan
+        return readable_plan(plan, profile)
 
     recommended = validated(card['recommended'], 0)
     result = {'recommended': recommended, 'alternatives': []}
@@ -215,16 +250,16 @@ def apply_plan_structure(data: dict, plan: dict) -> dict:
                     row['hidden'] = treatments[row['item_id']] == 'backup'
     from app.agents.resume_writer import _apply_section_order
     _apply_section_order(result, plan['section_order'])
-    result['self_evaluation'] = plan.get('positioning') or ''
-    if result['self_evaluation'] and not any(row.get('kind') == 'self_evaluation' for row in result['sections']):
-        result['sections'].append({'id': 'self_evaluation', 'kind': 'self_evaluation', 'title': '个人定位', 'content': ''})
+    result['summary'] = plan.get('positioning') or ''
     return result
 
 
-def plan_guidance(card: dict, collected: dict) -> dict:
+def plan_guidance(card: dict, collected: dict, profile: dict | None = None) -> dict:
     names = {item.get('item_id'): item.get('name') or item.get('company') or item.get('item_id')
              for section in (*SECTION_LABELS, 'internship') for item in collected.get(section) or [] if isinstance(item, dict)}
     display = deepcopy(card)
+    display['recommended'] = readable_plan(display['recommended'], profile)
+    display['alternatives'] = [readable_plan(row, profile) for row in display.get('alternatives', [])]
     for row in [display['recommended'], *display.get('alternatives', [])]:
         for entry in row['experience_plan']:
             entry['name'] = names.get(entry['item_id'], entry['item_id'])
@@ -234,10 +269,24 @@ def plan_guidance(card: dict, collected: dict) -> dict:
                         *[{'label': f"用备选：{row['label']}", 'value': f"用备选：{row['label']}"} for row in display['alternatives']]]}
 
 
-def plan_summary(plan: dict, collected: dict) -> str:
+def plan_summary(plan: dict, collected: dict, profile: dict | None = None) -> str:
     names = {item.get('item_id'): item.get('name') or item.get('company') or item.get('item_id')
              for section in (*SECTION_LABELS, 'internship') for item in collected.get(section) or [] if isinstance(item, dict)}
-    parts = [plan.get('thesis') or plan.get('label') or '按已确认方案组织经历']
-    parts.extend(f"重点写「{names.get(row['item_id'], row['item_id'])}」：{row['reason']}"
-                 for row in plan.get('experience_plan') or [] if row['treatment'] == 'lead')
-    return ' '.join(parts)
+    plan = readable_plan(plan, profile)
+    leads = [row for row in plan.get('experience_plan') or [] if row['treatment'] == 'lead']
+    # Reserve space for all lead names before allocating the thesis/reasons.
+    labels = [str(names.get(row['item_id']) or '这段经历')[:24] for row in leads]
+    budget = 150 - len('**这版的思路**：')
+    thesis = plan.get('thesis') or plan.get('label') or '按已确认方案组织经历'
+    thesis = thesis[:max(0, min(80, budget - sum(len(name) + 4 for name in labels)))]
+    parts = [thesis]
+    for row, name in zip(leads, labels):
+        remaining_names = sum(len(label) + 4 for label in labels[len(parts):])
+        remaining = budget - len(' '.join(parts)) - len(name) - 5 - remaining_names
+        reason = row.get('reason', '')
+        reason = re.sub(r'^[「“]?' + re.escape(name) + r'[」”]?\s*', '', reason).strip(' ：:，,；;。')
+        reason = re.sub(r'^的', '', re.split(r'[。；;，,]', reason)[0])
+        limit = max(0, min(20, remaining))
+        reason = reason if len(reason) <= limit else (reason[:limit - 1] + '…' if limit else '')
+        parts.append(f'{name}（{reason}）' if reason else name)
+    return ' '.join(parts)[:budget]

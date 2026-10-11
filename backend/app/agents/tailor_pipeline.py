@@ -154,11 +154,12 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
         rows.sort(key=lambda item: order.get(item.get('item_id'), len(order)))
         if section in data or section in current:
             data[section] = rows
-    summary = current.get('self_evaluation') or ''
+    summary_field = 'summary' if 'summary' in current else 'self_evaluation'
+    summary = current.get(summary_field) or ''
     summary_meta = meta.get('summary') or {}
     refs = summary_meta.get('fact_ids') or []
     if refs and set(refs) <= active_refs and summary_meta.get('text_hash') == text_hash(summary):
-        data['self_evaluation'] = summary
+        data[summary_field] = summary
     preserved = _sanitize_preserved_state({
         'collected_info': deepcopy(state.get('collected_info') or {}),
         'resume_data': data, 'resume_meta': meta,
@@ -369,8 +370,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         actions = plan_compression(data, written.get('match_plan'), round_number=round_number,
                                    constraints=constraints, allow_hiding=not bool(confirmed))
         if confirmed:
-            actions = [action for action in actions if action.get('op') != 'hide_item'
-                       and not (confirmed.get('positioning') and action.get('op') == 'clear_self_evaluation')]
+            actions = [action for action in actions if action.get('op') != 'hide_item']
         if scope != 'whole':
             def is_target(action):
                 if action.get('op') not in {'shorten_bullet', 'merge_bullets'}:

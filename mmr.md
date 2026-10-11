@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-11 游客回放七项版式/成稿修复：在 `overhaul/tailor` 保留 HEAD `b06e7ed` 与已有回放产物。六款 HTML/Word 荣誉改为分号段落；定位句新增独立页头 summary，真实自评单独保留；开源简介合并标题、渲染及 writer 去重复 PR 前缀并同步 hash；修复 superseded 专业+学历近似清洗误删 active 专业；方案/成稿 prose 将 requirement/signal id 换为要求原文；只留一处不超过150字的思路及每项不超过20字的 lead 理由；共用隐私提示明确联系方式系统已保存、用户回复不提占位符。新增18项虚构/fake-model回归，含第三轮 collecting→方案→直接写→隔离SQL保存及实际PDF测量；虚构 `t001-jianyue` 由2页降至1页，指定全量 **1228/1228（22.638s）**，Ruff（忽略既有E402）、JS语法与差异检查通过。未读取/打印凭证、真实模型调用、commit/push/部署。根因、完整文件清单与验证：`docs/development/2026-10-11-replay-layout-fixes.md`。
+
 2026-10-11 游客回放 A–G 本地修复：在 `overhaul/tailor`、HEAD `f50fc7e` 保留此前提交，修复联系人非空稀疏合并/链接跨轮保留、共用抽取入口教育专业补救、成对括号与技能项清理、事实清洗后实测与确认方案下合并/缩句、概括定位语义规则和拒绝诊断、lenient schema 裁剪及失败诊断、多答案团队归属/歧义暂存追问/短答接续、状态 role 入档与 canonical 清理。新增28项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1210/1210**；修改文件 Ruff（忽略既有E402）及差异检查通过。未读取/打印凭证、真实调用模型、commit/push/部署，既有回放产物保留。根因、全部文件与验收：`docs/development/2026-10-11-replay-guest-fidelity-fixes.md`。
 
 2026-10-11 Flash 回放 fix2 本地完成：在 `overhaul/tailor`、HEAD `4e30f42` 增量修复，保留 P1–P3 与 fix1。方案定位取消 schema 30字硬限制、支持深层 lenient 字段、超过40字整句丢弃；thesis 只用于方案叙事并核对数字/单位/具体技术词，定位句与正文同批语义核验。所有 JD 解码入口加确定性个人资料保护，已有 JD 仅带 JD 特征时替换；待确认补料先提取/导入并持久化，再出新卡；无 pending_plan 的重复确认不改稿，整稿 writer 合并有效技能分组及 active 用户技能；收集提示鼓励一次给全。新增23项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1182/1182（22.500s）**、Ruff（忽略既有E402）及差异检查通过。真实模型调用0，无commit/push/部署。逐项根因、文件与验收：`docs/development/2026-10-11-replay-plan-intake-fixes.md`。

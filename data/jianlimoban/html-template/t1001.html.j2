@@ -54,6 +54,7 @@
   .h-name { font-size: 21pt; letter-spacing: 3px; color: #1a1a1a; }
   .h-obj { font-size: 11pt; color: #2d4d63; }
   .contact { font-size: 9.5pt; color: #555; margin-top: 2px; }
+  {{ m.layout_styles() }}
 </style>
 </head>
 <body>
@@ -61,6 +62,7 @@
     <div class="header-text">
       <div class="h-line">{{ m.name_line(basic_info) }}</div>
       <div class="contact">{{ m.contact_line(basic_info) }}</div>
+      {{ m.positioning_line(summary) }}
     </div>
     {{ m.photo_box(basic_info) }}
   </div>

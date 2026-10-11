@@ -145,14 +145,14 @@ class PlanValidationRegression(unittest.IsolatedAsyncioTestCase):
         result = await run_resume_writer(source(), {}, model, previous_plan=selected, phase='write')
         self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch'])
         self.assertEqual({row['id'] for row in model.batches[0]}, {'b0', 'plan_positioning_0'})
-        self.assertEqual(result['resume_data']['self_evaluation'], selected['positioning'])
+        self.assertEqual(result['resume_data']['summary'], selected['positioning'])
 
     async def test_failed_positioning_during_write_clears_summary_but_keeps_body(self):
         selected = select_plan(card())
         model = PlanModel([('WriterDraft', writer_draft())], fail_ids=['plan_positioning_0'])
         result = await run_resume_writer(source(), {}, model, previous_plan=selected, phase='write')
         self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch'])
-        self.assertEqual(result['resume_data']['self_evaluation'], '')
+        self.assertEqual(result['resume_data']['summary'], '')
         self.assertEqual(result['confirmed_plan']['positioning'], '')
         self.assertNotIn('summary', result['resume_meta'])
         self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'], ['整理用户反馈并分类'])

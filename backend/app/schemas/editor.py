@@ -116,6 +116,8 @@ class ResumeData(BaseModel):
     # 编辑 agent 产出；模板优先用 skill_groups，退回 skills
     skill_groups: dict[str, list[str]] = {}
     certificates: list[str] = []
+    # 页头定位句，与用户提供的自我评价分开。
+    summary: str = Field(default="", exclude_if=lambda value: not value)
     self_evaluation: str = ""
     # 经历 section 标题（校园经历 / 工作经历 / 过往经历），空则模板用默认
     experience_section_title: str = ""

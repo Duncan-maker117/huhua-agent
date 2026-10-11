@@ -58,6 +58,7 @@ def resume_data_has_content(resume_data: dict | None) -> bool:
             section.get("kind") == "custom" and section.get("content", "").strip()
             for section in resume_data.get("sections") or []
         )
+        or resume_data.get("summary")
         or resume_data.get("self_evaluation")
     )
 

@@ -1929,7 +1929,8 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
         result.update(pending_plan={}, plan_required=False)
         if plan_action(latest)[0] == 'direct':
             from app.services.structure_plan import plan_summary
-            result['plan_summary'] = plan_summary(result.get('confirmed_plan') or confirmed, collected)
+            result['plan_summary'] = plan_summary(result.get('confirmed_plan') or confirmed, collected,
+                                                  (state.get('jd_info') or {}).get('role_profile'))
     return result
 
 
@@ -1993,8 +1994,6 @@ def _writer_reply(result: dict) -> str:
         reply += "\n\n本轮未能完成 PDF 页数校验，暂不能确认满足篇幅要求。"
     if data.get('verification_notes'):
         reply += f"\n\n另有 {len(data['verification_notes'])} 项信息待核对，详见右侧「核对」。"
-    if result.get('plan_summary'):
-        reply += '\n\n方案摘要：' + result['plan_summary']
     return reply
 
 
@@ -2008,9 +2007,11 @@ def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
         version_number=len(result.get('resume_versions') or state.get('resume_versions') or []) + 1)
     text = composed.get('text') or ''
     marker = '**这版的思路**'
-    if marker not in text:
-        return '', composed.get('asked_questions') or state.get('asked_questions') or []
-    return '\n\n' + text[text.index(marker):], composed.get('asked_questions') or []
+    if marker in text:
+        return '\n\n' + text[text.index(marker):], composed.get('asked_questions') or []
+    if result.get('plan_summary'):
+        return '\n\n' + marker + '：' + result['plan_summary'], composed.get('asked_questions') or []
+    return '', composed.get('asked_questions') or state.get('asked_questions') or []
 
 
 async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:

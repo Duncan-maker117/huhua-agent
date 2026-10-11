@@ -191,6 +191,9 @@ def sanitize_fact_history(state, *, original=None):
     active = {fact.get("id") for section in sections
               for item in (result.get("collected_info") or {}).get(section, [])
               for fact in item.get("facts", []) if fact.get("status", "active") == "active"}
+    active_fields = {item.get("item_id"): {fact.get("field"): fact.get("text")
+                     for fact in item.get("facts", []) if fact.get("status", "active") == "active" and fact.get("field")}
+                     for section in sections for item in (result.get("collected_info") or {}).get(section, [])}
     original = original if isinstance(original, dict) else state
     obsolete = {item.get("item_id"): [fact for fact in item.get("facts", []) if fact.get("id") not in active]
                 for section in sections for item in (original.get("collected_info") or {}).get(section, [])}
@@ -226,16 +229,19 @@ def sanitize_fact_history(state, *, original=None):
         draft = version.get("resume_data") or {}
         before = copy.deepcopy(draft)
         hashes = {}
-        summary = draft.get("self_evaluation") or ""
+        summary_field = "summary" if "summary" in draft else "self_evaluation"
+        summary = draft.get(summary_field) or ""
         summary_meta = meta.get("summary") or {}
         summary_refs = summary_meta.get("fact_ids") or []
         summary_hash = hashlib.sha256(summary.encode("utf-8")).hexdigest()
         summary_matches = bool(summary_meta) and summary_meta.get("text_hash") == summary_hash
         stale_summary = bool(summary_meta) and (not summary_refs or bool(set(summary_refs) - active))
         if unsupported(summary, all_obsolete, "self_evaluation") or (summary_matches and stale_summary):
+            draft[summary_field] = ""
+        if summary_field == "summary" and unsupported(draft.get("self_evaluation"), all_obsolete, "self_evaluation"):
             draft["self_evaluation"] = ""
         if summary_meta and (stale_summary or ("resume_data" in version and (
-                not summary_matches or draft.get("self_evaluation") != summary))):
+                not summary_matches or draft.get(summary_field) != summary))):
             meta.pop("summary", None)
         for section in sections:
             for item in draft.get(section) or []:
@@ -249,6 +255,12 @@ def sanitize_fact_history(state, *, original=None):
                 for field in ("name", "school", "company", "degree", "major", "role", "title", "start_date",
                               "end_date", "duration", "summary", "pr", "level", "date", "description", "raw_description", "highlights", "bullets", "polished_bullets"):
                     value = item.get(field)
+                    # A literal active replacement owns its scalar slot. E.g.
+                    # 专业「计算机科学与技术」 is also a near-match to the superseded
+                    # extraction「计算机科学与技术本科」, but is not stale prose.
+                    supported = active_fields.get(item_id, {}).get(field)
+                    if field not in {"description", "raw_description", "highlights", "bullets", "polished_bullets"} and supported and value == supported:
+                        continue
                     if isinstance(value, list):
                         item[field] = [text for text in value if not unsupported(text, facts, field)
                                        and (not isinstance(text, str) or hashlib.sha256(text.encode()).hexdigest() not in stale_hashes)]

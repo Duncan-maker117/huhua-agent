@@ -57,7 +57,7 @@ class InterviewerP1Test(unittest.TestCase):
         state['confirmed_plan'] = {'thesis': '多个 Agent 分工', 'experience_plan': [
             {'item_id': 'p1', 'treatment': 'lead', 'reason': 'mtagent 的分工对应岗位的 Agent 应用要求。'}]}
         text = compose_interviewer_reply(state, version_number=1)["text"]
-        self.assertIn('mtagent 的分工对应岗位的 Agent 应用要求', text)
+        self.assertIn('mtagent（分工对应岗位的 Agent 应用要求）', text)
         self.assertNotIn('正文写到', text)
         self.assertNotIn("证明", text)
 

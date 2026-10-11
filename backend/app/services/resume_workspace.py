@@ -369,7 +369,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     guidance["turn_id"] = hashlib.sha256(f"{len(values.get('messages') or [])}:{request}:{reply}".encode()).hexdigest()[:16]
     if values.get('pending_plan'):
         from app.services.structure_plan import plan_guidance
-        guidance = {**plan_guidance(values['pending_plan'], facts), 'turn_id': guidance['turn_id']}
+        guidance = {**plan_guidance(values['pending_plan'], facts, (values.get('jd_info') or {}).get('role_profile')), 'turn_id': guidance['turn_id']}
 
     advice = re.search(r"(?:\*\*|#{1,3}\s*|【)我的建议(?:\*\*|】)?\s*[:：]?\s*([\s\S]*?)(?=(?:\*\*|#{1,3}\s*|【)需要你补充|$)", reply)
     if advice and advice.group(1).strip():

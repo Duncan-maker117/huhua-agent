@@ -118,12 +118,13 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['confirmed_plan']['label'], '主线叙事型')
         self.assertEqual(result['resume_meta']['confirmed_plan'], result['confirmed_plan'])
         self.assertTrue(result['version_id'])
-        self.assertEqual(result['resume_data']['self_evaluation'], '修复跨语言记忆污染')
+        self.assertEqual(result['resume_data']['summary'], '修复跨语言记忆污染')
         self.assertEqual(result['resume_data']['sections'][0]['kind'], 'open_source')
         reply = result['messages'][0].content
         self.assertIn('这版的思路', reply)
         self.assertIn(card()['recommended']['thesis'], reply)
-        self.assertIn(card()['recommended']['experience_plan'][0]['reason'], reply)
+        self.assertIn('EchoKit（修复跨语言记忆污染）', reply)
+        self.assertNotIn('方案摘要', reply)
         self.assertNotIn('正文写到', reply)
         self.assertEqual([name for name, _ in writer.calls], ['WriterDraft'])
 
@@ -188,7 +189,8 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
                 result = await graph.building_node(state(command), model)
                 self.assertEqual([name for name, _ in model.calls], ['StructurePlan', 'WriterDraft'])
                 self.assertTrue(result['confirmed_plan'])
-                self.assertIn('方案摘要：', result['messages'][0].content)
+                self.assertEqual(result['messages'][0].content.count('**这版的思路**'), 1)
+                self.assertNotIn('方案摘要', result['messages'][0].content)
 
     async def test_confirmed_plan_is_reused_even_when_edit_reuse_switch_off(self):
         current = state('改写一下正文')

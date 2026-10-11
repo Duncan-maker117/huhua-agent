@@ -45,11 +45,36 @@ def project_role(value: str) -> str:
     return "" if is_project_status(value) else value
 
 
+def strip_pr_prefix(text: str, pr: str) -> str:
+    """Remove only a leading echo of this contribution's title PR number."""
+    number = re.fullmatch(r"(?:PR\s*)?#?\s*(\d+)", str(pr or "").strip(), re.I)
+    if not number:
+        return text
+    return re.sub(r"^\s*(?:PR\s*#?\s*|#\s*)" + re.escape(number[1]) + r"(?!\d)(?:\s*[：:、|｜—–-]\s*|\s+)",
+                  "", text, count=1, flags=re.I)
+
+
+def contribution_title(item: dict) -> str:
+    name = item.get("name") or ""
+    if item.get("summary"):
+        name += "（" + item["summary"] + "）"
+    return name + ("｜ " + item["pr"] if item.get("pr") else "")
+
+
+def award_label(item: dict) -> str:
+    return " ".join(value for value in (item.get("name"), item.get("level"), item.get("date")) if value)
+
+
 def display_bullets(item: dict, kind: str) -> list[tuple[int, str]]:
     """Hide header echoes while preserving canonical bullet indices for editing."""
     headers = set()
     if kind == "awards":
         name, level = item.get("name") or "", item.get("level") or ""
         headers = {_compact(name), _compact(level), _compact(name + level)} - {""}
-    return [(index, bullet) for index, bullet in enumerate(item.get("bullets") or [])
-            if _compact(bullet) not in headers]
+    rows = []
+    for index, bullet in enumerate(item.get("bullets") or []):
+        if kind == "open_source":
+            bullet = strip_pr_prefix(bullet, item.get("pr"))
+        if bullet.strip() and _compact(bullet) not in headers:
+            rows.append((index, bullet))
+    return rows

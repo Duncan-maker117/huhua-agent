@@ -21,7 +21,15 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-11 PR8 主线流程上线（最新）
+## 2026-10-12 排版自适应一页 + 深蓝细线模板（最新）
+
+- 镜像 `huhua-agent:20261012-1`（sha256:55e35415…），基于 `20261011-2`，代码 `a7955c5`（从提交 worktree 打包，未混入工作区未提交改动）。无 schema 迁移、未清数据（会话 8、账号 3、档案事实 84）。
+- 内容：每个模板 density 0–3（行距/间距/字号，正文最低 9.5pt），超页时先自动选最松的一页档位再压缩内容；"字大一点/排紧凑点"手动调档；预览、PDF、Word 同档。新增模板 `t003-shenlan`（深蓝细线）。
+- 包 `huhua-deploy-20261012-1.tar.gz`（1f920276…）；测试包用 `COPYFILE_DISABLE=1` 打，无 `._*` 文件。容器测试 1274 项仅 1 项需 node 的前端测试报错（镜像无 node）。
+- 备份 `/opt/huhua-backups/pre-20261012-1/`（app f5d4f731…、checkpoints e80dee66…、privacy 60c4c385…）。回滚：拷回 `deploy/compose.env.pre-20261012-1` 后 up。
+- 用户 2 页简历数据本地验证：density 0 为 2 页，自动选 1 档即 1 页，正文未删减。
+
+## 2026-10-11 PR8 主线流程上线（历史）
 
 - 镜像 `huhua-agent:20261011-2`（sha256:775776dfad20…），基于 `20261011-1` 只替换代码/前端/模板；无 schema 迁移、未清数据（会话 3、账号 3、档案事实 51 保留）。代码 `dbe2c86`。
 - 包：`huhua-deploy-20261011-2.tar.gz`（0df82934…），`huhua-tests-20261011-2.tar.gz`（d7abf2ac…）；脚本 `dist/{build,rehearse,release}-20261011-2.sh`。

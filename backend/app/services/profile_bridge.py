@@ -239,6 +239,9 @@ def sanitize_fact_history(state, *, original=None):
             meta.pop("summary", None)
         for section in sections:
             for item in draft.get(section) or []:
+                if section == 'projects' and 'role' in item:
+                    from app.services.resume_field_hygiene import project_role
+                    item['role'] = project_role(item['role'])
                 item_id = item.get("item_id")
                 records = bullets.get(item_id) or []
                 stale_hashes = {entry.get("text_hash") for entry in records if set(entry.get("fact_ids") or []) - active}

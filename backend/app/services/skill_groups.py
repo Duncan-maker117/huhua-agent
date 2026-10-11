@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Iterable, Mapping, Sequence
+from app.services.resume_field_hygiene import trim_name_punctuation
 
 CATEGORIES = ("产品方法", "AI 与 Agent", "开发", "工具", "内容运营")
 MAX_PER_GROUP = 8
@@ -42,14 +43,14 @@ def split_skills(values: Iterable[str]) -> list[str]:
     """「类别：A / B、C 开发经验」→ ['A', 'B', 'C']; decorations such as （生产级使用） are dropped."""
     output: list[str] = []
     for raw in values:
-        text = unicodedata.normalize("NFKC", str(raw or ""))
+        text = trim_name_punctuation(unicodedata.normalize("NFKC", str(raw or "")))
         if "：" in text or ":" in text:
             head, tail = re.split(r"[:：]", text, maxsplit=1)
             if len(head) <= 8 and tail.strip():
                 text = tail
         text = _BRACKET.sub("", text)
         for part in re.split(r"[/、,，;；·|]|\s+及\s+|\s+和\s+", text):
-            part = _PREFIX.sub("", part.strip())
+            part = _PREFIX.sub("", trim_name_punctuation(part))
             part = _SUFFIX.sub("", part).strip()
             part = _SUFFIX.sub("", part).strip()
             if part:

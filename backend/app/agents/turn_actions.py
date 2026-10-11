@@ -197,33 +197,86 @@ def _ownership_span(answer: str) -> str:
 
 
 def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str = "") -> dict:
-    """Attach a short ownership answer to the experience the previous question named."""
+    """Resolve each ownership sentence from its own name or matching role question."""
     if not isinstance(answer, str) or not isinstance(question, str):
         return collected
-    if not _ROLE_QUESTION.search(question) or not _ROLE_ANSWER.search(answer) or len(answer) > 160:
+    if not collected.get('pending_ownership') and (not _ROLE_QUESTION.search(question) or not _ROLE_ANSWER.search(answer)):
         return collected
     result = normalize_fact_store(collected)
-    named = re.findall(r"[「『]([^」』]{1,40})[」』]", question + answer)
     pools = [(item.get("name") or item.get("company") or "", item)
              for section in ("projects", "work_experience", "internship")
              for item in result.get(section) or [] if isinstance(item, dict)]
-    target = None
-    for label, item in pools:
-        if label and (label in answer or any(label in token or token in label for token in named)):
-            target = item
-            break
-    if target is None and len(pools) == 1:
-        target = pools[0][1]
-    if target is None:
-        return collected
-    quote = _ownership_span(answer)
-    if any(fact.get("source_quote") == quote and fact.get("status", "active") == "active"
-           for fact in target.get("facts") or []):
+    def named(text):
+        return [item for label, item in pools if label and re.search(
+            r'(?<![A-Za-z0-9_])' + re.escape(label) + r'(?![A-Za-z0-9_])', text, re.I)]
+
+    pending = result.get('pending_ownership') or []
+    identified = named(answer)
+    if pending and len(identified) == 1 and (answer.strip(' 。！!') == next(
+            label for label, item in pools if item is identified[0]) or re.search(r'说的是|指的是|属于|团队是', answer)):
+        target = identified[0]
+        for row in pending[:1]:
+            quote = row['source_quote']
+            target.setdefault('facts', []).append(new_fact(quote, kind='role', quote=quote, turn_id=row.get('turn_id', '')))
+            target.setdefault('raw_notes', []).append(quote)
+        result['pending_ownership'] = pending[1:]
         return result
-    target.setdefault("facts", []).append(new_fact(quote, kind="role", quote=quote, turn_id=turn_id))
-    notes = target.setdefault("raw_notes", [])
-    if quote not in notes:
-        notes.append(quote)
+    if not _ROLE_QUESTION.search(question) or not _ROLE_ANSWER.search(answer):
+        return result
+
+    # A metric question naming A must not steal the answer to a role question
+    # naming B. Only question sentences about ownership count as context.
+    contextual = {item['item_id']: item for sentence in re.split(r'[。！？!?；;\n]', question)
+                  if _ROLE_QUESTION.search(sentence) for item in named(sentence)}
+    from app.agents.fact_extractor import split_incomplete_tail
+    complete, _ = split_incomplete_tail(answer)
+    for sentence in re.findall(r'[^。！？!?\n]+[。！？!?]?', complete):
+        if not _ROLE_ANSWER.search(sentence):
+            continue
+        quote = _ownership_span(sentence).strip()
+        if not quote or quote not in answer:
+            continue
+        explicit = named(quote)
+        choices = explicit if explicit else list(contextual.values())
+        target = choices[0] if len(choices) == 1 else None
+        moved = []
+        for _, item in pools:
+            kept = []
+            for fact in item.get('facts') or []:
+                source = str(fact.get('source_quote') or '')
+                current = fact.get('status', 'active') == 'active' and (not fact.get('turn_id') or fact.get('turn_id') == turn_id)
+                related = source and (source in quote or (quote in source and source in answer))
+                if current and related and (target is None or item is not target):
+                    if source in quote:
+                        moved.append(fact)
+                else:
+                    kept.append(fact)
+            item['facts'] = kept
+            # Raw notes also reach fallback ownership resolution; remove a wrong
+            # attachment there, retaining the rest of a multi-answer message.
+            if target is None or item is not target:
+                item['raw_notes'] = [rest for note in item.get('raw_notes') or []
+                                     if (rest := note.replace(quote, '').strip())]
+                for field in ('role', 'title'):
+                    if item.get(field) and str(item[field]) in quote:
+                        item.pop(field)
+        if target is None:
+            pending = result.setdefault('pending_ownership', [])
+            if not any(row.get('source_quote') == quote for row in pending):
+                pending.append({'source_quote': quote, 'turn_id': turn_id})
+            elif turn_id:
+                for row in pending:
+                    if row.get('source_quote') == quote and not row.get('turn_id'):
+                        row['turn_id'] = turn_id
+            continue
+        result['pending_ownership'] = [row for row in result.get('pending_ownership') or [] if row.get('source_quote') != quote]
+        known = {fact.get('source_quote') for fact in target.setdefault('facts', [])}
+        target['facts'].extend(fact for fact in moved if fact.get('source_quote') not in known)
+        known.update(fact.get('source_quote') for fact in moved)
+        if quote not in known:
+            target['facts'].append(new_fact(quote, kind='role', quote=quote, turn_id=turn_id))
+        if quote not in target.setdefault('raw_notes', []):
+            target['raw_notes'].append(quote)
     return result
 
 

@@ -1,7 +1,7 @@
 """Strict model contracts for JD match planning and sourced resume writing."""
 
 from contextvars import ContextVar
-from typing import Any, Literal
+from typing import Any, Literal, get_args, get_origin
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -126,6 +126,7 @@ class RepairOutput(WriterSchema):
 # bullets, items, plans and the top-level outputs are dropped instead of rejected.
 
 IGNORED_EXTRA_SINK: ContextVar[list[str] | None] = ContextVar("writer_ignored_extra_sink", default=None)
+REPAIRED_FIELD_SINK: ContextVar[list[dict] | None] = ContextVar("writer_repaired_field_sink", default=None)
 
 
 def _still_forbid_in_schema(schema: dict[str, Any]) -> None:
@@ -139,6 +140,35 @@ class _DropsExtra:
         sink = IGNORED_EXTRA_SINK.get()
         if sink is not None and isinstance(data, dict):
             sink.extend(str(key) for key in data if key not in cls.model_fields)
+        if isinstance(data, dict):
+            data = dict(data)
+            repaired = REPAIRED_FIELD_SINK.get()
+            for name, field in cls.model_fields.items():
+                if name not in data:
+                    continue
+                value, reason = data[name], ''
+                if get_origin(field.annotation) is Literal and isinstance(value, str):
+                    choices = get_args(field.annotation)
+                    normalized = value.strip().casefold()
+                    if normalized in choices and value != normalized:
+                        value, reason = normalized, 'normalized_literal'
+                for bound in field.metadata:
+                    if isinstance(value, list) and (limit := getattr(bound, 'max_length', None)) is not None and len(value) > limit:
+                        value, reason = value[:limit], 'truncated_list'
+                    if field.annotation is int:
+                        number = int(value) if isinstance(value, str) and value.strip().lstrip('+-').isdigit() else value
+                        if type(number) is float and number.is_integer():
+                            number = int(number)
+                        if type(number) is int:
+                            lower, upper = getattr(bound, 'ge', None), getattr(bound, 'le', None)
+                            clamped = max(lower, number) if lower is not None else number
+                            clamped = min(upper, clamped) if upper is not None else clamped
+                            if clamped != number:
+                                value, reason = clamped, 'clamped_range'
+                if reason:
+                    data[name] = value
+                    if repaired is not None:
+                        repaired.append({'field': name, 'reason': reason})
         return data
 
 

@@ -278,10 +278,11 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         return "\n".join(line for raw in str(text or "").splitlines() if (line := _strip_absence(raw)))
 
     def _proj(p: dict) -> dict:
+        from app.services.resume_field_hygiene import project_role
         return {
             **_presentation(p),
             "name": p.get("name", ""),
-            "role": p.get("role", ""),
+            "role": project_role(p.get("role", "")),
             "start_date": p.get("start_date", "") or p.get("duration", ""),
             "end_date": p.get("end_date", ""),
             "description": _proj_description(p.get("description", "")),
@@ -692,6 +693,8 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     text = message.content.strip()
     if not text or looks_like_existing_resume(text):
         return collected
+    if any(row.get('source_quote') in text for row in collected.get('pending_ownership') or [] if row.get('source_quote')):
+        return collected
     corrected = _apply_explicit_project_removals(collected, text)
     if corrected != collected:
         return corrected
@@ -949,6 +952,11 @@ def _hash_text(text: str) -> str:
 
 def unrecorded_notice(collected: dict, latest_human: str) -> str:
     """本轮抽取没能记下的原话；只在产生它的那一轮提示一次。"""
+    pending = [row for row in (collected or {}).get('pending_ownership') or []
+               if row.get('source_quote') and row['source_quote'] in latest_human]
+    if pending:
+        team = '三人团队这句说的是哪个项目？' if _re.search(r'三(?:个)?人|3(?:个)?人', pending[0]['source_quote']) else '这句团队分工说的是哪个项目？'
+        return '\n\n' + team
     info = (collected or {}).get("unrecorded") or {}
     if info.get("source") != _hash_text(latest_human):
         return ""
@@ -985,6 +993,10 @@ async def _extract_info_from_message(
             message, normalized, llm, metadata_context=normalized.get("metadata_context"),
             previous_assistant=_previous_assistant.get())
         result = apply_fact_patch(normalized, patch)
+        if (_re.search(r'我负责|我写|我做|本人|独立|一个人|都是我', message)
+                and _re.search(r'职责|分工|独立|团队|一个人|谁做', _previous_assistant.get())):
+            from app.agents.turn_actions import bind_role_followup
+            result = bind_role_followup(result, _previous_assistant.get(), message)
         uncovered = [str(c) for c in patch.get("uncovered") or []][:3]
         incomplete = [str(c) for c in patch.get("incomplete") or []][:1]
         if uncovered or incomplete:
@@ -1571,6 +1583,9 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         HumanMessage(content=""),
     )
     candidate_material = _candidate_source_allowed(source_message)
+    if candidate_material and collected.get('pending_ownership'):
+        from app.agents.turn_actions import bind_role_followup
+        collected = bind_role_followup(collected, _latest_previous_assistant(messages), last_human, source_message.id or '')
     imported = parse_existing_resume(last_human) if candidate_material else None
     generate_requested = _explicit_generate_requested(last_human)
 
@@ -1963,11 +1978,17 @@ def _writer_reply(result: dict) -> str:
         reply += f"\n\n所选模板实际为 {page['pages']} 页。"
         if page.get('within_page_limit') is False and preserved_existing:
             reply += f"当前稿仍超过 {page['page_limit']} 页要求，本轮尚未完成压缩。"
-        elif page.get('within_page_limit') is False:
-            rows = [item.get('name') or item.get('company') for section in ('projects', 'work_experience')
-                    for item in data.get(section) or [] if not item.get('hidden')]
-            candidate = rows[-1] if rows else '部分经历'
-            reply += f"按 {page['page_limit']} 页约束压缩后仍超页；进一步压缩可能需要省略「{candidate}」，请确认是否删减。"
+        if page.get('within_page_limit') is False:
+            plan = result.get('confirmed_plan') or result.get('match_plan') or {}
+            treatments = {row['item_id']: row['treatment'] for row in plan.get('experience_plan') or []}
+            rows = [item.get('name') or item.get('company') for section in ('projects', 'work_experience', 'open_source')
+                    for item in data.get(section) or [] if not item.get('hidden')
+                    and treatments.get(item.get('item_id')) in {'brief', 'backup'}]
+            extra = page['pages'] - page['page_limit']
+            suggestions = '、'.join(f'「{name}」' for name in rows if name)
+            reply += f"比 {page['page_limit']} 页要求超出 {extra} 页；已保留确认的经历。"
+            reply += (f"建议进一步压缩或移除简写/备用经历 {suggestions}，由你决定。" if suggestions else
+                      "可以进一步压缩较长的项目描述，或由你指定移除哪段经历。")
     elif page.get('status') == 'render_error':
         reply += "\n\n本轮未能完成 PDF 页数校验，暂不能确认满足篇幅要求。"
     if data.get('verification_notes'):

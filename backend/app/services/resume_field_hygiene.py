@@ -10,11 +10,21 @@ def _punctuation(char: str) -> bool:
 
 def trim_name_punctuation(value: str) -> str:
     value = str(value or "").strip()
-    while value and _punctuation(value[0]):
-        value = value[1:].lstrip()
-    while value and _punctuation(value[-1]):
-        value = value[:-1].rstrip()
-    return value
+    pairs = {"(": ")", "（": "）", "[": "]", "【": "】", "「": "」", "『": "』", "“": "”", "‘": "’"}
+    stack, matched = [], set()
+    for index, char in enumerate(value):
+        if char in pairs:
+            stack.append((index, char))
+        elif stack and char == pairs.get(stack[-1][1], stack[-1][1]):
+            matched.update((stack.pop()[0], index))
+        elif char in {'"', "'"}:
+            if stack and stack[-1][1] == char:
+                matched.update((stack.pop()[0], index))
+            else:
+                stack.append((index, char))
+    brackets = set(pairs) | set(pairs.values())
+    value = "".join(char for index, char in enumerate(value) if char not in brackets or index in matched)
+    return value.strip().strip("。.，,；;！!？?、").strip()
 
 
 def _compact(value: str) -> str:

@@ -61,7 +61,7 @@ class CommittedResumeReceiptTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(stored['resume_data']['projects'][0]['polished_bullets'], [])
                 self.assertEqual(captured[0]['resume_data'], stored['resume_data'])
                 self.assertEqual(captured[0]['resume_meta']['page_check']['data_hash'], resume_data_hash(stored['resume_data']))
-                self.assertIsNone(captured[0]['resume_meta']['page_check']['within_page_limit'])
+                self.assertTrue(captured[0]['resume_meta']['page_check']['within_page_limit'])
                 repair = graph.aupdate_state.call_args.args[1]
                 self.assertEqual(repair['resume_data'], stored['resume_data'])
                 self.assertEqual(repair['messages'][0].id, 'writer-receipt')

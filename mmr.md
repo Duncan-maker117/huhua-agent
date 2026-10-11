@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-11 游客回放 A–G 本地修复：在 `overhaul/tailor`、HEAD `f50fc7e` 保留此前提交，修复联系人非空稀疏合并/链接跨轮保留、共用抽取入口教育专业补救、成对括号与技能项清理、事实清洗后实测与确认方案下合并/缩句、概括定位语义规则和拒绝诊断、lenient schema 裁剪及失败诊断、多答案团队归属/歧义暂存追问/短答接续、状态 role 入档与 canonical 清理。新增28项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1210/1210**；修改文件 Ruff（忽略既有E402）及差异检查通过。未读取/打印凭证、真实调用模型、commit/push/部署，既有回放产物保留。根因、全部文件与验收：`docs/development/2026-10-11-replay-guest-fidelity-fixes.md`。
+
 2026-10-11 Flash 回放 fix2 本地完成：在 `overhaul/tailor`、HEAD `4e30f42` 增量修复，保留 P1–P3 与 fix1。方案定位取消 schema 30字硬限制、支持深层 lenient 字段、超过40字整句丢弃；thesis 只用于方案叙事并核对数字/单位/具体技术词，定位句与正文同批语义核验。所有 JD 解码入口加确定性个人资料保护，已有 JD 仅带 JD 特征时替换；待确认补料先提取/导入并持久化，再出新卡；无 pending_plan 的重复确认不改稿，整稿 writer 合并有效技能分组及 active 用户技能；收集提示鼓励一次给全。新增23项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1182/1182（22.500s）**、Ruff（忽略既有E402）及差异检查通过。真实模型调用0，无commit/push/部署。逐项根因、文件与验收：`docs/development/2026-10-11-replay-plan-intake-fixes.md`。
 
 2026-10-11 模型回放四处 bug 本地修复：保留已提交 P1/P2/P3（HEAD `4710385`），未回退。空 JD 解码的候选消息回到正常收集并复用并行抽取，JD_INPUT 同样兜底；项目纯状态词在抽取/档案/映射/writer 拦截，旧稿渲染隐藏错误角色但保留状态事实；荣誉名称去首尾标点，HTML/Word/文本统一抑制标题重复 bullet，预览保留原 bullet 索引；advice 按归一化编辑距离 <20% 去重，不足两个时换 style 补一次并重新核验，仍不足如实给一个。新增 25 项虚构/fake-model 回归；指定 `.venv/bin/python scripts/run_tests.py` 全量 1159/1159（22.373s），差异检查和修改文件 Ruff（忽略既有 E402 导入布局）通过。没有读取/打印 key、调用真实模型、commit/push 或部署。根因及逐 bug 文件清单：`docs/development/2026-10-11-replay-bug-fixes.md`。

@@ -55,13 +55,14 @@ def select_plan(card: dict, index: int = 0) -> dict | None:
 
 
 def positioning_guard_rows(card: dict, facts: dict) -> list[dict]:
-    return [{'id': f'plan_positioning_{index}', 'text': sentence, 'fact_ids': list(facts), 'semantic_only': True}
+    return [{'id': f'plan_positioning_{index}', 'text': sentence, 'fact_ids': list(facts),
+             'semantic_only': True, 'claim_kind': 'positioning'}
             for index, row in enumerate([card['recommended'], *(card.get('alternatives') or [])[:2]])
             if (sentence := str(row.get('positioning') or '').strip()) and len(sentence) <= 40]
 
 
 async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict,
-                                  *, llm=None, positioning_checks: dict | None = None) -> dict:
+                                  *, llm=None, positioning_checks: dict | None = None, diagnostic: dict | None = None) -> dict:
     from app.agents.resume_writer import _validate_plan
     if positioning_checks is None:
         checks = await guard_bullets(positioning_guard_rows(card, facts), list(facts.values()),
@@ -83,8 +84,22 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         thesis_errors.extend(validate_skill_groups({'terms': concrete_terms}, list(facts.values()), source.get('skills') or []))
         plan['thesis'] = thesis if not thesis_errors else ''
         sentence = str(row.get('positioning') or '').strip()
-        plan['positioning'] = sentence if (len(sentence) <= 40 and
-            positioning_checks.get(f'plan_positioning_{index}', {}).get('verdict') == 'pass') else ''
+        check = positioning_checks.get(f'plan_positioning_{index}') or {}
+        reason = ('empty' if not sentence else 'over_40_chars' if len(sentence) > 40 else
+                  'lexical_fact_errors' if check.get('lexical_errors') else
+                  'semantic_result_missing' if not check else
+                  'semantic_rejected' if check.get('verdict') != 'pass' else '')
+        plan['positioning'] = sentence if not reason else ''
+        if diagnostic is not None and index == 0:
+            diagnostic['positioning_rejected_reason'] = reason
+            if reason and check.get('semantic'):
+                # Fixed failure dimensions only; do not log model prose or PII.
+                semantic = check['semantic']
+                diagnostic['positioning_failed_dimensions'] = [key for key in (
+                    'subject_ok', 'actions_supported', 'objects_supported', 'results_supported', 'limits_kept')
+                    if semantic.get(key) is False]
+                codes = {'semantic_verification_unavailable', 'semantic_verification_failed', 'semantic_result_missing_or_duplicate'}
+                diagnostic['positioning_semantic_reason_codes'] = [span for span in semantic.get('unsupported_spans') or [] if span in codes]
         plan['label'] = str(row.get('label') or '主线叙事型')[:60]
         requirements = {req['id']: req.get('text', '') for req in profile.get('requirements') or [] if req.get('id')}
         for entry in plan['experience_plan']:

@@ -29,7 +29,8 @@ class CommittedPageCheckTest(TestCase):
         measure.assert_called_once_with(committed, {"page_limit": 1, "template_id": "t001-jianyue"})
         page = result["page_check"]
         self.assertEqual(page["pages"], 1)
-        self.assertIsNone(page["within_page_limit"])
+        self.assertTrue(page["within_page_limit"])
+        self.assertFalse(page["compression_success"])
         self.assertEqual(page["content_integrity"], "changed_by_fact_sanitizer")
         self.assertEqual(page["pre_sanitization_data_hash"], capacity.resume_data_hash(before))
         self.assertEqual(page["data_hash"], capacity.resume_data_hash(committed))

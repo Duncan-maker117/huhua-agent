@@ -16,7 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.config import get_settings
-from app.schemas.writer import (IGNORED_EXTRA_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
+from app.schemas.writer import (IGNORED_EXTRA_SINK, REPAIRED_FIELD_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
                                 RepairOutput, StructurePlan, WriterDraft)
 from app.services.fact_guard import guard_bullets, ngram_overlap, strip_absence, validate_skill_groups
 from app.services.speculative import SpeculativeScope
@@ -258,15 +258,20 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
 
     async def invoke(prompt):
         ignored: list[str] = []
+        repairs: list[dict] = []
         token = IGNORED_EXTRA_SINK.set(ignored) if wire is not schema else None
+        repair_token = REPAIRED_FIELD_SINK.set(repairs) if wire is not schema else None
         try:
             output = await structured.ainvoke(prompt)
             return wire.model_validate(privacy.restore(_model_dict(output)))
         finally:
             if token is not None:
                 IGNORED_EXTRA_SINK.reset(token)
+                REPAIRED_FIELD_SINK.reset(repair_token)
                 if retry_state is not None:
                     _note_field_names(retry_state, "ignored_extra_fields", ignored)
+                    if repairs:
+                        retry_state['schema_repairs'] = [dict(row) for row in repairs[:12]]
 
     def schema_structure() -> dict:
         """Trusted type diagram only: no defaults, examples or failed values."""
@@ -942,12 +947,16 @@ async def _run_resume_writer(
         raise ValueError("Unknown writer phase")
     source, items, facts = _source_evidence(collected_info)
     current = deepcopy(current_data or {})
+    from app.services.resume_field_hygiene import project_role
+    for item in current.get('projects') or []:
+        if isinstance(item, dict) and 'role' in item:
+            item['role'] = project_role(item['role'])
     if scope == "whole":
         from app.agents.turn_actions import overlay_education
         current = overlay_education(collected_info, current)
         basic = current.setdefault("basic_info", {})
         for key, value in (collected_info.get("basic_info") or {}).items():
-            if key in {"links", "availability"} or key not in basic:
+            if value and (key in {"name", "phone", "email", "location", "links", "availability"} or key not in basic):
                 basic[key] = deepcopy(value)
         if "awards" in collected_info:
             previous_awards = {item.get("item_id"): item for item in current.get("awards") or []}
@@ -995,8 +1004,17 @@ async def _run_resume_writer(
                 raw = card.model_dump()
         except Exception as error:
             diagnostic.update(status="model_fallback", error_type=_safe_error_type(error))
+            diagnostic.setdefault('schema_failure_reason_code',
+                                  'model_call_timeout' if isinstance(error, TimeoutError) else 'model_call_failed')
+            if isinstance(error, ValidationError):
+                diagnostic.update(_safe_validation_errors(error, StructurePlan))
+                diagnostic['schema_failure_reason_code'] = 'schema_validation_failed'
+            elif isinstance(error, WriterOutputShapeError):
+                diagnostic['schema_failure_reason_code'] = error.reason_code
+            elif _tool_arguments_not_object(error):
+                diagnostic['schema_failure_reason_code'] = 'tool_arguments_not_object'
             raw = {"recommended": {**plan.model_dump(), "label": "事实保守型"}, "alternatives": []}
-        card = await validate_structure_plan(raw, source, role_profile, items, facts, llm=model)
+        card = await validate_structure_plan(raw, source, role_profile, items, facts, llm=model, diagnostic=diagnostic)
         return {"structure_plan": card, "writer_diagnostic": diagnostic}
     reused_plan = (MatchPlan.model_validate({key: previous_plan[key] for key in MatchPlan.model_fields
                                             if key in previous_plan}) if phase == "write" and previous_plan else
@@ -1329,7 +1347,7 @@ async def _run_resume_writer(
     if phase == "write":
         from app.services.structure_plan import validate_structure_plan, apply_plan_structure
         checked = await validate_structure_plan({"recommended": dict(previous_plan)}, source, role_profile, items, facts,
-                                                positioning_checks=plan_checks)
+                                                positioning_checks=plan_checks, diagnostic=writer_diagnostic)
         selected = checked["recommended"]
         output = apply_plan_structure(output, selected)
         positioning = selected.get("positioning") or ""

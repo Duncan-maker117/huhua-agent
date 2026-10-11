@@ -345,6 +345,18 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                 'change_summary': [], 'omitted': deepcopy(meta.get('omitted') or [])}
     data = written['resume_data']
     meta = written['resume_meta']
+    # Sanitize before capacity work so persistence measures the same document.
+    from app.services.profile_bridge import sanitize_fact_history
+    sanitizer_changed = False
+
+    def sanitize(data, meta):
+        nonlocal sanitizer_changed
+        cleaned = sanitize_fact_history({'collected_info': state.get('collected_info') or {},
+                                         'resume_data': data, 'resume_meta': meta})
+        sanitizer_changed |= cleaned['resume_data'] != data
+        return cleaned['resume_data'], valid_bullet_metadata(cleaned['resume_data'], cleaned['resume_meta'])
+
+    data, meta = sanitize(data, meta)
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
     compressed = []
     compression_diagnostics = []
@@ -354,9 +366,11 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
     for round_number in range(1, MAX_COMPRESSION_ROUNDS + 1):
         if measurement.get('within_page_limit') is not False:
             break
-        actions = plan_compression(data, written.get('match_plan'), round_number=round_number, constraints=constraints)
+        actions = plan_compression(data, written.get('match_plan'), round_number=round_number,
+                                   constraints=constraints, allow_hiding=not bool(confirmed))
         if confirmed:
-            actions = [action for action in actions if action.get('op') != 'hide_item']
+            actions = [action for action in actions if action.get('op') != 'hide_item'
+                       and not (confirmed.get('positioning') and action.get('op') == 'clear_self_evaluation')]
         if scope != 'whole':
             def is_target(action):
                 if action.get('op') not in {'shorten_bullet', 'merge_bullets'}:
@@ -409,6 +423,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                     previous_plan=confirmed or None, **kwargs)
                 if revised.get('writer_diagnostic'):
                     compression_diagnostics.append(revised['writer_diagnostic'])
+                revised['resume_data'], revised['resume_meta'] = sanitize(revised['resume_data'], revised['resume_meta'])
                 data, meta, reason = await _retain_compressed_body(before, meta, revised, action,
                     state.get('collected_info') or {}, structured_llm or llm)
                 retention_checks.append({'item_id': target[1].get('item_id'),
@@ -440,6 +455,8 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
     version = prepare_version(state.get('resume_data') or {}, state.get('resume_meta') or {},
                                state.get('resume_versions') or [], data, meta,
                                label='定制简历' if scope == 'whole' else '局部修改')
+    if sanitizer_changed:
+        measurement['content_integrity'] = 'changed_by_fact_sanitizer'
     version['resume_meta'].update(match_plan=written.get('match_plan') or {},
                                   omitted=written.get('omitted') or [],
                                   page_check=measurement,

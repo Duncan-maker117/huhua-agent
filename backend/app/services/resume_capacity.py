@@ -126,7 +126,7 @@ def revalidate_committed_page_check(resume_data: dict[str, Any], resume_meta: di
                                     constraints: Mapping[str, Any] | None,
                                     *, content_changed: bool = False,
                                     pre_sanitization_hash: str = "") -> dict[str, Any]:
-    """Render a changed committed draft; a fact-cleaned fit is not compression success."""
+    """Render the exact committed draft, tracking sanitization separately from fit."""
     result = deepcopy(resume_meta or {})
     previous = result.get("page_check")
     if not isinstance(previous, dict) or not previous:
@@ -142,7 +142,7 @@ def revalidate_committed_page_check(resume_data: dict[str, Any], resume_meta: di
     measured = measure_rendered_pages(resume_data, effective)
     if content_changed:
         measured["content_integrity"] = "changed_by_fact_sanitizer"
-        measured["within_page_limit"] = None
+        measured["compression_success"] = False
         measured["pre_sanitization_data_hash"] = pre_sanitization_hash
     result["page_check"] = measured
     return result
@@ -168,6 +168,7 @@ def plan_compression(
     *,
     round_number: int = 1,
     constraints: Mapping[str, Any] | None = None,
+    allow_hiding: bool = True,
 ) -> list[dict[str, Any]]:
     """Rank reversible document actions; shortening remains a writer request.
 
@@ -185,7 +186,7 @@ def plan_compression(
             if not isinstance(item, dict) or item.get("hidden") is True:
                 continue
             item_id = item.get("item_id")
-            if treatments.get(item_id) == "brief":
+            if allow_hiding and treatments.get(item_id) == "brief":
                 actions.append({"op": "hide_item", "target": f"/{section}/{index}",
                                 "item_id": item_id, "reason": "brief_to_backup", "writer_required": False})
     for section in EXPERIENCE_SECTIONS:

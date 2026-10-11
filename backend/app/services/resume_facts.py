@@ -123,6 +123,8 @@ def normalize_fact_store(collected: dict | None) -> dict:
                 skill.setdefault("source_quote", skill.get("name", ""))
                 skill.setdefault("source", "chat")
                 skill.setdefault("status", "active")
+            if isinstance(skill, dict):
+                skill['name'] = trim_name_punctuation(skill.get('name', ''))
             if isinstance(skill, dict) and skill.get("name") and _fold_value(skill["name"]) not in education_values:
                 normalized_skills.append(skill)
         result["skills"] = normalized_skills
@@ -240,7 +242,7 @@ def append_editor_facts(previous_facts: dict, old_draft: dict, new_draft: dict,
                             target.setdefault("facts", []).append(fact)
                         fact["field"] = field
                     target[field] = value
-    return result
+    return normalize_fact_store(result)
 
 
 def active_facts_for_writer(collected: dict) -> dict:

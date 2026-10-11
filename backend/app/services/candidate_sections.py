@@ -26,6 +26,15 @@ def literal_links(text: str) -> list[dict]:
 def parse_header_fields(text: str) -> dict:
     """Preserve the supplied URL/domain/handle verbatim; never invent a URL."""
     basic = {}
+    for field, pattern in (
+        ("name", r"(?:^|[\n，,；;。])[ \t]*(?:我的)?姓名[ \t]*(?:是|为|[：:])?[ \t]*([^\s，,；;。:：、]{1,30})"),
+        ("phone", r"(?:联系电话|手机号码|手机号|电话|手机)\s*(?:是|为|[：:])?\s*(\+?\d[\d \t()-]{5,}\d)(?!\d)"),
+        ("email", r"(?:电子邮箱|邮箱|email)\s*(?:是|为|[：:])?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})"),
+        ("location", r"(?:所在地|居住地|城市|现居|人在)\s*(?:是|为|[：:])?\s*([\u4e00-\u9fff]{2,12})(?=[\s，,；;。]|$)"),
+        ("objective", r"(?:求职意向|求职方向)[ \t]*(?:是|为|[：:])[ \t]*([^\n，,；;。]+)"),
+    ):
+        if match := re.search(pattern, text, re.I):
+            basic[field] = match[1].strip()
     links = []
     for label, value in re.findall(
             r"(GitHub|个人主页|个人网站|主页|网站)(?:\s*(?:是|为|[：:])\s*|\s+)"

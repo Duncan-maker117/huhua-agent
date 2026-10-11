@@ -18,7 +18,7 @@ from app.services.resume_field_hygiene import is_project_status
 logger = logging.getLogger(__name__)
 
 _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch：
-{"items":[{"section":"projects|work_experience|internship|education|open_source|awards","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","field":"结构字段可选","text":"规范化陈述","source_quote":"本轮连续原文"}],"links":[{"text":"PR或链接名","url":"用户提供的链接"}],"raw_notes":["本轮相关原话"]}],"basic_info":{"links":[{"text":"GitHub或个人主页","url":"原文URL/域名/账号"}],"availability":"可实习时间原文"},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
+{"items":[{"section":"projects|work_experience|internship|education|open_source|awards","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","field":"结构字段可选","text":"规范化陈述","source_quote":"本轮连续原文"}],"links":[{"text":"PR或链接名","url":"用户提供的链接"}],"raw_notes":["本轮相关原话"]}],"basic_info":{"name":"姓名","phone":"电话占位原文","email":"邮箱占位原文","location":"城市","objective":"求职意向","links":[{"text":"GitHub或个人主页","url":"原文URL/域名/账号"}],"availability":"可实习时间原文"},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
 口语可转书面，但不能新增数字、动作、职责、成果或工具；否定、计划、Demo、未上线必须保留。归属已有经历须用已有 item_id。
 更正旧事实用 corrections，删除事实用 removals；删除文稿的句子不等于删除事实。
 JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
@@ -361,7 +361,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if key == "links":
             existing = result["basic_info"].setdefault("links", [])
             existing.extend(link for link in value if link not in existing)
-        else:
+        elif not _quote_has_unquoted_limit(evidence, value):
             result["basic_info"].setdefault(key, value)
     claimed_rows = set()
     for section, rows in parse_labelled_items(evidence, turn_id=turn_id).items():
@@ -386,6 +386,26 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             if row.get("links"):
                 owner["links"] = row["links"]
     coverage_evidence = evidence + (" " + tail if tail else "")
+    # The model may omit a literal major/degree span. Recover structured fields
+    # here so generation, history recovery and normal collection share the fix.
+    from app.agents.turn_actions import parse_education_fields
+    education_evidence = '\n'.join(line for line in evidence.splitlines()
+                                   if not re.search(r'学校.{0,8}(?:改|写|填|换)|写全称|学校全称', line))
+    fields = parse_education_fields(education_evidence)
+    if fields.get("school"):
+        school = fields["school"]
+        owner = next((row for row in result["items"] if row["section"] == "education" and (
+            row["name"] == school or any(f.get("field") == "school" and f["text"] == school for f in row["facts"]))), None)
+        if owner is None:
+            prior = next((row for row in visible.get("education", []) if row.get("school") == school), None)
+            owner = {"section": "education", "item_id": prior["item_id"] if prior else str(uuid.uuid4()),
+                     "name": school, "facts": [], "raw_notes": []}
+            result["items"].append(owner)
+        for field, value in fields.items():
+            if not any(f.get("field") == field for f in owner["facts"]):
+                fact = new_fact(value, kind="context", quote=value, turn_id=turn_id)
+                fact["field"] = field
+                owner["facts"].append(fact)
     _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text)
     for item in result["items"]:
         item["raw_notes"].extend(fact["source_quote"] for fact in item["facts"]
@@ -445,7 +465,14 @@ def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text):
 def apply_fact_patch(collected: dict, patch: dict) -> dict:
     """Apply validated sparse patch; previous facts remain available for audit."""
     result = normalize_fact_store(collected)
-    result.setdefault("basic_info", {}).update(copy.deepcopy(patch.get("basic_info") or {}))
+    basic = result.setdefault("basic_info", {})
+    for key, value in (patch.get("basic_info") or {}).items():
+        # A sparse extraction's empty field is absence, not a deletion command.
+        if key == "links" and isinstance(value, list):
+            links = basic.setdefault("links", [])
+            links.extend(copy.deepcopy(link) for link in value if link not in links)
+        elif isinstance(value, str) and value.strip():
+            basic[key] = value.strip()
     skills = result.setdefault("skills", [])
     for skill in patch.get("skills") or []:
         if isinstance(skill, dict) and skill.get("name") and not any(

@@ -74,6 +74,7 @@ class TailorInterviewerTest(unittest.TestCase):
 
     def test_three_ranked_questions_have_item_req_and_exact_draft_location(self):
         current = state()
+        current['confirmed_plan'] = {'thesis': '用户研究', 'experience_plan': []}
         before = deepcopy(current)
         result = compose_interviewer_reply(current)
         self.assertEqual(current, before)

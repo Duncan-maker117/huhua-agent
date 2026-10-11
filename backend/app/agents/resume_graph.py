@@ -68,6 +68,9 @@ class ResumeState(TypedDict):
     resume_versions: list[dict]  # Last ten document snapshots; never fact-master snapshots.
     session_constraints: dict
     match_plan: dict
+    pending_plan: dict
+    confirmed_plan: dict
+    plan_required: bool
     guard_fallbacks: list
     page_check: dict
     change_summary: list
@@ -114,6 +117,9 @@ def _init_state() -> ResumeState:
         "resume_versions": [],
         "session_constraints": {},
         "match_plan": {},
+        "pending_plan": {},
+        "confirmed_plan": {},
+        "plan_required": True,
         "guard_fallbacks": [],
         "page_check": {},
         "change_summary": [],
@@ -1395,6 +1401,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             "stage": "COLLECTING",
             "jd_text": last_human,
             "jd_info": jd_info,
+            **_clear_structure_plan(state),
             "resume_strategy": resume_strategy,
             "non_candidate_message_ids": _exclude_latest_source(state),
         }
@@ -1748,6 +1755,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             return base_update
         resume_strategy = build_resume_strategy(jd_info=jd_info, has_jd=True)
         base_update["messages"] = [AIMessage(content=reply)]
+        base_update.update(_clear_structure_plan(state))
         base_update["jd_text"] = last_human
         base_update["jd_info"] = jd_info
         base_update["resume_strategy"] = resume_strategy
@@ -1815,11 +1823,44 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
     writer = _make_writer_llm(llm)
     structured = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+    from app.services.structure_plan import plan_action, select_plan, edit_plan
+    from app.agents.tailor_pipeline import _has_visible_experience_body, constraints_for_turn
+    confirmed = state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
+    enabled = get_settings().LLM_PLAN_CONFIRM
+    if not enabled:
+        working['confirmed_plan'] = {}
+    elif not confirmed and (state.get('plan_required') or state.get('pending_plan')
+                           or not _has_visible_experience_body(current)):
+        from app.agents.resume_writer import run_resume_writer
+        card = state.get('pending_plan') or {}
+        action, index = plan_action(latest, card)
+        if not card:
+            profile = copy.deepcopy((state.get('jd_info') or {}).get('role_profile') or {})
+            planned = await run_resume_writer(collected, profile, writer, current_data=base,
+                structured_llm=structured, instruction=latest,
+                constraints=constraints_for_turn(state, latest), mode='two_pass', phase='plan',
+                planning_context={'jd_info': state.get('jd_info') or {},
+                                  'company_sources': bounded_web_sources(state.get('web_sources'), content_limit=1800)})
+            card = planned['structure_plan']
+        selected = select_plan(card, index if action == 'confirm' else 0)
+        if action not in {'confirm', 'direct'} or selected is None:
+            return {'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True,
+                    'collected_info': collected, 'plan_card': True}
+        confirmed = selected
+        working.update(confirmed_plan=confirmed, pending_plan={}, plan_required=False)
+    elif enabled and confirmed:
+        confirmed, _ = edit_plan(confirmed, latest, collected)
+        working['confirmed_plan'] = confirmed
     result = await run_tailor_pipeline(working, base, writer, structured_llm=structured,
                                       instruction=latest, scope=scope, targets=targets,
                                       mode=get_settings().LLM_WRITER_MODE)
     result['collected_info'] = collected
     result['resume_strategy'] = state.get('resume_strategy') or serialized.get('resume_strategy') or {}
+    if enabled and confirmed:
+        result.update(pending_plan={}, plan_required=False)
+        if plan_action(latest)[0] == 'direct':
+            from app.services.structure_plan import plan_summary
+            result['plan_summary'] = plan_summary(result.get('confirmed_plan') or confirmed, collected)
     return result
 
 
@@ -1877,6 +1918,8 @@ def _writer_reply(result: dict) -> str:
         reply += "\n\n本轮未能完成 PDF 页数校验，暂不能确认满足篇幅要求。"
     if data.get('verification_notes'):
         reply += f"\n\n另有 {len(data['verification_notes'])} 项信息待核对，详见右侧「核对」。"
+    if result.get('plan_summary'):
+        reply += '\n\n方案摘要：' + result['plan_summary']
     return reply
 
 
@@ -1897,11 +1940,71 @@ def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
 
 async def building_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     result = await _write_resume_update(state, llm)
+    if result.pop('plan_card', False):
+        return _plan_card_update(result)
     suffix, asked = _interview_suffix(state, result)
     notice = unrecorded_notice(result.get('collected_info') or state.get('collected_info'), _latest_human_text(state))
     result.update(messages=[AIMessage(content=_writer_reply(result) + suffix + notice)], stage='EVALUATING',
                   resume_draft=resume_to_text(result['resume_data']), asked_questions=asked)
     return result
+
+
+def _plan_card_update(result: dict) -> dict:
+    return {**result, 'stage': 'BUILDING', 'questions': [],
+            'messages': [AIMessage(content='先定这份简历的方案。选「按推荐写」或备选方案后开始成稿，也可以直接说想怎么改。')]}
+
+
+async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    from app.schemas.writer import MatchPlan
+    from app.services.structure_plan import plan_action, select_plan, edit_plan, apply_plan_structure
+    text = _latest_human_text(state)
+    card = state.get('pending_plan') or {}
+    action, index = plan_action(text, card)
+    if _has_jd_text(text):
+        return await skill_task_node({**state, 'requested_task': 'decode_jd'}, llm)
+    if action == 'replan':
+        return await building_node({**state, **_clear_structure_plan(state)}, llm)
+    if card and action in {'confirm', 'direct'}:
+        selected = select_plan(card, index if action == 'confirm' else 0)
+        if selected is None:
+            return _plan_card_update({'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True})
+        return await building_node({**state, 'confirmed_plan': selected, 'pending_plan': {}, 'plan_required': False}, llm)
+    plan = select_plan(card) if card else state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
+    if action == 'edit' and plan:
+        edited, changed = edit_plan(plan, text, state.get('collected_info') or {})
+        if card:
+            # Apply a user's inclusion/order choice to every alternative too.
+            alternatives = []
+            for i in range(1, len(card.get('alternatives') or []) + 1):
+                alternative, _ = edit_plan(select_plan(card, i), text, state.get('collected_info') or {})
+                baseline = {row['item_id']: row for row in edited['experience_plan']}
+                alternatives.append({**{key: alternative[key] for key in ('label', 'positioning', 'thesis', 'section_order')},
+                                     'experience_plan': [row for row in alternative['experience_plan'] if row != baseline[row['item_id']]]})
+            return _plan_card_update({'pending_plan': {'recommended': edited, 'alternatives': alternatives},
+                                      'confirmed_plan': {}, 'plan_required': True})
+        if changed:
+            data = apply_plan_structure(state.get('resume_data') or {}, edited)
+            result = await _update_without_writer({**state, 'confirmed_plan': edited,
+                'resume_data': data, 'previous_resume_data': state.get('resume_data') or {}}, text)
+            result.update(confirmed_plan=edited, match_plan={key: edited[key] for key in MatchPlan.model_fields},
+                          stage='EVALUATING', resume_draft=resume_to_text(result['resume_data']))
+            result['resume_meta'].update(confirmed_plan=edited, match_plan=result['match_plan'])
+            result['messages'] = [AIMessage(content='已按你的要求更新栏目顺序和经历取舍。')]
+            return result
+    if card:
+        # New material still uses extraction/collection; the next plan must see it.
+        result = await collecting_node({**state, 'stage': 'COLLECTING'}, llm)
+        result['pending_plan'] = {}
+        if result.get('stage') == 'BUILDING':
+            return await building_node({**state, **result}, llm)
+        return result
+    return await building_node(state, llm)
+
+
+def _clear_structure_plan(state: dict) -> dict:
+    meta = copy.deepcopy(state.get('resume_meta') or {})
+    meta.pop('confirmed_plan', None)
+    return {'confirmed_plan': {}, 'pending_plan': {}, 'plan_required': True, 'resume_meta': meta}
 
 
 def _user_wants_export(text: str) -> bool:
@@ -1950,6 +2053,21 @@ async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     collected = await _recover_candidate_history(state, llm)
     working = {**state, "collected_info": collected, "candidate_history_reconciled": True}
     result = await _evaluating_turn_node(working, llm)
+    confirmed = result.get('confirmed_plan') or working.get('confirmed_plan') or {}
+    if confirmed and result.get('resume_data'):
+        # Router field/move/delete operations can also change the structure.
+        confirmed = copy.deepcopy(confirmed)
+        live = {row.get('item_id'): row for section in ('projects', 'work_experience', 'open_source')
+                for row in result['resume_data'].get(section) or [] if isinstance(row, dict)}
+        confirmed['experience_plan'] = [row for row in confirmed['experience_plan'] if row['item_id'] in live]
+        for row in confirmed['experience_plan']:
+            if live[row['item_id']].get('hidden'):
+                row.update(treatment='backup', target_bullets=0)
+        sections = result['resume_data'].get('sections') or []
+        if sections:
+            confirmed['section_order'] = [row['kind'] for row in sections if row.get('kind')]
+        result['confirmed_plan'] = confirmed
+        result.setdefault('resume_meta', {})['confirmed_plan'] = copy.deepcopy(confirmed)
     result["candidate_history_reconciled"] = True
     if "collected_info" not in result and collected != state.get("collected_info"):
         result["collected_info"] = collected
@@ -2011,7 +2129,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             info, reply = await _run_decoder_and_build_reply(text, llm)
             if not info:
                 return {'messages': [AIMessage(content=reply)]}
-            updated = {'jd_info': info, 'jd_text': text, 'non_candidate_message_ids': _exclude_latest_source(state),
+            updated = {**_clear_structure_plan(state), 'jd_info': info, 'jd_text': text, 'non_candidate_message_ids': _exclude_latest_source(state),
                        'resume_strategy': build_resume_strategy(jd_info=info, has_jd=True)}
             return {**updated, **(await building_node({**state, **updated}, llm))}
         return {'messages': [AIMessage(content='这段参考材料未作为本人事实写入，请说明要怎样修改当前稿。')]}
@@ -2113,6 +2231,8 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
              'session_constraints': edit_constraints or state.get('session_constraints') or {}},
             llm, scope=scope, targets=targets)
+    if result.pop('plan_card', False):
+        return _plan_card_update(result)
     if edit_constraints:
         result['session_constraints'] = edit_constraints
     report_rows = list(operation_results) + writing_constraints(text) + uncovered_edit_clauses(
@@ -2217,6 +2337,14 @@ def route_by_stage(state: ResumeState) -> str:
         return "dialogue"
     if state.get("requested_task", "auto") != "auto":
         return "skill_task"
+    from app.config import get_settings
+    from app.services.structure_plan import plan_action
+    action, _ = plan_action(latest, state.get('pending_plan'))
+    if get_settings().LLM_PLAN_CONFIRM and (state.get('pending_plan') or action == 'replan'
+            or ((state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan')) and action == 'edit')):
+        return 'structure_plan'
+    if action == 'direct' and _has_minimum_info(state.get('collected_info') or {}) and not _generation_contains_facts(latest):
+        return 'building'
     if is_advice(latest) and explicit_edit_requested(latest):
         return "evaluating"
     if isinstance(latest, str) and _is_review_intent(latest):
@@ -2246,7 +2374,7 @@ async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         info, reply = await _run_decoder_and_build_reply(latest, llm)
         if not info:
             return {"messages": [AIMessage(content=reply)], "requested_task": "auto"}
-        update = {"messages": [AIMessage(content=reply)], "jd_text": latest, "jd_info": info,
+        update = {**_clear_structure_plan(state), "messages": [AIMessage(content=reply)], "jd_text": latest, "jd_info": info,
                   "resume_strategy": build_resume_strategy(jd_info=info, has_jd=True),
                   "stage": "COLLECTING", "requested_task": "auto",
                   "non_candidate_message_ids": _exclude_latest_source(state)}
@@ -2338,6 +2466,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     graph.add_node("export", partial(export_node, llm=llm))
     graph.add_node("skill_task", partial(skill_task_node, llm=llm))
     graph.add_node("dialogue", partial(dialogue_node, llm=llm))
+    graph.add_node("structure_plan", partial(structure_plan_node, llm=llm))
 
     graph.set_conditional_entry_point(
         route_by_stage,
@@ -2349,6 +2478,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
             "export": "export",
             "skill_task": "skill_task",
             "dialogue": "dialogue",
+            "structure_plan": "structure_plan",
         },
     )
 
@@ -2366,7 +2496,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
         _route_after_collecting,
         {"building": "building", "__end__": END},
     )
-    for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue"]:
+    for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue", "structure_plan"]:
         graph.add_edge(node, END)
 
     return graph.compile(checkpointer=checkpointer or MemorySaver())
@@ -2423,6 +2553,15 @@ async def stream_agent(
         additional_kwargs={"career_material_type": material_type, **({"web_sources": provenance} if provenance else {})},
     )
     input_state = {"messages": [lc_msg], "requested_task": task}
+    # Fresh sessions may publish source-backed intake previews before drafting.
+    # Mark them once so that those previews do not trigger legacy compatibility.
+    from app.config import get_settings
+    if get_settings().LLM_PLAN_CONFIRM and callable(getattr(graph, 'aget_state', None)):
+        initial_snapshot = await graph.aget_state(config)
+        initial_values = (initial_snapshot.values if initial_snapshot else {}) or {}
+        from app.agents.tailor_pipeline import _has_visible_experience_body
+        if not initial_values.get('messages') and not _has_visible_experience_body(initial_values.get('resume_data') or {}):
+            input_state['plan_required'] = True
     if web_sources is not None or task in {"research_job", "decode_jd"}:
         # Each retrieval replaces the source set. A failed/empty new research
         # turn cannot borrow old sources and masquerade as a fresh lookup.
@@ -2436,6 +2575,7 @@ async def stream_agent(
         "export",
         "skill_task",
         "dialogue",
+        "structure_plan",
     }
     streamed_reply_ids: set[str] = set()
     completed_reply_ids: set[str] = set()
@@ -2516,7 +2656,7 @@ async def stream_agent(
             from app.services.profile_bridge import archive_event_for_message
 
             resume_data = state.values.get("resume_data") or {}
-            if not resume_data and task != "research_job" and not _dialogue_requested(last_msg["content"]):
+            if not resume_data and not state.values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
                 resume_data = _serialize_to_resume_data(state.values)
             committed = save_resume_session(
                 session_id=session_id,

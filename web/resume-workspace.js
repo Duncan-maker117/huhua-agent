@@ -63,7 +63,7 @@
   }
   function guidanceKey() {
     const guidance = workspace.guidance;
-    return JSON.stringify([callbacks.session?.(), guidance?.turn_id, guidance?.question, guidance?.options]);
+    return JSON.stringify([callbacks.session?.(), guidance?.turn_id, guidance?.question, guidance?.options, guidance?.structure_plan]);
   }
   async function answer(value, key) {
     // Claim this question synchronously: double clicks, keyboard repeats and
@@ -447,14 +447,19 @@
   }
   function renderGuidance() {
     const dock = $('guidance-dock'); dock.replaceChildren();
+    const guidance = workspace.guidance;
+    const key = guidanceKey();
+    if (guidance?.kind === 'structure_plan') {
+      dock.hidden = streaming || choicePending || answeredGuidance.has(key);
+      if (!dock.hidden) renderStructurePlan(dock, guidance, key);
+      return;
+    }
     const questions = openQuestions();
     if (questions.length) {
       dock.hidden = streaming || choicePending;
       if (!dock.hidden) renderQuestions(dock, questions);
       return;
     }
-    const guidance = workspace.guidance;
-    const key = guidanceKey();
     dock.hidden = streaming || choicePending || answeredGuidance.has(key) || !guidance || !plain(guidance.question);
     if (dock.hidden) return;
     dock.append(node('p', guidance.title || '待你补充', 'guidance-label'));
@@ -468,6 +473,31 @@
     }
     if (choices.childElementCount) dock.append(choices);
     const hint = node('p', choices.childElementCount ? guidance.kind === 'next_action' ? '点击即发送所选下一步，也可以直接输入。' : '点击选项即发送，也可以直接输入。' : '这题适合直接描述，请在下方输入。', 'guidance-hint'); hint.id = 'guidance-choice-hint'; hint.setAttribute('role', 'status'); dock.append(hint);
+  }
+  function renderStructurePlan(dock, guidance, key) {
+    const card = guidance.structure_plan;
+    const labels = {education: '教育经历', work_experience: '工作/实习经历', projects: '项目经历', open_source: '开源贡献', awards: '竞赛荣誉', skills: '技能', certificates: '证书/活动'};
+    const treatments = {lead: '写（重点）', keep: '写', brief: '压缩', backup: '不写'};
+    function content(panel, plan) {
+      if (plain(plan.positioning)) panel.append(node('p', '定位：' + plan.positioning, 'guidance-why'));
+      if (plain(plan.thesis)) panel.append(node('p', '主线：' + plan.thesis, 'guidance-why'));
+      panel.append(node('p', '栏目：' + list(plan.section_order).map(id => labels[id] || id).join(' → '), 'guidance-why'));
+      const entries = node('ul', undefined, 'workspace-list');
+      for (const row of list(plan.experience_plan)) entries.append(node('li', `${plain(row.name) || row.item_id} · ${treatments[row.treatment] || row.treatment}：${plain(row.reason)}`));
+      if (entries.childElementCount) panel.append(entries);
+    }
+    dock.append(node('p', '定方案', 'guidance-label'), node('h2', '推荐：' + card.recommended.label));
+    content(dock, card.recommended);
+    for (const alternative of list(card.alternatives)) {
+      const details = node('details', undefined, 'guidance-question-block');
+      details.append(node('summary', '备选：' + alternative.label + '（展开看差异）'));
+      content(details, alternative);
+      if (!list(alternative.experience_plan).length) details.append(node('p', '经历取舍沿用推荐方案。', 'guidance-why'));
+      dock.append(details);
+    }
+    const choices = node('div', undefined, 'guidance-options');
+    for (const option of list(guidance.options)) choices.append(button(option.label, () => answer(option.value, key), 'guidance-option'));
+    dock.append(choices, node('p', '也可以直接说想怎么改', 'guidance-hint'));
   }
   function renderTabs() {
     const rail = $('stage-rail');

@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-11 PR8 P3 本地完成：本轮最新授权仅实现「定方案」，保留已提交 P1/P2，未实施 P4。首稿先返回推荐/备选结构化 guidance，不写稿、不建版本；按钮/文字确认后只跑 write，后续复用 confirmed_plan（checkpoint + resume_meta）。定位句在现有 summary 展示，主线/定位复用词面 fact guard；明确栏目顺序/取舍直接改，主线变化重跑 plan，新 JD 清确认；旧可见草稿继续编辑，LLM_PLAN_CONFIRM 默认 true、false 保留原单轮成稿。runner 自动插入并计时 auto_confirm，不把方案当版本；容量压缩不再静默隐藏确认经历。新增 28 项虚构/fake-model 回归，最终全量 1134/1134；SSE/checkpoint、Node DOM、防连点、完整 fake benchmark 回放、语法/编译/差异检查通过。真实写作质量 benchmark 与真实浏览器视觉验收未做；真实模型调用 0，无 commit/push/部署。逐文件及耗时说明：`docs/development/2026-10-11-pr8-p3-verification.md`。
+
 2026-10-11 PR8 P2 本地完成：按本轮明确范围仅修 B1–B4，保留已提交 P1，未做 P3/P4。开源贡献按 PR 分条、荣誉结构化、页头链接/实习时间及教育专业/学历/日期/奖学金贯通事实→档案→writer→canonical→六款 HTML/PDF/Word→编辑器；奖学金统一在教育 highlights。move_item 保留条目 ID、正文和服务端来源绑定，数量单位替换由词法 guard 拦截。新增 33 项虚构/fake-model 回归，全量 1106/1106 通过；TLS 原测试用禁 bind 时的 socket pair 夹具保留真实握手/证书验证；无需数据库迁移。浏览器交互仍被环境阻止，不能宣称通过；未调用真实模型、未 commit/push/部署。详情和逐文件说明：`docs/development/2026-10-11-pr8-p2-verification.md`。
 
 2026-10-11 PR8 P1：按 `docs/development/2026-10-11-pr8-mainline-flow.md` 仅实现对话意图与开场，未做 P2–P4。新增 greeting / advice 和独立只读对话节点：各阶段寒暄友好介绍入口；老用户只展示档案姓名与去重经历数量；建议给 2–3 个经 fact guard 核验的选项，不改稿、不建版本，同轮新事实仍提取并保留归档来源，只有明确改稿指令进入改稿。B5 拆开明确缺内容的尾巴（如「分别是」），完整前缀照常提取/按原文补救，尾巴单独提示；归属不明确不猜。新增 26 项虚构资料/fake-model 单测全部通过。全量 `.venv/bin/python scripts/run_tests.py` 为 1073 项：1072 通过，1 项现有本地 TLS 监听测试因沙箱拒绝 bind（Operation not permitted）报错；改动前 1047 项基线也有同一错误，不能宣称全绿。diff 检查通过，Ruff 除基线已有 E402 外通过。未改前端、未调用真实模型、未 commit/push/部署；须在允许本地监听的环境复跑全量。
@@ -81,7 +83,7 @@
 
 ## 下一步
 
-本轮主线先审 PR8 P2 diff 与验收记录，在允许启动浏览器的环境补 P2 编辑/预览交互验证；当前授权止于 P2，不自动开始 P3/P4或提交发布。
+本轮 P3 已完成本地实施和离线验收，先审 P3 diff 与验收记录；后续需另行授权真实模型 benchmark，补 P2/P3 真实浏览器交互与视觉验收。当前未实施 P4，不自动提交、推送或发布。
 
 先让Claude读取 evaluation/tailor-bench/claude-pr4-review-request.txt 与 pr4/summary.md、fact-review-v5.md、runtime-review-v5.md，按§7.6/§8复核事实与误杀，并确认下一修复：明确用户条数应约束模型计划；上游完整性需当前轮次/来源/归属契约；schema透明失败；引号/同义限制候选需审边界。不是再充值或重复当前run的问题。工具明确拒绝访问Ghostty，无法自行送达，已准备可直接转交文件。先修复后另开run，旧v5保持；确认新增事实0且编辑≥90%后再接PR5。PR6模板/API交接尚未验收。
 

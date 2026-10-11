@@ -162,6 +162,10 @@ class VersionRecorder:
             self.commits.append({"turn": turn, "stage": stage, "hash": current_hash,
                                  "has_experience": has_experience_body(resume),
                                  "fact_snapshot": copy.deepcopy(fact_evidence)})
+        if context and (context.get('pending_plan') or (context.get('plan_required') and not resume)):
+            # A proposal is not a document revision, including re-planning an
+            # existing draft. Its evidence remains in the turn snapshot.
+            return None
         previous = self.previous_committed if kind == "committed" else self.previous_internal
         if current_hash == previous:
             return None
@@ -192,6 +196,7 @@ class VersionRecorder:
 
 
 CONTEXT_KEYS = ("resume_meta", "resume_versions", "versions", "match_plan",
+                "pending_plan", "confirmed_plan", "plan_required",
                 "session_constraints", "field_conflicts", "guard_fallbacks",
                 "page_measurement", "page_fit")
 
@@ -201,6 +206,20 @@ def snapshot_context(values: dict | None) -> dict:
     if not isinstance(values, dict):
         return {}
     return {key: copy.deepcopy(values[key]) for key in CONTEXT_KEYS if key in values}
+
+
+async def auto_confirm_plan(context: dict, next_text: str, turn, *, collected_info: dict | None = None) -> bool:
+    """Extra metered turn; an explicit plan response in a case takes precedence."""
+    from app.services.structure_plan import plan_action, edit_plan, select_plan
+    card = context.get('pending_plan') or {}
+    action, _ = plan_action(next_text, card)
+    response = bool(action)
+    if card and action == 'edit' and collected_info is not None:
+        _, response = edit_plan(select_plan(card), next_text, collected_info)
+    if not card or response:
+        return False
+    await turn('按推荐写', 'auto_confirm')
+    return True
 
 
 def committed_snapshot(stored: dict | None, checkpoint: dict | None) -> dict:
@@ -433,6 +452,7 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     disclosed: set[int] = set()
     committed: dict = {}
     committed_context: dict = {}
+    plan_facts: dict = {}
     edit_inputs = []
     model_calls = []
     review_calls = []
@@ -440,9 +460,13 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     failed = False
 
     async def turn(text: str, phase: str, *, task="auto", simulation=None):
-        nonlocal committed, committed_context, failed
+        nonlocal committed, committed_context, plan_facts, failed
+        if phase != 'auto_confirm':
+            await auto_confirm_plan(committed_context, text, turn, collected_info=plan_facts)
+            if failed:
+                return turns[-1]
         number = len(turns) + 1
-        if phase != "jd":
+        if phase not in {"jd", "auto_confirm"}:
             # Pass only material already shown to the graph, never future truth.
             observed.append(text)
             disclosed.update(index for index, fact in enumerate(case["truth_facts"]) if fact in text)
@@ -491,6 +515,7 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             committed = (stored or {}).get("resume_data") or {}
             stage = (stored or {}).get("stage", "")
             current = history[-1].values if history else {}
+            plan_facts = current.get('collected_info') or {}
             committed_context = committed_snapshot(stored, current)
             recorder.record(committed, turn=number, stage=stage, kind="committed", observed=observed,
                             disclosed_fact_indices=sorted(disclosed),
@@ -522,6 +547,9 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     for _ in range(followup_limit(case, args.max_followups)):
         if failed or not turns:
             break
+        await auto_confirm_plan(committed_context, '', turn, collected_info=plan_facts)
+        if failed:
+            break
         counter = counter_type()
         token = counter_context.set(counter)
         try:
@@ -544,6 +572,9 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
     for instruction in case["edit_instructions"]:
         if failed:
             break
+        await auto_confirm_plan(committed_context, instruction, turn, collected_info=plan_facts)
+        if failed:
+            break
         before = copy.deepcopy(committed)
         before_context = copy.deepcopy(committed_context)
         result = await turn(instruction, "edit")
@@ -552,6 +583,8 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
                             "turn_status": result["status"],
                             "before_context": before_context,
                             "after_context": copy.deepcopy(committed_context)})
+    if not failed:
+        await auto_confirm_plan(committed_context, '', turn, collected_info=plan_facts)
     write_json(folder / "resume.json", committed)
 
     scores = {"versions": [], "edits": [], "pairwise": {"status": "not_run_without_comparator"},
@@ -647,6 +680,8 @@ async def run_case(case, llm, judge_llm, counter_type, counter_context, args, ou
             "evaluation_status": "completed" if evaluation_complete else "incomplete",
             "truth_review_status": case.get("truth_review_status", "draft_pending_claude"),
             "turn_count": len(turns), "followup_count": sum(t["phase"] == "followup" for t in turns),
+            "auto_confirm_count": sum(t['phase'] == 'auto_confirm' for t in turns),
+            "auto_confirm_latency_seconds": round(sum(t['elapsed_seconds'] for t in turns if t['phase'] == 'auto_confirm'), 3),
             "version_count": len(recorder.versions), "visible_version_count": sum(v["user_visible"] for v in recorder.versions),
             "first_draft_turn": first_draft["turn"] if first_draft else None,
             "first_draft_version": first_version, "commits": recorder.commits,
@@ -791,8 +826,10 @@ async def run_live(cases, args, output, manifest):
     else:
         manifest.update(writer_model=settings.LLM_MODEL, structured_model=settings.LLM_STRUCTURED_MODEL,
                         writer_mode=settings.LLM_WRITER_MODE, writer_temperature=settings.LLM_WRITER_TEMPERATURE,
+                        LLM_PLAN_CONFIRM=settings.LLM_PLAN_CONFIRM,
                         writer_max_tokens=settings.LLM_MAX_TOKENS or 4000,
                         speed_switches={
+                            "LLM_PLAN_CONFIRM": settings.LLM_PLAN_CONFIRM,
                             "LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS": settings.LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS,
                             "LLM_EXTRACTOR_THINKING": settings.LLM_EXTRACTOR_THINKING,
                             "LLM_WRITER_EDIT_REUSE_PLAN": settings.LLM_WRITER_EDIT_REUSE_PLAN,

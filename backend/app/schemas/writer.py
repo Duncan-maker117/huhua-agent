@@ -45,6 +45,26 @@ class MatchPlan(WriterSchema):
     questions: list[PlannedQuestion] = Field(default_factory=list)
 
 
+class RecommendedPlan(MatchPlan):
+    label: str = "主线叙事型"
+    positioning: str = Field(default="", max_length=30)
+    thesis: str = ""
+
+
+class AlternativePlan(WriterSchema):
+    label: str
+    positioning: str = Field(default="", max_length=30)
+    thesis: str = ""
+    section_order: list[str] = Field(default_factory=list)
+    # Only differences from recommended; selection merges them by item_id.
+    experience_plan: list[ExperiencePlan] = Field(default_factory=list)
+
+
+class StructurePlan(WriterSchema):
+    recommended: RecommendedPlan
+    alternatives: list[AlternativePlan] = Field(default_factory=list, max_length=2)
+
+
 class WrittenTitle(WriterSchema):
     name: str = ""
     role: str = ""

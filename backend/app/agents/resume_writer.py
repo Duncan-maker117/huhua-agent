@@ -17,7 +17,7 @@ from pydantic import BaseModel, ValidationError
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.config import get_settings
 from app.schemas.writer import (IGNORED_EXTRA_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
-                                RepairOutput, WriterDraft)
+                                RepairOutput, StructurePlan, WriterDraft)
 from app.services.fact_guard import guard_bullets, ngram_overlap, strip_absence, validate_skill_groups
 from app.services.speculative import SpeculativeScope
 from app.services.llm_compat import label_run, with_structured_output
@@ -39,7 +39,13 @@ SKILL_HEADINGS = {"技术", "技术栈", "编程语言", "开发工具", "开发
 _PLAN_CONTRACT = """先按岗位要求和 active facts 做匹配计划。只引用给出的 fact_id/item_id；
 direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；
 提问最多三条，任何已更正或删除的旧事实不在输入中。严格输出 MatchPlan。"""
+_STRUCTURE_CONTRACT = """先定方案，不写正文。输出 StructurePlan：recommended 是完整匹配计划，另含 label、positioning、thesis；alternatives 给1–2个备选。
+positioning 不超过30字，将放在简历 summary；thesis 用一句说明这份简历要让面试官记住什么。所有说法只能由 active facts 支持，不能把 JD 或公司业务写成候选人事实。
+按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
+section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/positioning/thesis/section_order，experience_plan 只列相对推荐的差异。
+requirements/questions 沿用匹配计划，最多3个问题。用户给出的结构取舍必须遵守。严格输出 StructurePlan。"""
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。保留数量的原单位及对象（人/次/个/条）；「20次」不得改成「20次调用/请求」。开源贡献必须用仓库名作标题，每个PR及其本人贡献、结果都要保留；教育与竞赛荣誉按结构字段保留，不能压成一句。
+match_plan 含 thesis/positioning 时，这是用户已确认的主线和定位；围绕该主线组织重点，严格遵守 section_order 和 experience_plan 的取舍，不能自行换主线、改顺序或把备用经历写回来。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
 每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
@@ -911,6 +917,7 @@ async def _run_resume_writer(
     resume_meta: dict | None = None, instruction: str = "", scope: str = "whole",
     targets: Sequence[str] = (), constraints: Mapping[str, Any] | None = None,
     mode: str = "one_pass", structured_llm=None, previous_plan: Mapping[str, Any] | None = None,
+    phase: str = "full", planning_context: Mapping[str, Any] | None = None,
     _speculative: SpeculativeScope,
 ) -> dict:
     """Plan and write a sourced draft without mutating facts or the current draft.
@@ -921,6 +928,8 @@ async def _run_resume_writer(
     """
     if mode not in {"one_pass", "two_pass"}:
         raise ValueError("mode must be one_pass or two_pass")
+    if phase not in {"full", "plan", "write"}:
+        raise ValueError("Unknown writer phase")
     source, items, facts = _source_evidence(collected_info)
     current = deepcopy(current_data or {})
     if scope == "whole":
@@ -965,8 +974,26 @@ async def _run_resume_writer(
             for item_id in allowed if item_id in items for fact in items[item_id][1].get("facts") or [] if fact.get("id")}
     plan = _default_plan(source, role_profile)
     draft = WriterDraft()
-    reused_plan = (_reusable_plan(previous_plan or meta.get("match_plan"), current)
+    if phase == "plan":
+        from app.services.structure_plan import validate_structure_plan
+        payload['job_context'] = deepcopy(dict(planning_context or {}))
+        diagnostic = {"status": "model_completed", "stage": "plan", "schema_retry_count": 0}
+        try:
+            async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
+                card = await _call(model, StructurePlan, payload, _STRUCTURE_CONTRACT,
+                                   role_family, retry_state=diagnostic)
+                raw = card.model_dump()
+        except Exception as error:
+            diagnostic.update(status="model_fallback", error_type=_safe_error_type(error))
+            raw = {"recommended": {**plan.model_dump(), "label": "事实保守型"}, "alternatives": []}
+        card = await validate_structure_plan(raw, source, role_profile, items, facts)
+        return {"structure_plan": card, "writer_diagnostic": diagnostic}
+    reused_plan = (MatchPlan.model_validate({key: previous_plan[key] for key in MatchPlan.model_fields
+                                            if key in previous_plan}) if phase == "write" and previous_plan else
+                   _reusable_plan(previous_plan or meta.get("match_plan"), current)
                    if mode == "one_pass" and getattr(get_settings(), "LLM_WRITER_EDIT_REUSE_PLAN", False) else None)
+    if phase == "write" and reused_plan is None:
+        raise ValueError("Writing requires a confirmed plan")
     stage = "write" if reused_plan else "one_pass" if mode == "one_pass" else "plan"
     writer_diagnostic = {"status": "model_completed", "mode": mode,
                          "schema_retry_count": 0}
@@ -975,9 +1002,10 @@ async def _run_resume_writer(
     try:
         async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
             if reused_plan:
-                draft = await _call(llm, WriterDraft, {**payload, "match_plan": reused_plan.model_dump()},
-                                    _WRITE_CONTRACT, role_family, retry_state=writer_diagnostic)
                 plan = reused_plan
+                selected_payload = dict(previous_plan) if phase == "write" else reused_plan.model_dump()
+                draft = await _call(llm, WriterDraft, {**payload, "match_plan": selected_payload},
+                                    _WRITE_CONTRACT, role_family, retry_state=writer_diagnostic)
             elif mode == "one_pass":
                 combined = await _call(llm, OnePassOutput, payload,
                                        _ONE_PASS_CONTRACT, role_family,
@@ -1002,7 +1030,7 @@ async def _run_resume_writer(
             schema = OnePassOutput if stage == "one_pass" else MatchPlan if stage == "plan" else WriterDraft
             writer_diagnostic.update(_safe_validation_errors(error, schema))
     match_plan = _validate_plan(plan, source, role_profile, items, facts)
-    if writer_diagnostic.get("status") == "model_fallback":
+    if writer_diagnostic.get("status") == "model_fallback" and phase != "write":
         for row in match_plan["experience_plan"]:
             if row.get("treatment") == "backup":
                 row["treatment"] = "keep"
@@ -1019,7 +1047,7 @@ async def _run_resume_writer(
         # A schema-valid but empty draft also falls back or leaves an edit undone.
         writer_diagnostic.update(status="model_fallback", stage="write",
                                  error_type="EmptyWriterDraft")
-        for row in match_plan["experience_plan"]:
+        for row in match_plan["experience_plan"] if phase != "write" else []:
             if row.get("treatment") == "backup":
                 row["treatment"] = "keep"
                 row["target_bullets"] = 2
@@ -1268,7 +1296,7 @@ async def _run_resume_writer(
     changes = []
     if hidden_ids and writer_diagnostic.get("status") != "model_fallback":
         changes.append(f"将 {len(hidden_ids)} 段经历设为备用，不在投递版展示。")
-    if writer_diagnostic.get("status") == "model_fallback":
+    if writer_diagnostic.get("status") == "model_fallback" and phase != "write":
         prior_hidden = {item.get("item_id"): item.get("hidden") is True
                         for section in SECTIONS for item in current.get(section) or []
                         if isinstance(item, dict) and item.get("item_id")}
@@ -1279,8 +1307,19 @@ async def _run_resume_writer(
                 item["hidden"] = prior_hidden.get(item["item_id"], False)
         changes = [line for line in changes if "备用" not in line]
     from app.services.skill_groups import sync_flat_skills
+    if phase == "write":
+        from app.services.structure_plan import validate_structure_plan, apply_plan_structure
+        checked = await validate_structure_plan({"recommended": dict(previous_plan)}, source, role_profile, items, facts)
+        selected = checked["recommended"]
+        output = apply_plan_structure(output, selected)
+        positioning = selected.get("positioning") or ""
+        if positioning:
+            meta["summary"] = {"fact_ids": list(facts), "text_hash": _hash(positioning)}
+        else:
+            meta.pop("summary", None)
     sync_flat_skills(output)
     return {"resume_data": output, "resume_meta": meta, "match_plan": match_plan,
+            **({"confirmed_plan": selected} if phase == "write" else {}),
             "omitted": omitted, "change_summary": changes, "guard_fallbacks": fallbacks,
             "changed_items": changed_items, "writer_diagnostic": writer_diagnostic,
             "edit_contract": contract_report}

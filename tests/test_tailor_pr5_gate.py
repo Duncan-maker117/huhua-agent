@@ -380,7 +380,9 @@ class Q4Tests(unittest.IsolatedAsyncioTestCase):
                 "experience_plan": [{"item_id": "p1", "treatment": "lead", "req_ids": ["r1"]}]}
         profile = {"requirements": [{"id": "r1", "text": "开源协作"}]}
         base = {"collected_info": facts, "resume_data": {"projects": [{"item_id": "p1", "name": "工坊集"}]},
-                "resume_versions": [{}], "resume_meta": {}}
+                "resume_versions": [{}], "resume_meta": {},
+                "confirmed_plan": {'thesis': '公开仓库', 'experience_plan': [
+                    {'item_id': 'p1', 'treatment': 'lead', 'reason': '工坊集公开仓库可供核对。'}]}}
         first = compose_interviewer_reply(base, match_plan=plan, role_profile=profile)["text"]
         self.assertIn("这版的思路", first)
         self.assertIn("「开源协作」由工坊集", first)

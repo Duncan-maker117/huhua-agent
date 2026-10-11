@@ -281,48 +281,22 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
             or data.get("basic_info", {}).get("objective") or "目标岗位")
     version = version_number if version_number is not None else (len(state.get("resume_versions") or []) + 1)
     lead = f"已按「{role}」更新第 {version} 版简历，右侧可以查看。"
-    treatments = plan.get("experience_plan") or []
-    lead_items = [row.get("item_id") for row in treatments if row.get("treatment") == "lead"]
-    backup_items = [row.get("item_id") for row in treatments if row.get("treatment") == "backup"]
-    reasons = []
-    evidence = active_facts_for_writer(state.get("collected_info") or {})
-    item_facts = {item.get("item_id"): {fact.get("id") for fact in item.get("facts") or []}
-                  for section in ("projects", "work_experience", "internship")
+    from app.services.structure_plan import plan_summary
+    confirmed = state.get("confirmed_plan") or (state.get("resume_meta") or {}).get("confirmed_plan") or {}
+    reasons = [plan_summary(confirmed, state.get("collected_info") or {})] if confirmed else []
+    evidence = active_facts_for_writer(state.get('collected_info') or {})
+    item_facts = {item.get('item_id'): {fact.get('id') for fact in item.get('facts') or []}
+                  for section in ('projects', 'work_experience', 'internship', 'open_source')
                   for item in evidence.get(section) or []}
     req_text = {row.get("id"): row.get("text") for row in profile.get("requirements") or []
                 if isinstance(row, dict)}
-    if lead_items:
-        for item_id in lead_items:
-            if item_id not in known:
-                continue
-            name = known[item_id][2].get("name") or known[item_id][2].get("company")
-            requirement = next((row for row in plan.get("requirements") or []
-                                if row.get("status") in {"direct", "transferable"}
-                                and item_facts.get(item_id, set()).intersection(row.get("fact_ids") or [])
-                                and req_text.get(row.get("req_id"))), None)
-            cited = {fid for bullet in (state.get("resume_meta") or {}).get("bullets", {}).get(item_id) or []
-                     if isinstance(bullet, dict) for fid in bullet.get("fact_ids") or []}
-            written = [fact for item in evidence.get("projects", []) + evidence.get("work_experience", [])
-                       + evidence.get("internship", []) if item.get("item_id") == item_id
-                       for fact in item.get("facts") or []
-                       if fact.get("id") in cited and fact.get("id") in (requirement or {}).get("fact_ids", [])]
-            # 思路句只引用正文实际出现的事实，不把整条 JD 要求当作已被证明。
-            if name and requirement and written:
-                quoted = "」「".join(str(f.get("text") or "")[:24] for f in written[:2])
-                reasons.append(f"突出了 {name}：正文写到「{quoted}」，对应岗位要求「{req_text[requirement['req_id']]}」。")
-            if len(reasons) >= 2:
-                break
-    if backup_items:
-        reasons.append(f"将 {len(backup_items)} 段相关性较低的经历留作备用，仍可恢复。")
-    if not reasons:
-        reasons.append("按已确认事实整理了当前文稿，未补入缺少证据的成果或数字。")
     transferable = [row for row in plan.get("requirements") or [] if row.get("status") == "transferable"]
     prior_plan = (state.get("resume_meta") or {}).get("match_plan") or {}
     def _signature(value):
         return [(row.get("item_id"), row.get("treatment")) for row in (value or {}).get("experience_plan") or []]
     explain = len(state.get("resume_versions") or []) <= 1 or _signature(prior_plan) != _signature(plan)
     parts = [lead]
-    if explain:
+    if explain and reasons:
         parts.append("\n**这版的思路**：" + " ".join(reasons[:3]))
         in_draft = {fid for rows in (state.get("resume_meta") or {}).get("bullets", {}).values()
                     for bullet in rows if isinstance(bullet, dict) for fid in bullet.get("fact_ids") or []}

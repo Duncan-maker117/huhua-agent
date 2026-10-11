@@ -528,7 +528,7 @@ def _source_quote(fact: dict) -> str:
 
 
 async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(), jd_skills=(), role_terms=(), llm=None,
-                        run_name: str = "guard_semantic") -> list[dict]:
+                        run_name: str = "guard_semantic", lexical_only: bool = False) -> list[dict]:
     """Return per-bullet violations for a writer's at-most-once repair step."""
     index = {fact["id"]: fact for fact in facts if fact.get("status", "active") == "active"}
     # unsupported_tool 只对技能词表里的工具/技术词生效；JD 短语（如「整理用户需求」）
@@ -563,7 +563,7 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         # survived the rewrite. Multi-fact claims always need semantic review.
         exact_single_source = len(cited) == 1 and normalize_text(bullet.get("text", "")) in {
             normalize_text(sources[0]), normalize_text(strip_absence(sources[0]))}
-        if not errors and not exact_single_source:
+        if not lexical_only and not errors and not exact_single_source:
             semantic.append({"id": identifier, "text": bullet.get("text", ""), "source_quotes": sources,
                              "source_facts": [{"fact_id": f["id"],
                                                "kind": f.get("kind") if f.get("kind") in FACT_KINDS else "unknown",

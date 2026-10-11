@@ -367,6 +367,9 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
             options, "选择下一步" if kind == "next_action" else "接着当前问题")
     guidance["kind"] = _question_kind(guidance["question"])
     guidance["turn_id"] = hashlib.sha256(f"{len(values.get('messages') or [])}:{request}:{reply}".encode()).hexdigest()[:16]
+    if values.get('pending_plan'):
+        from app.services.structure_plan import plan_guidance
+        guidance = {**plan_guidance(values['pending_plan'], facts), 'turn_id': guidance['turn_id']}
 
     advice = re.search(r"(?:\*\*|#{1,3}\s*|【)我的建议(?:\*\*|】)?\s*[:：]?\s*([\s\S]*?)(?=(?:\*\*|#{1,3}\s*|【)需要你补充|$)", reply)
     if advice and advice.group(1).strip():
@@ -406,6 +409,8 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
 
 def _open_questions(values: dict, canonical: dict, plan: dict, meta: dict) -> list:
     """Interviewer questions already asked and still open (answered/closed ones are dropped)."""
+    if values.get('pending_plan'):
+        return []
     from app.agents.interviewer import open_questions
     try:
         return copy.deepcopy(open_questions({**values, 'resume_data': canonical, 'match_plan': plan,

@@ -301,10 +301,13 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                               or (state.get('jd_info') or {}).get('job_title')
                               or (base_data.get('basic_info') or {}).get('objective') or '')
     kwargs = {'structured_llm': structured_llm, 'constraints': constraints, 'mode': mode}
+    confirmed = state.get('confirmed_plan') or {}
+    if confirmed:
+        kwargs['phase'] = 'write'
     written = await run_resume_writer(state.get('collected_info') or {}, profile, llm,
         current_data=base_data, resume_meta=state.get('resume_meta') or {},
         instruction=turn_instruction(instruction), scope=scope, targets=targets,
-        previous_plan=(state.get('resume_meta') or {}).get('match_plan') or state.get('match_plan') or None,
+        previous_plan=confirmed or (state.get('resume_meta') or {}).get('match_plan') or state.get('match_plan') or None,
         **kwargs)
     if ((written.get('writer_diagnostic') or {}).get('status') == 'model_fallback'
             and _has_visible_experience_body(state.get('resume_data') or {})):
@@ -330,7 +333,10 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         meta.update(page_check=measurement, writer_diagnostic=diagnostic,
                     compression_writer_diagnostics=[], guard_fallbacks=[], change_summary=[])
         plan = deepcopy(meta.get('match_plan') or state.get('match_plan') or {})
+        if confirmed:
+            meta['confirmed_plan'] = deepcopy(confirmed)
         return {**version, 'resume_data': data, 'resume_meta': meta,
+                **({'confirmed_plan': confirmed} if confirmed else {}),
                 'collected_info': preserved['collected_info'],
                 'match_plan': plan, 'session_constraints': constraints,
                 'page_check': measurement, 'writer_diagnostic': diagnostic,
@@ -349,6 +355,8 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         if measurement.get('within_page_limit') is not False:
             break
         actions = plan_compression(data, written.get('match_plan'), round_number=round_number, constraints=constraints)
+        if confirmed:
+            actions = [action for action in actions if action.get('op') != 'hide_item']
         if scope != 'whole':
             def is_target(action):
                 if action.get('op') not in {'shorten_bullet', 'merge_bullets'}:
@@ -397,7 +405,8 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                     current_data=data, resume_meta=meta,
                     instruction=compression_instruction,
                     scope='item' if is_merge else 'bullet',
-                    targets=[action['item_id'] if is_merge else action['target']], **kwargs)
+                    targets=[action['item_id'] if is_merge else action['target']],
+                    previous_plan=confirmed or None, **kwargs)
                 if revised.get('writer_diagnostic'):
                     compression_diagnostics.append(revised['writer_diagnostic'])
                 data, meta, reason = await _retain_compressed_body(before, meta, revised, action,
@@ -442,7 +451,11 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
     if not version['changed']:
         changes = []
     version['resume_meta']['change_summary'] = changes[:5]
+    if confirmed:
+        confirmed = written.get('confirmed_plan') or confirmed
+        version['resume_meta']['confirmed_plan'] = deepcopy(confirmed)
     return {**version, 'match_plan': written.get('match_plan') or {},
+            **({'confirmed_plan': confirmed} if confirmed else {}),
             'session_constraints': constraints, 'page_check': measurement,
             'writer_diagnostic': written.get('writer_diagnostic') or {},
             'compression_writer_diagnostics': compression_diagnostics,

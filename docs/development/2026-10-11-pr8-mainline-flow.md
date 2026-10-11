@@ -79,8 +79,17 @@
 ### 后续
 面试官挑刺、GitHub 证据导入、具名内容语义匹配。
 
-## 9. P2 本地实施记录
+## 9. 本地实施记录
+
+### P2
 
 2026-10-11：仅完成 B1–B4，保留已提交 P1，未实施 P3/P4。新增开源贡献/竞赛荣誉和页头 links/availability，全链路接入事实、档案、writer、canonical、六款 HTML/PDF、Word 与编辑器；奖学金统一保留为教育 highlights。显式栏目纠正使用 move_item，保留条目身份、正文、来源和历史；列表逐条补齐，数量单位替换由 fact guard 拦截。
 
 全量离线测试 **1106/1106**（本次新增 33 项），实际 PDF/Word 字段检查、Python 编译、JS 语法和差异检查通过；旧数据可选字段无需 SQL/schema 迁移。原 TLS 测试改为仅在沙箱禁 bind 时用 socket pair 适配最低拨号层，保留真实 TLS/SNI/证书验证。浏览器交互仍受沙箱/本地协议限制，未完成；未调用真实模型、未 commit/push/部署。逐文件说明和验证边界见 [P2 验收记录](2026-10-11-pr8-p2-verification.md)。
+
+
+### P3
+
+2026-10-11：仅实施定方案，保留 P1/P2，未实施 P4。首稿先返回结构化方案卡且不建版本；推荐/备选/自然语言确认后只跑 write。可确定性解析的结构修改不调模型，主线变化重跑 plan，新 JD 清确认；后续复用 confirmed_plan，旧可见草稿兼容，LLM_PLAN_CONFIRM 默认 true。定位句及主线复用词面 fact guard；“这版的思路”来自确认方案；容量压缩不能静默隐藏确认经历。benchmark runner 自动插入并计时 auto_confirm，manifest 记录开关。
+
+全量离线测试 **1134/1134**（新增 28 项）通过，公开 SSE/checkpoint、Node DOM、防连点和完整 fake benchmark 回放通过；语法、编译与差异检查通过。真实模型调用 0，没有真实写作质量 benchmark 或真实浏览器视觉验收；未 commit/push/部署。逐文件与调用/耗时边界见 [P3 验收记录](2026-10-11-pr8-p3-verification.md)。

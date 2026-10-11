@@ -1,0 +1,155 @@
+{% import '_macros.html.j2' as m with context -%}
+{% macro bullet_text(text) -%}
+{%- set parts = text.split('：', 1) -%}
+{%- if parts | length == 2 and 0 < parts[0] | length <= 8 -%}<strong>{{ parts[0] }}：</strong>{{ parts[1] }}{%- else -%}{{ text }}{%- endif -%}
+{%- endmacro %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>{{ basic_info.name }} · 个人简历</title>
+<style>
+  {{ m.density_styles() }}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 210mm; min-height: 297mm; padding: var(--page-y) var(--page-x);
+    font-family: 'Heiti SC', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif;
+    color: #202b35; background: #fff; font-size: var(--body-font-size); font-weight: 300; line-height: var(--line-height);
+    overflow-wrap: anywhere;
+  }
+  a { color: #183b56; text-decoration: none; }
+  strong { font-weight: 600; }
+  .identity { display: flex; align-items: flex-start; justify-content: space-between; gap: 18pt; }
+  .identity-text { flex: 1; min-width: 0; }
+  .h-name { display: block; color: #183b56; font-size: 26pt; font-weight: 600; line-height: 1.1; margin-bottom: 7pt; }
+  .objective { color: #183b56; font-size: 11.2pt; font-weight: 600; margin-bottom: 5pt; }
+  .contact, .contact-links { color: #526170; font-size: 9pt; line-height: 13pt; }
+  .contact-links { display: flex; flex-wrap: wrap; column-gap: 18pt; margin-top: 2pt; }
+  .contact-link { min-width: 0; max-width: 100%; }
+  .contact .sep { opacity: .6; }
+  .photo { width: 59pt; height: 79pt; flex: none; overflow: hidden; }
+  .photo img { border-radius: 0 !important; }
+  .section-title, .positioning-title {
+    display: flex; align-items: center; gap: 8pt;
+    color: #183b56; font-size: var(--section-font-size); font-weight: 600; line-height: var(--section-line-height);
+    margin: var(--section-top) 0 var(--section-bottom);
+    padding: var(--section-padding-y) var(--section-padding-right) var(--section-padding-y) var(--section-padding-left);
+  }
+  .section-title::after, .positioning-title::after { content: ''; flex: 1; min-width: 12pt; border-top: .55pt solid #cbd6df; }
+  .item { margin-bottom: var(--item-gap); }
+  .item-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8pt; margin-bottom: var(--item-header-gap); }
+  .item-title { color: #183b56; font-weight: 600; min-width: 0; flex: 1; }
+  .item-date { color: #526170; font-size: 8.4pt; flex: none; white-space: nowrap; }
+  .item-role { font-weight: 400; }
+  .item-sub { margin-bottom: var(--sub-gap); }
+  ul { margin-left: 11pt; }
+  li { padding-left: 0; margin-bottom: var(--li-gap); }
+  li::marker { color: #183b56; font-size: 7pt; }
+  .desc { white-space: pre-line; }
+  .skill-row { margin-bottom: var(--skill-gap); }
+  .contribution { position: relative; padding-left: 11pt; margin-bottom: var(--contribution-gap); }
+  .contribution::before { content: '•'; position: absolute; left: 1pt; top: 1pt; color: #183b56; font-size: 7pt; }
+  .contribution .item-header { display: inline; }
+  .contribution .item-title { color: #202b35; }
+  .contribution .item-date { margin-left: 6pt; }
+  .contribution .item-sub { margin-bottom: 0; font-size: 9pt; }
+  .contribution ul { margin-top: 2pt; }
+  {{ m.layout_styles() }}
+  .positioning { line-height: var(--summary-line-height); margin-top: 0; }
+  .awards-compact { line-height: var(--summary-line-height); }
+</style>
+</head>
+<body data-density="{{ layout_density }}">
+  <div class="header">
+    <div class="header-text">
+      <div class="identity">
+        <div class="identity-text">
+          <span class="h-name" data-field-path="/basic_info/name">{{ basic_info.name }}</span>
+          {% if basic_info.objective or basic_info.location %}<div class="objective">{% if basic_info.objective %}<span data-field-path="/basic_info/objective">{{ basic_info.objective }}</span>{% endif %}{% if basic_info.objective and basic_info.location %}｜{% endif %}{% if basic_info.location %}<span data-field-path="/basic_info/location">{{ basic_info.location }}</span>{% endif %}</div>{% endif %}
+          {% set labels = {'phone': '', 'email': '', 'gender': '', 'age': '年龄 ', 'birthday': '出生 ', 'ethnicity': '', 'hometown': '籍贯 ', 'political': '', 'height': '身高 ', 'availability': '可实习时间：'} %}
+          {% set ns = namespace(n=0) %}
+          <div class="contact">{% for key, label in labels.items() %}{% if basic_info.get(key) %}{% if ns.n %}<span class="sep"> · </span>{% endif %}<span class="contact-token">{{ label }}<span data-field-path="/basic_info/{{ key }}">{{ basic_info.get(key) }}</span></span>{% set ns.n = ns.n + 1 %}{% endif %}{% endfor %}</div>
+          {% if basic_info.links %}<div class="contact-links">{% for link in basic_info.links %}<div class="contact-link"><span data-field-path="/basic_info/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/basic_info/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" title="{{ link.url }}" rel="noopener noreferrer">{{ link.url | link_label }}</a>{% else %}{{ link.url }}{% endif %}</span></div>{% endfor %}</div>{% endif %}
+        </div>
+        {{ m.photo_box(basic_info) }}
+      </div>
+      {% if summary %}<div class="positioning-title">个人定位</div>{{ m.positioning_line(summary) }}{% endif %}
+    </div>
+  </div>
+
+  {% for section in resume_sections %}
+{% if (section.kind == 'custom' and (section.title or section.content)) or (section.kind == 'education' and education) or (section.kind == 'work_experience' and work_experience) or (section.kind == 'projects' and projects) or (section.kind == 'open_source' and open_source) or (section.kind == 'awards' and awards) or (section.kind == 'skills' and (has_grouped_skills or skills)) or (section.kind == 'certificates' and certificates) or (section.kind == 'self_evaluation' and self_evaluation) %}
+  {% if section.title %}
+  <div class="section-title"><span{% if section.title_path %} data-field-path="{{ section.title_path }}"{% endif %}>{{ section.title }}</span></div>
+  {% endif %}
+  {% if section.kind == 'education' %}
+  {% for edu in education %}{% set edu_index = edu._source_index %}
+  <div class="item">
+    <div class="item-header">
+      <span class="item-title"><span data-field-path="/education/{{ edu_index }}/school">{{ edu.school }}</span>　<span data-field-path="/education/{{ edu_index }}/major">{{ edu.major }}</span>{% if edu.degree %}（<span data-field-path="/education/{{ edu_index }}/degree">{{ edu.degree }}</span>）{% endif %}</span>
+      {% if edu.start_date or edu.end_date %}<span class="item-date">{% if edu.start_date %}<span data-field-path="/education/{{ edu_index }}/start_date">{{ edu.start_date }}</span>{% endif %}{% if edu.start_date and edu.end_date %}—{% endif %}{% if edu.end_date %}<span data-field-path="/education/{{ edu_index }}/end_date">{{ edu.end_date }}</span>{% endif %}</span>{% endif %}
+    </div>
+    {% if edu.highlights %}<div class="item-sub"><span data-field-path="/education/{{ edu_index }}/highlights">{{ edu.highlights }}</span></div>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% elif section.kind == 'work_experience' %}
+  {% for job in work_experience %}{% set job_index = job._source_index %}
+  <div class="item">
+    <div class="item-header">
+      <span class="item-title"><span data-field-path="/work_experience/{{ job_index }}/company">{{ job.company }}</span>　<span data-field-path="/work_experience/{{ job_index }}/title">{{ job.title }}</span></span>
+      {% if job.start_date or job.end_date %}<span class="item-date">{% if job.start_date %}<span data-field-path="/work_experience/{{ job_index }}/start_date">{{ job.start_date }}</span>{% endif %}{% if job.start_date and job.end_date %}—{% endif %}{% if job.end_date %}<span data-field-path="/work_experience/{{ job_index }}/end_date">{{ job.end_date }}</span>{% endif %}</span>{% endif %}
+    </div>
+    {% if job.bullets %}
+    <ul>
+      {% for b in job.bullets %}<li><span data-field-path="/work_experience/{{ job_index }}/bullets/{{ loop.index0 }}">{{ bullet_text(b) }}</span></li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% elif section.kind == 'projects' %}
+  {% for p in projects %}{% set p_index = p._source_index %}
+  <div class="item">
+    {{ m.project_head(p, p_index) }}
+    {% if p.polished_bullets %}
+    <ul>{% for b in p.polished_bullets %}<li><span data-field-path="/projects/{{ p_index }}/polished_bullets/{{ loop.index0 }}">{{ bullet_text(b) }}</span></li>{% endfor %}</ul>
+    {% elif p.description %}<div class="item-sub"><span data-field-path="/projects/{{ p_index }}/description">{{ p.description }}</span></div>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% elif section.kind == 'open_source' %}
+  {% for item in open_source %}{% set index = item._source_index %}
+  <div class="item contribution">
+    <span class="item-header"><span class="item-title">{{ m.contribution_title(item, index) }}</span>{{ m.date_range(item, 'open_source', index) }}</span>{% if item._display_bullets %}：{% for bullet_index, bullet in item._display_bullets %}{% if loop.first %}<span data-field-path="/open_source/{{ index }}/bullets/{{ bullet_index }}">{{ bullet }}</span>{% endif %}{% endfor %}{% endif %}
+    {% if item._display_bullets | length > 1 %}<ul>{% for bullet_index, bullet in item._display_bullets %}{% if not loop.first %}<li><span data-field-path="/open_source/{{ index }}/bullets/{{ bullet_index }}">{{ bullet }}</span></li>{% endif %}{% endfor %}</ul>{% endif %}
+  </div>
+  {% endfor %}
+  {% elif section.kind == 'awards' %}
+  {{ m.contribution_sections(section) }}
+  {% elif section.kind == 'skills' %}
+{% if has_grouped_skills %}
+  <div class="item">
+    {{ m.skill_rows(skill_groups) }}
+  </div>
+  {% elif skills %}
+  <div class="item">
+    <ul>
+      {% for s in skills %}<li><span data-field-path="/skills/{{ loop.index0 }}">{{ s }}</span></li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% elif section.kind == 'certificates' %}
+  <div class="item"><ul>{% for certificate in certificates %}<li><span data-field-path="/certificates/{{ loop.index0 }}">{{ certificate }}</span></li>{% endfor %}</ul></div>
+  {% elif section.kind == 'self_evaluation' %}
+  <p class="desc"><span data-field-path="/self_evaluation">{{ self_evaluation }}</span></p>
+
+  {% elif section.kind == 'custom' %}
+  {% if section.content %}
+  <p class="desc" style="white-space:pre-line;"><span{% if section.content_path %} data-field-path="{{ section.content_path }}"{% endif %}>{{ section.content }}</span></p>
+  {% endif %}
+  {% endif %}
+{% endif %}
+{% endfor %}
+</body>
+</html>

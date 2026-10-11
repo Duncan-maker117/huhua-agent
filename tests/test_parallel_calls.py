@@ -181,11 +181,12 @@ class CollectingParallelTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_decode_jd_discards_speculative_extraction(self):
         self.decision = TriageDecision(action=TriageAction.DECODE_JD, reason="jd")
-        result = await self.run_node()
+        current = collecting_state('招聘产品实习生，负责需求分析与跨团队合作。')
+        result = await self.run_node(current)
         self.assertTrue(self.extract_cancelled)
         self.assertNotIn("extracted", result["collected_info"])
         with serial(rg):
-            reference = await self.run_node()
+            reference = await self.run_node(current)
         self.assertTrue(same(result["collected_info"], reference["collected_info"]))
         self.assertEqual(result["jd_info"], reference["jd_info"])
         self.assertEqual(asyncio.all_tasks() - {asyncio.current_task()}, set())

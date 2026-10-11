@@ -5,7 +5,8 @@ from copy import deepcopy
 import re
 
 from app.schemas.writer import MatchPlan
-from app.services.fact_guard import guard_bullets, ngram_overlap
+from app.services.fact_guard import (TERM_FILE, contains_term, guard_bullets,
+                                     lexical_fact_errors, ngram_overlap, validate_skill_groups)
 
 SECTION_LABELS = {'education': '教育经历', 'work_experience': '工作/实习经历',
                   'projects': '项目经历', 'open_source': '开源贡献', 'awards': '竞赛荣誉',
@@ -53,17 +54,37 @@ def select_plan(card: dict, index: int = 0) -> dict | None:
     return result
 
 
-async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict) -> dict:
+def positioning_guard_rows(card: dict, facts: dict) -> list[dict]:
+    return [{'id': f'plan_positioning_{index}', 'text': sentence, 'fact_ids': list(facts), 'semantic_only': True}
+            for index, row in enumerate([card['recommended'], *(card.get('alternatives') or [])[:2]])
+            if (sentence := str(row.get('positioning') or '').strip()) and len(sentence) <= 40]
+
+
+async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict,
+                                  *, llm=None, positioning_checks: dict | None = None) -> dict:
     from app.agents.resume_writer import _validate_plan
-    async def validated(row):
+    if positioning_checks is None:
+        checks = await guard_bullets(positioning_guard_rows(card, facts), list(facts.values()),
+                                     user_skills=source.get('skills') or [], llm=llm)
+        positioning_checks = {row['id']: row for row in checks}
+    quotes = '\n'.join(str(fact.get('source_quote') or fact.get('text') or '') for fact in facts.values())
+    terms = TERM_FILE.read_text().splitlines() if TERM_FILE.is_file() else []
+
+    def validated(row, index):
         raw = {key: row[key] for key in MatchPlan.model_fields if key in row}
         plan = _validate_plan(MatchPlan.model_validate(raw), source, profile, items, facts)
-        for key in ('positioning', 'thesis'):
-            sentence = str(row.get(key) or '').strip()
-            # Same lexical guard as draft bullets; no extra semantic/model call.
-            checked = await guard_bullets([{'text': sentence, 'fact_ids': list(facts)}], list(facts.values()), lexical_only=True)
-            plan[key] = sentence if checked[0]['verdict'] == 'pass' else ''
-        plan['positioning'] = plan['positioning'][:30]
+        # Thesis is a card-only narrative, not resume prose. Check concrete
+        # claims, numbers and units without requiring full lexical coverage.
+        thesis = str(row.get('thesis') or '').strip()
+        concrete_terms = [term.strip() for term in terms if term.strip() and not term.startswith('#')
+                          and contains_term(thesis, term.strip())]
+        thesis_errors = [error for error in lexical_fact_errors(thesis, quotes)
+                         if error.startswith(('unsupported_numbers:', 'unsupported_quantity_unit:'))]
+        thesis_errors.extend(validate_skill_groups({'terms': concrete_terms}, list(facts.values()), source.get('skills') or []))
+        plan['thesis'] = thesis if not thesis_errors else ''
+        sentence = str(row.get('positioning') or '').strip()
+        plan['positioning'] = sentence if (len(sentence) <= 40 and
+            positioning_checks.get(f'plan_positioning_{index}', {}).get('verdict') == 'pass') else ''
         plan['label'] = str(row.get('label') or '主线叙事型')[:60]
         requirements = {req['id']: req.get('text', '') for req in profile.get('requirements') or [] if req.get('id')}
         for entry in plan['experience_plan']:
@@ -79,11 +100,11 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                 entry['reason'] = f"「{name}」记录了「{detail}」；{relationship}。"
         return plan
 
-    recommended = await validated(card['recommended'])
+    recommended = validated(card['recommended'], 0)
     result = {'recommended': recommended, 'alternatives': []}
-    for raw in (card.get('alternatives') or [])[:2]:
+    for index, raw in enumerate((card.get('alternatives') or [])[:2], 1):
         merged = select_plan({'recommended': recommended, 'alternatives': [raw]}, 1)
-        alternative = await validated(merged)
+        alternative = validated(merged, index)
         if alternative['label'] in {row['label'] for row in [recommended, *result['alternatives']]}:
             alternative['label'] += f"（备选{len(result['alternatives']) + 1}）"
         baseline = {row['item_id']: row for row in recommended['experience_plan']}

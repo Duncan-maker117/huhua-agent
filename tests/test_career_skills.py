@@ -289,7 +289,7 @@ class CareerSkillTest(unittest.IsolatedAsyncioTestCase):
             jd_text="旧JD",
             resume_strategy={"target_role": "后端"},
         )
-        state["messages"] = [HumanMessage(content="新JD")]
+        state["messages"] = [HumanMessage(content="新JD：岗位职责待补充")]
         with patch(
             "app.agents.resume_graph._run_decoder_and_build_reply",
             AsyncMock(return_value=({}, "解码失败")),

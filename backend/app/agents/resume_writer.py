@@ -35,7 +35,8 @@ HEADER_FIELDS = {"name", "company", "school", "role", "title", "start_date", "en
 WRITER_TIMEOUT_SECONDS = 60
 SKILL_HEADINGS = {"技术", "技术栈", "编程语言", "开发工具", "开发与工具", "前端", "后端", "数据库", "框架", "工具",
                   "AI 工具", "AI工具", "AI与数据", "数据分析", "分析工具", "产品工具", "产品与设计",
-                  "产品能力", "设计工具", "办公工具", "协作工具", "语言", "语言能力", "专业技能", "其他"}
+                  "产品能力", "设计工具", "办公工具", "协作工具", "语言", "语言能力", "专业技能", "其他",
+                  "产品方法", "AI 与 Agent", "开发", "内容运营"}
 _PLAN_CONTRACT = """先按岗位要求和 active facts 做匹配计划。只引用给出的 fact_id/item_id；
 direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；
 提问最多三条，任何已更正或删除的旧事实不在输入中。严格输出 MatchPlan。"""
@@ -699,18 +700,23 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                             role_profile: dict, model, role_family: str, *, writer_llm=None,
                             instruction: str = "", scope: str = "whole", targets: Sequence[str] = (),
                             constraints: Mapping[str, Any] | None = None,
-                            capacity_budget: Mapping[str, Any] | None = None) -> tuple[list[dict], list[dict]]:
+                            capacity_budget: Mapping[str, Any] | None = None,
+                            extra_guards: Sequence[dict] = (), guard_results: dict | None = None) -> tuple[list[dict], list[dict]]:
     """Batch check, repair violating bullets once, then source-text fallback."""
-    if not candidates:
+    if not candidates and not extra_guards:
         return [], []
     user_skills = source.get("skills") or []
     fact_rows = list(facts.values())
     valid = [row for row in candidates if row["valid_refs"]]
     guarded = await guard_bullets([{"id": row["id"], "item_id": row["item_id"], "text": row["text"],
-                                   "fact_ids": row["fact_ids"]} for row in valid], fact_rows,
+                                   "fact_ids": row["fact_ids"]} for row in valid] + list(extra_guards), fact_rows,
                                   user_skills=user_skills, jd_skills=role_profile.get("required_skills") or [],
                                   role_terms=role_profile.get("jd_language") or [], llm=model)
     verdicts = {row["id"]: row for row in guarded}
+    if guard_results is not None:
+        guard_results.update(verdicts)
+    if not candidates:
+        return [], []
     failed = [row for row in candidates if not row["valid_refs"] or verdicts.get(row["id"], {}).get("verdict") != "pass"]
     repairs = {}
     # 软违规：通过事实核验但过长的 bullet 修复一次，仍超长则保留原句（由 benchmark 的 overlong_bullets 计数）
@@ -990,7 +996,7 @@ async def _run_resume_writer(
         except Exception as error:
             diagnostic.update(status="model_fallback", error_type=_safe_error_type(error))
             raw = {"recommended": {**plan.model_dump(), "label": "事实保守型"}, "alternatives": []}
-        card = await validate_structure_plan(raw, source, role_profile, items, facts)
+        card = await validate_structure_plan(raw, source, role_profile, items, facts, llm=model)
         return {"structure_plan": card, "writer_diagnostic": diagnostic}
     reused_plan = (MatchPlan.model_validate({key: previous_plan[key] for key in MatchPlan.model_fields
                                             if key in previous_plan}) if phase == "write" and previous_plan else
@@ -1153,14 +1159,18 @@ async def _run_resume_writer(
     # guard/repair outcome, so it runs alongside them and is awaited where it was used.
     summary_refs = list(dict.fromkeys(draft.summary_fact_ids))
     summary_task = None
-    if scope == "whole" and draft.summary.strip() and summary_refs and all(fid in facts for fid in summary_refs):
+    if phase != "write" and scope == "whole" and draft.summary.strip() and summary_refs and all(fid in facts for fid in summary_refs):
         summary_task = _speculative.start(guard_bullets(
             [{"id": "summary", "text": draft.summary, "fact_ids": summary_refs}], list(facts.values()),
             user_skills=source.get("skills") or [], llm=model, run_name="guard_summary"))
+    from app.services.structure_plan import positioning_guard_rows
+    plan_checks = {}
+    extra_guards = positioning_guard_rows({'recommended': previous_plan}, facts) if phase == 'write' else []
     checked, fallbacks = await _guard_and_repair(
         candidate_rows, facts, source, role_profile, model, role_family, writer_llm=llm,
         instruction=instruction, scope=scope, targets=targets,
-        constraints=effective_constraints, capacity_budget=capacity)
+        constraints=effective_constraints, capacity_budget=capacity,
+        extra_guards=extra_guards, guard_results=plan_checks)
     by_item = {}
     for row in checked:
         by_item.setdefault(row["item_id"], []).append(row)
@@ -1249,7 +1259,11 @@ async def _run_resume_writer(
         _apply_section_order(output, match_plan["section_order"], current_data)
         output["self_evaluation"] = ""
         meta.pop("summary", None)
-        source_groups = draft.skill_groups or current.get("skill_groups") or {}
+        # A partial model list is not a deletion request. Preserve supported
+        # existing groups and fill any source skills omitted by the writer.
+        source_groups = deepcopy(current.get("skill_groups") or {})
+        for name, values in draft.skill_groups.items():
+            source_groups.setdefault(name, []).extend(values)
         invalid_skills = set(validate_skill_groups(source_groups, list(facts.values()), source.get("skills") or []))
         groups = {}
         for name, values in source_groups.items():
@@ -1268,7 +1282,8 @@ async def _run_resume_writer(
                 continue
             groups.setdefault("开发工具", []).append(skill)
         from app.services.skill_groups import jd_terms_from_profile, normalize_skill_groups
-        groups = normalize_skill_groups(groups, (), jd_terms_from_profile(role_profile))
+        groups = normalize_skill_groups(groups, (skill.get('name', '') if isinstance(skill, dict) else skill
+                                                for skill in source.get('skills') or []), jd_terms_from_profile(role_profile))
         output["skill_groups"] = groups
         target_role = role_profile.get("target_role")
         if isinstance(target_role, str) and target_role.strip() and not output.get("basic_info", {}).get("objective"):
@@ -1313,7 +1328,8 @@ async def _run_resume_writer(
     from app.services.skill_groups import sync_flat_skills
     if phase == "write":
         from app.services.structure_plan import validate_structure_plan, apply_plan_structure
-        checked = await validate_structure_plan({"recommended": dict(previous_plan)}, source, role_profile, items, facts)
+        checked = await validate_structure_plan({"recommended": dict(previous_plan)}, source, role_profile, items, facts,
+                                                positioning_checks=plan_checks)
         selected = checked["recommended"]
         output = apply_plan_structure(output, selected)
         positioning = selected.get("positioning") or ""

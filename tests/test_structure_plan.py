@@ -80,6 +80,10 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
             self.stack.append(context)
             context.start()
             self.addCleanup(context.stop)
+        context = patch('app.services.fact_guard.verify_semantics', AsyncMock(side_effect=lambda pairs, *args, **kwargs:
+            {row['id']: {'verdict': 'pass'} for row in pairs}))
+        context.start()
+        self.addCleanup(context.stop)
 
     async def planned(self):
         model = FakeModel([('StructurePlan', card())])
@@ -396,9 +400,9 @@ class PlanCommandTest(unittest.TestCase):
         self.assertFalse(changed)
         self.assertEqual(unknown, selected)
 
-    def test_schema_limits_positioning_and_alternative_count(self):
-        with self.assertRaises(ValueError):
-            StructurePlan.model_validate({'recommended': {'positioning': '字' * 31}})
+    def test_schema_accepts_long_positioning_and_limits_alternative_count(self):
+        self.assertEqual(StructurePlan.model_validate({'recommended': {'positioning': '字' * 41}}).recommended.positioning,
+                         '字' * 41)
         with self.assertRaises(ValueError):
             StructurePlan.model_validate({'recommended': {}, 'alternatives': card()['alternatives'] * 3})
 

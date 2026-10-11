@@ -47,13 +47,13 @@ class MatchPlan(WriterSchema):
 
 class RecommendedPlan(MatchPlan):
     label: str = "主线叙事型"
-    positioning: str = Field(default="", max_length=30)
+    positioning: str = ""
     thesis: str = ""
 
 
 class AlternativePlan(WriterSchema):
     label: str
-    positioning: str = Field(default="", max_length=30)
+    positioning: str = ""
     thesis: str = ""
     section_order: list[str] = Field(default_factory=list)
     # Only differences from recommended; selection merges them by item_id.
@@ -185,6 +185,24 @@ class LenientMatchPlan(_DropsExtra, MatchPlan):
     questions: list[LenientPlannedQuestion] = Field(default_factory=list)
 
 
+class LenientRecommendedPlan(_DropsExtra, RecommendedPlan):
+    model_config = _LENIENT
+    requirements: list[LenientRequirementMatch] = Field(default_factory=list)
+    experience_plan: list[LenientExperiencePlan] = Field(default_factory=list)
+    questions: list[LenientPlannedQuestion] = Field(default_factory=list)
+
+
+class LenientAlternativePlan(_DropsExtra, AlternativePlan):
+    model_config = _LENIENT
+    experience_plan: list[LenientExperiencePlan] = Field(default_factory=list)
+
+
+class LenientStructurePlan(_DropsExtra, StructurePlan):
+    model_config = _LENIENT
+    recommended: LenientRecommendedPlan
+    alternatives: list[LenientAlternativePlan] = Field(default_factory=list, max_length=2)
+
+
 class LenientWriterDraft(_DropsExtra, WriterDraft):
     model_config = _LENIENT
     items: list[LenientWrittenItem] = Field(default_factory=list)
@@ -199,10 +217,13 @@ class LenientOnePassOutput(_DropsExtra, OnePassOutput):
 for _lenient, _name in ((LenientRequirementMatch, "RequirementMatch"), (LenientExperiencePlan, "ExperiencePlan"),
                         (LenientImprovementTarget, "ImprovementTarget"), (LenientPlannedQuestion, "PlannedQuestion"),
                         (LenientMatchPlan, "MatchPlan"), (LenientWrittenTitle, "WrittenTitle"), (LenientWrittenBullet, "WrittenBullet"),
+                        (LenientRecommendedPlan, "RecommendedPlan"), (LenientAlternativePlan, "AlternativePlan"),
+                        (LenientStructurePlan, "StructurePlan"),
                         (LenientWrittenItem, "WrittenItem"), (LenientWriterDraft, "WriterDraft"),
                         (LenientOnePassOutput, "OnePassOutput")):
     _lenient.__name__ = _lenient.__qualname__ = _name
     _lenient.model_rebuild(force=True)
 
 LENIENT_SCHEMAS: dict[type[BaseModel], type[BaseModel]] = {
-    MatchPlan: LenientMatchPlan, WriterDraft: LenientWriterDraft, OnePassOutput: LenientOnePassOutput}
+    MatchPlan: LenientMatchPlan, StructurePlan: LenientStructurePlan,
+    WriterDraft: LenientWriterDraft, OnePassOutput: LenientOnePassOutput}

@@ -549,12 +549,20 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         role_context = "\n".join(_source_quote(f) for f in index.values()
                                  if bullet.get("item_id") and f.get("item_id") == bullet["item_id"]
                                  and f.get("kind") in ("role", "team"))
-        errors.extend(lexical_fact_errors(bullet.get("text", ""), source, role_context))
+        claim_errors = lexical_fact_errors(bullet.get("text", ""), source, role_context)
+        if bullet.get('semantic_only'):
+            # Plan positioning is a synthesis. Numbers/units still have a hard
+            # lexical check; narrative wording is decided by semantic review.
+            errors.extend(error for error in claim_errors
+                          if error.startswith(('unsupported_numbers:', 'unsupported_quantity_unit:')))
+        else:
+            errors.extend(claim_errors)
         # 事实本身可以是「没有用户量」；只有印进简历正文才是缺陷。
-        if absence_printed(bullet.get("text", "")):
+        if not bullet.get('semantic_only') and absence_printed(bullet.get("text", "")):
             errors.append("negative_absence_printed")
         for term in vocabulary:
-            if _skill_affirmed(bullet.get("text", ""), term) and not _skill_supported(term, list(index.values()), user_skills):
+            if (not bullet.get('semantic_only') and _skill_affirmed(bullet.get("text", ""), term)
+                    and not _skill_supported(term, list(index.values()), user_skills)):
                 errors.append("unsupported_tool:" + term)
         result = {"id": identifier, "text": bullet.get("text", ""), "fact_ids": refs,
                   "lexical_errors": list(dict.fromkeys(errors)), "semantic": None, "verdict": "fail" if errors else "pass"}
@@ -563,7 +571,7 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         # survived the rewrite. Multi-fact claims always need semantic review.
         exact_single_source = len(cited) == 1 and normalize_text(bullet.get("text", "")) in {
             normalize_text(sources[0]), normalize_text(strip_absence(sources[0]))}
-        if not lexical_only and not errors and not exact_single_source:
+        if not lexical_only and not errors and (not exact_single_source or bullet.get('semantic_only')):
             semantic.append({"id": identifier, "text": bullet.get("text", ""), "source_quotes": sources,
                              "source_facts": [{"fact_id": f["id"],
                                                "kind": f.get("kind") if f.get("kind") in FACT_KINDS else "unknown",

@@ -138,7 +138,7 @@ class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
         facts["education"] = [{"school": "示例大学"}]
         result = await self.rebuild(saved, facts)
         self.assertEqual(result["basic_info"]["email"], "new@example.test")
-        self.assertEqual(result["skills"], ["Excel", "Python"])
+        self.assertEqual(result["skills"], ["Python", "Excel"])  # Source skills now join the fixed display categories.
         self.assertEqual(result["education"][0]["school"], "示例大学")
 
     async def test_deleting_last_experience_does_not_restore_old_draft(self):

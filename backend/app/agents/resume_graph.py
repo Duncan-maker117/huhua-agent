@@ -521,12 +521,7 @@ def _candidate_source_allowed(message: HumanMessage) -> bool:
     text = message.content if isinstance(message.content, str) else ""
     if _is_review_intent(text):
         return False
-    if _re.search(
-        r"任职要求|职位要求|招聘要求|工作职责|岗位职责|职位详情"
-        r"|(?:^|\n)\s*(?:新的?|目标)?\s*JD\s*[:：]",
-        text,
-        _re.IGNORECASE,
-    ):
+    if _has_jd_text(text):
         return False
     if _re.search(
         r"(?:^|\n)\s*(?:示例简历|简历范文|参考简历|参考材料|虚构简历|以下是范文|他人简历)[:：]?"
@@ -860,7 +855,8 @@ def _generation_contains_facts(text: str, *, editing_existing: bool = False) -> 
                                          r'改写|修改|优化|精简|压缩|调整|写成|改成|改为)', clause))
     if _re.search(
         rf"(?:我(?!们|司)|本人).{{0,30}}(?:叫|就读|毕业|会|掌握|熟悉|{_EXPERIENCE_ACTIONS})"
-        r"|(?:^|[\n，,；;])\s*(?:姓名|教育背景|教育经历|项目经历|工作经历|技能|奖项|电话|邮箱)[:：]",
+        r"|(?:^|[\n，,；;])\s*(?:姓名|教育背景|教育经历|教育|项目经历|工作经历|开源贡献|竞赛(?:和|与)?荣誉|荣誉|技能|奖项|电话|邮箱|GitHub)[:：]"
+        r"|(?:^|[\n，,；;])\s*姓名(?!改|换|写|填)\s*\S",
         text,
     ):
         return True
@@ -1020,16 +1016,18 @@ STAGE_PROMPTS = {
 行为规范：
 - 寒暄或还没给JD时，简短介绍：我是胡话简历助手，可以读JD、挖经历、定制一页简历、核对事实、导出PDF/Word；可以贴JD、上传旧简历或材料，也可以直接聊经历
 - 有档案事实的老用户用名字欢迎，只说经历数量等概况，建议贴新JD出一版，不大段复述事实
-- 如果用户给了JD文字（超过50字的大段文字），回复「收到，正在解读...」然后停止，系统会自动切换到解读阶段
+- 如果用户给了招聘方JD文字（含岗位职责、任职要求等特征），回复「收到，正在解读...」然后停止，系统会自动切换到解读阶段；个人资料或长消息不等于JD
 - 如果用户只说了岗位方向没给JD（如「产品经理」），不要卡住用户；进入能力展示型简历，围绕该方向挖经历
 - 没有JD也可以先收集经历，寒暄和征求意见不生成或修改简历
-- 回复简短，一次只问一件事""",
+- 鼓励一次把所有经历和材料都贴进来，可以是旧简历、截图或列表
+- 回复简短，每轮最多问一个会改变简历的问题""",
     # ── Triage 分支后的子 prompt ───────────────────────────────────
     "COLLECTING_WRAP": """当前任务：就刚补充的经历给一个很短的下一步引导。
 应用已先完成事实提取。独立资料中的 candidate_facts 是当前事实，resume_updated 表示本轮是否实际更新右侧草稿。
 全条回复最多 120 个中文字、两小段。不要输出经历原文、可复制简历句、完整改写、整段清单、JD逐项映射或缺口盘点。
 若 resume_updated 为 true，只用一句说明已识别本轮资料，正在同步草稿；保存尚未完成，不得声称已保存/已更新到右侧。为 false 时不得声称已记录/已更新，说明尚需明确哪一点。
-然后二选一：用「**我的建议**」给一条针对当前经历的短建议，或用「**需要你补充**」问一个会影响当前经历表述的具体问题。不要同时给建议和追问，不转去追问另一个项目。
+然后二选一：用「**我的建议**」给一条针对当前经历的短建议，或用「**需要你补充**」问一个会改变简历表述的具体问题。每轮最多问一个问题，不要同时给建议和追问。
+鼓励一次把所有经历和材料都贴进来，可以是旧简历、截图或列表；不限制用户只讲一段经历。
 已有交付物可用，不强求数字；保留未上线等限制，不创造事实。""",
     "COLLECTING_ASK_EXP": """你是「胡话简历」AI助手，当前阶段：追问经历。
 
@@ -1039,7 +1037,8 @@ STAGE_PROMPTS = {
 当前已收集：{collected_summary}
 
 行为规范：
-- 每次只问一件事
+- 鼓励一次把所有经历和材料都贴进来，可以是旧简历、截图或列表；不限制用户只讲一段经历
+- 每轮最多问一个会改变简历的问题
 - 优先问策略里最重要的能力证据；有 JD 时问 JD 能力对应经历，没有 JD 时问最能展现能力的代表经历
 - 如果用户之前说过"我平时会 / 我习惯"这类软经历，点名追问（"你刚说会先跑体验看不合理——展开说说这个过程？"）
 - 不要一次抛 3 个问题，用户会被淹没
@@ -1145,7 +1144,35 @@ def _stage_context(state: ResumeState) -> HumanMessage:
 
 
 def _has_jd_text(text: str) -> bool:
-    return len(text.strip()) > 80
+    return bool(_re.search(r'岗位职责|任职要求|职位描述|工作职责|岗位要求|加分项|职位要求|招聘(?:方)?要求|职位详情'
+                           r'|(?:^|\n)\s*(?:新的?|目标)?\s*JD\s*[:：]'
+                           r'|job\s+description|responsibilities|qualifications', text, _re.I))
+
+
+def _has_personal_features(text: str) -> bool:
+    return bool(_re.search(r'姓名|电话|手机|邮箱|教育|学校|GitHub|开源贡献|竞赛|荣誉|技能|我做|我负责|我写|本人', text, _re.I))
+
+
+def _jd_decode_allowed(text: str, state: dict) -> bool:
+    """A triage guess or explicit task cannot replace a JD with personal data."""
+    if _has_jd_text(text):
+        return True
+    if _has_personal_features(text):
+        return False
+    return not (state.get('jd_text') or has_job_description(state.get('jd_info')))
+
+
+def _stale_plan_confirmation(state: dict) -> dict | None:
+    from app.services.structure_plan import plan_action
+    if (not state.get('pending_plan') and state.get('resume_data')
+            and plan_action(_latest_human_text(state))[0] == 'confirm'):
+        return {'messages': [AIMessage(content='当前稿已按方案写好。如需换方案，可以说「重新定方案」。')]}
+    return None
+
+
+def _blocked_external_decode(state: dict) -> dict:
+    return {'messages': [AIMessage(content='这段材料没有招聘方职责或要求，未替换当前岗位。请补充招聘方 JD 原文。')],
+            'non_candidate_message_ids': _exclude_latest_source(state)}
 
 
 ROLE_DIRECTION_KEYWORDS = [
@@ -1183,7 +1210,7 @@ def _extract_role_direction_keywords(text: str) -> list[str]:
 def _looks_like_role_direction(text: str) -> bool:
     """无 JD 场景的确定性兜底：短句岗位方向直接进入能力展示模式。"""
     text = text.strip()
-    if not text or _has_jd_text(text):
+    if not text or _has_jd_text(text) or _has_personal_features(text):
         return False
     has_role = any(kw in text for kw in ROLE_DIRECTION_KEYWORDS)
     has_intent = any(
@@ -1354,7 +1381,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         reply = (
             f"好，先按「{'、'.join(jd_keywords)}」做能力展示型简历。\n\n"
             f"我会优先证明：{priorities}。\n\n"
-            "先说一段最能代表你能力的经历：项目、实习、课程作品、比赛都可以。"
+            "可以一次把所有经历和材料贴进来：旧简历、截图、项目、实习、课程作品、比赛列表都可以。"
         )
         return {
             "messages": [AIMessage(content=reply)],
@@ -1374,6 +1401,11 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     logger.info("[triage/jd_input] action=%s", decision.action)
 
     action = decision.action
+
+    if action == TriageAction.DECODE_JD and not _jd_decode_allowed(last_human, state):
+        if not _candidate_source_allowed(source_message):
+            return _blocked_external_decode(state)
+        action = TriageAction.WRAP_EXPERIENCE
 
     if action == TriageAction.WRAP_EXPERIENCE and _candidate_source_allowed(source_message):
         # Reuse the existing deterministic WRAP path after this decision. A
@@ -1470,6 +1502,8 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if receipt := _stale_plan_confirmation(state):
+        return receipt
     if _dialogue_requested(_latest_human_text(state)):
         return await dialogue_node(state, llm)
     # A visible draft may still carry the legacy COLLECTING checkpoint stage.
@@ -1631,6 +1665,11 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             user_message=last_human, llm=triage_llm, **triage_params
         )
     decoded_jd = None
+    if decision.action == TriageAction.DECODE_JD and not _jd_decode_allowed(last_human, state):
+        if not candidate_material:
+            return _blocked_external_decode(state)
+        decision = TriageDecision(action=TriageAction.WRAP_EXPERIENCE,
+                                  reason='个人资料不替换岗位，按候选资料收集', experience_snippet=last_human)
     if decision.action == TriageAction.DECODE_JD:
         decoded_jd = await _run_decoder_and_build_reply(last_human, llm)
         if not decoded_jd[0] and candidate_material:
@@ -1953,7 +1992,9 @@ def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
     return '\n\n' + text[text.index(marker):], composed.get('asked_questions') or []
 
 
-async def building_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:
+    if not plan_confirmation and (receipt := _stale_plan_confirmation(state)):
+        return receipt
     result = await _write_resume_update(state, llm)
     if result.pop('plan_card', False):
         return _plan_card_update(result)
@@ -1975,7 +2016,9 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     text = _latest_human_text(state)
     card = state.get('pending_plan') or {}
     action, index = plan_action(text, card)
-    if _has_jd_text(text):
+    if receipt := _stale_plan_confirmation(state):
+        return receipt
+    if _has_jd_text(text) and _jd_decode_allowed(text, state):
         return await skill_task_node({**state, 'requested_task': 'decode_jd'}, llm)
     if action == 'replan':
         return await building_node({**state, **_clear_structure_plan(state)}, llm)
@@ -1983,7 +2026,8 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         selected = select_plan(card, index if action == 'confirm' else 0)
         if selected is None:
             return _plan_card_update({'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True})
-        return await building_node({**state, 'confirmed_plan': selected, 'pending_plan': {}, 'plan_required': False}, llm)
+        return await building_node({**state, 'confirmed_plan': selected, 'pending_plan': {}, 'plan_required': False}, llm,
+                                   plan_confirmation=True)
     plan = select_plan(card) if card else state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
     if action == 'edit' and plan:
         edited, changed = edit_plan(plan, text, state.get('collected_info') or {})
@@ -2009,9 +2053,12 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if card:
         # New material still uses extraction/collection; the next plan must see it.
         result = await collecting_node({**state, 'stage': 'COLLECTING'}, llm)
-        result['pending_plan'] = {}
-        if result.get('stage') == 'BUILDING':
-            return await building_node({**state, **result}, llm)
+        if (result.get('stage') == 'BUILDING' or
+                result.get('collected_info', state.get('collected_info')) != state.get('collected_info')):
+            result.update(_clear_structure_plan({**state, **result}))
+            planned = await building_node({**state, **result}, llm)
+            return {**result, **planned}
+        result.update(pending_plan=card, plan_required=True, stage='BUILDING')
         return result
     return await building_node(state, llm)
 
@@ -2060,6 +2107,8 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
 
 
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if receipt := _stale_plan_confirmation(state):
+        return receipt
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
     if _dialogue_requested(latest):
         return await dialogue_node(state, llm)
@@ -2140,7 +2189,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     ) and not _re.search(r"改|突出|精简|删|写上|补上|压成|学校|专业", text):
         return {'messages': [AIMessage(content='好，后面只使用你已经确认过的内容。')]}
     if not _candidate_source_allowed(message):
-        if message.additional_kwargs.get('career_material_type') == 'jd' or _re.search(r'任职要求|职位要求|岗位职责|工作职责', text):
+        if (message.additional_kwargs.get('career_material_type') == 'jd' or _has_jd_text(text)) and _jd_decode_allowed(text, state):
             info, reply = await _run_decoder_and_build_reply(text, llm)
             if not info:
                 return {'messages': [AIMessage(content=reply)]}
@@ -2355,6 +2404,8 @@ def route_by_stage(state: ResumeState) -> str:
     from app.config import get_settings
     from app.services.structure_plan import plan_action
     action, _ = plan_action(latest, state.get('pending_plan'))
+    if _stale_plan_confirmation(state):
+        return 'structure_plan'
     if get_settings().LLM_PLAN_CONFIRM and (state.get('pending_plan') or action == 'replan'
             or ((state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan')) and action == 'edit')):
         return 'structure_plan'
@@ -2386,6 +2437,20 @@ async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if task == "research_job":
         return await research_job_node(state, latest, llm)
     if task == "decode_jd":
+        if not _jd_decode_allowed(latest, state):
+            message = next((m for m in reversed(state.get('messages', [])) if isinstance(m, HumanMessage)), HumanMessage(content=''))
+            if not _candidate_source_allowed(message):
+                return {**_blocked_external_decode(state), 'requested_task': 'auto'}
+            working = {**state, 'requested_task': 'auto'}
+            if state.get('pending_plan'):
+                result = await structure_plan_node(working, llm)
+            elif state.get('resume_data'):
+                result = await evaluating_node(working, llm)
+            else:
+                result = await collecting_node({**working, 'stage': 'COLLECTING'}, llm)
+                if result.get('stage') == 'BUILDING':
+                    result = {**result, **(await building_node({**working, **result}, llm))}
+            return {**result, 'requested_task': 'auto'}
         info, reply = await _run_decoder_and_build_reply(latest, llm)
         if not info:
             return {"messages": [AIMessage(content=reply)], "requested_task": "auto"}
@@ -2556,7 +2621,10 @@ async def stream_agent(
     ):
         material_type = "review"
     elif task == "decode_jd":
-        material_type = "jd"
+        # The task selector is a routing hint, not source provenance. Personal
+        # data accidentally sent via it must remain candidate/archive material.
+        material_type = ('candidate' if _has_personal_features(last_msg['content'])
+                         and not _has_jd_text(last_msg['content']) else 'jd')
     elif task == "research_job":
         material_type = "reference"
     supplied_sources = bounded_web_sources(web_sources, content_limit=12_000)

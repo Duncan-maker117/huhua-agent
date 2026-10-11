@@ -74,7 +74,7 @@ class DecodeFallbackTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("这段材料还没有解析出", result["messages"][0].content)
         self.assertEqual(result["resume_data"]["basic_info"]["email"], BASIC["email"])
 
-    async def test_collecting_failed_decode_reuses_completed_extraction_and_postprocessing(self):
+    async def test_collecting_blocks_personal_decode_reuses_completed_extraction_and_postprocessing(self):
         from app.agents.turn_actions import absorb_education, bind_role_followup
         state = intake_state()
         before = copy.deepcopy(state)
@@ -104,7 +104,7 @@ class DecodeFallbackTests(unittest.IsolatedAsyncioTestCase):
         ):
             result = await rg.collecting_node(state, model)
         extraction.assert_awaited_once()
-        decode.assert_awaited_once()
+        decode.assert_not_awaited()
         education.assert_called_once()
         role.assert_called_once()
         self.assertEqual(role.call_args.args[-1], "personal-turn")
@@ -163,7 +163,9 @@ class DecodeFallbackTests(unittest.IsolatedAsyncioTestCase):
             patch.object(rg, "_extract_info_from_message", AsyncMock(side_effect=extract)),
             patch.object(rg, "_run_decoder_and_build_reply", AsyncMock(return_value=({"job_title": "需求分析实习"}, "岗位已解析。"))) as decoder,
         ):
-            result = await rg.collecting_node(intake_state("招聘产品实习生，负责需求分析与跨团队合作。"), object())
+            current = intake_state("招聘产品实习生，负责需求分析与跨团队合作。")
+            current.update(jd_info={}, jd_text='')  # Without a current JD, triage may recognize a prose JD.
+            result = await rg.collecting_node(current, object())
         decoder.assert_awaited_once()
         self.assertFalse(any(result["collected_info"]["basic_info"].values()))
         self.assertEqual(result["jd_info"]["job_title"], "需求分析实习")

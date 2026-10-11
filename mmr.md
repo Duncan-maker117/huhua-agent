@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-11 Flash 回放 fix2 本地完成：在 `overhaul/tailor`、HEAD `4e30f42` 增量修复，保留 P1–P3 与 fix1。方案定位取消 schema 30字硬限制、支持深层 lenient 字段、超过40字整句丢弃；thesis 只用于方案叙事并核对数字/单位/具体技术词，定位句与正文同批语义核验。所有 JD 解码入口加确定性个人资料保护，已有 JD 仅带 JD 特征时替换；待确认补料先提取/导入并持久化，再出新卡；无 pending_plan 的重复确认不改稿，整稿 writer 合并有效技能分组及 active 用户技能；收集提示鼓励一次给全。新增23项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1182/1182（22.500s）**、Ruff（忽略既有E402）及差异检查通过。真实模型调用0，无commit/push/部署。逐项根因、文件与验收：`docs/development/2026-10-11-replay-plan-intake-fixes.md`。
+
 2026-10-11 模型回放四处 bug 本地修复：保留已提交 P1/P2/P3（HEAD `4710385`），未回退。空 JD 解码的候选消息回到正常收集并复用并行抽取，JD_INPUT 同样兜底；项目纯状态词在抽取/档案/映射/writer 拦截，旧稿渲染隐藏错误角色但保留状态事实；荣誉名称去首尾标点，HTML/Word/文本统一抑制标题重复 bullet，预览保留原 bullet 索引；advice 按归一化编辑距离 <20% 去重，不足两个时换 style 补一次并重新核验，仍不足如实给一个。新增 25 项虚构/fake-model 回归；指定 `.venv/bin/python scripts/run_tests.py` 全量 1159/1159（22.373s），差异检查和修改文件 Ruff（忽略既有 E402 导入布局）通过。没有读取/打印 key、调用真实模型、commit/push 或部署。根因及逐 bug 文件清单：`docs/development/2026-10-11-replay-bug-fixes.md`。
 
 2026-10-11 PR8 P3 本地完成：本轮最新授权仅实现「定方案」，保留已提交 P1/P2，未实施 P4。首稿先返回推荐/备选结构化 guidance，不写稿、不建版本；按钮/文字确认后只跑 write，后续复用 confirmed_plan（checkpoint + resume_meta）。定位句在现有 summary 展示，主线/定位复用词面 fact guard；明确栏目顺序/取舍直接改，主线变化重跑 plan，新 JD 清确认；旧可见草稿继续编辑，LLM_PLAN_CONFIRM 默认 true、false 保留原单轮成稿。runner 自动插入并计时 auto_confirm，不把方案当版本；容量压缩不再静默隐藏确认经历。新增 28 项虚构/fake-model 回归，最终全量 1134/1134；SSE/checkpoint、Node DOM、防连点、完整 fake benchmark 回放、语法/编译/差异检查通过。真实写作质量 benchmark 与真实浏览器视觉验收未做；真实模型调用 0，无 commit/push/部署。逐文件及耗时说明：`docs/development/2026-10-11-pr8-p3-verification.md`。

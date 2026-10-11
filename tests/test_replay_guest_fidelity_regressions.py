@@ -150,7 +150,7 @@ class PositioningDiagnosticRegression(unittest.IsolatedAsyncioTestCase):
         collected = source()
         collected['projects'][0]['facts'].append(new_fact('本人做了 Agent 记忆与评测。'))
         raw = card()
-        sentence = '做过 Agent 记忆与评测的 AI 产品实习生'
+        sentence = '做过 Agent 记忆与评测'
         raw['recommended']['positioning'] = sentence
         model = PlanModel([('StructurePlan', raw), ('WriterDraft', writer_draft())])
         planned = await run_resume_writer(collected, {}, model, phase='plan')

@@ -17,6 +17,8 @@ ALIASES = {'教育': 'education', '工作': 'work_experience', '实习': 'work_e
            '技能': 'skills', '证书': 'certificates'}
 
 
+_IDENTITY = re.compile(r'实习生|工程师|产品经理|经理|设计师|分析师|研究员|开发者|负责人|专家|创始人|主理人')
+
 def user_plan_text(text: str, profile: dict | None = None) -> str:
     """Translate internal requirement/signal references only in prose slots."""
     profile = profile or {}
@@ -125,15 +127,17 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         sentence = str(row.get('positioning') or '').strip()
         check = positioning_checks.get(f'plan_positioning_{index}') or {}
         semantic = check.get('semantic') or {}
-        synthesis_supported = (all(semantic.get(key) is True for key in (
-            'subject_ok', 'results_supported', 'limits_kept')) and not semantic.get('unsupported_spans'))
+        # The header line is resume prose: a job title or identity is only
+        # usable when the candidate said it (a target role is not an identity).
+        identities = [word for word in _IDENTITY.findall(sentence) if word not in quotes]
         sentence_terms = [term.strip() for term in terms if term.strip() and not term.startswith('#')
                           and contains_term(sentence, term.strip())]
         unsupported_tools = validate_skill_groups({'terms': sentence_terms}, list(facts.values()), source.get('skills') or [])
         reason = ('empty' if not sentence else 'over_40_chars' if len(sentence) > 40 else
                   'lexical_fact_errors' if check.get('lexical_errors') or unsupported_tools else
+                  'unsupported_identity' if identities else
                   'semantic_result_missing' if not check else
-                  'semantic_rejected' if check.get('verdict') != 'pass' and not synthesis_supported else '')
+                  'semantic_rejected' if check.get('verdict') != 'pass' else '')
         plan['positioning'] = sentence if not reason else ''
         # A sentence stitched from fact fragments reads worse than no line at
         # all; an empty positioning simply leaves the header line out.
@@ -144,7 +148,6 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
             diagnostic['positioning_rejected_reason'] = reason
             diagnostic['positioning_source'] = 'derived' if fallback else 'empty' if reason else 'model'
             diagnostic['positioning_fallback_reason'] = fallback_reason
-            diagnostic['positioning_semantic_relaxed'] = bool(not reason and check.get('verdict') != 'pass')
             if reason and check.get('semantic'):
                 # Fixed failure dimensions only; do not log model prose or PII.
                 semantic = check['semantic']

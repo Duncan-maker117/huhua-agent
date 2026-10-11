@@ -217,13 +217,21 @@ class PositioningPolishRegression(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('已保存', output['messages'][0].content)
         self.assertTrue(output['resume_data']['projects'])
 
-    async def test_abstract_action_rejection_is_relaxed_without_new_claims(self):
+    async def test_semantic_rejection_is_never_relaxed(self):
         raw = card()
         raw['recommended']['positioning'] = '通过记忆修复展示产品实践'
         model = PlanModel([('StructurePlan', raw)], abstract_fail_ids=['plan_positioning_0'])
         output = await run_resume_writer(source(), {}, model, phase='plan')
-        self.assertEqual(output['structure_plan']['recommended']['positioning'], raw['recommended']['positioning'])
-        self.assertTrue(output['writer_diagnostic']['positioning_semantic_relaxed'])
+        self.assertEqual(output['structure_plan']['recommended']['positioning'], '')
+        self.assertEqual(output['writer_diagnostic']['positioning_rejected_reason'], 'semantic_rejected')
+
+    async def test_target_role_is_not_an_identity_in_positioning(self):
+        raw = card()
+        raw['recommended']['positioning'] = '做过记忆修复的产品实习生'
+        model = PlanModel([('StructurePlan', raw)])
+        output = await run_resume_writer(source(), {}, model, phase='plan')
+        self.assertEqual(output['structure_plan']['recommended']['positioning'], '')
+        self.assertEqual(output['writer_diagnostic']['positioning_rejected_reason'], 'unsupported_identity')
 
     async def test_new_numbers_and_tools_are_rejected_even_with_fake_semantic_pass(self):
         for sentence in ('带来10000用户', '使用 Kubernetes 做产品实践'):

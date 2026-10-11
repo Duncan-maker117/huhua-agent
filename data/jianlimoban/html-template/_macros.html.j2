@@ -57,7 +57,7 @@
     {% if kind == 'open_source' %}{{ date_range(item, kind, index) }}{% elif item.date %}<span class="item-date" data-field-path="/awards/{{ index }}/date">{{ item.date }}</span>{% endif %}
   </div>
   {% if kind == 'open_source' and item.summary %}<div class="item-sub" data-field-path="/open_source/{{ index }}/summary">{{ item.summary }}</div>{% endif %}
-  {% if item.bullets %}<ul>{% for bullet in item.bullets %}<li><span data-field-path="/{{ kind }}/{{ index }}/bullets/{{ loop.index0 }}">{{ bullet }}</span></li>{% endfor %}</ul>{% endif %}
+  {% if item._display_bullets %}<ul>{% for bullet_index, bullet in item._display_bullets %}<li><span data-field-path="/{{ kind }}/{{ index }}/bullets/{{ bullet_index }}">{{ bullet }}</span></li>{% endfor %}</ul>{% endif %}
   {% for link in item.links | default([]) %}<div class="item-sub"><span data-field-path="/{{ kind }}/{{ index }}/links/{{ loop.index0 }}/text">{{ link.text }}</span>：<span data-field-path="/{{ kind }}/{{ index }}/links/{{ loop.index0 }}/url">{% if link.url | safe_link_url %}<a href="{{ link.url | safe_link_url }}" rel="noopener noreferrer">{{ link.url }}</a>{% else %}{{ link.url }}{% endif %}</span></div>{% endfor %}
 </div>
 {% endfor %}

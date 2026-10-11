@@ -4,6 +4,7 @@ import re
 import uuid
 
 from app.services.resume_facts import new_fact
+from app.services.resume_field_hygiene import trim_name_punctuation
 
 
 SECTION_LABELS = {"开源贡献": "open_source", "开源经历": "open_source",
@@ -89,7 +90,7 @@ def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") 
             # A leading date is optional metadata, not part of the award name.
             if date and name.startswith(date[0]):
                 name = name[len(date[0]):].strip(" ，,·-—：:")
-            fields = {"name": name or plain}
+            fields = {"name": trim_name_punctuation(name or plain)}
             if level:
                 fields["level"] = level[0]
             if date:

@@ -1,6 +1,7 @@
 """Shared section order and field paths for preview and document export."""
 
 from typing import Any
+from app.services.resume_field_hygiene import display_bullets, project_role, trim_name_punctuation
 
 
 DEFAULT_SECTIONS = (
@@ -17,8 +18,19 @@ DEFAULT_SECTIONS = (
 
 def visible_items(data: dict[str, Any], kind: str) -> list[tuple[int, dict[str, Any]]]:
     """Visible resume rows with their stable indices in the canonical document."""
-    return [(index, item) for index, item in enumerate(data.get(kind) or [])
-            if isinstance(item, dict) and item.get("hidden") is not True]
+    rows = []
+    for index, item in enumerate(data.get(kind) or []):
+        if not isinstance(item, dict) or item.get("hidden") is True:
+            continue
+        item = dict(item)
+        if kind == "projects":
+            item["role"] = project_role(item.get("role") or "")
+        if kind == "awards":
+            item["name"] = trim_name_punctuation(item.get("name"))
+        if kind in {"open_source", "awards"}:
+            item["_display_bullets"] = display_bullets(item, kind)
+        rows.append((index, item))
+    return rows
 
 
 def get_resume_sections(data: dict[str, Any]) -> list[dict[str, Any]]:

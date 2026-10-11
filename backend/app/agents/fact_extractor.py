@@ -13,6 +13,7 @@ import uuid
 from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.llm_compat import label_run, without_thinking
 from app.services.resume_facts import new_fact, normalize_fact_store
+from app.services.resume_field_hygiene import is_project_status
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch
 JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
 教育的学校、专业、学历、起止时间分别标 field=school/major/degree/start_date/end_date；奖学金标 highlights，保留在 education，不重复放 awards。学校简称保持原词，不要自行扩写全称，不能压成「就读于某大学」一句。
 开源贡献归 open_source，name 用仓库/项目名，简介（如星数）标 summary，PR号或链接标 pr，本人贡献和结果分别为正文事实；每个PR一条item，不能把「自己」当项目名。竞赛荣誉归 awards，名称、级别/名次、时间分别标 name/level/date。
+原型、未上线、已上线等是状态，标 kind=status_limit，不得标为 role 或 field=role；荣誉 name 去掉首尾标点。
 用户一次列出多个PR、多个奖项时必须逐条收录，不得只收第一条。数字及其单位（人/次/个/条）保留，不能把「20次」解释为「20次调用/请求」。
 半句话中已经说清的团队规模、本人分工等分别抽取；未完成的尾巴不影响前面的事实，不猜缺失内容。
 不要返回整份 collected_info，不要添加未知字段。"""
@@ -277,6 +279,9 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             if fact := validated(raw):
                 if raw.get("field") in FACT_FIELDS[raw_item["section"]]:
                     fact["field"] = raw["field"]
+                if (fact.get("field") == "role" or fact["kind"] == "role") and is_project_status(fact["text"]):
+                    fact["kind"] = "status_limit"
+                    fact.pop("field", None)
                 facts.append(fact)
         raw_notes = raw_item.get("raw_notes") if isinstance(raw_item.get("raw_notes"), list) else []
         notes = [note for note in raw_notes
@@ -484,4 +489,4 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
             for fact in item["facts"]:
                 if fact.get("id") == entry.get("fact_id"):
                     fact["status"] = "deleted"
-    return result
+    return normalize_fact_store(result)

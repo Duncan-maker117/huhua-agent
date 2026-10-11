@@ -6,6 +6,7 @@ import re
 import uuid
 
 from app.schemas.facts import FACT_FIELDS, FACT_KINDS, FACT_LABELS, FACT_SECTIONS, FACT_SOURCES, FACT_STATUSES
+from app.services.resume_field_hygiene import is_project_status, trim_name_punctuation
 
 
 def new_fact(text: str, *, kind: str = "action", quote: str | None = None,
@@ -35,6 +36,9 @@ def _normalized_fact(fact: dict) -> dict | None:
     result.setdefault("turn_id", "")
     result.setdefault("sources", [{"source": result["source"], "source_quote": result["source_quote"],
                                    "turn_id": result["turn_id"]}])
+    if (result.get("field") == "role" or result["kind"] == "role") and is_project_status(result["text"]):
+        result["kind"] = "status_limit"
+        result.pop("field", None)
     return result
 
 
@@ -92,7 +96,17 @@ def normalize_fact_store(collected: dict | None) -> dict:
                     for key in ("profile_refs", "profile_fact_refs", "source_ids", "source_id", "profile_fact_id"):
                         if item.get(key):
                             fact[key] = copy.deepcopy(item[key])
-            item["facts"] = facts
+            if section == "projects" and is_project_status(item.get("role")):
+                status = item.pop("role")
+                if not any(fact["text"] == status for fact in facts):
+                    facts.append(new_fact(status, kind="status_limit"))
+            if section == "awards":
+                item["name"] = trim_name_punctuation(item.get("name"))
+                for fact in facts:
+                    if fact.get("field") == "name":
+                        fact["text"] = trim_name_punctuation(fact["text"])
+            # Legacy role facts created above need the same status check.
+            item["facts"] = [normalized for fact in facts if (normalized := _normalized_fact(fact))]
             item["raw_notes"] = list(dict.fromkeys(note for note in item.get("raw_notes", [])
                                                    if isinstance(note, str) and note.strip()))
             if not had_fact_field and not item["raw_notes"] and raw:

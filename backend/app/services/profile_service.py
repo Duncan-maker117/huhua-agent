@@ -25,6 +25,7 @@ from app.models.profile import (
 )
 from app.services.account_service import blind_index
 from app.services.data_crypto import CryptoConfigurationError, get_crypto
+from app.services.resume_field_hygiene import is_project_status, trim_name_punctuation
 
 
 class ProfileNotFound(Exception):
@@ -621,6 +622,10 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
         category, field, value = fact.get("category"), fact.get("field"), fact.get("value")
         if not isinstance(value, str) or not value:
             continue
+        if category == "project" and field == "role" and is_project_status(value):
+            field = "status"
+        if category == "awards" and field == "name":
+            value = trim_name_punctuation(value)
         if category == "basic":
             if field in {"link", "github", "website"}:
                 label = fact.get("subject") if field == "link" else "GitHub" if field == "github" else "个人主页"

@@ -259,13 +259,14 @@ class P1AdviceGuardTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("100%", reply)
             self.assertNotIn("Kubernetes", reply)
             self.assertNotIn("旧事实标记", reply)
-            self.assertIn("我整理反馈并分类", reply)
+            self.assertIn("整理反馈并分类", reply)
 
-    async def test_semantic_failure_or_model_failure_uses_grounded_literal_options(self):
+    async def test_semantic_failure_or_model_failure_uses_one_grounded_literal_option(self):
         for model in (FakeModel(fail_verification=True), FakeModel(failure=True)):
             reply = await wording_advice(state(), "哪个更好", model)
             self.assertIn("1.「我整理反馈并分类」", reply)
-            self.assertIn("2.「项目甲：我整理反馈并分类」", reply)
+            self.assertNotIn("2.「", reply)
+            self.assertIn("暂时只给这一种", reply)
 
     async def test_no_facts_returns_entry_choices_without_inventing_experience(self):
         model = FakeModel(failure=True)

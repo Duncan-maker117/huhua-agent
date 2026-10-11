@@ -9,6 +9,7 @@ import copy
 import re
 
 from app.services.resume_facts import new_fact
+from app.services.resume_field_hygiene import project_role
 from app.services.candidate_sections import SECTION_LABELS, parse_header_fields, parse_labelled_items
 
 _PROJECT_SECTION = re.compile(r"^项目经历(?:\s*[（(].*[）)])?$")
@@ -143,7 +144,7 @@ def _project_heading(line: str) -> dict | None:
     # metadata, such as “独立开发者 · 2025”, is an explicit source statement.
     role = _ROLE.search(re.sub(r"[\[［][^\]］]*[\]］]", "", detail))
     return {
-        "name": name, "role": re.split(r"[·•]|\s*20\d{2}", role.group(0))[0].strip() if role else "",
+        "name": name, "role": project_role(re.split(r"[·•]|\s*20\d{2}", role.group(0))[0].strip()) if role else "",
         "start_date": start_date, "end_date": end_date, "subtitle": subtitle,
         "_description_lines": [part for part in (subtitle, *status_bits) if part],
         "_body_started": False,
@@ -355,9 +356,9 @@ def _parse_document(text: str) -> dict | None:
                             current["start_date"] = current["start_date"] or start
                             current["end_date"] = current["end_date"] or end
                         if role:
-                            current["role"] = re.split(r"\s*20\d{2}", role.group(0))[0].strip(" ·")
+                            current["role"] = project_role(re.split(r"\s*20\d{2}", role.group(0))[0].strip(" ·"))
                         elif role_line:
-                            current["role"] = role_line.group(1).strip()
+                            current["role"] = project_role(role_line.group(1).strip())
                         current["_description_lines"].append(line)
                         continue
                 current["_body_started"] = True

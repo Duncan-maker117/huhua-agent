@@ -201,7 +201,7 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
                      f"{item.get('start_date', '')}—{item.get('end_date', '')}".strip("—")) if kind == "open_source" else (
                 item.get("name"), item.get("level"), item.get("date"))
             doc.add_paragraph().add_run(" / ".join(value for value in parts if value)).bold = True
-            for bullet in item.get("bullets") or []:
+            for _, bullet in item["_display_bullets"]:
                 doc.add_paragraph(bullet, style="List Bullet")
             for link in item.get("links") or []:
                 doc.add_paragraph(f"{link.get('text', '')}：{link.get('url', '')}")

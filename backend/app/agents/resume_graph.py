@@ -1391,6 +1391,13 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if action == TriageAction.DECODE_JD:
         jd_info, reply = await _run_decoder_and_build_reply(last_human, llm)
         if not jd_info:
+            if _candidate_source_allowed(source_message):
+                result = await collecting_node(
+                    {**state, "stage": "COLLECTING", "requested_task": "rewrite_experience"}, llm,
+                )
+                if result.get("stage") == "BUILDING":
+                    return {**result, **(await building_node({**state, **result}, llm))}
+                return {"stage": "COLLECTING", **result}
             return {
                 "messages": [AIMessage(content=reply)],
                 "non_candidate_message_ids": _exclude_latest_source(state),
@@ -1615,7 +1622,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     else:
         triage_llm = _make_non_streaming_llm(llm, temperature=0)
         # Extraction input does not depend on the triage result, only whether it runs.
-        # Start it now; it is discarded below if triage routes the turn to DECODE_JD.
+        # Only a successful JD decode discards candidate extraction.
         if candidate_material and last_human and len(last_human) > 5:
             extract_task = scope.start(_extract_with_previous_assistant(
                 last_human, collected, _make_non_streaming_llm(llm, temperature=0),
@@ -1623,6 +1630,14 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         decision = await run_triage(
             user_message=last_human, llm=triage_llm, **triage_params
         )
+    decoded_jd = None
+    if decision.action == TriageAction.DECODE_JD:
+        decoded_jd = await _run_decoder_and_build_reply(last_human, llm)
+        if not decoded_jd[0] and candidate_material:
+            # A routing guess cannot erase personal evidence. Reuse the task
+            # already started, then run the same collection/post-processing path.
+            decision = TriageDecision(action=TriageAction.WRAP_EXPERIENCE,
+                                      reason="未解析出岗位信息，按候选资料收集", experience_snippet=last_human)
     if (
         decision.action != TriageAction.DECODE_JD
         and candidate_material
@@ -1749,7 +1764,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     # 分支 E：兜底—— triage 返回了 JD 相关 action（用户中途补贴 JD 等）
     if action == TriageAction.DECODE_JD:
         base_update["non_candidate_message_ids"] = _exclude_latest_source(state)
-        jd_info, reply = await _run_decoder_and_build_reply(last_human, llm)
+        jd_info, reply = decoded_jd
         if not jd_info:
             base_update["messages"] = [AIMessage(content=reply)]
             return base_update

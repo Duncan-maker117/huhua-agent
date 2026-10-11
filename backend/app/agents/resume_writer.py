@@ -672,15 +672,19 @@ def _apply_section_order(output: dict, order: Sequence[str], previous: dict | No
 
 def _seed_item(section: str, source_item: dict, current: dict | None) -> dict:
     """Keep confirmed current headers; otherwise use sourced fields, never model titles."""
+    from app.services.resume_field_hygiene import project_role
     if current is not None:
-        return deepcopy(current)
+        item = deepcopy(current)
+        if section == "projects" and "role" in item:
+            item["role"] = project_role(item["role"])
+        return item
     item = {"item_id": source_item["item_id"]}
     label = "company" if section == "work_experience" else "name"
     item[label] = source_item.get(label, "")
     for fact in source_item.get("facts", []):
         field = fact.get("field")
         if field in {"role", "title", "start_date", "end_date", "summary", "pr"} and not item.get(field):
-            item[field] = fact.get("text", "")
+            item[field] = project_role(fact.get("text", "")) if field == "role" else fact.get("text", "")
     if section == "projects":
         item.setdefault("description", "")
         item.setdefault("polished_bullets", [])

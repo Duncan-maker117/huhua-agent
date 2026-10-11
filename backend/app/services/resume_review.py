@@ -51,6 +51,8 @@ def resume_to_text(data: dict) -> str:
             if key == "awards" and item.get("date"):
                 lines.append(item["date"])
             bullets = item.get("bullets") or item.get("polished_bullets") or []
+            if key == "awards":
+                bullets = [bullet for _, bullet in item["_display_bullets"]]
             if not bullets and item.get("description"):
                 bullets = [item["description"]]
             for bullet in bullets:

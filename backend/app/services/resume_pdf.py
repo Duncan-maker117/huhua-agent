@@ -43,6 +43,31 @@ def count_resume_pdf_pages(template_id: str, data: dict) -> int:
     return _render(template_id, data, lambda document: len(document.pages))
 
 
+def measure_resume_pdf_layout(template_id: str, data: dict, page_limit: int) -> dict:
+    """Measure text lines on overflow pages in the final export layout (CSS px)."""
+    def finish(document):
+        from weasyprint.formatting_structure.boxes import LineBox
+
+        heights, lines, page_heights = [], [], []
+        for page in document.pages:
+            box = page._page_box
+            text_lines = [line for line in box.descendants() if isinstance(line, LineBox)
+                          and any(getattr(child, 'text', '').strip() for child in line.descendants())]
+            heights.append(max((line.position_y + line.height for line in text_lines), default=0)
+                           - min((line.position_y for line in text_lines), default=0))
+            lines.append(len({round(line.position_y, 2) for line in text_lines}))
+            page_heights.append(box.height)
+        overflow = sum(heights[page_limit:])
+        return {'pages': len(document.pages), 'overflow_height_px': round(overflow, 2),
+                'overflow_lines': sum(lines[page_limit:]),
+                'overflow_page_ratio': round(sum(height / page_height for height, page_height
+                                                 in zip(heights[page_limit:], page_heights[page_limit:])), 4),
+                'last_page_content_height_px': round(heights[-1], 2),
+                'page_content_height_px': round(page_heights[-1], 2)}
+
+    return _render(template_id, data, finish)
+
+
 def _render(template_id: str, data: dict, finish):
     if template_id not in {template["id"] for template in list_templates()}:
         raise ValueError("模板不存在")

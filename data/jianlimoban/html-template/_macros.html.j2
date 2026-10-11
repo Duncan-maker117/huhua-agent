@@ -52,9 +52,9 @@
 </div>
 {%- endmacro %}
 
-{#- 技能：每组一行「组名：项 / 项 / 项」。 -#}
+{#- 技能：短分组合行，保留原分组及技能编辑路径。 -#}
 {% macro skill_rows(groups) -%}
-{% for group_name, items in groups.items() %}{% if items %}<div class="skill-row"><strong><span data-field-path="/skill_groups/{{ group_name | pointer_escape }}" data-field-kind="group-name">{{ group_name }}</span>：</strong>{% for skill in items %}<span data-field-path="/skill_groups/{{ group_name | pointer_escape }}/{{ loop.index0 }}">{{ skill }}</span>{% if not loop.last %} / {% endif %}{% endfor %}</div>{% endif %}{% endfor %}
+{% for row in groups | display_skill_rows %}<div class="skill-row">{% for group_name, items in row %}{% if not loop.first %}；{% endif %}<strong><span data-field-path="/skill_groups/{{ group_name | pointer_escape }}" data-field-kind="group-name">{{ group_name }}</span>：</strong>{% for skill in items %}<span data-field-path="/skill_groups/{{ group_name | pointer_escape }}/{{ loop.index0 }}">{{ skill }}</span>{% if not loop.last %} / {% endif %}{% endfor %}{% endfor %}</div>{% endfor %}
 {%- endmacro %}
 
 {% macro contribution_sections(section) -%}

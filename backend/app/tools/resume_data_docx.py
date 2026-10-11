@@ -216,9 +216,12 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
         # 分组技能优先，fallback 到 flat skills。
         skill_groups = data.get("skill_groups") or {}
         if skill_groups and any(skill_groups.values()):
-            for group_name, items in skill_groups.items():
-                if items:
-                    p = doc.add_paragraph()
+            from app.services.skill_groups import display_skill_rows
+            for row in display_skill_rows(skill_groups):
+                p = doc.add_paragraph()
+                for index, (group_name, items) in enumerate(row):
+                    if index:
+                        p.add_run('；')
                     p.add_run(f"{group_name}：").bold = True
                     p.add_run(" / ".join(items))
         else:

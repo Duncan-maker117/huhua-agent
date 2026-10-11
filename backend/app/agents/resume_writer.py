@@ -41,7 +41,7 @@ _PLAN_CONTRACT = """先按岗位要求和 active facts 做匹配计划。只引�
 direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；reason 用要求原文，不用 requirement/signal id；
 提问最多三条，任何已更正或删除的旧事实不在输入中。严格输出 MatchPlan。"""
 _STRUCTURE_CONTRACT = """先定方案，不写正文。输出 StructurePlan：recommended 是完整匹配计划，另含 label、positioning、thesis；alternatives 给1–2个备选。
-positioning 不超过30字，将放在简历页头 summary；thesis 用一句说明这份简历要让面试官记住什么。所有说法只能由 active facts 支持，不能把 JD 或公司业务写成候选人事实。
+recommended 和每个备选的 positioning 必填；有可概括的 active facts 时不得省略或给空字符串。用不超过30字的定位句放在简历页头 summary；确实缺乏事实支持时才给空字符串，不硬造。thesis 用完整一句说明这份简历要让面试官记住什么。概括定位允许综合已有实践，不含新数字、新工具、新成果，不把 JD 或公司业务写成候选人事实。
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
 reason、thesis 等面向用户的文本用要求原文或岗位信号原文，不写 r1/r2/s2 等内部编号；编号仅用于结构化引用字段。
 section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/positioning/thesis/section_order，experience_plan 只列相对推荐的差异。
@@ -1008,6 +1008,9 @@ async def _run_resume_writer(
             async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
                 card = await _call(model, StructurePlan, payload, _STRUCTURE_CONTRACT,
                                    role_family, retry_state=diagnostic)
+                diagnostic['positioning_model_output'] = (
+                    'missing' if 'positioning' not in card.recommended.model_fields_set else
+                    'empty' if not card.recommended.positioning.strip() else 'provided')
                 raw = card.model_dump()
         except Exception as error:
             diagnostic.update(status="model_fallback", error_type=_safe_error_type(error))

@@ -78,7 +78,7 @@ class ResumeCapacityTest(unittest.TestCase):
             apply_deterministic_compression(resume, [{**actions[0], "item_id": "wrong"}])
 
     def test_renderer_failure_never_claims_page_fit(self):
-        with patch("app.services.resume_pdf.count_resume_pdf_pages", side_effect=RuntimeError("render unavailable")):
+        with patch("app.services.resume_pdf.measure_resume_pdf_layout", side_effect=RuntimeError("render unavailable")):
             result = measure_rendered_pages({}, {"page_limit": 1})
         self.assertEqual(result["status"], "render_error")
         self.assertIsNone(result["pages"])

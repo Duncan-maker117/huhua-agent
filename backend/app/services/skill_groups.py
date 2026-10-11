@@ -101,6 +101,26 @@ def jd_terms_from_profile(profile: Mapping | None) -> list[str]:
     return [term for term in terms if isinstance(term, str)]
 
 
+def display_skill_rows(groups: Mapping[str, Sequence[str]]) -> list[list[tuple[str, Sequence[str]]]]:
+    """Pack adjacent short groups for HTML/PDF and Word, retaining source keys."""
+    entries = [(name, items) for name, items in groups.items() if items]
+    rows: list[list[tuple[str, Sequence[str]]]] = []
+    width = 0
+    previous_short = False
+    for name, items in entries:
+        text = name + '：' + ' / '.join(items)
+        units = sum(2 if unicodedata.east_asian_width(char) in {'W', 'F'} else 1 for char in text)
+        short = len(entries) >= 3 and len(items) <= 2 and units <= 38
+        if short and previous_short and len(rows[-1]) == 1 and width + 2 + units <= 76:
+            rows[-1].append((name, items))
+            width += 2 + units
+        else:
+            rows.append([(name, items)])
+            width = units
+        previous_short = short
+    return rows
+
+
 def sync_flat_skills(data: dict) -> bool:
     """有分组时，平铺 skills 由分组按顺序展开（去重），不再保留旧的整句。返回是否有改动。"""
     groups = data.get("skill_groups")

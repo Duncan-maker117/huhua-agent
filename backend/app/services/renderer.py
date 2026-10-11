@@ -8,6 +8,7 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound, select_autoescape
 
 from app.services.resume_sections import get_resume_sections, visible_items
+from app.services.skill_groups import display_skill_rows
 
 ROOT = Path(__file__).resolve().parents[3]
 TEMPLATE_DIR = ROOT / "data" / "jianlimoban" / "html-template"
@@ -28,6 +29,7 @@ _env = Environment(
     autoescape=select_autoescape(["html", "htm", "j2"]),
 )
 _env.filters["pointer_escape"] = lambda value: str(value).replace("~", "~0").replace("/", "~1")
+_env.filters["display_skill_rows"] = display_skill_rows
 
 
 def safe_link_url(value: str) -> str:

@@ -6,7 +6,7 @@ import re
 
 from app.schemas.writer import MatchPlan
 from app.services.fact_guard import (TERM_FILE, contains_term, guard_bullets,
-                                     lexical_fact_errors, ngram_overlap, validate_skill_groups)
+                                     lexical_fact_errors, ngram_overlap, normalize_text, validate_skill_groups)
 
 SECTION_LABELS = {'education': '教育经历', 'work_experience': '工作/实习经历',
                   'projects': '项目经历', 'open_source': '开源贡献', 'awards': '竞赛荣誉',
@@ -120,13 +120,35 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         plan['thesis'] = thesis if not thesis_errors else ''
         sentence = str(row.get('positioning') or '').strip()
         check = positioning_checks.get(f'plan_positioning_{index}') or {}
+        semantic = check.get('semantic') or {}
+        synthesis_supported = (all(semantic.get(key) is True for key in (
+            'subject_ok', 'results_supported', 'limits_kept')) and not semantic.get('unsupported_spans'))
+        sentence_terms = [term.strip() for term in terms if term.strip() and not term.startswith('#')
+                          and contains_term(sentence, term.strip())]
+        unsupported_tools = validate_skill_groups({'terms': sentence_terms}, list(facts.values()), source.get('skills') or [])
         reason = ('empty' if not sentence else 'over_40_chars' if len(sentence) > 40 else
-                  'lexical_fact_errors' if check.get('lexical_errors') else
+                  'lexical_fact_errors' if check.get('lexical_errors') or unsupported_tools else
                   'semantic_result_missing' if not check else
-                  'semantic_rejected' if check.get('verdict') != 'pass' else '')
+                  'semantic_rejected' if check.get('verdict') != 'pass' and not synthesis_supported else '')
         plan['positioning'] = sentence if not reason else ''
+        fallback = ''
+        if index == 0 and reason:
+            # Recover only complete thesis clauses that exactly match an active
+            # source quote. Narrative similarity alone cannot justify resume prose.
+            supported = {normalize_text(str(fact.get('source_quote') or fact.get('text') or '').strip().rstrip('。；;，,！？!?'))
+                         for fact in facts.values()}
+            for clause in re.split(r'[。；;，,！？!?]', plan['thesis']):
+                candidate = phrase_prefix(clause, 40)
+                if candidate and normalize_text(candidate) in supported:
+                    fallback = candidate
+                    break
+            plan['positioning'] = fallback
         if diagnostic is not None and index == 0:
             diagnostic['positioning_rejected_reason'] = reason
+            diagnostic['positioning_source'] = 'thesis' if fallback else 'empty' if reason else 'model'
+            diagnostic['positioning_fallback_reason'] = ('supported_thesis_clause' if fallback else
+                                                         'no_fact_supported_thesis_clause' if reason else '')
+            diagnostic['positioning_semantic_relaxed'] = bool(not reason and check.get('verdict') != 'pass')
             if reason and check.get('semantic'):
                 # Fixed failure dimensions only; do not log model prose or PII.
                 semantic = check['semantic']
@@ -273,20 +295,54 @@ def plan_summary(plan: dict, collected: dict, profile: dict | None = None) -> st
     names = {item.get('item_id'): item.get('name') or item.get('company') or item.get('item_id')
              for section in (*SECTION_LABELS, 'internship') for item in collected.get(section) or [] if isinstance(item, dict)}
     plan = readable_plan(plan, profile)
-    leads = [row for row in plan.get('experience_plan') or [] if row['treatment'] == 'lead']
-    # Reserve space for all lead names before allocating the thesis/reasons.
-    labels = [str(names.get(row['item_id']) or '这段经历')[:24] for row in leads]
+    leads = [row for row in plan.get('experience_plan') or [] if row['treatment'] == 'lead'][:3]
+    labels = [phrase_prefix(str(names.get(row['item_id']) or '这段经历'), 24) or '这段经历' for row in leads]
     budget = 150 - len('**这版的思路**：')
     thesis = plan.get('thesis') or plan.get('label') or '按已确认方案组织经历'
-    thesis = thesis[:max(0, min(80, budget - sum(len(name) + 4 for name in labels)))]
-    parts = [thesis]
+    # A full sentence first, then a separate lead line. Reserve short reasons
+    # before choosing a punctuation boundary; never slice the final output.
+    thesis_limit = min(80, budget - sum(len(name) + 12 for name in labels) - 5)
+    thesis = phrase_prefix(thesis, thesis_limit - 1, first_sentence=True) or '按已确认方案组织经历'
+    thesis = thesis.rstrip('。！？!?') + '。'
+    parts = []
     for row, name in zip(leads, labels):
-        remaining_names = sum(len(label) + 4 for label in labels[len(parts):])
-        remaining = budget - len(' '.join(parts)) - len(name) - 5 - remaining_names
+        remaining_names = sum(len(label) + 12 for label in labels[len(parts) + 1:])
+        remaining = budget - len(thesis) - 4 - sum(len(part) + 1 for part in parts) - len(name) - 3 - remaining_names
         reason = row.get('reason', '')
         reason = re.sub(r'^[「“]?' + re.escape(name) + r'[」”]?\s*', '', reason).strip(' ：:，,；;。')
-        reason = re.sub(r'^的', '', re.split(r'[。；;，,]', reason)[0])
+        reason = re.sub(r'^的', '', reason)
         limit = max(0, min(20, remaining))
-        reason = reason if len(reason) <= limit else (reason[:limit - 1] + '…' if limit else '')
+        reason = phrase_prefix(reason, limit) or ('按已确认方案重点展示' if limit >= 10 else '')
         parts.append(f'{name}（{reason}）' if reason else name)
-    return ' '.join(parts)[:budget]
+    return thesis + ('\n重点：' + '、'.join(parts) if parts else '')
+
+
+def phrase_prefix(text: str, limit: int, *, first_sentence: bool = False) -> str:
+    """Keep a whole phrase, ending only at punctuation outside paired marks."""
+    text = str(text or '').strip().rstrip('。；;，,')
+    pairs = {'(': ')', '（': '）', '[': ']', '【': '】', '「': '」', '『': '』', '“': '”', '‘': '’'}
+    stack, boundaries = [], []
+    sentence_end = None
+    for index, char in enumerate(text):
+        if char in {'"', "'"} and not (char == "'" and 0 < index < len(text) - 1
+                                          and text[index - 1].isalnum() and text[index + 1].isalnum()):
+            if stack and stack[-1] == char:
+                stack.pop()
+            else:
+                stack.append(char)
+        elif char in pairs:
+            stack.append(pairs[char])
+        elif char in pairs.values():
+            if not stack or stack[-1] != char:
+                break
+            stack.pop()
+        period = char == '.' and (index + 1 == len(text) or text[index + 1].isspace())
+        if not stack and (char in '。；;，,！？!?' or period):
+            boundaries.append(index)
+            if first_sentence and sentence_end is None and (char in '。！？!?' or period):
+                sentence_end = index
+        if index == len(text) - 1 and not stack:
+            boundaries.append(len(text))
+    end = max((end for end in boundaries if 0 < end <= limit
+               and (sentence_end is None or end <= sentence_end)), default=0)
+    return text[:end].strip().rstrip('。；;，,！？!?.')

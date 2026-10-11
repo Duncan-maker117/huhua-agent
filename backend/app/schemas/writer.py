@@ -47,13 +47,13 @@ class MatchPlan(WriterSchema):
 
 class RecommendedPlan(MatchPlan):
     label: str = "主线叙事型"
-    positioning: str = ""
+    positioning: str = Field(default="", description="必填：由已有事实支持的概括定位；仅缺乏支持时为空")
     thesis: str = ""
 
 
 class AlternativePlan(WriterSchema):
     label: str
-    positioning: str = ""
+    positioning: str = Field(default="", description="必填：由已有事实支持的概括定位；仅缺乏支持时为空")
     thesis: str = ""
     section_order: list[str] = Field(default_factory=list)
     # Only differences from recommended; selection merges them by item_id.

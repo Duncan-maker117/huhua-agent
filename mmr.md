@@ -27,6 +27,8 @@
 
 ## 当前状态
 
+2026-10-11 回放剩余四项小修：在 `overhaul/tailor` 保留 HEAD `b8d92fd` 及已有回放文件。六款模板/Word 共用短技能分组合行；生产布局测量新增实际溢出高度/行数，少于页面15%的单页尾部溢出先合并/缩句，不自动隐藏经历，回复按行数或高度描述。方案摘要改为完整一句 + 换行重点，按成对标记之外的标点截断，理由≤20字、含标题总长≤150字。收集提示使用自然确认，把未保存约束标为不向用户复述的内部规则。positioning 合同明确必填，允许概括动作/对象，仍拒绝新数字/工具/成果及主体/状态越界；空值仅从 thesis 恢复与 active 原始事实完整匹配的短句，并记录 missing/empty、拒绝原因和兜底来源。新增16项虚构/fake-model回归，实际 t001 尾部仅两行的2页样例紧凑后1页；指定全量 **1244/1244（22.870s）**，Ruff（忽略既有E402）和差异检查通过。未读取/打印凭证、真实调用模型、commit/push/部署。根因、完整文件清单与验收见 `docs/development/2026-10-11-replay-polish-fixes.md`。
+
 2026-10-11 游客回放七项版式/成稿修复：在 `overhaul/tailor` 保留 HEAD `b06e7ed` 与已有回放产物。六款 HTML/Word 荣誉改为分号段落；定位句新增独立页头 summary，真实自评单独保留；开源简介合并标题、渲染及 writer 去重复 PR 前缀并同步 hash；修复 superseded 专业+学历近似清洗误删 active 专业；方案/成稿 prose 将 requirement/signal id 换为要求原文；只留一处不超过150字的思路及每项不超过20字的 lead 理由；共用隐私提示明确联系方式系统已保存、用户回复不提占位符。新增18项虚构/fake-model回归，含第三轮 collecting→方案→直接写→隔离SQL保存及实际PDF测量；虚构 `t001-jianyue` 由2页降至1页，指定全量 **1228/1228（22.638s）**，Ruff（忽略既有E402）、JS语法与差异检查通过。未读取/打印凭证、真实模型调用、commit/push/部署。根因、完整文件清单与验证：`docs/development/2026-10-11-replay-layout-fixes.md`。
 
 2026-10-11 游客回放 A–G 本地修复：在 `overhaul/tailor`、HEAD `f50fc7e` 保留此前提交，修复联系人非空稀疏合并/链接跨轮保留、共用抽取入口教育专业补救、成对括号与技能项清理、事实清洗后实测与确认方案下合并/缩句、概括定位语义规则和拒绝诊断、lenient schema 裁剪及失败诊断、多答案团队归属/歧义暂存追问/短答接续、状态 role 入档与 canonical 清理。新增28项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1210/1210**；修改文件 Ruff（忽略既有E402）及差异检查通过。未读取/打印凭证、真实调用模型、commit/push/部署，既有回放产物保留。根因、全部文件与验收：`docs/development/2026-10-11-replay-guest-fidelity-fixes.md`。

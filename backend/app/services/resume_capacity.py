@@ -106,20 +106,39 @@ def measure_rendered_pages(
               "source": "production_render_resume_pdf" if pdf_bytes is None else "caller_supplied_pdf_bytes"}
     try:
         if pdf_bytes is None:
-            from app.services.resume_pdf import count_resume_pdf_pages
+            from app.services.resume_pdf import measure_resume_pdf_layout
 
-            pages = count_resume_pdf_pages(normalized["template_id"], resume_data)
+            layout = measure_resume_pdf_layout(normalized["template_id"], resume_data, normalized['page_limit'])
+            result.update(layout)
+            pages = layout['pages']
         else:
             import pdfplumber
 
             with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
                 pages = len(pdf.pages)
+                overflow_pages = pdf.pages[normalized['page_limit']:]
+                heights = [max((char['bottom'] for char in page.chars), default=0)
+                           - min((char['top'] for char in page.chars), default=0) for page in overflow_pages]
+                if overflow_pages and any(page.chars for page in overflow_pages):
+                    result.update(overflow_height_px=round(sum(heights) * 96 / 72, 2),
+                                  overflow_page_ratio=round(sum(height / page.height for height, page
+                                                               in zip(heights, overflow_pages)), 4),
+                                  overflow_lines=sum(len({round(char['top'], 0) for char in page.chars})
+                                                     for page in overflow_pages))
         if pages < 1:
             raise ValueError("Rendered PDF has no pages")
         result.update(status="rendered", pages=pages, within_page_limit=pages <= normalized["page_limit"])
     except Exception as exc:
         result["error_type"] = type(exc).__name__
     return result
+
+
+def small_page_overflow(measurement: Mapping[str, Any] | None) -> bool:
+    page = measurement or {}
+    ratio = page.get('overflow_page_ratio')
+    return (page.get('within_page_limit') is False
+            and page.get('pages') == page.get('page_limit', 1) + 1
+            and isinstance(ratio, (int, float)) and 0 < ratio < 0.15)
 
 
 def revalidate_committed_page_check(resume_data: dict[str, Any], resume_meta: dict[str, Any],
@@ -169,6 +188,7 @@ def plan_compression(
     round_number: int = 1,
     constraints: Mapping[str, Any] | None = None,
     allow_hiding: bool = True,
+    page_check: Mapping[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Rank reversible document actions; shortening remains a writer request.
 
@@ -178,6 +198,7 @@ def plan_compression(
     if type(round_number) is not int or not 1 <= round_number <= MAX_COMPRESSION_ROUNDS:
         raise ValueError("Compression round exceeds the two-round limit")
     plan = match_plan or {}
+    small_overflow = small_page_overflow(page_check)
     treatments = {row.get("item_id"): row.get("treatment") for row in plan.get("experience_plan", [])
                   if isinstance(row, dict) and row.get("item_id")}
     actions: list[dict[str, Any]] = []
@@ -186,7 +207,7 @@ def plan_compression(
             if not isinstance(item, dict) or item.get("hidden") is True:
                 continue
             item_id = item.get("item_id")
-            if allow_hiding and treatments.get(item_id) == "brief":
+            if allow_hiding and not small_overflow and treatments.get(item_id) == "brief":
                 actions.append({"op": "hide_item", "target": f"/{section}/{index}",
                                 "item_id": item_id, "reason": "brief_to_backup", "writer_required": False})
     for section in EXPERIENCE_SECTIONS:
@@ -194,7 +215,7 @@ def plan_compression(
             if not isinstance(item, dict) or item.get("hidden") is True:
                 continue
             item_id = item.get("item_id")
-            if treatments.get(item_id) != "keep":
+            if treatments.get(item_id) != "keep" and not small_overflow:
                 continue
             field = "polished_bullets" if section == "projects" else "bullets"
             if len(item.get(field) or []) > 1:

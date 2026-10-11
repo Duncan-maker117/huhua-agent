@@ -22,9 +22,10 @@ from test_structure_plan import card, fact, source, state, writer_draft
 
 class PlanModel:
     """Script plan/write; return configurable semantic verdicts for each batch."""
-    def __init__(self, responses=(), *, fail_ids=(), missing_ids=(), semantic_error=False):
+    def __init__(self, responses=(), *, fail_ids=(), abstract_fail_ids=(), missing_ids=(), semantic_error=False):
         self.responses = list(responses)
         self.fail_ids = set(fail_ids)
+        self.abstract_fail_ids = set(abstract_fail_ids)
         self.missing_ids = set(missing_ids)
         self.semantic_error = semantic_error
         self.calls = []
@@ -42,8 +43,9 @@ class PlanModel:
                     if model.semantic_error:
                         raise RuntimeError('fake semantic unavailable')
                     return {'decisions': [{
-                        'id': row['id'], 'subject_ok': True, 'actions_supported': row['id'] not in model.fail_ids,
-                        'objects_supported': True, 'results_supported': True, 'limits_kept': True,
+                        'id': row['id'], 'subject_ok': True,
+                        'actions_supported': row['id'] not in model.fail_ids | model.abstract_fail_ids,
+                        'objects_supported': True, 'results_supported': row['id'] not in model.fail_ids, 'limits_kept': True,
                         'unsupported_spans': [], 'verdict': 'fail' if row['id'] in model.fail_ids else 'pass',
                     } for row in payload if row['id'] not in model.missing_ids]}
                 expected, result = model.responses.pop(0)

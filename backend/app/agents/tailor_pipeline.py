@@ -368,7 +368,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         if measurement.get('within_page_limit') is not False:
             break
         actions = plan_compression(data, written.get('match_plan'), round_number=round_number,
-                                   constraints=constraints, allow_hiding=not bool(confirmed))
+                                   constraints=constraints, allow_hiding=not bool(confirmed), page_check=measurement)
         if confirmed:
             actions = [action for action in actions if action.get('op') != 'hide_item']
         if scope != 'whole':

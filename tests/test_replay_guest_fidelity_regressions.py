@@ -387,7 +387,8 @@ class SanitizedCapacityRegression(unittest.IsolatedAsyncioTestCase):
     async def test_overflow_receipt_reports_delta_and_named_brief_candidate(self):
         output, _, _, _ = await self.exercise(fits=False)
         reply = graph._writer_reply(output)
-        self.assertIn('超出 1 页', reply)
+        self.assertIn('内容延伸到第 2 页', reply)
+        self.assertNotIn('超出 1 页', reply)
         self.assertIn('Beta', reply)
         self.assertIn('由你决定', reply)
         self.assertFalse(any(row.get('hidden') for row in output['resume_data']['projects']))

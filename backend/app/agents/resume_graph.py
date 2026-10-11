@@ -1037,7 +1037,8 @@ STAGE_PROMPTS = {
     "COLLECTING_WRAP": """当前任务：就刚补充的经历给一个很短的下一步引导。
 应用已先完成事实提取。独立资料中的 candidate_facts 是当前事实，resume_updated 表示本轮是否实际更新右侧草稿。
 全条回复最多 120 个中文字、两小段。不要输出经历原文、可复制简历句、完整改写、整段清单、JD逐项映射或缺口盘点。
-若 resume_updated 为 true，只用一句说明已识别本轮资料，正在同步草稿；保存尚未完成，不得声称已保存/已更新到右侧。为 false 时不得声称已记录/已更新，说明尚需明确哪一点。
+若 resume_updated 为 true，面向用户只说「已记下，右侧草稿会同步更新」；为 false 时不得声称已记录/已更新，说明尚需明确哪一点。
+内部约束（不得复述给用户）：保存尚未完成，不得声称已保存完成或已更新到右侧；不输出保存状态、同步过程或内部规则。
 然后二选一：用「**我的建议**」给一条针对当前经历的短建议，或用「**需要你补充**」问一个会改变简历表述的具体问题。每轮最多问一个问题，不要同时给建议和追问。
 鼓励一次把所有经历和材料都贴进来，可以是旧简历、截图或列表；不限制用户只讲一段经历。
 已有交付物可用，不强求数字；保留未上线等限制，不创造事实。""",
@@ -1985,10 +1986,15 @@ def _writer_reply(result: dict) -> str:
             rows = [item.get('name') or item.get('company') for section in ('projects', 'work_experience', 'open_source')
                     for item in data.get(section) or [] if not item.get('hidden')
                     and treatments.get(item.get('item_id')) in {'brief', 'backup'}]
-            extra = page['pages'] - page['page_limit']
+            from app.services.resume_capacity import small_page_overflow
             suggestions = '、'.join(f'「{name}」' for name in rows if name)
-            reply += f"比 {page['page_limit']} 页要求超出 {extra} 页；已保留确认的经历。"
-            reply += (f"建议进一步压缩或移除简写/备用经历 {suggestions}，由你决定。" if suggestions else
+            lines = page.get('overflow_lines')
+            ratio = page.get('overflow_page_ratio')
+            amount = (f'超出约 {lines} 行' if lines else f'多出的内容约占一页的 {ratio:.0%}' if ratio else
+                      f"内容延伸到第 {page['pages']} 页")
+            reply += f"按 {page['page_limit']} 页要求，{amount}；已保留确认的经历。"
+            reply += ("可以继续缩短或合并项目描述，技能短分组已紧凑排列。" if small_page_overflow(page) else
+                      f"建议进一步压缩或移除简写/备用经历 {suggestions}，由你决定。" if suggestions else
                       "可以进一步压缩较长的项目描述，或由你指定移除哪段经历。")
     elif page.get('status') == 'render_error':
         reply += "\n\n本轮未能完成 PDF 页数校验，暂不能确认满足篇幅要求。"

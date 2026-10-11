@@ -86,7 +86,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
                           '使用Kubernetes。关注个人事实与外部调研。',
                           '已上线。关注个人事实与外部调研。',
                           '候选人实现个人事实存储。关注个人事实与外部调研。',
-                          '关注个人事实与外部调研。', '实' * 89 + '。完成。']:
+                          '实' * 89 + '。完成。']:
             with self.subTest(statement=statement):
                 result = await self.planned(statement)
                 self.assertEqual(result['structure_plan']['recommended']['profile_statement'], '')

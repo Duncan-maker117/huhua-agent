@@ -195,7 +195,7 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         # block new numbers here and leave misattribution to the semantic check.
         profile_errors = [error for error in lexical_fact_errors(sentence, quotes)
                           if error.startswith(('unsupported_numbers:', 'unsupported_quantity_unit:'))] if is_profile else []
-        if is_profile and (len([s for s in re.split(r'[。！？!?]+', sentence) if s.strip()]) not in {2, 3}
+        if is_profile and (len([s for s in re.split(r'[。！？!?]+', sentence) if s.strip()]) not in {1, 2, 3}
                            or re.search(r'这个人|候选人|让面试官记住', sentence)):
             profile_errors.append('not_resume_profile')
         reason = ('empty' if not sentence else f'over_{limit}_chars' if len(sentence) > limit else

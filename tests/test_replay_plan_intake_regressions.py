@@ -386,7 +386,7 @@ class PlanContractRegression(unittest.TestCase):
         schema = LENIENT_SCHEMAS[StructurePlan].model_json_schema()
         self.assertFalse(schema['additionalProperties'])
         self.assertTrue(all(not row.get('additionalProperties', True) for row in schema['$defs'].values()))
-        self.assertIn('2–3句且总长≤90字', _STRUCTURE_CONTRACT)
+        self.assertIn('1–3句且总长≤90字', _STRUCTURE_CONTRACT)
 
     def test_each_personal_feature_blocks_decode_without_jd_and_jd_features_allow_it(self):
         for personal in ('姓名：合成', '电话：13900000000', '邮箱：fictional@test.test', '教育：本科',

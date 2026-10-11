@@ -42,7 +42,7 @@ _PLAN_CONTRACT = """先按岗位要求和 active facts 做匹配计划。只引�
 direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；reason 用要求原文，不用 requirement/signal id；
 提问最多三条，任何已更正或删除的旧事实不在输入中。严格输出 MatchPlan。"""
 _STRUCTURE_CONTRACT = """先定方案，不写项目正文。输出 StructurePlan：recommended 是完整匹配计划，另含 label、profile_statement、thesis；alternatives 给1–2个备选。
-recommended 和每个备选的 profile_statement 必填：由 thesis 改写为简历语气的个人定位，2–3句且总长≤90字，不用「这个人/候选人/让面试官记住」。有 active facts 时给出原文供用户确认，确认后将原样写进 summary；确实缺乏支持才留空。positioning 是旧字段，输出空字符串避免重复。
+recommended 和每个备选的 profile_statement 必填：由 thesis 改写为简历语气的个人定位，1–3句且总长≤90字，不用「这个人/候选人/让面试官记住」。有 active facts 时给出原文供用户确认，确认后将原样写进 summary；确实缺乏支持才留空。positioning 是旧字段，输出空字符串避免重复。
 个人定位允许有事实支撑的立场句（如「关注 X」），每个立场须由至少2条不同 active facts 共同支撑，关键名词须在这些事实原文中出现，不能仅凭 JD 或岗位兴趣推断。不得新增数字、工具、成果、身份词；目标职位不等于已有身份。thesis 是方案主线，profile_statement 才是正文。
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
 直接命中 JD 核心职责/要求或 job_context 中公司关注点的经历，即使只有一条事实也至少 brief，不得 backup；backup 只给与本岗位无关的经历。

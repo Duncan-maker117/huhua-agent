@@ -47,7 +47,7 @@ recommended 和每个备选的 profile_statement 必填：由 thesis 改写为�
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
 直接命中 JD 核心职责/要求或 job_context 中公司关注点的经历，即使只有一条事实也至少 brief，不得 backup；backup 只给与本岗位无关的经历。
 reason、thesis 等面向用户的文本用要求原文或岗位信号原文，不写 r1/r2/s2 等内部编号；编号仅用于结构化引用字段。
-section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 使用输入值：ai_pm/pm 默认 labeled，其余 plain。
+section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 一律输出 plain；只有用户在方案卡选择「问题-决策-结果」写法时才是 labeled。
 requirements/questions 沿用匹配计划，最多3个问题。用户给出的结构取舍必须遵守。严格输出 StructurePlan。"""
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。保留数量的原单位及对象（人/次/个/条）；「20次」不得改成「20次调用/请求」。开源贡献必须用仓库名作标题，每个PR及其本人贡献、结果都要保留；教育与竞赛荣誉按结构字段保留，不能压成一句。
 开源 PR 号在标题行，bullet 不重复 PR 号前缀；summary 是页头定位句，自我评价只保留用户真正提供的自评。
@@ -640,7 +640,7 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
             continue
         questions.append(row.model_dump())
     from app.services.structure_plan import readable_plan
-    return readable_plan({"bullet_style": plan.bullet_style or ("labeled" if role_profile.get("role_family") in {"ai_pm", "pm"} else "plain"), "requirements": requirements, "experience_plan": experience,
+    return readable_plan({"bullet_style": "plain", "requirements": requirements, "experience_plan": experience,
             "section_order": order, "summary_angle": plan.summary_angle,
             "questions": questions}, role_profile)
 
@@ -996,7 +996,7 @@ async def _run_resume_writer(
     allowed, bullet_targets = _scope_targets(scope, targets, current, items)
     model = structured_llm or llm
     role_family = role_profile.get("role_family", "other")
-    bullet_style = (previous_plan or {}).get("bullet_style") or ("labeled" if role_family in {"ai_pm", "pm"} else "plain")
+    bullet_style = (previous_plan or {}).get("bullet_style") or "plain"
     effective_constraints = normalize_session_constraints(
         constraints, seniority=role_profile.get("seniority", "unknown"))
     capacity = writer_capacity_budget(effective_constraints)

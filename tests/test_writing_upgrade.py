@@ -137,7 +137,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(model.calls, [])
 
     async def test_role_default_and_explicit_style_toggle_never_plans(self):
-        for family, expected in [('ai_pm', 'labeled'), ('pm', 'labeled'), ('backend', 'plain')]:
+        for family, expected in [('ai_pm', 'plain'), ('pm', 'plain'), ('backend', 'plain')]:
             result = await self.planned(family=family)
             self.assertEqual(result['structure_plan']['recommended']['bullet_style'], expected)
         state = {**graph._init_state(), 'collected_info': evidence(),
@@ -147,8 +147,9 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
         edited = await graph.structure_plan_node(state, model)
         self.assertEqual(edited['pending_plan']['recommended']['bullet_style'], 'plain')
         self.assertTrue(all(row['bullet_style'] == 'plain' for row in edited['pending_plan']['alternatives']))
+        labeled = {**select_plan(state['pending_plan']), 'bullet_style': 'labeled'}
         written = await run_resume_writer(evidence(), {'role_family': 'ai_pm'}, PlanModel([('WriterDraft', draft())]),
-            phase='write', previous_plan=select_plan(state['pending_plan']))
+            phase='write', previous_plan=labeled)
         edited = await graph.structure_plan_node({**state, **written, 'pending_plan': {}}, model)
         self.assertFalse(any('：' in b for b in edited['resume_data']['projects'][0]['polished_bullets']))
         restored = await graph.structure_plan_node({**state, **edited, 'pending_plan': {},
@@ -158,8 +159,10 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(model.calls, [])
 
     async def test_labeled_order_reason_and_positive_status_survive_writer(self):
+        plan = select_plan((await self.planned())['structure_plan'])
+        plan['bullet_style'] = 'labeled'  # Opt-in on the plan card; plain is the default.
         result = await run_resume_writer(evidence(), {'role_family': 'ai_pm'},
-            PlanModel([('WriterDraft', draft())]), phase='write', previous_plan=select_plan((await self.planned())['structure_plan']))
+            PlanModel([('WriterDraft', draft())]), phase='write', previous_plan=plan)
         bullets = result['resume_data']['projects'][0]['polished_bullets']
         self.assertEqual([b.split('：')[0] for b in bullets], ['问题', '关键决策', '现状'])
         self.assertIn('，避免把外部调研当成个人经历', bullets[1])
@@ -173,8 +176,9 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             {'text': '结果：选择将个人事实与外部调研分开存储', 'fact_ids': ['f2']}]}]}
         result = await run_resume_writer(collected, {'role_family': 'ai_pm'},
             PlanModel([('OnePassOutput', {'match_plan': {}, 'writer': output})]), mode='one_pass')
+        # Plain is the default: a label the model invents is stripped.
         self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'],
-                         ['关键决策：选择将个人事实与外部调研分开存储'])
+                         ['选择将个人事实与外部调研分开存储'])
         from app.services.writing_style import row_label
         self.assertEqual(row_label({'text': '课程项目', 'fact_ids': ['c']},
                                    {'c': fact('c', '课程项目', 'context')}), '')
@@ -197,7 +201,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             {'item_id': 'p1', 'section': 'projects', 'bullets': [
                 {'text': combined, 'fact_ids': ['f2', reason['id']]}]}]}})])
         written = await run_resume_writer(updated, {'role_family': 'ai_pm'}, writer)
-        self.assertEqual(written['resume_data']['projects'][0]['polished_bullets'], ['关键决策：' + combined])
+        self.assertEqual(written['resume_data']['projects'][0]['polished_bullets'], [combined])
         self.assertIn(reason['id'], written['resume_meta']['bullets']['p1'][0]['fact_ids'])
         again = compose_interviewer_reply({**state, 'collected_info': updated})
         self.assertFalse(any('这样做是为了解决什么' in q['q'] for q in again['questions']))

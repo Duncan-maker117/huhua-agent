@@ -55,7 +55,7 @@ class MetricPriorityTest(unittest.TestCase):
                 ("实现命令行解析模块", ["a1"]), (METRIC, ["m1"])])])),
         ])
         result = run(model)
-        self.assertEqual(bullets_of(result), ["设计：实现命令行解析模块", "结果：" + METRIC])
+        self.assertEqual(bullets_of(result), ["实现命令行解析模块", METRIC])
         self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "WriterDraft"])
         self.assertIn("m1", model.calls[1][1][-1].content)  # 修复调用带缺失清单
 
@@ -68,9 +68,9 @@ class MetricPriorityTest(unittest.TestCase):
         result = run(model)
         bullets = bullets_of(result)
         self.assertEqual(len(bullets), 2)  # keep 上限 2
-        self.assertEqual(bullets[-1], "结果：" + METRIC)
-        self.assertIn("设计：编写自动化测试覆盖主要流程和边界情况", bullets)  # 更长（信息量更大）的保留
-        self.assertNotIn("设计：实现命令行解析模块", bullets)
+        self.assertEqual(bullets[-1], METRIC)
+        self.assertIn("编写自动化测试覆盖主要流程和边界情况", bullets)  # 更长（信息量更大）的保留
+        self.assertNotIn("实现命令行解析模块", bullets)
         meta = result["resume_meta"]["bullets"]["p1"]
         self.assertEqual(meta[-1]["fact_ids"], ["m1"])
 
@@ -80,25 +80,25 @@ class MetricPriorityTest(unittest.TestCase):
             ("WriterDraft", RuntimeError("upstream down")),
         ])
         result = run(model)
-        self.assertEqual(bullets_of(result), ["设计：实现命令行解析模块", "设计：设计插件加载机制", "结果：" + METRIC])
+        self.assertEqual(bullets_of(result), ["实现命令行解析模块", "设计插件加载机制", METRIC])
         self.assertTrue(result["resume_meta"]["bullets"]["p1"][-1]["text_hash"])
 
     def test_already_cited_metric_makes_no_extra_call(self):
         model = FakeModel([first_pass("keep", [(METRIC, ["m1"]), ("实现命令行解析模块", ["a1"])])])
         result = run(model)
-        self.assertEqual(bullets_of(result), ["设计：实现命令行解析模块", "结果：" + METRIC])
+        self.assertEqual(bullets_of(result), [METRIC, "实现命令行解析模块"])
         self.assertEqual(len(model.calls), 1)
 
     def test_brief_item_is_not_forced(self):
         model = FakeModel([first_pass("brief", [("实现命令行解析模块", ["a1"])])])
         result = run(model)
-        self.assertNotIn("结果：" + METRIC, bullets_of(result))
+        self.assertNotIn(METRIC, bullets_of(result))
         self.assertEqual(len(model.calls), 1)
 
     def test_non_metric_kind_is_not_forced(self):
         model = FakeModel([first_pass("keep", [("实现命令行解析模块", ["a1"])])])
         result = run(model, kind="result_qualitative")
-        self.assertNotIn("结果：" + METRIC, bullets_of(result))
+        self.assertNotIn(METRIC, bullets_of(result))
         self.assertEqual(len(model.calls), 1)
 
 

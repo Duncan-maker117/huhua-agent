@@ -22,7 +22,17 @@ _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch
 更正旧事实用 corrections，删除事实用 removals；删除文稿的句子不等于删除事实。
 JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
 教育信息（学校、专业、学历、年级）归 education，不要建成项目。学校简称保持原词，不要自行扩写成全称。
+半句话中已经说清的团队规模、本人分工等分别抽取；未完成的尾巴不影响前面的事实，不猜缺失内容。
 不要返回整份 collected_info，不要添加未知字段。"""
+
+
+def split_incomplete_tail(message: str) -> tuple[str, str]:
+    if not isinstance(message, str):
+        return message, ""
+    match = re.search(r"(?:分别是|分别为|包括|例如|比如)[：:，,。.!！?？\s]*$", message or "")
+    if not match:
+        return message, ""
+    return message[:match.start()].rstrip("：:，,。；; \t\n"), match.group().strip("：:，,。.!！?？ \t\n")
 
 
 def _candidate_evidence(message: str) -> str:
@@ -112,6 +122,8 @@ def _fact_kind_for_clause(clause: str) -> str:
     """规则判定 kind，不调用模型。"""
     if _STATUS_CLAUSE.search(clause):
         return "status_limit"
+    if re.search(r"[一二两三四五六七八九十\d]+(?:个)?人(?:的)?(?:团队|小组)", clause):
+        return "team"
     if _RESULT_CLAUSE.search(clause) and re.search(r"\d", clause):
         return "result_metric"
     if re.search(r"提升|增长|降低|减少|获奖", clause):
@@ -148,14 +160,19 @@ def _clause_covered(clause: str, quotes: list[str], whole: str = "") -> bool:
 def uncovered_action_clauses(evidence: str, quotes: list[str]) -> list[str]:
     """候选人原话中含动作/结果类动词、却没有对应已接受事实的子句（保持原文）。"""
     from app.services.fact_guard import normalize_text
+    complete, tail = split_incomplete_tail(evidence)
     normalized = [normalize_text(q) for q in quotes]
-    whole = normalize_text(evidence)
+    whole = normalize_text(complete)
     rows = []
-    for raw in _CLAUSE_SPLIT.split(evidence):
+    clauses = _CLAUSE_SPLIT.split(complete)
+    if tail:
+        clauses = [part for clause in clauses for part in re.split(r"\s+(?=有一个|我|本人|还有一个)", clause)]
+    for raw in clauses:
         clause = raw.strip()
         if len(clause) < 6 or _INSTRUCTION.search(clause) or _PLAN_OR_NEGATED.search(clause) or re.fullmatch(r"(?:我)?(?:还)?做过.{0,6}(?:东西|项目|事情?)", clause):
             continue
-        if not (_ACTION_VERB.search(clause) and _NARRATIVE.search(clause)):
+        team = tail and re.search(r"[一二两三四五六七八九十\d]+(?:个)?人(?:的)?(?:团队|小组)", clause)
+        if not (team or (_ACTION_VERB.search(clause) and _NARRATIVE.search(clause))):
             continue
         if _clause_covered(normalize_text(clause), normalized, whole):
             continue
@@ -185,7 +202,9 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     """Reject individual unsupported facts while retaining the rest of a patch."""
     from app.services.fact_guard import lexical_fact_errors, normalize_text, verify_semantics
 
-    empty = {"items": [], "basic_info": {}, "skills": [], "corrections": [], "removals": [], "rejected": [], "uncovered": []}
+    complete, tail = split_incomplete_tail(message)
+    empty = {"items": [], "basic_info": {}, "skills": [], "corrections": [], "removals": [], "rejected": [], "uncovered": [],
+             "incomplete": [tail] if tail else []}
     if not isinstance(message, str) or not message.strip() or llm is None:
         return empty
     visible = normalize_fact_store(collected)
@@ -194,7 +213,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 "facts": [{"id": f.get("id"), "text": f.get("text")}
                           for f in item.get("facts", []) if f.get("status") == "active"]}
                for section in FACT_SECTIONS for item in visible.get(section, []) if isinstance(item, dict)]
-    payload = {"message": message, "existing": outline, "metadata_context": metadata_context or [],
+    payload = {"message": complete, "existing": outline, "metadata_context": metadata_context or [],
                "previous_assistant": (previous_assistant or "")[:500]}
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
@@ -211,7 +230,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     if not isinstance(candidate, dict):
         return empty
     result = copy.deepcopy(empty)
-    evidence = _candidate_evidence(message)
+    evidence = _candidate_evidence(complete)
     known = {(item.get("item_id"), fact.get("id")) for section in FACT_SECTIONS
              for item in visible.get(section, []) if isinstance(item, dict)
              for fact in item.get("facts", []) if fact.get("status") == "active"}
@@ -301,7 +320,16 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             item["facts"] = [fact for fact in item["facts"] if fact["id"] not in failed]
         result["items"] = [item for item in result["items"] if item["facts"] or item["raw_notes"]]
         result["corrections"] = [entry for entry in result["corrections"] if entry["replacement"]["id"] not in failed]
-    _cover_dropped_clauses(result, evidence, turn_id, lexical_fact_errors, normalize_text)
+    if tail and not result["items"] and not re.search(r"新项目|另一个项目|另外一个项目", evidence):
+        owners = [item for item in outline if item["section"] in {"projects", "work_experience", "internship"}
+                  and item["name"] and (item["name"] in evidence or (
+                      item["name"] in previous_assistant and re.search(r"团队|分工|负责|几人|人数", previous_assistant)))]
+        if len(owners) == 1:
+            owner = owners[0]
+            result["items"].append({"section": owner["section"], "item_id": owner["item_id"],
+                                    "name": owner["name"], "facts": [], "raw_notes": [evidence]})
+    coverage_evidence = evidence + (" " + tail if tail else "")
+    _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text)
     for item in result["items"]:
         item["raw_notes"].extend(fact["source_quote"] for fact in item["facts"]
                                  if fact["source_quote"] not in item["raw_notes"])
@@ -349,6 +377,11 @@ def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text):
             pos = sentence.find(fact["source_quote"]) if sentence else -1
             if 0 <= pos <= start and pos > best_end and normalize_text(fact["source_quote"]) in sentence_norm:
                 best, best_end = item, pos
+    if best is None and split_incomplete_tail(evidence)[1]:
+        same_sentence = [item for item in candidates if any(
+            normalize_text(fact["source_quote"]) in sentence_norm for fact in item["facts"])]
+        if len(same_sentence) == 1:
+            return same_sentence[0]
     return best
 
 

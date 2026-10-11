@@ -509,6 +509,22 @@ def resolve_conflict(db, account_id, conflict_id, *, choice, expected_revision, 
     return _fact_view(db, fact)
 
 
+def get_profile_summary(db, account_id):
+    """Only identity and counts for a welcome; never import experience content."""
+    rows = db.scalars(select(ProfileFact).where(
+        ProfileFact.account_id == account_id, ProfileFact.status == "active",
+        ProfileFact.category != "preference",
+    ).order_by(ProfileFact.updated_at.desc())).all()
+    name, experiences = "", set()
+    for row in rows:
+        data = _open(row)
+        if row.category == "basic" and data.get("field") == "name" and not name:
+            name = data.get("value") or ""
+        if row.category in {"project", "work", "education"} and data.get("subject"):
+            experiences.add((row.category, data["subject"]))
+    return {"has_facts": bool(rows), "name": name, "experience_count": len(experiences)}
+
+
 def get_context(db, account_id, *, subject_ids=None, limit=30, include_contacts=False):
     """Explicit scoped import protocol; facts + provenance refs, never history.
 

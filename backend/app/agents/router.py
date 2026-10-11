@@ -17,12 +17,54 @@ from app.services.model_privacy import ContactRedactor
 ROUTER_TIMEOUT_SECONDS = 30
 EDIT_WORDS = re.compile(r"改|调|优化|突出|精简|换|删除|删掉|压缩|保留|清理|去掉|移除|不要|修正|纠正")
 NEW_FACT_WORDS = re.compile(r"(?:我|本人)(?:还|也|另外)?.{0,18}(?:做过|做了|参与|负责|开发|实现|完成|获得|掌握|会)")
+_GREETING = re.compile(r"(?:(?:你好|您好|哈喽|哈啰|嗨|嘿|hi|hello|hey|你在吗|在吗|在嘛|在不在|有人吗|早上好|早安|下午好|晚上好|早|午安|晚安)(?:呀|啊|呢|嘛)?)+", re.I)
+_ADVICE = re.compile(r"你觉得|你认为|怎么(?:说|写|表达|改).{0,8}(?:更好|合适)|这样(?:写|说).{0,6}(?:好吗|好不好|可以吗|行吗)|哪(?:一?[个种版]|条).{0,8}(?:更好|合适)")
+
+
+def is_greeting(message: str) -> bool:
+    return bool(_GREETING.fullmatch(re.sub(r"[\s，,。.!！?？~～]+", "", message or "")))
+
+
+def is_advice(message: str) -> bool:
+    return bool(_ADVICE.search(message or ""))
+
+
+def advice_contains_facts(message: str) -> bool:
+    """Keep statements accompanying a question, including non-action facts."""
+    text = re.sub(r'[“‘「"\'][^”’」"\']*[”’」"\']', '', message or '')
+    for clause in re.split(r'[，,。；;！!？?\n]', text):
+        question = _ADVICE.search(clause)
+        statement = (clause[:question.start()] if question else clause).strip()
+        if len(statement) >= 4 and not re.search(r'假设|如果|比如|例如|举例', statement) and not re.match(
+                r'^(?:请|帮我|给我|把|将|按|修改|改写|优化|精简|删除|不要)', statement):
+            return True
+    return False
+
+
+def explicit_edit_requested(message: str) -> bool:
+    """Advice questions and past actions are not instructions to change a draft."""
+    text = re.sub(r'[“‘「"\'][^”’」"\']*[”’」"\']', '', message or '')
+    text = re.sub(r'(?:并且|然后|同时|以及|顺便|另外|并)(?=请|帮我|给我|直接|先|再|把|将)', '；', text)
+    for clause in re.split(r'[，,。；;！!？?\n]', text):
+        clause = clause.strip()
+        clause = re.sub(r'^(?:另外|顺便|然后|同时|也)', '', clause).strip()
+        clause = re.sub(r'^(?:能不能|可不可以|能否|可以|能)(?=帮我|给我)', '', clause)
+        if re.search(r'不要|先别|暂不|不想|还不|别急|要不要|是否|能否', clause):
+            continue
+        if is_advice(clause) and not re.match(r'^(?:请|帮我|给我|麻烦|把|将)', clause):
+            continue
+        if re.search(r'^(?:请|帮我|给我|麻烦|把|将|按|直接|现在|先|再|就).{0,40}'
+                     r'(?:改|调|优化|突出|精简|换|删|压缩|保留|清理|去掉|移除|写上|写进|加进)', clause):
+            return True
+        if re.match(r'^(?:修改|改写|改稿|调整|优化|突出|精简|换成|删除|删掉|压缩|保留|清理|去掉|移除|改成|改为|改短|改一下|写上|写进)', clause):
+            return True
+    return False
 
 
 class RouteSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    intents: list[Literal["jd", "experience", "edit", "generate", "question", "export", "review", "chat"]] = Field(default_factory=list)
+    intents: list[Literal["jd", "experience", "edit", "generate", "question", "export", "review", "chat", "greeting", "advice"]] = Field(default_factory=list)
     edit: "EditRoute" = Field(default_factory=lambda: EditRoute())
     edit_plan: list["PlannedOperation"] = Field(default_factory=list)
     reason: str = ""
@@ -49,6 +91,8 @@ RouteSchema.model_rebuild()
 
 
 ROUTER_CONTRACT = """把本轮用户消息按真实意图拆成 intents 和有序 edit_plan，严格返回 RouteSchema。
+纯寒暄、打招呼用 greeting；征求措辞意见、比较说法（怎么说更好、这样写好吗、你觉得呢）用 advice。
+advice 不代表改稿，不得生成 edit_plan；只有同轮明确要求修改文稿才同时有 edit。新事实与 advice 可以并存。
 有现稿且用户要求改、调、优化、突出、精简、换、删除等，必须有 edit；同时补充本人新事实则还要 experience。
 edit_plan 中每项仅代表用户实际说出的操作，不替用户虚构目标、值或经历。目标用 item_id、明确名称、序号或 JSON pointer。
 确定性操作：delete_item/hide_item/set_field/cap_bullets/remove_section/set_constraint/clean_format；
@@ -88,6 +132,11 @@ _GENERATE = re.compile(r"出一版|写一版|生成吧|直接写吧|先出稿|�
 
 def _fallback(message: str, has_draft: bool, reason: str, data: dict | None = None,
               collected: dict | None = None) -> dict:
+    if is_greeting(message) or (is_advice(message) and not explicit_edit_requested(message)):
+        intents = ["greeting"] if is_greeting(message) else ["advice"]
+        if intents == ["advice"] and advice_contains_facts(message):
+            intents.insert(0, "experience")
+        return {**RouteSchema(intents=intents, reason=reason).model_dump(), "fallback_reason": reason}
     if has_draft:
         from app.agents.tailor_pipeline import infer_edit_scope
         from app.agents.turn_actions import choose_edit_plan
@@ -106,8 +155,15 @@ def _fallback(message: str, has_draft: bool, reason: str, data: dict | None = No
 
 
 async def _ask_router(message: str, state: dict, llm) -> dict:
-    """The router model call only. Its input never reads `collected_info`, so it can
-    start before fact extraction finishes. Raises on any failure; the caller falls back."""
+    """Known dialogue bypasses the model; other calls can overlap fact extraction.
+
+    The input never reads `collected_info`. The caller handles model failures.
+    """
+    if is_greeting(message) or (is_advice(message) and not explicit_edit_requested(message)):
+        intents = ["greeting"] if is_greeting(message) else ["advice"]
+        if intents == ["advice"] and advice_contains_facts(message):
+            intents.insert(0, "experience")
+        return RouteSchema(intents=intents).model_dump()
     has_draft = _has_draft(state)
     data = state.get("resume_data") or {}
     prior = next((getattr(row, "content", "") for row in reversed(state.get("messages") or [])
@@ -138,8 +194,8 @@ async def route_intents(message: str, state: dict, llm, *, prefetched=None) -> d
     """Route a turn without changing its fact master or creating model settings.
 
     The caller supplies a temperature-zero model. A timeout or malformed result
-    remains actionable: whole-document edit when a draft exists, experience intake
-    otherwise. Obvious export/JD/upload pre-routing stays with the graph caller.
+    remains actionable: known dialogue stays read-only, other turns fall back to
+    draft editing or experience intake. Export/JD/upload pre-routing stays with the graph caller.
     `prefetched` is a task from start_route_call whose outcome replaces a fresh call.
     """
     has_draft = _has_draft(state)
@@ -147,13 +203,25 @@ async def route_intents(message: str, state: dict, llm, *, prefetched=None) -> d
     try:
         parsed = await (prefetched if prefetched is not None else _ask_router(message, state, llm))
     except Exception:
-        return _fallback(message, has_draft, "router_unavailable", data, state.get("collected_info"))
+        parsed = _fallback(message, has_draft, "router_unavailable", data, state.get("collected_info"))
+        if is_advice(message):
+            if "advice" not in parsed["intents"]:
+                parsed["intents"].append("advice")
+            if advice_contains_facts(message) and "experience" not in parsed["intents"]:
+                parsed["intents"].insert(0, "experience")
+        return parsed
     intents = list(dict.fromkeys(parsed["intents"]))
-    if has_draft and EDIT_WORDS.search(message) and "edit" not in intents:
+    advice = is_advice(message) or "advice" in intents
+    if advice and "advice" not in intents:
+        intents.append("advice")
+    if advice and not explicit_edit_requested(message):
+        intents = [intent for intent in intents if intent not in {"edit", "generate"}]
+        parsed["edit_plan"] = []
+    if has_draft and EDIT_WORDS.search(message) and (not advice or explicit_edit_requested(message)) and "edit" not in intents:
         intents.append("edit")
-    if NEW_FACT_WORDS.search(message) and "experience" not in intents:
+    if (advice_contains_facts(message) if advice else NEW_FACT_WORDS.search(message)) and "experience" not in intents:
         intents.insert(0, "experience")
-    if _GENERATE.search(message) and not re.search(r"不要|先别|暂不|不想|还不", message) and "generate" not in intents:
+    if not advice and _GENERATE.search(message) and not re.search(r"不要|先别|暂不|不想|还不", message) and "generate" not in intents:
         intents.append("generate")
     if not intents:
         intents = ["edit"] if has_draft else ["experience"]

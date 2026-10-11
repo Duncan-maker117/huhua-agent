@@ -26,6 +26,7 @@ from app.agents.decoder_chain import run_decoder_chain
 from app.services.error_codes import to_turn_error
 from app.agents.career_prompt import career_messages, career_system
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, stream_public_reply
+from app.agents.router import advice_contains_facts, explicit_edit_requested, is_advice, is_greeting
 from app.agents.triage_chain import (
     TriageAction,
     TriageDecision,
@@ -84,6 +85,7 @@ class ResumeState(TypedDict):
     web_sources: list[dict]  # 服务端获取的外部资料；从不当作候选人事实
     non_candidate_message_ids: list[str]  # 自动识别的招聘资料也排除历史事实兜底
     candidate_history_reconciled: bool  # Legacy user facts recovered once; never replay editor deletions.
+    profile_summary: dict  # Account archive identity/counts only, refreshed by profile_bridge.
 
 
 def _empty_collected_info() -> dict:
@@ -128,6 +130,7 @@ def _init_state() -> ResumeState:
         "web_sources": [],
         "non_candidate_message_ids": [],
         "candidate_history_reconciled": False,
+        "profile_summary": {},
     }
 
 
@@ -654,6 +657,10 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
 
     if not isinstance(message, HumanMessage) or not _candidate_source_allowed(message) or not isinstance(message.content, str):
         return collected
+    from app.agents.fact_extractor import split_incomplete_tail
+    complete, tail = split_incomplete_tail(message.content)
+    if tail:
+        message = message.model_copy(update={"content": complete})
     text = message.content.strip()
     if not text or looks_like_existing_resume(text):
         return collected
@@ -909,14 +916,16 @@ def _hash_text(text: str) -> str:
 def unrecorded_notice(collected: dict, latest_human: str) -> str:
     """本轮抽取没能记下的原话；只在产生它的那一轮提示一次。"""
     info = (collected or {}).get("unrecorded") or {}
-    if not info.get("clauses") or info.get("source") != _hash_text(latest_human):
+    if info.get("source") != _hash_text(latest_human):
         return ""
     recorded = "\n".join(f"{fact.get('text', '')}\n{fact.get('source_quote', '')}"
                          for section in ("projects", "work_experience", "internship", "education")
                          for item in (collected.get(section) or []) if isinstance(item, dict)
                          for fact in item.get("facts") or [] if fact.get("status", "active") == "active")
-    missing = [clause for clause in info["clauses"] if clause not in recorded]  # 后续兜底已原文保留的不再提示
-    return "\n\n" + "\n".join(f"这句我没记下来：「{clause}」，能换个说法吗？" for clause in missing) if missing else ""
+    missing = [clause for clause in info.get("clauses") or [] if clause not in recorded]  # 后续兜底已原文保留的不再提示
+    lines = [f"这句我没记下来：「{clause}」，能换个说法吗？" for clause in missing]
+    lines += [f"「{tail}」后面还没说完，可以补充一下吗？" for tail in info.get("incomplete") or []]
+    return "\n\n" + "\n".join(lines) if lines else ""
 
 
 def _notice_messages(collected: dict, latest_human: str) -> list:
@@ -943,15 +952,20 @@ async def _extract_info_from_message(
             previous_assistant=_previous_assistant.get())
         result = apply_fact_patch(normalized, patch)
         uncovered = [str(c) for c in patch.get("uncovered") or []][:3]
-        if uncovered:
+        incomplete = [str(c) for c in patch.get("incomplete") or []][:1]
+        if uncovered or incomplete:
             # 抽取覆盖检查补救失败的子句：记入核对页，并在本轮回复里告知，不静默丢弃。
             notes = result.setdefault("verification_notes", [])
             for clause in uncovered:
                 note = f"这句没有记下来：{clause}"
                 if note not in notes:
                     notes.append(note)
+            for tail in incomplete:
+                note = f"待补充：「{tail}」后面还没说完"
+                if note not in notes:
+                    notes.append(note)
             result["verification_notes"] = notes[-30:]
-            result["unrecorded"] = {"source": _hash_text(message), "clauses": uncovered}
+            result["unrecorded"] = {"source": _hash_text(message), "clauses": uncovered, "incomplete": incomplete}
         return result
     except Exception as e:
         logger.warning("Info extraction failed: %s", type(e).__name__)
@@ -961,14 +975,16 @@ async def _extract_info_from_message(
 # ── 阶段专属系统提示 ──────────────────────────────────────────────────────────
 
 STAGE_PROMPTS = {
-    "JD_INPUT": """你是「胡话简历」AI助手，当前阶段：收集目标JD。
+    "JD_INPUT": """你是「胡话简历」AI助手，当前阶段：了解用户的求职目标或经历。
 
-目标：让用户把目标岗位的JD文字粘贴给你。
+目标：友好说明能做什么，让用户选择从目标JD或已有经历开始。
 
 行为规范：
-- 如果用户还没给JD，简短问一句：「请把目标岗位的招聘JD粘贴给我」
+- 寒暄或还没给JD时，简短介绍：我是胡话简历助手，可以读JD、挖经历、定制一页简历、核对事实、导出PDF/Word；可以贴JD、上传旧简历或材料，也可以直接聊经历
+- 有档案事实的老用户用名字欢迎，只说经历数量等概况，建议贴新JD出一版，不大段复述事实
 - 如果用户给了JD文字（超过50字的大段文字），回复「收到，正在解读...」然后停止，系统会自动切换到解读阶段
 - 如果用户只说了岗位方向没给JD（如「产品经理」），不要卡住用户；进入能力展示型简历，围绕该方向挖经历
+- 没有JD也可以先收集经历，寒暄和征求意见不生成或修改简历
 - 回复简短，一次只问一件事""",
     # ── Triage 分支后的子 prompt ───────────────────────────────────
     "COLLECTING_WRAP": """当前任务：就刚补充的经历给一个很短的下一步引导。
@@ -1230,6 +1246,47 @@ async def _run_decoder_and_build_reply(
         )
 
 
+def _dialogue_requested(text: str) -> bool:
+    return is_greeting(text) or (is_advice(text) and not explicit_edit_requested(text))
+
+
+async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    """Reply without a draft update; statements alongside advice still become facts."""
+    text = _latest_human_text(state)
+    if is_greeting(text) or not text:
+        summary = state.get("profile_summary") or {}
+        name = summary.get("name") or ""
+        welcome = (f"{name + '，' if name else ''}欢迎回来！档案里有 {summary.get('experience_count', 0)} 段经历。"
+                   if summary.get("has_facts") else "你好！")
+        start = ("贴新 JD 就可以开始出一版，也可以上传旧简历或材料、直接聊经历。"
+                 if summary.get("has_facts") else "可以贴 JD、上传旧简历或材料，也可以直接聊经历，没有 JD 也能开始。")
+        return {"messages": [AIMessage(content=welcome + "我是「胡话简历」助手，能帮你读 JD、挖经历、"
+                                       "定制一页简历、核对事实，再导出 PDF / Word。\n\n" + start)],
+                "stage": state.get("stage", "JD_INPUT"),
+                "non_candidate_message_ids": _exclude_latest_source(state)}
+    collected = state.get("collected_info") or _empty_collected_info()
+    updated = collected
+    message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
+    if message and _candidate_source_allowed(message):
+        imported = parse_existing_resume(text)
+        if imported:
+            updated = _merge_imported_candidate(collected, imported)
+        elif advice_contains_facts(text):
+            extract_llm = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+            updated = await _extract_with_previous_assistant(
+                text, collected, extract_llm, _latest_previous_assistant(state.get("messages") or []))
+    from app.agents.wording_advice import wording_advice
+    advisor = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
+    reply = await wording_advice({**state, "collected_info": updated}, text, advisor)
+    result = {"messages": [AIMessage(content=reply + unrecorded_notice(updated, text))],
+              "stage": state.get("stage", "JD_INPUT")}
+    if updated != collected:
+        result["collected_info"] = updated
+    if not advice_contains_facts(text):
+        result["non_candidate_message_ids"] = _exclude_latest_source(state)
+    return result
+
+
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段1：等待 JD / 跳过 JD / 轻量模式。由 Triage 决定走哪条分支。"""
     messages = state["messages"]
@@ -1237,13 +1294,11 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         (m.content for m in reversed(messages) if isinstance(m, HumanMessage)), ""
     )
 
-    # 没用户输入就保持 ASK_JD
+    if _dialogue_requested(last_human):
+        return await dialogue_node(state, llm)
+    # 没用户输入就说明如何开始。
     if not last_human:
-        sys_msg = SystemMessage(content=_get_stage_system("JD_INPUT", state))
-        response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages
-        )
-        return {"messages": [response]}
+        return await dialogue_node(state, llm)
 
     source_message = next(m for m in reversed(messages) if isinstance(m, HumanMessage))
     if _candidate_source_allowed(source_message) and (
@@ -1369,6 +1424,8 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if _dialogue_requested(_latest_human_text(state)):
+        return await dialogue_node(state, llm)
     # A visible draft may still carry the legacy COLLECTING checkpoint stage.
     # Editing it belongs to the writer regardless of that historical label.
     if _visible_draft_edit_requested(state):
@@ -1854,6 +1911,8 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
 
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
+    if _dialogue_requested(latest):
+        return await dialogue_node(state, llm)
     if _user_wants_export(latest) or _user_asks_review(latest):
         return await _evaluating_turn_node(state, llm)
     collected = await _recover_candidate_history(state, llm)
@@ -1888,7 +1947,7 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: SpeculativeScope) -> dict:
-    """A draft edit always invokes the writer, even when it adds no new facts."""
+    """Draft edits and read-only advice have separate return paths."""
     from app.agents.tailor_pipeline import infer_edit_scope
     from app.services.resume_versions import education_correction_note, restore_payload
     data = state.get("resume_data") or _serialize_to_resume_data(state)
@@ -1972,6 +2031,10 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         structured = _router_model(llm)
         routed = await route_intents(text, {**state, 'resume_data': data, 'collected_info': updated}, structured,
                                      prefetched=route_task)
+        if 'advice' in routed['intents'] and 'edit' not in routed['intents']:
+            from app.agents.wording_advice import wording_advice
+            reply = await wording_advice({**state, 'collected_info': updated}, text, llm)
+            return {'collected_info': updated, 'messages': [AIMessage(content=reply + unrecorded_notice(updated, text))]}
         planned_ops = list(routed.get('edit_plan') or [])
         if planned_ops:
             executed = execute_edit_plan(
@@ -2048,6 +2111,9 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         reply += suffix
         result['asked_questions'] = asked
     reply += unrecorded_notice(updated, text)
+    if is_advice(text):
+        from app.agents.wording_advice import wording_advice
+        reply += '\n\n' + await wording_advice({**state, **result, 'collected_info': updated}, text, llm)
     return {**direction, **result, 'stage': 'EVALUATING',
             'resume_draft': resume_to_text(result['resume_data']),
             'messages': [AIMessage(content=reply)]}
@@ -2112,16 +2178,13 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
 
 
 def route_by_stage(state: ResumeState) -> str:
+    latest = _latest_human_text(state)
+    if _dialogue_requested(latest):
+        return "dialogue"
     if state.get("requested_task", "auto") != "auto":
         return "skill_task"
-    latest = next(
-        (
-            m.content
-            for m in reversed(state.get("messages", []))
-            if isinstance(m, HumanMessage)
-        ),
-        "",
-    )
+    if is_advice(latest) and explicit_edit_requested(latest):
+        return "evaluating"
     if isinstance(latest, str) and _is_review_intent(latest):
         return "skill_task"
     if _visible_draft_edit_requested(state):
@@ -2240,6 +2303,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     graph.add_node("evaluating", partial(evaluating_node, llm=llm))
     graph.add_node("export", partial(export_node, llm=llm))
     graph.add_node("skill_task", partial(skill_task_node, llm=llm))
+    graph.add_node("dialogue", partial(dialogue_node, llm=llm))
 
     graph.set_conditional_entry_point(
         route_by_stage,
@@ -2250,6 +2314,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
             "evaluating": "evaluating",
             "export": "export",
             "skill_task": "skill_task",
+            "dialogue": "dialogue",
         },
     )
 
@@ -2267,7 +2332,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
         _route_after_collecting,
         {"building": "building", "__end__": END},
     )
-    for node in ["jd_input", "building", "evaluating", "export", "skill_task"]:
+    for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue"]:
         graph.add_edge(node, END)
 
     return graph.compile(checkpointer=checkpointer or MemorySaver())
@@ -2336,6 +2401,7 @@ async def stream_agent(
         "evaluating",
         "export",
         "skill_task",
+        "dialogue",
     }
     streamed_reply_ids: set[str] = set()
     completed_reply_ids: set[str] = set()
@@ -2416,7 +2482,7 @@ async def stream_agent(
             from app.services.profile_bridge import archive_event_for_message
 
             resume_data = state.values.get("resume_data") or {}
-            if not resume_data and task != "research_job":
+            if not resume_data and task != "research_job" and not _dialogue_requested(last_msg["content"]):
                 resume_data = _serialize_to_resume_data(state.values)
             committed = save_resume_session(
                 session_id=session_id,

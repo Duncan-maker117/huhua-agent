@@ -129,6 +129,8 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
                 values[key] = copy.deepcopy(stored_state.get(key, default))
         if context is None:
             context = get_context(db, account, subject_ids=fact_ids, limit=100, include_contacts=False) if account else {"facts": [], "fact_refs": []}
+        from app.services.profile_service import get_profile_summary
+        summary = get_profile_summary(db, account) if account else {}
         collected = (context_to_collected_info(context, values.get("collected_info"))
                      if context["facts"] else values.get("collected_info") or {})
     update = {k: v for k, v in values.items() if k != "messages"}
@@ -136,7 +138,8 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
     new_ids = {m.id for m in values.get("messages") or [] if m.id}
     update["messages"] = [RemoveMessage(id=item) for item in old_ids - new_ids] + values.get("messages", [])
     update["collected_info"] = collected
-    if previous or context["facts"]:
+    update["profile_summary"] = summary
+    if previous or context["facts"] or summary.get("has_facts"):
         await graph.aupdate_state(config, update, as_node="building")
     return context
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 import re
 
 from app.schemas.writer import MatchPlan
@@ -163,6 +164,7 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         positioning_checks = {row['id']: row for row in checks}
     quotes = '\n'.join(str(fact.get('source_quote') or fact.get('text') or '') for fact in facts.values())
     terms = TERM_FILE.read_text().splitlines() if TERM_FILE.is_file() else []
+    job_text = json.dumps(profile or {}, ensure_ascii=False)
 
     def validated(row, index):
         raw = {key: row[key] for key in MatchPlan.model_fields if key in row}
@@ -170,8 +172,10 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         # Thesis is a card-only narrative, not resume prose. Check concrete
         # claims, numbers and units without requiring full lexical coverage.
         thesis = str(row.get('thesis') or '').strip()
+        # The card may cite JD terms (e.g. 长期记忆) to explain the fit; a tool
+        # neither the candidate nor the JD mentions would misstate the record.
         concrete_terms = [term.strip() for term in terms if term.strip() and not term.startswith('#')
-                          and contains_term(thesis, term.strip())]
+                          and contains_term(thesis, term.strip()) and not contains_term(job_text, term.strip())]
         thesis_errors = [error for error in lexical_fact_errors(thesis, quotes)
                          if error.startswith(('unsupported_numbers:', 'unsupported_quantity_unit:'))]
         thesis_errors.extend(validate_skill_groups({'terms': concrete_terms}, list(facts.values()), source.get('skills') or []))
@@ -187,7 +191,10 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                           and contains_term(sentence, term.strip())]
         unsupported_tools = validate_skill_groups({'terms': sentence_terms}, list(facts.values()), source.get('skills') or [])
         limit = 90 if is_profile else 40
-        profile_errors = (lexical_fact_errors(sentence, quotes) + stance_errors(sentence, facts)) if is_profile else []
+        # The statement is shown verbatim on the card and confirmed by the user;
+        # block new numbers here and leave misattribution to the semantic check.
+        profile_errors = [error for error in lexical_fact_errors(sentence, quotes)
+                          if error.startswith(('unsupported_numbers:', 'unsupported_quantity_unit:'))] if is_profile else []
         if is_profile and (len([s for s in re.split(r'[。！？!?]+', sentence) if s.strip()]) not in {2, 3}
                            or re.search(r'这个人|候选人|让面试官记住', sentence)):
             profile_errors.append('not_resume_profile')

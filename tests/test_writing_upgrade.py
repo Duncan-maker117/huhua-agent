@@ -71,17 +71,14 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(row['profile_statement'], STATEMENT)
             self.assertEqual(row['positioning'], '')
 
-    async def test_profile_rejects_missing_stance_noun_and_single_active_support(self):
-        cases = [(STATEMENT.replace('外部调研', '用户增长'), evidence())]
-        one = evidence()
-        for row in one['projects'][0]['facts']:
-            if row['id'] != 'f2':
-                row['status'] = 'deleted'
-        cases.append((STATEMENT, one))
-        for statement, collected in cases:
-            with self.subTest(statement=statement, active=sum(f['status'] == 'active' for f in collected['projects'][0]['facts'])):
-                result = await self.planned(statement, collected)
-                self.assertEqual(result['structure_plan']['recommended']['profile_statement'], '')
+    async def test_profile_stance_is_decided_by_semantic_review(self):
+        # A synthesized stance need not repeat the facts word for word; the
+        # semantic review (and the user's confirmation on the card) decides.
+        statement = '实现个人事实存储。关注 AI 的可控与可信。'
+        self.assertEqual((await self.planned(statement))['structure_plan']['recommended']['profile_statement'], statement)
+        model = PlanModel([('StructurePlan', plan_card(statement))], fail_ids=['plan_positioning_0'])
+        rejected = await run_resume_writer(evidence(), {'role_family': 'ai_pm'}, model, phase='plan')
+        self.assertEqual(rejected['structure_plan']['recommended']['profile_statement'], '')
 
     async def test_profile_rejects_new_identity_number_tool_outcome_and_bad_shape(self):
         for statement in ['担任产品经理。关注个人事实与外部调研。',
@@ -228,3 +225,12 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             rows = await guard_bullets([{'id': 'b', 'text': text, 'fact_ids': ['f']}],
                 [fact('f', text, 'status_limit')], lexical_only=True)
             self.assertEqual('negative_absence_printed' in rows[0]['lexical_errors'], rejected)
+
+
+class ProblemLabelTest(unittest.TestCase):
+    def test_failure_description_citing_a_result_fact_is_the_problem(self):
+        from app.services.writing_style import row_label
+        failure = {'r': {'kind': 'result_qualitative', 'text': '模型回答里出现虚构地点和时间冲突两类错误'}}
+        self.assertEqual(row_label({'text': '模型回答里出现虚构地点和时间冲突两类错误', 'fact_ids': ['r']}, failure), '问题')
+        usage = {'r': {'kind': 'result_metric', 'text': '10人用过 20次'}}
+        self.assertEqual(row_label({'text': '上线后 10 人使用、完成 20 次任务', 'fact_ids': ['r']}, usage), '结果')

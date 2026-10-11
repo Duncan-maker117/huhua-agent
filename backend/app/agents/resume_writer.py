@@ -77,7 +77,7 @@ plain 写法的一条 bullet = 问题/场景+本人动作与方法+结果或产�
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
-_STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
+_STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；「问题：」只复述资料中的问题本身，不添加频率（常/经常/总是）、程度或后果（如「无法使用」「影响体验」），标签须与内容一致：描述问题的句子不能标为「结果」；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
 _WRITE_CONTRACT += '\n' + _STYLE_CONTRACT
 _ONE_PASS_CONTRACT += '\n' + _STYLE_CONTRACT
 _WRITE_CONTRACT += '\n' + _COMPRESSION_ACTION_CONTRACT

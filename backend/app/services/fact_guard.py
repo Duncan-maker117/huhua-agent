@@ -389,6 +389,7 @@ SEMANTIC_CONTRACT = """核验每条候选表述是否被其 source_quotes 完整
 claim_kind=compression_retention 是反向压缩保留核验：text 是压缩前原句，source_quotes 是压缩后句子。原句中的本人动作/方法/产物仍须在新句表达，不能用维护者、队友或团队的动作代替本人贡献；引用了原 fact_id 也不证明保留。
 claim_kind=positioning 表示简历的概括性定位，不是逐条工作成果。允许把多项本人事实概括为方向，例如本人做过 Agent 记忆与评测 →「做过 Agent 记忆与评测」；不得把目标岗位写成已有身份（如「…的产品实习生」），不得给经历加来源没有的标签（如把「课程原型」写成「Agent 原型」）。定位句只要没有新数字、新工具、新成果，主体和状态限制未改变，就允许方向性的综合表达。不得捏造曾任/就职、主导程度或已上线等状态。其余表述继续按正文规则核验。
 个人定位中的立场句（如「关注 X」）允许从至少2条 active facts 的实践共同归纳，关键名词必须在事实原文中出现。兴趣立场不是已有身份或成果，不得据此添加任职、数字或成果。
+描述问题/背景的句子不得添加来源没有的频率（常、经常、总是）、程度或后果（如「无法直接使用」），这类新增片段记为 unsupported_spans。
 数量必须保留原计量单位及对象：人/次/个/条不互换；「10个人20次」不支持「20次调用/请求」，简历任务次数不能解释为API调用量。中文数字可改阿拉伯数字，但不能改变计量含义。
 返回 decisions，每条原样带 id，并填写 subject_ok/actions_supported/objects_supported/results_supported/limits_kept/unsupported_spans/verdict。所有维度成立且无未支持片段才 pass；不确定 fail。
 写作候选若有 source_facts，每项包含 kind、fact_text、source_quote、quote_origin。source_quote 非空时是原始来源，fact_text 是整理后的事实表述，不是第二个独立证人；两者不同时以原始 source_quote 为准。quote_origin=fact_text_fallback 表示旧事实缺少原始引文，此时不得从模糊措辞推断本人完成了什么。kind 只提示事实类型，不是绝对禁令：method_tool 可以证明使用方式，若原文明确“我训练/评估/开发”，仍可支持相应本人动作；但工具来源或项目背景本身不能证明候选人完成了整段流程。

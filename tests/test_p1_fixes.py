@@ -94,7 +94,8 @@ class FixVerificationQuestionTest(unittest.TestCase):
 
     def test_asks_whether_problem_recurs_after_the_fix(self):
         result = compose_interviewer_reply(self.state(), version_number=1)
-        first = result["questions"][0]["q"]
+        self.assertIn('这样做是为了解决什么', result['questions'][0]['q'])
+        first = next(row['q'] for row in result['questions'] if '还会出现吗' in row['q'])
         self.assertIn("还会出现吗", first)
         self.assertIn("先用高德查询 POI", first)
         self.assertIn("模型会推荐不存在的店铺", first)

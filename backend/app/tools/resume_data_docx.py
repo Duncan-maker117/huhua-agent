@@ -128,6 +128,7 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
                 p.add_run(' · ')
             _add_link(p, link)
     if data.get("summary"):
+        doc.add_paragraph("个人定位").runs[0].bold = True
         doc.add_paragraph(data["summary"])
 
     # 预览与 Word 共享栏目顺序、标题与可见性；正文仍取原有字段。

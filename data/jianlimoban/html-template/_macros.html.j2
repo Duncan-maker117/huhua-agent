@@ -24,7 +24,7 @@
 {%- endmacro %}
 
 {% macro positioning_line(text) -%}
-{%- if text %}<div class="positioning" data-field-path="/summary">{{ text }}</div>{% endif -%}
+{%- if text %}<div class="positioning-title">个人定位</div><div class="positioning" data-field-path="/summary">{{ text }}</div>{% endif -%}
 {%- endmacro %}
 
 {% macro density_styles() -%}
@@ -33,6 +33,7 @@
 
 {% macro layout_styles() -%}
 .positioning { font-size: var(--summary-font-size); line-height: var(--summary-line-height); margin-top: 3px; }
+.positioning-title { font-size: var(--summary-font-size); font-weight: 700; break-after: avoid; }
 .section, .item { break-inside: auto; page-break-inside: auto; }
 .section-title { break-after: avoid; page-break-after: avoid; }
 .awards-compact { line-height: var(--summary-line-height); break-inside: auto; orphans: 1; widows: 1; }

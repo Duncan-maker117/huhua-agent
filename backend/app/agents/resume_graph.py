@@ -1895,7 +1895,7 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
     writer = _make_writer_llm(llm)
     structured = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
-    from app.services.structure_plan import plan_action, select_plan, edit_plan
+    from app.services.structure_plan import plan_action, select_plan, edit_plan, accept_profile
     from app.agents.tailor_pipeline import _has_visible_experience_body, constraints_for_turn
     confirmed = state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
     enabled = get_settings().LLM_PLAN_CONFIRM
@@ -1918,7 +1918,7 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
         if action not in {'confirm', 'direct'} or selected is None:
             return {'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True,
                     'collected_info': collected, 'plan_card': True}
-        confirmed = selected
+        confirmed = accept_profile(selected)
         working.update(confirmed_plan=confirmed, pending_plan={}, plan_required=False)
     elif enabled and confirmed:
         confirmed, _ = edit_plan(confirmed, latest, collected)
@@ -2043,7 +2043,7 @@ def _plan_card_update(result: dict) -> dict:
 
 async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.schemas.writer import MatchPlan
-    from app.services.structure_plan import plan_action, select_plan, edit_plan, apply_plan_structure
+    from app.services.structure_plan import plan_action, select_plan, edit_plan, apply_plan_structure, profile_edit, style_edit, accept_profile
     text = _latest_human_text(state)
     card = state.get('pending_plan') or {}
     action, index = plan_action(text, card)
@@ -2057,9 +2057,15 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         selected = select_plan(card, index if action == 'confirm' else 0)
         if selected is None:
             return _plan_card_update({'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True})
-        return await building_node({**state, 'confirmed_plan': selected, 'pending_plan': {}, 'plan_required': False}, llm,
+        return await building_node({**state, 'confirmed_plan': accept_profile(selected), 'pending_plan': {}, 'plan_required': False}, llm,
                                    plan_confirmation=True)
     plan = select_plan(card) if card else state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
+    if not plan and state.get('resume_data') and (profile_edit(text) is not None or style_edit(text)):
+        from app.agents.resume_writer import _default_plan, _source_evidence, _validate_plan
+        source, items, facts = _source_evidence(state.get('collected_info') or {})
+        profile = (state.get('jd_info') or {}).get('role_profile') or {}
+        plan = _validate_plan(_default_plan(source, profile), source, profile, items, facts)
+        plan['profile_statement'] = state['resume_data'].get('summary') or ''
     if action == 'edit' and plan:
         edited, changed = edit_plan(plan, text, state.get('collected_info') or {})
         if card:
@@ -2068,18 +2074,29 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             for i in range(1, len(card.get('alternatives') or []) + 1):
                 alternative, _ = edit_plan(select_plan(card, i), text, state.get('collected_info') or {})
                 baseline = {row['item_id']: row for row in edited['experience_plan']}
-                alternatives.append({**{key: alternative[key] for key in ('label', 'positioning', 'thesis', 'section_order')},
+                alternatives.append({**{key: alternative[key] for key in ('label', 'positioning', 'thesis', 'section_order',
+                                     'profile_statement', 'profile_statement_source', 'profile_statement_fact_ids', 'bullet_style') if key in alternative},
                                      'experience_plan': [row for row in alternative['experience_plan'] if row != baseline[row['item_id']]]})
             return _plan_card_update({'pending_plan': {'recommended': edited, 'alternatives': alternatives},
                                       'confirmed_plan': {}, 'plan_required': True})
         if changed:
             data = apply_plan_structure(state.get('resume_data') or {}, edited)
+            meta = copy.deepcopy(state.get('resume_meta') or {})
+            from app.agents.resume_writer import _source_evidence, _hash
+            _, _, facts = _source_evidence(state.get('collected_info') or {})
+            if profile_edit(text) is not None:
+                meta['summary'] = {'fact_ids': list(facts), 'text_hash': _hash(data['summary']), 'source': 'user'}
+            if style := style_edit(text):
+                from app.services.writing_style import restyle_resume
+                data, meta = restyle_resume(data, meta, facts, style)
             result = await _update_without_writer({**state, 'confirmed_plan': edited,
-                'resume_data': data, 'previous_resume_data': state.get('resume_data') or {}}, text)
-            result.update(confirmed_plan=edited, match_plan={key: edited[key] for key in MatchPlan.model_fields},
+                'resume_data': data, 'resume_meta': meta, 'previous_resume_data': state.get('resume_data') or {}}, text)
+            result.update(confirmed_plan=edited, match_plan={key: edited[key] for key in MatchPlan.model_fields if key in edited},
                           stage='EVALUATING', resume_draft=resume_to_text(result['resume_data']))
             result['resume_meta'].update(confirmed_plan=edited, match_plan=result['match_plan'])
-            result['messages'] = [AIMessage(content='已按你的要求更新栏目顺序和经历取舍。')]
+            receipt = ('已将个人定位替换为你的原文。' if profile_edit(text) is not None else
+                       '已更新写法。' if style_edit(text) else '已按你的要求更新栏目顺序和经历取舍。')
+            result['messages'] = [AIMessage(content=receipt)]
             return result
     if card:
         # New material still uses extraction/collection; the next plan must see it.
@@ -2433,8 +2450,10 @@ def route_by_stage(state: ResumeState) -> str:
     if state.get("requested_task", "auto") != "auto":
         return "skill_task"
     from app.config import get_settings
-    from app.services.structure_plan import plan_action
+    from app.services.structure_plan import plan_action, profile_edit, style_edit
     action, _ = plan_action(latest, state.get('pending_plan'))
+    if state.get('resume_data') and (profile_edit(latest) is not None or style_edit(latest)):
+        return 'structure_plan'
     if _stale_plan_confirmation(state):
         return 'structure_plan'
     if get_settings().LLM_PLAN_CONFIRM and (state.get('pending_plan') or action == 'replan'

@@ -27,6 +27,14 @@
 
 ## 当前状态
 
+2026-10-12「写法升级」四项本地完成：保持 `overhaul/tailor` 既有提交与回放产物。推荐/备选增加 `profile_statement`（2–3句、≤90字），复用词面/身份/语义事实校验，并对立场名词及至少两条 active 原文做保守检查；卡片显示原文，确认后写入 summary，确认文本不重复请求语义认可，引用事实失效则重新检查。`positioning` 仅兼容旧方案，不重复展示。个人定位文字替换与写法切换确定性执行；ai_pm/pm 默认 labeled，其余 plain，项目标签按事实分类排序，问题/现状不再被动作过滤或跨标签近似去重误删。原因追问优先于指标，明确答复以 context 和原始引文入档，纯数字回复不误绑为原因；writer 合同要求动作与已知原因同句。正向现状允许，negative_absence 保留并覆盖「未跑通」。7款 HTML 与 Word 页头均显示「个人定位」。新增12项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1286/1286（42.607s）**；修改文件 Ruff（忽略既有E402）、JS语法、方案卡DOM及差异检查通过。无真实模型调用、commit/push/部署；真实模型文案质量与原生 Word 最终分页未测，无已知阻塞。
+
+本次改动文件：
+- 写作/对话：`backend/app/agents/{resume_writer,resume_graph,interviewer,turn_actions}.py`。
+- 合同/校验：`backend/app/schemas/writer.py`、`backend/app/services/{structure_plan,writing_style,fact_guard}.py`（`writing_style.py` 新增）。
+- 展示/导出：`web/resume-workspace.js`、`data/jianlimoban/html-template/{_macros.html.j2,t003-shenlan.html.j2}`、`backend/app/tools/resume_data_docx.py`。
+- 回归：新增 `tests/test_writing_upgrade.py`；更新 `tests/structure_plan.dom.js`、`tests/test_p1_fixes.py`、`tests/test_replay_plan_intake_regressions.py`、`tests/test_replay_polish_regressions.py`、`tests/test_resume_writer.py`、`tests/test_writer_metric_priority.py`；交接为本文件。
+
 2026-10-11「排版自适应一页」本地完成：保留 `overhaul/tailor` 既有提交及深蓝细线未提交改动，7 款可选 HTML 模板共享 density 0–3 参数（正文下限 9.5pt，0 保留原几何）。一页要求先用生产 layout 计页逐档试排，保存最小可行档及最终 hash；3 仍超页才进入原内容压缩。字大/字小/紧凑/松及自动调整走确定性 set_constraint，用户档锁定、可撤销；预览/PDF/通用 Word/模板 Word 同档，保存后编辑器同步排版。PR 链接同行、页头 URL 整体换行，超长 URL 以短链接展示。新增 17 项虚构/无真实模型回归，2 页样例最小选 1/2/3，旧缓存与加密 SQL/checkpoint 回读通过；指定全量 **1274/1274（40.620s）**、Ruff（忽略既有 E402）、JS 语法及差异检查通过。Word 使用自身 1.15 基线对应 1.1/1.05/1 行距；未验证原生 Word 最终分页或真实浏览器自动保存交互。无凭证读取/打印、真实模型调用、commit/push/部署。全部本次文件与 7×4 实际参数见 `docs/development/2026-10-11-adaptive-one-page.md`。
 
 2026-10-11 新增「深蓝细线」模板 `t003-shenlan`：按 Banz 指定的一页 PDF 移植深蓝标题、细线分区、10pt 正文、右上照片及紧凑开源条目。改动仅为新增 HTML 模板、renderer 注册、capacity 新条目及两处写死六模板的测试；原六模板、共用宏、前端、Agent、API、PDF/Word 导出逻辑均未改。35 项模板/容量/预览/安全/PDF 定向检查 + 1 项完整字段检查通过；本人参考内容实际 A4 单页，虚构16项目长标题/长链接样例2页且全部条目保留、无越界，无照片不占位。容量以原探针单测新模板、`HEADER_LINES=3` 校正三行页头，39正文行/每行51汉字，仍以最终PDF实测为准。预览和日志仅在 Git 忽略的 `data/output/navy-template-2026-10-11/`。本轮未提交、push 或部署。

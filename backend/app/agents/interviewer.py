@@ -161,6 +161,29 @@ def _question_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
     return candidates
 
 
+def _reason_candidates(state: dict, plan: dict, data: dict, already: set[str]) -> list[dict]:
+    from app.services.writing_style import decision_without_reason
+    known = _known_targets(data)
+    evidence = active_facts_for_writer(state.get('collected_info') or {})
+    candidates = []
+    for section in ('projects', 'work_experience', 'internship'):
+        for item in evidence.get(section) or []:
+            iid = item.get('item_id')
+            if iid not in known or not decision_without_reason(item.get('facts') or []):
+                continue
+            name = item.get('name') or item.get('company') or '这段经历'
+            q = f'「{name}」的决策：这样做是为了解决什么？'
+            identifier = _question_id(q, iid, '')
+            if identifier in already:
+                continue
+            path, label = _question_location(iid, '', known[iid], plan, state.get('resume_meta') or {})
+            candidates.append({'question_id': identifier, 'q': q, 'why': '补充决策原因，说明为什么这样设计。',
+                               'improves': {'item_id': iid, 'req_id': ''}, 'location_path': path,
+                               'location_label': label, 'value': 6,
+                               'options': [{'label': '不知道 / 没有', 'value': '不知道 / 没有'}]})
+    return candidates
+
+
 _FIX_FACT = re.compile(r"(?:改成|改为|改用|换成)(.{4,40})")
 _PROBLEM_FACT = re.compile(r"(?:推荐|生成|输出|回答|返回|给出).{0,6}(?:不存在|错误|不准|编造|虚构|幻觉|不对)|幻觉")
 
@@ -270,7 +293,8 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
                 "next_action": "ask"}
     known = _known_targets(data)
     already = _asked_ids(asked)
-    candidates = _question_candidates(state, plan, profile, data, already)
+    candidates = _reason_candidates(state, plan, data, already)
+    candidates += _question_candidates(state, plan, profile, data, already)
     if len(candidates) < MAX_QUESTIONS:
         candidates += _playbook_candidates(state, plan, profile, data, already,
                                            {row["question_id"] for row in candidates},

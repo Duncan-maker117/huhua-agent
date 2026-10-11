@@ -191,7 +191,7 @@ class PlanCopyRegression(unittest.TestCase):
         self.assertNotIn('正在同步草稿', public)
         self.assertIn('不得复述给用户', private)
         self.assertIn('不得声称已保存完成', private)
-        self.assertIn('positioning 必填', _STRUCTURE_CONTRACT)
+        self.assertIn('profile_statement 必填', _STRUCTURE_CONTRACT)
 
 
 class PositioningPolishRegression(unittest.IsolatedAsyncioTestCase):

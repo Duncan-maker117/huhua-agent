@@ -479,7 +479,8 @@
     const labels = {education: '教育经历', work_experience: '工作/实习经历', projects: '项目经历', open_source: '开源贡献', awards: '竞赛荣誉', skills: '技能', certificates: '证书/活动'};
     const treatments = {lead: '写（重点）', keep: '写', brief: '压缩', backup: '不写'};
     function content(panel, plan) {
-      if (plain(plan.positioning)) panel.append(node('p', '定位：' + plan.positioning, 'guidance-why'));
+      const statement = plain(plan.profile_statement) || plain(plan.positioning);
+      if (statement) panel.append(node('p', '将写进简历的个人定位：' + statement, 'guidance-why'));
       if (plain(plan.thesis)) panel.append(node('p', '主线：' + plan.thesis, 'guidance-why'));
       panel.append(node('p', '栏目：' + list(plan.section_order).map(id => labels[id] || id).join(' → '), 'guidance-why'));
       const entries = node('ul', undefined, 'workspace-list');
@@ -488,6 +489,14 @@
     }
     dock.append(node('p', '定方案', 'guidance-label'), node('h2', '推荐：' + card.recommended.label));
     content(dock, card.recommended);
+    const styles = node('div', undefined, 'guidance-options');
+    styles.append(node('span', '写法：'));
+    for (const [value, label] of [['labeled', '问题-决策-结果'], ['plain', '普通']]) {
+      const choice = button(label, () => answer('写法：' + label, key), 'guidance-option');
+      choice.setAttribute('aria-pressed', String((card.recommended.bullet_style || 'plain') === value));
+      styles.append(choice);
+    }
+    dock.append(styles);
     for (const alternative of list(card.alternatives)) {
       const details = node('details', undefined, 'guidance-question-block');
       details.append(node('summary', '备选：' + alternative.label + '（展开看差异）'));

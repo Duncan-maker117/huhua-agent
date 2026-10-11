@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.config import get_settings
+from app.services.writing_style import LABEL, format_rows, independent_labeled_row, row_label
 from app.schemas.writer import (IGNORED_EXTRA_SINK, REPAIRED_FIELD_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
                                 RepairOutput, StructurePlan, WriterDraft)
 from app.services.fact_guard import guard_bullets, ngram_overlap, strip_absence, validate_skill_groups
@@ -40,20 +41,21 @@ SKILL_HEADINGS = {"技术", "技术栈", "编程语言", "开发工具", "开发
 _PLAN_CONTRACT = """先按岗位要求和 active facts 做匹配计划。只引用给出的 fact_id/item_id；
 direct 是直接经历，transferable 要标注，gap 不得硬写。按相关性决定 lead/keep/brief/backup；reason 用要求原文，不用 requirement/signal id；
 提问最多三条，任何已更正或删除的旧事实不在输入中。严格输出 MatchPlan。"""
-_STRUCTURE_CONTRACT = """先定方案，不写正文。输出 StructurePlan：recommended 是完整匹配计划，另含 label、positioning、thesis；alternatives 给1–2个备选。
-recommended 和每个备选的 positioning 必填；有可概括的 active facts 时不得省略或给空字符串。用不超过30字的定位句放在简历页头 summary；确实缺乏事实支持时才给空字符串，不硬造。thesis 用完整一句说明这份简历要让面试官记住什么。概括定位允许综合已有实践，不含新数字、新工具、新成果，不把 JD 或公司业务写成候选人事实。
+_STRUCTURE_CONTRACT = """先定方案，不写项目正文。输出 StructurePlan：recommended 是完整匹配计划，另含 label、profile_statement、thesis；alternatives 给1–2个备选。
+recommended 和每个备选的 profile_statement 必填：由 thesis 改写为简历语气的个人定位，2–3句且总长≤90字，不用「这个人/候选人/让面试官记住」。有 active facts 时给出原文供用户确认，确认后将原样写进 summary；确实缺乏支持才留空。positioning 是旧字段，输出空字符串避免重复。
+个人定位允许有事实支撑的立场句（如「关注 X」），每个立场须由至少2条不同 active facts 共同支撑，关键名词须在这些事实原文中出现，不能仅凭 JD 或岗位兴趣推断。不得新增数字、工具、成果、身份词；目标职位不等于已有身份。thesis 是方案主线，profile_statement 才是正文。
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
 直接命中 JD 核心职责/要求或 job_context 中公司关注点的经历，即使只有一条事实也至少 brief，不得 backup；backup 只给与本岗位无关的经历。
 reason、thesis 等面向用户的文本用要求原文或岗位信号原文，不写 r1/r2/s2 等内部编号；编号仅用于结构化引用字段。
-section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/positioning/thesis/section_order，experience_plan 只列相对推荐的差异。
+section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 使用输入值：ai_pm/pm 默认 labeled，其余 plain。
 requirements/questions 沿用匹配计划，最多3个问题。用户给出的结构取舍必须遵守。严格输出 StructurePlan。"""
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。保留数量的原单位及对象（人/次/个/条）；「20次」不得改成「20次调用/请求」。开源贡献必须用仓库名作标题，每个PR及其本人贡献、结果都要保留；教育与竞赛荣誉按结构字段保留，不能压成一句。
 开源 PR 号在标题行，bullet 不重复 PR 号前缀；summary 是页头定位句，自我评价只保留用户真正提供的自评。
-match_plan 含 thesis/positioning 时，这是用户已确认的主线和定位；围绕该主线组织重点，严格遵守 section_order 和 experience_plan 的取舍，不能自行换主线、改顺序或把备用经历写回来。
+match_plan 含 thesis/profile_statement/positioning 时，这是用户已确认的主线和定位；围绕该主线组织重点，严格遵守 section_order 和 experience_plan 的取舍，不能自行换主线、改顺序或把备用经历写回来。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；不要求无条件复制所有事实。
-每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果。
-一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。每条 bullet 不超过 60 个汉字（英文 2 字符按 1 汉字），写不下就只保留最关键的动作与产出。
+每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。限制可以用有事实支持的正向现状表述写（如「完成本地闭环原型」「演示版使用本地数据与模拟模型」），不得写缺失型表述，也不能写成相反成果。
+plain 写法的一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一个故事写在一条里；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组，同一事实不得换句话再写一条；一个条目的 bullet 数不超过其不同事实组的数量，事实少就少写，不要凑满 target_bullets。每条 bullet 不超过 60 个汉字（英文 2 字符按 1 汉字），写不下就只保留最关键的动作与产出。
 按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
@@ -71,10 +73,13 @@ writer.items 必须是数组，每项只含 item_id、section、title、bullets�
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
-一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。未上线、没有用户量、没有星数等限制不要写进正文，也不能写成相反成果；backup 不写正文。
+plain 写法的一条 bullet = 问题/场景+本人动作与方法+结果或产出，背景事实并入动作 bullet、不单独成条；每条至少引用一个动作/方法/产出/结果事实；只表达阶段或项目名的 bullet 不写；每条 bullet 不超过 60 个汉字；按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。每条 bullet 对应不同事实组，同一事实不重复成多条，bullet 数不超过事实组数、不凑数；不新增经历、工具、数字或成果；不升级职责。限制可以用有事实支持的正向现状表述写（如「完成本地闭环原型」「演示版使用本地数据与模拟模型」），不得写缺失型表述，也不能写成相反成果；backup 不写正文。
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
+_STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
+_WRITE_CONTRACT += '\n' + _STYLE_CONTRACT
+_ONE_PASS_CONTRACT += '\n' + _STYLE_CONTRACT
 _WRITE_CONTRACT += '\n' + _COMPRESSION_ACTION_CONTRACT
 _ONE_PASS_CONTRACT += '\n' + _COMPRESSION_ACTION_CONTRACT
 _METRIC_REPAIR_CONTRACT = """上一版草稿漏掉了 required_fact_ids 中的量化成果事实（kind=result_metric）。
@@ -367,10 +372,10 @@ def _is_substantive(fact: dict | None) -> bool:
     return bool(fact) and fact.get("kind") in SUBSTANTIVE_KINDS
 
 
-def _merge_context_only_rows(rows: list[dict], facts: Mapping[str, dict]) -> list[dict]:
+def _merge_context_only_rows(rows: list[dict], facts: Mapping[str, dict], style: str = "plain") -> list[dict]:
     """背景/问题不单独成条：只引用 context/role/team/status 类事实的 bullet 并入同条目的动作 bullet。
 
-    一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出。"""
+    plain 写法的一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出。"""
     by_item: dict[str, list[dict]] = {}
     for row in rows:
         by_item.setdefault(row["item_id"], []).append(row)
@@ -381,7 +386,8 @@ def _merge_context_only_rows(rows: list[dict], facts: Mapping[str, dict]) -> lis
         if not any(substantive(row) for row in item_rows):
             continue
         for index, row in enumerate(item_rows):
-            if substantive(row) or not row.get("valid_refs", True):
+            if (substantive(row) or not row.get("valid_refs", True) or (style == "labeled"
+                    and row.get("section") == "projects" and independent_labeled_row(row, facts))):
                 continue
             later = [other for other in item_rows[index + 1:] if substantive(other) and other["id"] not in drop]
             earlier = [other for other in item_rows[:index] if substantive(other) and other["id"] not in drop]
@@ -420,13 +426,14 @@ def _without_filler_rows(rows: list[dict], name: str = "") -> list[dict]:
     return kept
 
 
-def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (), name: str = "") -> list[dict]:
+def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (), name: str = "", style: str = "plain") -> list[dict]:
     """同一事实不写两条：fact_ids 相同或为另一条的子集时保留信息更多的一条；
     背景类事实不算独立事实组，条数不超过该条目可写的动作/方法/产出/结果事实数。"""
     lookup = {fact.get("id"): fact for fact in item_facts}
     if rows and any(any(_is_substantive(lookup.get(fid)) for fid in row.get("fact_ids") or []) for row in rows):
         rows = [row for row in rows
-                if any(_is_substantive(lookup.get(fid)) for fid in row.get("fact_ids") or [])]
+                if any(_is_substantive(lookup.get(fid)) for fid in row.get("fact_ids") or [])
+                or (style == "labeled" and independent_labeled_row(row, lookup))]
     sets = [frozenset(row.get("fact_ids") or []) for row in rows]
     drop = set()
     for i, row in enumerate(rows):
@@ -445,16 +452,18 @@ def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (
     kept = _without_filler_rows(kept, name)
     groups = [fact for fact in item_facts if _body_fact(fact) and _is_substantive(fact)
               and (cleaned := strip_absence(fact.get("text") or "")) and not _bare_phase(cleaned)]
-    if groups and len(kept) > len(groups):
+    if style != "labeled" and groups and len(kept) > len(groups):
         kept = kept[:len(groups)]
     return kept
 
 
-def _without_near_duplicate_rows(rows: list[dict]) -> list[dict]:
+def _without_near_duplicate_rows(rows: list[dict], facts: dict | None = None, style: str = 'plain') -> list[dict]:
     """Guard-level duplicate check: a later bullet that restates an earlier one is dropped."""
     kept = []
     for row in rows:
-        if any(ngram_overlap(row.get("text", ""), previous.get("text", "")) >= 0.6 for previous in kept):
+        if any(ngram_overlap(row.get("text", ""), previous.get("text", "")) >= 0.6
+               and (style != 'labeled' or row_label(row, facts or {}) == row_label(previous, facts or {}))
+               for previous in kept):
             continue
         kept.append(row)
     return kept
@@ -631,7 +640,7 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
             continue
         questions.append(row.model_dump())
     from app.services.structure_plan import readable_plan
-    return readable_plan({"requirements": requirements, "experience_plan": experience,
+    return readable_plan({"bullet_style": plan.bullet_style or ("labeled" if role_profile.get("role_family") in {"ai_pm", "pm"} else "plain"), "requirements": requirements, "experience_plan": experience,
             "section_order": order, "summary_angle": plan.summary_angle,
             "questions": questions}, role_profile)
 
@@ -987,10 +996,11 @@ async def _run_resume_writer(
     allowed, bullet_targets = _scope_targets(scope, targets, current, items)
     model = structured_llm or llm
     role_family = role_profile.get("role_family", "other")
+    bullet_style = (previous_plan or {}).get("bullet_style") or ("labeled" if role_family in {"ai_pm", "pm"} else "plain")
     effective_constraints = normalize_session_constraints(
         constraints, seniority=role_profile.get("seniority", "unknown"))
     capacity = writer_capacity_budget(effective_constraints)
-    payload = {"evidence": source, "role_profile": role_profile,
+    payload = {"evidence": source, "role_profile": role_profile, "bullet_style": bullet_style,
                "instruction": instruction, "scope": scope, "targets": list(targets),
                "allowed_item_ids": sorted(allowed), "capacity_budget": capacity,
                "current_target_bullets": _safe_current_targets(current, meta, allowed, facts)}
@@ -1071,6 +1081,7 @@ async def _run_resume_writer(
         if isinstance(error, ValidationError):
             schema = OnePassOutput if stage == "one_pass" else MatchPlan if stage == "plan" else WriterDraft
             writer_diagnostic.update(_safe_validation_errors(error, schema))
+    plan.bullet_style = bullet_style
     match_plan = _validate_plan(plan, source, role_profile, items, facts)
     if writer_diagnostic.get("status") == "model_fallback" and phase != "write":
         for row in match_plan["experience_plan"]:
@@ -1180,13 +1191,13 @@ async def _run_resume_writer(
                 reasons.append("unknown_or_cross_item_fact_id")
             candidate_rows.append({"id": f"b{len(candidate_rows)}", "item_id": item_id,
                                    "section": written.section, "field": field, "bullet_index": bullet_index,
-                                   "text": bullet.text.strip(), "fact_ids": refs,
+                                   "text": LABEL.sub("", bullet.text.strip()), "fact_ids": refs,
                                    "req_ids": [req for req in bullet.req_ids if req in req_ids],
                                    "allowed_reqs": req_ids, "flags": [flag for flag in bullet.flags if flag == "transferable"],
                                    "needs_metric": bullet.needs_metric, "metric_question": bullet.metric_question,
                                    "valid_refs": not reasons, "invalid_reasons": reasons})
     if scope != "bullet":
-        candidate_rows = _merge_context_only_rows(candidate_rows, facts)
+        candidate_rows = _merge_context_only_rows(candidate_rows, facts, bullet_style)
     # The summary check reads only the draft summary and the fact store, never the bullet
     # guard/repair outcome, so it runs alongside them and is awaited where it was used.
     from app.services.structure_plan import user_plan_text
@@ -1224,8 +1235,9 @@ async def _run_resume_writer(
         rows = by_item.get(item_id, [])
         if scope != "bullet":
             rows = _without_repeated_fact_rows(rows, items[item_id][1].get("facts") or [],
-                                               str(items[item_id][1].get("name") or items[item_id][1].get("company") or ""))
-        rows = _without_near_duplicate_rows(rows)
+                                               str(items[item_id][1].get("name") or items[item_id][1].get("company") or ""),
+                                               bullet_style if section == "projects" else "plain")
+        rows = _without_near_duplicate_rows(rows, facts, bullet_style if section == 'projects' else 'plain')
         if rows and _contract.active(contract_modes) and writer_diagnostic.get("status") != "model_fallback":
             field_name = "polished_bullets" if section == "projects" else "bullets"
             prior_item = next((entry for entry in current.get(section) or []
@@ -1237,6 +1249,8 @@ async def _run_resume_writer(
                     prior_records=prior_bullets_meta.get(item_id) or [], prior_texts=prior_texts,
                     role_profile=role_profile, modes=contract_modes, instruction=instruction,
                     model=model, llm=llm, role_family=role_family, source=source, report=contract_report)
+        if section == "projects":
+            rows = format_rows(rows, facts, bullet_style)
         if not rows:
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"
@@ -1376,7 +1390,7 @@ async def _run_resume_writer(
                                                 positioning_checks=plan_checks, diagnostic=writer_diagnostic)
         selected = checked["recommended"]
         output = apply_plan_structure(output, selected)
-        positioning = selected.get("positioning") or ""
+        positioning = selected.get("profile_statement") or selected.get("positioning") or ""
         if positioning:
             meta["summary"] = {"fact_ids": list(facts), "text_hash": _hash(positioning)}
         else:

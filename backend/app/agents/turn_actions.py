@@ -200,6 +200,7 @@ def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str
     """Resolve each ownership sentence from its own name or matching role question."""
     if not isinstance(answer, str) or not isinstance(question, str):
         return collected
+    collected = bind_reason_followup(collected, question, answer, turn_id)
     if not collected.get('pending_ownership') and (not _ROLE_QUESTION.search(question) or not _ROLE_ANSWER.search(answer)):
         return collected
     result = normalize_fact_store(collected)
@@ -277,6 +278,42 @@ def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str
             target['facts'].append(new_fact(quote, kind='role', quote=quote, turn_id=turn_id))
         if quote not in target.setdefault('raw_notes', []):
             target['raw_notes'].append(quote)
+    return result
+
+
+def bind_reason_followup(collected: dict, question: str, answer: str, turn_id: str = '') -> dict:
+    """Bind a short reason answer only when its question identifies one item."""
+    from app.agents.interviewer import NO_ANSWER
+    if '这样做是为了解决什么' not in question or not answer.strip() or NO_ANSWER.fullmatch(answer.strip()):
+        return collected
+    if re.search(r'生成|导出|个人定位|写法|按推荐写|改简历|不知道|不清楚', answer):
+        return collected
+    # The same interviewer message can also ask for metrics. A numeric reply
+    # must not acquire a causal meaning merely because the reason question led.
+    if not re.search(r'为了|避免|防止|因为|以便|目的是|解决', answer) and re.search(
+            r'\d|[一二三四五六七八九十]+(?:人|次|个)|用户量|指标|第二|第三', answer):
+        return collected
+    result = normalize_fact_store(collected)
+    names = re.findall(r'「([^」]+)」的决策：这样做是为了解决什么', question)
+    pools = [item for section in ('projects', 'work_experience', 'internship')
+             for item in result.get(section) or []]
+    named = [item for item in pools if (label := item.get('name') or item.get('company')) and label in answer]
+    choices = [item for item in (named or pools) if (item.get('name') or item.get('company')) in names]
+    if len(choices) != 1:
+        return collected
+    target = choices[0]
+    quote = answer.strip()
+    # Keep exact source and deduplicate extraction of the same reply.
+    existing = next((f for f in target.get('facts') or []
+                     if f.get('status', 'active') == 'active' and f.get('source_quote') == quote), None)
+    if existing is None:
+        existing = new_fact(quote, kind='context', quote=quote, turn_id=turn_id)
+        target.setdefault('facts', []).append(existing)
+    existing['kind'] = 'context'
+    # The prefix records what this reply answers; the original quote stays exact.
+    existing['text'] = quote if re.search(r'为了|避免|防止|因为|以便|原因', quote) else '目的是' + quote
+    if quote not in target.setdefault('raw_notes', []):
+        target['raw_notes'].append(quote)
     return result
 
 

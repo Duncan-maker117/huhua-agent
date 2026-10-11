@@ -38,6 +38,7 @@ class PlannedQuestion(WriterSchema):
 
 
 class MatchPlan(WriterSchema):
+    bullet_style: Literal['labeled', 'plain'] | None = None
     requirements: list[RequirementMatch] = Field(default_factory=list)
     experience_plan: list[ExperiencePlan] = Field(default_factory=list)
     section_order: list[str] = Field(default_factory=list)
@@ -49,12 +50,15 @@ class RecommendedPlan(MatchPlan):
     label: str = "主线叙事型"
     positioning: str = Field(default="", description="必填：由已有事实支持的概括定位；仅缺乏支持时为空")
     thesis: str = ""
+    profile_statement: str = Field(default="", description="由 thesis 改写的个人定位，2–3句且不超过90字；只使用 active facts")
 
 
 class AlternativePlan(WriterSchema):
     label: str
     positioning: str = Field(default="", description="必填：由已有事实支持的概括定位；仅缺乏支持时为空")
     thesis: str = ""
+    profile_statement: str = Field(default="", description="将写进简历的个人定位，2–3句且不超过90字")
+    bullet_style: Literal['labeled', 'plain'] | None = None
     section_order: list[str] = Field(default_factory=list)
     # Only differences from recommended; selection merges them by item_id.
     experience_plan: list[ExperiencePlan] = Field(default_factory=list)

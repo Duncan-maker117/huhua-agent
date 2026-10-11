@@ -7,7 +7,6 @@ import re
 from app.schemas.writer import MatchPlan
 from app.services.fact_guard import (TERM_FILE, contains_term, guard_bullets,
                                      lexical_fact_errors, ngram_overlap, normalize_text, validate_skill_groups)
-from app.services.resume_facts import PERSONAL_ACTION_KINDS, personal_action_clauses
 
 SECTION_LABELS = {'education': '教育经历', 'work_experience': '工作/实习经历',
                   'projects': '项目经历', 'open_source': '开源贡献', 'awards': '竞赛荣誉',
@@ -18,6 +17,36 @@ ALIASES = {'教育': 'education', '工作': 'work_experience', '实习': 'work_e
 
 
 _IDENTITY = re.compile(r'实习生|工程师|产品经理|经理|设计师|分析师|研究员|开发者|负责人|专家|创始人|主理人')
+
+
+def profile_edit(text: str) -> str | None:
+    match = re.fullmatch(r'\s*(?:请)?(?:把|将)?个人定位(?:改成|改为|换成)[：:\s]*(.+)', text, re.S)
+    return match[1].strip() if match else None
+
+
+def style_edit(text: str) -> str | None:
+    match = re.fullmatch(r'\s*(?:写法[：:]?|(?:请)?(?:把)?写法(?:改成|改为|切换为))\s*(问题[-—－]决策[-—－]结果|普通|labeled|plain)[。\s]*', text)
+    return ('plain' if match[1] in {'普通', 'plain'} else 'labeled') if match else None
+
+
+def stance_errors(sentence: str, facts: dict) -> list[str]:
+    """Conservative noun-surface gate; semantic review still checks the synthesis.
+
+    The object of 关注/重视/致力于 ends at a colon or sentence boundary. Each
+    noun chunk must occur in original active evidence, with >=2 distinct facts
+    contributing. Duplicate fact copies do not count as independent support.
+    """
+    quotes = {normalize_text(f.get('source_quote') or f.get('text') or '')
+              for f in facts.values() if f.get('status', 'active') == 'active'}
+    for match in re.finditer(r'(?:关注|重视|致力于)([^。！？!?：:；;]+)', sentence):
+        chunks = re.split(r'的|与|和|及|、|，|,|\s+', match[1])
+        nouns = [normalize_text(word) for word in chunks if word.strip()]
+        supporting = {quote for quote in quotes if any(word in quote for word in nouns)}
+        if not nouns or any(not any(word in quote for quote in quotes) for word in nouns):
+            return ['unsupported_stance_terms']
+        if len(supporting) < 2:
+            return ['stance_needs_two_facts']
+    return []
 
 def user_plan_text(text: str, profile: dict | None = None) -> str:
     """Translate internal requirement/signal references only in prose slots."""
@@ -52,6 +81,8 @@ def readable_plan(plan: dict, profile: dict | None = None) -> dict:
 
 
 def plan_action(text: str, card: dict | None = None) -> tuple[str, int]:
+    if profile_edit(text) is not None or style_edit(text):
+        return 'edit', 0
     cleaned = re.sub(r'\s+', '', text).rstrip('。！!')
     if re.search(r'重新定方案|重定方案|主线.{0,8}(?:换|改)|(?:换|改).{0,6}主线|定位.{0,8}(?:换|改)', cleaned):
         return 'replan', 0
@@ -86,22 +117,43 @@ def select_plan(card: dict, index: int = 0) -> dict | None:
         result['experience_plan'] = [deepcopy(diffs.get(row['item_id'], row)) for row in result['experience_plan']]
         for key in ('label', 'positioning', 'thesis', 'section_order'):
             result[key] = deepcopy(alternative[key])
+        for key in ('profile_statement', 'profile_statement_source', 'profile_statement_fact_ids', 'bullet_style'):
+            result.pop(key, None)
+            if key in alternative:
+                result[key] = deepcopy(alternative[key])
         result.pop('positioning_source', None)
         if alternative.get('positioning_source') == 'derived':
             result['positioning_source'] = 'derived'
     return result
 
 
+def accept_profile(plan: dict) -> dict:
+    result = deepcopy(plan)
+    if result.get('profile_statement') and result.get('profile_statement_source') != 'user':
+        result['profile_statement_source'] = 'confirmed'
+    return result
+
+
+def _accepted_profile(plan: dict, facts: dict) -> bool:
+    return (plan.get('profile_statement_source') == 'user' or
+            (plan.get('profile_statement_source') == 'confirmed'
+             and bool(plan.get('profile_statement_fact_ids'))
+             and set(plan['profile_statement_fact_ids']) <= facts.keys()))
+
+
 def positioning_guard_rows(card: dict, facts: dict) -> list[dict]:
     return [{'id': f'plan_positioning_{index}', 'text': sentence, 'fact_ids': list(facts),
-             'semantic_only': True, 'claim_kind': 'positioning'}
+             'semantic_only': not bool(row.get('profile_statement')), 'claim_kind': 'positioning'}
             for index, row in enumerate([card['recommended'], *(card.get('alternatives') or [])[:2]])
-            if (sentence := str(row.get('positioning') or '').strip()) and len(sentence) <= 40]
+            if not _accepted_profile(row, facts)
+            and (sentence := str(row.get('profile_statement') or row.get('positioning') or '').strip())
+            and len(sentence) <= (90 if row.get('profile_statement') else 40)]
 
 
 async def validate_structure_plan(card: dict, source: dict, profile: dict, items: dict, facts: dict,
                                   *, llm=None, positioning_checks: dict | None = None, diagnostic: dict | None = None) -> dict:
     from app.agents.resume_writer import _validate_plan
+    facts = {fid: fact for fid, fact in facts.items() if fact.get('status', 'active') == 'active'}
     # Verify the same wording that will be shown/written, including ID expansion.
     card = {'recommended': readable_plan(card['recommended'], profile),
             'alternatives': [readable_plan(row, profile) for row in card.get('alternatives') or []]}
@@ -124,7 +176,8 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                          if error.startswith(('unsupported_numbers:', 'unsupported_quantity_unit:'))]
         thesis_errors.extend(validate_skill_groups({'terms': concrete_terms}, list(facts.values()), source.get('skills') or []))
         plan['thesis'] = thesis if not thesis_errors else ''
-        sentence = str(row.get('positioning') or '').strip()
+        is_profile = bool(row.get('profile_statement'))
+        sentence = str(row.get('profile_statement') or row.get('positioning') or '').strip()
         check = positioning_checks.get(f'plan_positioning_{index}') or {}
         semantic = check.get('semantic') or {}
         # The header line is resume prose: a job title or identity is only
@@ -133,12 +186,24 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         sentence_terms = [term.strip() for term in terms if term.strip() and not term.startswith('#')
                           and contains_term(sentence, term.strip())]
         unsupported_tools = validate_skill_groups({'terms': sentence_terms}, list(facts.values()), source.get('skills') or [])
-        reason = ('empty' if not sentence else 'over_40_chars' if len(sentence) > 40 else
+        limit = 90 if is_profile else 40
+        profile_errors = (lexical_fact_errors(sentence, quotes) + stance_errors(sentence, facts)) if is_profile else []
+        if is_profile and (len([s for s in re.split(r'[。！？!?]+', sentence) if s.strip()]) not in {2, 3}
+                           or re.search(r'这个人|候选人|让面试官记住', sentence)):
+            profile_errors.append('not_resume_profile')
+        reason = ('empty' if not sentence else f'over_{limit}_chars' if len(sentence) > limit else
+                  'profile_fact_errors' if profile_errors else
                   'lexical_fact_errors' if check.get('lexical_errors') or unsupported_tools else
                   'unsupported_identity' if identities else
                   'semantic_result_missing' if not check else
                   'semantic_rejected' if check.get('verdict') != 'pass' else '')
-        plan['positioning'] = sentence if not reason else ''
+        if _accepted_profile(row, facts):
+            reason = ''  # Confirmed/user prose is not sent back for another approval.
+            plan['profile_statement_source'] = row['profile_statement_source']
+        if is_profile and not reason:
+            plan['profile_statement_fact_ids'] = row.get('profile_statement_fact_ids') or list(facts)
+        plan['profile_statement'] = sentence if is_profile and not reason else ''
+        plan['positioning'] = sentence if not is_profile and not reason else ''
         # A sentence stitched from fact fragments reads worse than no line at
         # all; an empty positioning simply leaves the header line out.
         fallback, fallback_reason = '', ('model_empty' if reason == 'empty' else '')
@@ -179,7 +244,8 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         if alternative['label'] in {row['label'] for row in [recommended, *result['alternatives']]}:
             alternative['label'] += f"（备选{len(result['alternatives']) + 1}）"
         baseline = {row['item_id']: row for row in recommended['experience_plan']}
-        result['alternatives'].append({**{key: alternative[key] for key in ('label', 'positioning', 'thesis', 'section_order')},
+        result['alternatives'].append({**{key: alternative[key] for key in ('label', 'positioning', 'profile_statement', 'bullet_style', 'thesis', 'section_order')},
+                                      **{key: alternative[key] for key in ('profile_statement_source', 'profile_statement_fact_ids') if key in alternative},
                                       **({'positioning_source': 'derived'} if alternative.get('positioning_source') == 'derived' else {}),
                                       'experience_plan': [row for row in alternative['experience_plan'] if row != baseline[row['item_id']]]})
     if not result['alternatives']:
@@ -187,6 +253,8 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
         diffs = [{**row, 'treatment': 'keep', 'target_bullets': 2} for row in recommended['experience_plan']
                  if row['treatment'] != 'keep']
         result['alternatives'] = [{'label': '经历均衡型', 'positioning': recommended['positioning'], 'thesis': '',
+                                   'profile_statement': recommended['profile_statement'], 'bullet_style': recommended['bullet_style'],
+                                   **{key: recommended[key] for key in ('profile_statement_source', 'profile_statement_fact_ids') if key in recommended},
                                    **({'positioning_source': 'derived'} if recommended.get('positioning_source') == 'derived' else {}),
                                    'section_order': list(recommended['section_order']), 'experience_plan': diffs}]
     return result
@@ -195,6 +263,12 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
 def edit_plan(plan: dict, text: str, collected: dict) -> tuple[dict, bool]:
     """Apply named/section order and inclusion choices; never edit fact master."""
     result = deepcopy(plan)
+    if (statement := profile_edit(text)) is not None:
+        result.update(profile_statement=statement, positioning='', profile_statement_source='user')
+        return result, True
+    if style := style_edit(text):
+        result['bullet_style'] = style
+        return result, True
     labels = {item.get('item_id'): item.get('name') or item.get('company') or ''
               for section in (*SECTION_LABELS, 'internship') for item in collected.get(section) or [] if isinstance(item, dict)}
     changed = False
@@ -273,7 +347,7 @@ def apply_plan_structure(data: dict, plan: dict) -> dict:
                     row['hidden'] = treatments[row['item_id']] == 'backup'
     from app.agents.resume_writer import _apply_section_order
     _apply_section_order(result, plan['section_order'])
-    result['summary'] = plan.get('positioning') or ''
+    result['summary'] = plan.get('profile_statement') or plan.get('positioning') or ''
     return result
 
 

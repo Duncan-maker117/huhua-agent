@@ -191,6 +191,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             'match_plan': {'questions': [{'q': '有多少用户？', 'value': 5, 'improves': {'item_id': 'p1'}}]}}
         result = compose_interviewer_reply(state)
         self.assertIn('这样做是为了解决什么', result['questions'][0]['q'])
+        self.assertIn('分开存储', result['questions'][0]['q'])  # names the decision
         answer = '避免把外部调研当成个人经历'
         updated = bind_role_followup(collected, result['text'], answer, 'fictional-turn')
         reason = next(f for f in updated['projects'][0]['facts'] if f['kind'] == 'context')

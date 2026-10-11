@@ -294,7 +294,7 @@ def bind_reason_followup(collected: dict, question: str, answer: str, turn_id: s
             r'\d|[一二三四五六七八九十]+(?:人|次|个)|用户量|指标|第二|第三', answer):
         return collected
     result = normalize_fact_store(collected)
-    names = re.findall(r'「([^」]+)」的决策：这样做是为了解决什么', question)
+    names = re.findall(r'「([^」]+)」的决策(?:「[^」]*」)?：这样做是为了解决什么', question)
     pools = [item for section in ('projects', 'work_experience', 'internship')
              for item in result.get(section) or []]
     named = [item for item in pools if (label := item.get('name') or item.get('company')) and label in answer]

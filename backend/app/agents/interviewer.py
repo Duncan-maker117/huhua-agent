@@ -162,7 +162,7 @@ def _question_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
 
 
 def _reason_candidates(state: dict, plan: dict, data: dict, already: set[str]) -> list[dict]:
-    from app.services.writing_style import decision_without_reason
+    from app.services.writing_style import DECISION, decision_without_reason, fact_text
     known = _known_targets(data)
     evidence = active_facts_for_writer(state.get('collected_info') or {})
     candidates = []
@@ -172,7 +172,11 @@ def _reason_candidates(state: dict, plan: dict, data: dict, already: set[str]) -
             if iid not in known or not decision_without_reason(item.get('facts') or []):
                 continue
             name = item.get('name') or item.get('company') or '这段经历'
-            q = f'「{name}」的决策：这样做是为了解决什么？'
+            decision = next((clause for fact in item.get('facts') or [] if fact.get('kind') in {'action', 'deliverable'}
+                             for clause in re.split(r'[，,。；;]', fact_text(fact)) if DECISION.search(clause)), '')
+            # Name the decision so the user knows which choice the question is about.
+            q = (f'「{name}」的决策「{decision.strip()[:30]}」：这样做是为了解决什么？' if decision.strip()
+                 else f'「{name}」的决策：这样做是为了解决什么？')
             identifier = _question_id(q, iid, '')
             if identifier in already:
                 continue

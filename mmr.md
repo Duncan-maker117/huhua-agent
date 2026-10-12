@@ -21,11 +21,15 @@
 - 一号一人，一个账号维护本人唯一主档案。个人事实、长期偏好、岗位/简历版本分开；姓名及联系方式是个人事实，不是独立记忆 Agent。
 - 明确、无冲突的本人信息自动归档；保留来源和时间，重复提及不提高真实性。明确更正替代旧值，无法判断的冲突交给用户；不把 JD、参考简历、AI 建议变成本人事实。
 - 事实可信和导出一致优先，不补估算数字、职责或成果。建议先核对再采用；改当前稿措辞不自动改全局档案。
-- 右侧五页分别呈现 JD、经历、简历、核对、导出；左侧简短反馈、建议和具体补问。点选快捷回答即发送完整句，同组防连点，保留输入草稿与附件。
+- 右侧四页分别呈现 JD、经历、简历、核对，编辑与下载集中在「写简历」；左侧简短反馈、建议和具体补问。点选快捷回答即发送完整句，同组防连点，保留输入草稿与附件。
 - 服务端需要处理明文，因此是加密存储与受控解密，不是端到端加密。姓名/经历按任务需要发模型，常规文本邮箱/电话先脱敏；图片识别仍发原图。
 - 登录后资料默认保留至手动删除；游客按上述临时保留期处理。档案删除阻止未来使用，原聊天删除独立处理；最小旧值排除资料加密保留以阻止旧副本复活。恢复需独立最新隐私状态与可信摘要。
 
 ## 当前状态
+
+2026-10-12「页内精细编辑与下载入口」本地完成：保留 `overhaul/tailor` 既有提交和回放产物。聊天工作区只保留读岗位/挖经历/写简历/核对，写简历预览下提供精细编辑、PDF、Word（可编辑·统一排版）；空稿禁用。精细编辑使用当前会话的 `/resume?session_id=…&embedded=1`，有稿后 idle 预载（计时器降级），关闭只隐藏，切换会话销毁重建；加载中可返回。双向消息校验 origin 与窗口来源，保存成功刷新父预览，对话新版本同步到干净编辑器，未保存输入及请求返回期间的新输入不被覆盖；保存冲突沿用备份/载入最新入口。父子页登录状态同步，直接 `/resume?session=…` 保留导航。下载沿用登录门槛、60秒文件读取超时、文件签名与错误文案，生成中防重复点击，会话切换丢弃旧下载响应；导出意图定位写简历下载区，快捷导出直接导航。只加普通 CSS，无新增 Tailwind utility；相关静态引用版本均更新为 `20261012-embedded`。新增 DOM/Python 与独立纯虚构浏览器夹具，更新既有入口/文案回归。指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 全量 **1290/1290（38.763s）**；新增 DOM、原方案卡 DOM、修改 JS/内联脚本语法与差异检查通过；无真实模型调用、key读取/打印、commit/push/部署。浏览器夹具运行器问题已修正，但 Chrome 后续启动受沙箱 EPERM/SIGABRT 阻止，真实浏览器和视觉验收未完成。Ruff 原有 `resume_workspace.py:111 current_item` 未定义（HEAD 中已有），按范围保留。
+
+本轮文件：`web/index.html`、`web/resume.html`、`web/resume-actions.js`（新增）、`web/resume-editor.js`、`web/resume-editor.css`、`web/resume-workspace.js`、`web/resume-workspace.css`、`web/account-profile.js`、`web/conversation-history.js`；`backend/app/agents/resume_graph.py`、`backend/app/services/resume_workspace.py`；新增 `tests/resume_embedded.dom.js`、`tests/resume_embedded.browser.js`、`tests/test_resume_embedded.py`，更新 `tests/conversation_history.browser.js`、`tests/resume_workspace.browser.js`、`tests/test_resume_flow.py`、`tests/test_resume_import_flow.py`；交接为本文件。浏览器夹具采用页面路由模拟全部接口，需在允许启动 Chrome 的环境执行 `playwright-cli -s=huhua-embedded open about:blank` 后 `playwright-cli -s=huhua-embedded run-code --filename=tests/resume_embedded.browser.js`；其中 PDF 是签名正确的下载模拟体，真实 PDF 生成由全量 Python 测试覆盖。
 
 2026-10-12「写法升级」四项本地完成：保持 `overhaul/tailor` 既有提交与回放产物。推荐/备选增加 `profile_statement`（2–3句、≤90字），复用词面/身份/语义事实校验，并对立场名词及至少两条 active 原文做保守检查；卡片显示原文，确认后写入 summary，确认文本不重复请求语义认可，引用事实失效则重新检查。`positioning` 仅兼容旧方案，不重复展示。个人定位文字替换与写法切换确定性执行；ai_pm/pm 默认 labeled，其余 plain，项目标签按事实分类排序，问题/现状不再被动作过滤或跨标签近似去重误删。原因追问优先于指标，明确答复以 context 和原始引文入档，纯数字回复不误绑为原因；writer 合同要求动作与已知原因同句。正向现状允许，negative_absence 保留并覆盖「未跑通」。7款 HTML 与 Word 页头均显示「个人定位」。新增12项虚构/fake-model回归，指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1286/1286（42.607s）**；修改文件 Ruff（忽略既有E402）、JS语法、方案卡DOM及差异检查通过。无真实模型调用、commit/push/部署；真实模型文案质量与原生 Word 最终分页未测，无已知阻塞。
 

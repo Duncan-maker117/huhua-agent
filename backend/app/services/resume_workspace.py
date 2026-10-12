@@ -315,7 +315,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     elif material == "review":
         focus = "review"
     elif stage == "EXPORT":
-        focus = "export"
+        focus = "resume"
     elif stage == "COLLECTING" and items:
         focus = "experiences"
 
@@ -418,6 +418,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
         "resume": {"has_data": has_data, "version": resume_revision(canonical)},
         "review": {"items": review_resume(canonical, jd) if has_data else [], "reply": reply if material == "review" else ""},
         "guidance": guidance, "suggestions": suggestions, "focus": focus,
+        "focus_download": stage == "EXPORT" and focus == "resume",
     }
 
 

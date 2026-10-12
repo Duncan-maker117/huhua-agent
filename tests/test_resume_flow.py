@@ -155,7 +155,7 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
         with patch("app.agents.resume_graph.evaluating_node", AsyncMock()) as evaluate:
             result = await export_node(state, object())
         evaluate.assert_not_awaited()
-        self.assertIn("模板页", result["messages"][0].content)
+        self.assertIn("右侧「写简历」", result["messages"][0].content)
 
     async def test_edit_before_export_is_not_treated_as_confirmation(self):
         state = self._evaluating_state("项目描述有问题，请先补充整理访谈笔记，再导出")

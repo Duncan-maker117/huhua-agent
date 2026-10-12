@@ -83,6 +83,11 @@
     try { if (account.authenticated) pendingClaim = sessionStorage.getItem(pendingClaimKey); } catch (_) { /* Identifier storage is optional. */ }
     return account;
   }).catch(error => { account.error = error.message; account.errorStatus = error.status; return account; });
+  async function refreshAccount() {
+    const value = readAccount(await request('/api/account/me'));
+    try { pendingClaim = value.authenticated ? sessionStorage.getItem(pendingClaimKey) : null; } catch (_) { /* Identifier storage is optional. */ }
+    return value;
+  }
   function say(message, error = false) { if (status) { status.textContent = message; status.classList.toggle('error', error); } }
   function setBusy(value) { busy = value; content?.setAttribute('aria-busy', String(value)); content?.querySelectorAll('button,input,textarea,select').forEach(n => { n.disabled = value; }); syncLoginControls(); }
   async function mutate(action, success, refresh = true) {
@@ -363,6 +368,6 @@
       }
     });
   }
-  window.HuhuaAccount = {ready, clearPrivateCache, authenticated: () => Boolean(account.authenticated && !pendingClaim), guest: isGuest, claimPending: () => Boolean(pendingClaim), guestNotice, rememberedSession, rememberSession, requireLogin, requiresLogin: () => Boolean(account.require_account && (!account.authenticated || pendingClaim)), refreshIfOpen: () => { if (overlay && !overlay.hidden && account.authenticated && !busy) { if (content.querySelector('form')) say('聊天已保存。完成当前填写后可刷新档案，查看整理进度。'); else loadProfile(); } }, open};
+  window.HuhuaAccount = {ready, clearPrivateCache, refreshAccount, authenticated: () => Boolean(account.authenticated && !pendingClaim), guest: isGuest, claimPending: () => Boolean(pendingClaim), guestNotice, rememberedSession, rememberSession, requireLogin, requiresLogin: () => Boolean(account.require_account && (!account.authenticated || pendingClaim)), refreshIfOpen: () => { if (overlay && !overlay.hidden && account.authenticated && !busy) { if (content.querySelector('form')) say('聊天已保存。完成当前填写后可刷新档案，查看整理进度。'); else loadProfile(); } }, open};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 })();

@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261002-1"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261002-1"/>
 <link rel="stylesheet" href="/static/account-profile.css?v=20261004"/>
-<script src="/static/account-profile.js?v=20261005-guest"></script>
+<script src="/static/account-profile.js?v=20261012-embedded"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -34,7 +34,7 @@
   .tpl-chip { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #c9c3d9; color: #484456; background: #fff; cursor: pointer; }
   .tpl-chip.active { border-color: #5423e7; color: #3c00bd; background: #f0ecff; font-weight: 600; }
 </style>
-<link rel="stylesheet" href="/static/resume-workspace.css?v=20261010-pr6b"/>
+<link rel="stylesheet" href="/static/resume-workspace.css?v=20261012-actions-top"/>
 <link rel="stylesheet" href="/static/change-card.css?v=20261010-pr6b"/>
 </head>
 <body class="bg-background text-on-background overflow-hidden h-screen flex">
@@ -208,8 +208,6 @@
       <div id="workspace-status" class="workspace-status" role="status" aria-live="polite">把岗位、经历和简历放在一起</div>
     </div>
     <div class="flex items-center gap-2">
-      <a id="btn-open-full" class="text-xs text-primary font-semibold hover:underline" href="/resume">全屏模板</a>
-      <button id="btn-export-docx" class="text-xs px-3 py-1.5 rounded-full bg-primary text-on-primary font-semibold disabled:opacity-40" title="下载通用排版的 Word，所选模板样式适用于 PDF" disabled>通用 Word</button>
       <button id="btn-close-workspace" type="button" aria-label="返回对话">返回对话</button>
     </div>
   </div>
@@ -219,6 +217,19 @@
   <section id="workspace-panel-experiences" role="tabpanel" aria-labelledby="workspace-tab-experiences" tabindex="0" hidden></section>
   <section id="workspace-panel-resume" role="tabpanel" aria-labelledby="workspace-tab-resume" tabindex="0" hidden>
   <div id="verification-panel" class="hidden mx-5 mb-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"></div>
+  <div id="resume-actions" aria-label="编辑与下载简历">
+    <div class="workspace-actions">
+      <button id="btn-edit-resume" type="button" class="workspace-button workspace-secondary" disabled title="先生成简历">精细编辑</button>
+      <button id="btn-export-pdf" type="button" class="workspace-button" disabled title="先生成简历">下载 PDF</button>
+      <div class="resume-word-action"><button id="btn-export-docx" type="button" class="workspace-button workspace-secondary" disabled title="先生成简历">下载 Word</button><small>可编辑 · 统一排版</small></div>
+    </div>
+    <p id="resume-actions-hint" class="workspace-description">先生成简历</p>
+    <div id="workspace-export-result" hidden>
+      <p id="workspace-export-status" role="status" aria-live="polite"></p>
+      <a id="workspace-export-download" hidden>下载文件</a>
+      <a id="workspace-export-open" target="_blank" rel="noopener noreferrer" hidden>打开文件</a>
+    </div>
+  </div>
   <div id="tpl-rail" class="px-5 pb-3 flex flex-wrap gap-2"></div>
   <div id="resume-preview-area" class="flex-1 overflow-hidden px-5 pb-5">
     <div id="canvas-empty" class="h-full rounded-2xl border border-dashed border-primary/20 bg-white/40 flex flex-col items-center justify-center text-center px-8">
@@ -232,12 +243,15 @@
   </div>
   </section>
   <section id="workspace-panel-review" role="tabpanel" aria-labelledby="workspace-tab-review" tabindex="0" hidden></section>
-  <section id="workspace-panel-export" role="tabpanel" aria-labelledby="workspace-tab-export" tabindex="0" hidden></section>
   <section id="workspace-suggestions" aria-label="建议" hidden></section>
   </div>
 </aside>
 
 </main>
+
+<div id="resume-editor-overlay" role="dialog" aria-modal="true" aria-label="精细编辑简历" hidden>
+  <div id="resume-editor-loading"><span>正在加载精细编辑…</span><button id="btn-cancel-editor-load" type="button" class="workspace-button workspace-secondary">返回对话</button></div>
+</div>
 
 <div id="conversation-overlay" hidden>
   <button id="conversation-backdrop" type="button" aria-label="关闭历史对话"></button>
@@ -253,7 +267,8 @@
 </div>
 
 <script src="/static/change-card.js?v=20261011-density"></script>
-<script src="/static/resume-workspace.js?v=20261010-pr6b"></script>
+<script src="/static/resume-workspace.js?v=20261012-embedded"></script>
+<script src="/static/resume-actions.js?v=20261012-embedded"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -559,13 +574,6 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   return completed;
 }
 
-const STAGES = [
-  { id: 'JD_INPUT', label: '读岗位' },
-  { id: 'COLLECTING', label: '挖经历' },
-  { id: 'BUILDING', label: '写简历' },
-  { id: 'EVALUATING', label: '核对' },
-  { id: 'EXPORT', label: '导出' },
-];
 const canvasState = {
   stage: 'JD_INPUT',
   hasData: false,
@@ -669,8 +677,6 @@ async function paintSheet(data) {
   const emptyEl = document.getElementById('canvas-empty');
   const wrap = document.getElementById('canvas-sheet-wrap');
   const iframe = document.getElementById('live-sheet');
-  const exportBtn = document.getElementById('btn-export-docx');
-  const fullLink = document.getElementById('btn-open-full');
   if (!iframe || !wrap) return;
   try {
     const res = await fetch(`/api/resume/render/${canvasState.templateId}?session_id=${encodeURIComponent(SESSION_ID)}`,  {
@@ -684,8 +690,6 @@ async function paintSheet(data) {
     iframe.srcdoc = applyHighlight(html);
     emptyEl.classList.add('hidden');
     wrap.classList.remove('hidden');
-    if (exportBtn) exportBtn.disabled = false;
-    if (fullLink) fullLink.href = `/resume?session=${encodeURIComponent(SESSION_ID)}`;
     requestAnimationFrame(scaleSheet);
     return true;
   } catch (e) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
@@ -703,6 +707,7 @@ async function refreshCanvas() {
     if (request !== canvasReadRequest || session !== SESSION_ID) return false;
     if (body.stage) canvasState.stage = body.stage;
     if ('version_id' in body) canvasState.versionId = body.version_id;
+    window.HuhuaResumeActions?.sync(body);
     if (body.workspace) window.HuhuaWorkspace?.update(body.workspace);
     renderStageRail();
     if (body.has_data && body.data) {
@@ -718,7 +723,6 @@ async function refreshCanvas() {
       canvasState.data = null;
       document.getElementById('canvas-empty')?.classList.remove('hidden');
       document.getElementById('canvas-sheet-wrap')?.classList.add('hidden');
-      document.getElementById('btn-export-docx').disabled = true;
       window.HuhuaWorkspace?.canvasResult(body);
     }
     const notesPanel = document.getElementById('verification-panel');
@@ -1019,6 +1023,7 @@ window.HuhuaWebResearch?.init({
   send, input: () => inputEl.value,
   busy: () => Boolean(currentController || pendingUploads || conversationBusy || !conversationReady || window.HuhuaAccount?.claimPending()),
 });
+window.HuhuaResumeActions?.init({session: () => SESSION_ID, data: () => canvasState.data, template: () => canvasState.templateId, refresh: refreshCanvas});
 window.HuhuaWorkspace?.init({
   sendChoice: value => send(value, {quickReply: true}),
   fillInput(value) {
@@ -1059,33 +1064,11 @@ window.addEventListener('huhua-account-reset', () => {
 window.addEventListener('beforeunload', event => {
   if (unsavedChatSessions.size || inputEl.value.trim() || attachments.length || currentController) { event.preventDefault(); event.returnValue = ''; }
 });
-document.getElementById('btn-export-docx')?.addEventListener('click', async () => {
-  if (window.HuhuaAccount?.requireLogin('登录后即可导出这份简历，同时保留当前对话和个人信息。')) return;
-  if (!await refreshCanvas()) { alert('暂时无法读取最新简历，请重试。'); return; }
-  if (!canvasState.data) return;
-  const res = await fetch(`/api/resume/export/docx/${canvasState.templateId}?session_id=${encodeURIComponent(SESSION_ID)}`,  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(canvasState.data),
-  });
-  if (!res.ok) { alert('导出失败：' + await res.text()); return; }
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const cd = res.headers.get('Content-Disposition') || '';
-  const m = cd.match(/filename\\*=UTF-8''([^;]+)/);
-  a.href = url;
-  a.download = m ? decodeURIComponent(m[1]) : '简历.docx';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-});
 document.getElementById('btn-toggle-canvas')?.addEventListener('click', () => {
   window.HuhuaWorkspace?.setMobileOpen(true);
 });
 
 </script>
-<script src="/static/conversation-history.js?v=20261010-pr6b"></script>
+<script src="/static/conversation-history.js?v=20261012-embedded"></script>
 </body>
 </html>

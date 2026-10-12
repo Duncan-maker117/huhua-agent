@@ -154,8 +154,8 @@ async (page) => {
   check('keyboard-tabs', await page.locator('#workspace-tab-experiences').getAttribute('aria-selected') === 'true' && await page.locator('#workspace-tab-experiences').evaluate(el => el === document.activeElement), '方向键切换工作区并移动焦点');
   await page.locator('#workspace-tab-review').click();
   check('review-items', (await page.locator('#workspace-panel-review').textContent()).includes('请核对经历时间'), '核对 tab 展示当前问题');
-  await page.locator('#workspace-tab-export').click();
-  check('export-current-session', (await page.locator('#workspace-panel-export a').getAttribute('href')).includes('workspace-fixture'), '导出编辑入口绑定当前会话');
+  await page.evaluate(() => window.HuhuaWorkspace.openTab('export'));
+  check('export-in-write-tab', await page.locator('#workspace-panel-resume').isVisible() && await page.locator('#btn-export-pdf').isEnabled() && await page.locator('#workspace-tab-export').count() === 0, '旧导出入口指向写简历中的下载按钮');
   await page.setViewportSize({width:390,height:844});
   await page.locator('#btn-toggle-canvas').click();
   await page.locator('#workspace-tab-resume').click();

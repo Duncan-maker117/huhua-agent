@@ -3,7 +3,7 @@
   'use strict';
   const tabs = [
     ['jd', '读岗位', 'JD_INPUT'], ['experiences', '挖经历', 'COLLECTING'],
-    ['resume', '写简历', 'BUILDING'], ['review', '核对', 'EVALUATING'], ['export', '导出', 'EXPORT'],
+    ['resume', '写简历', 'BUILDING'], ['review', '核对', 'EVALUATING'],
   ];
   const $ = id => document.getElementById(id);
   const list = value => Array.isArray(value) ? value : [];
@@ -69,6 +69,9 @@
     // Claim this question synchronously: double clicks, keyboard repeats and
     // detached old buttons must never enqueue another turn.
     if (streaming || choicePending || answeredGuidance.has(key) || key !== guidanceKey() || !value) return;
+    if (value === '导出当前版本') {
+      setMobileOpen(true); openTab('export', true); return;
+    }
     choicePending = true;
     answeredGuidance.add(key);
     renderGuidance();
@@ -366,20 +369,6 @@
       panel.append(card);
     }
   }
-  function renderExport() {
-    const panel = $('workspace-panel-export'); panel.replaceChildren();
-    heading(panel, '导出这份简历', window.HuhuaAccount?.guest() ? '先免费聊天和查看模板；登录后即可导出，并保留这份简历与对话。' : '导出读取当前保存的内容。补充信息后，先在「写简历」核对最新稿。');
-    if (!hasResume) {
-      empty(panel, '还没有可导出的草稿', '先补充真实经历，草稿会逐步出现在「写简历」中。'); return;
-    }
-    const card = node('article', undefined, 'workspace-card');
-    card.append(node('h3', '选择交付格式'), node('p', 'Word 使用通用排版；PDF 在全屏模板页选择样式后生成下载文件。'));
-    const actions = node('div', undefined, 'workspace-actions');
-    const word = button('下载通用 Word', () => $('btn-export-docx').click()); word.disabled = streaming; actions.append(word);
-    const pdf = node('a', '打开模板 / 导出 PDF', 'workspace-button workspace-secondary');
-    pdf.href = '/resume?session=' + encodeURIComponent(callbacks.session?.() || ''); actions.append(pdf);
-    card.append(actions); panel.append(card);
-  }
   function renderSuggestions() {
     const panel = $('workspace-suggestions'); panel.replaceChildren();
     const suggestions = list(workspace.suggestions);
@@ -524,16 +513,19 @@
     }
     for (const [id, , stageId] of tabs) {
       const tab = $('workspace-tab-' + id);
-      tab.classList.toggle('active', active === id); tab.classList.toggle('current', stage === stageId);
+      tab.classList.toggle('active', active === id); tab.classList.toggle('current', stage === stageId || (id === 'resume' && stage === 'EXPORT'));
       tab.setAttribute('aria-selected', String(active === id)); tab.tabIndex = active === id ? 0 : -1;
       $('workspace-panel-' + id).hidden = active !== id;
     }
   }
   function openTab(id, user = false) {
+    const downloading = id === 'export';
+    if (downloading) id = 'resume'; // Old saved workspace projections remain usable.
     if (!tabs.some(([key]) => key === id)) return;
     active = id; if (user && streaming) interactedDuringTurn = true;
     renderTabs(); $('workspace-body').scrollTop = 0;
     if (id === 'resume') requestAnimationFrame(() => callbacks.resize?.());
+    if (downloading) window.HuhuaResumeActions?.focusDownload();
   }
   function updateStatus() {
     $('workspace-status').textContent = streaming
@@ -547,8 +539,8 @@
     workspace = value; hasWorkspace = true; webSourceSession = callbacks.session?.() || null;
     if (Object.prototype.hasOwnProperty.call(value, 'web_sources')) acceptWebSources(value.web_sources, webSourceSession);
     if (typeof value.resume?.has_data === 'boolean') hasResume = value.resume.has_data;
-    if (changed) { renderJd(); renderExperiences(); renderReview(); renderExport(); renderSuggestions(); renderGuidance(); }
-    if ((initial || options.focus) && !interactedDuringTurn && value.focus) openTab(value.focus);
+    if (changed) { renderJd(); renderExperiences(); renderReview(); renderSuggestions(); renderGuidance(); }
+    if ((initial || options.focus) && !interactedDuringTurn && value.focus) openTab(value.focus_download ? 'export' : value.focus);
     if (!hasResume) status = plain(workspace.jd?.raw_text) ? '岗位与经历已同步' : '资料已同步';
     updateStatus();
   }
@@ -556,7 +548,7 @@
     webSourceSession = null;
     resumeData = null; workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
     paintedVersion = null; status = ''; streaming = false; interactedDuringTurn = false; paintedDuringTurn = false;
-    renderJd(); renderExperiences(); renderReview(); renderExport(); renderSuggestions(); renderGuidance(); renderTabs(); updateStatus();
+    renderJd(); renderExperiences(); renderReview(); renderSuggestions(); renderGuidance(); renderTabs(); updateStatus();
   }
   function canvasResult(body) {
     hasResume = Boolean(body.has_data && body.data);
@@ -566,12 +558,12 @@
     status = hasResume ? (changed ? '简历已更新 · 已同步到预览' : '当前简历已同步') : (hasWorkspace ? '资料已同步 · 补充经历后逐步成稿' : '补充经历，简历会逐步成稿');
     paintedVersion = version;
     if (streaming) paintedDuringTurn = true;
-    renderJd(); renderReview(); renderExport(); renderSuggestions(); updateStatus();
+    renderJd(); renderReview(); renderSuggestions(); updateStatus();
   }
   function setStreaming(value) {
     streaming = value;
     if (value) { interactedDuringTurn = false; paintedDuringTurn = false; status = ''; }
-    renderGuidance(); renderExport(); renderSuggestions(); updateStatus();
+    renderGuidance(); renderSuggestions(); updateStatus();
   }
   function setMobileOpen(value) {
     const pane = $('canvas-pane'); pane.classList.toggle('is-open', value);
@@ -586,7 +578,6 @@
   }
   function init(options = {}) {
     callbacks = options; reset();
-    window.addEventListener('huhua-account-changed', renderExport);
     window.addEventListener('huhua-account-reset', () => { webSourceCache.clear(); });
     $('btn-close-workspace').addEventListener('click', () => setMobileOpen(false));
     $('canvas-pane').addEventListener('keydown', event => {
@@ -609,7 +600,7 @@
     });
   }
   window.HuhuaWorkspace = {refresh: () => callbacks.refresh?.(), dismissQuestions, init, update, reset, setWebSources, commitWebSources, setStreaming, canvasResult, openTab, setMobileOpen,
-    setStage(value) {stage = value; if (!hasWorkspace) active = tabs.find(([, , id]) => id === value)?.[0] || 'jd'; renderTabs();},
+    setStage(value) {stage = value; if (!hasWorkspace) active = value === 'EXPORT' ? 'resume' : tabs.find(([, , id]) => id === value)?.[0] || 'jd'; renderTabs();},
     canvasError() {status = '预览同步失败，请刷新重试；当前内容已保留'; updateStatus();},
   };
 })();

@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>胡话简历 · 简历编辑</title>
-  <link rel="stylesheet" href="/static/resume-editor.css?v=20261008-export">
+  <link rel="stylesheet" href="/static/resume-editor.css?v=20261012-embedded">
   <link rel="stylesheet" href="/static/account-profile.css?v=20261004">
-  <script src="/static/account-profile.js?v=20261005-guest"></script>
-  <script src="/static/resume-editor.js?v=20261011-density" defer></script>
+  <script src="/static/account-profile.js?v=20261012-embedded"></script>
+  <script src="/static/resume-editor.js?v=20261012-embedded" defer></script>
 </head>
 <body>
   <header id="header">
@@ -20,6 +20,14 @@
       <a id="back-to-chat" href="/">回到聊天</a>
     </div>
   </header>
+  <div id="embedded-toolbar" hidden>
+    <strong>精细编辑</strong>
+    <div id="embedded-controls"><button id="btn-finish-edit" type="button">完成编辑</button></div>
+  </div>
+  <div id="chat-version-notice" class="draft-notice" hidden>
+    <span id="chat-version-message">对话里有新版本，保存后可刷新</span>
+    <button id="btn-refresh-chat-version" class="text-button" type="button">刷新当前简历</button>
+  </div>
 
   <main id="resume-main" class="show-data">
     <aside class="panel" id="template-panel" aria-label="选择简历模板">

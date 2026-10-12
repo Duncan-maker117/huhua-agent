@@ -17,6 +17,12 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px soli
 #header a { color: white; text-decoration: none; font-size: 13px; font-weight: 400; opacity: .9; }
 #btn-toggle-data, .mobile-mode { color: white; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35); border-radius: 5px; padding: 5px 10px; font-size: 12px; }
 .mobile-mode { display: none; }
+#header[hidden], #embedded-toolbar[hidden] { display: none; }
+#embedded-toolbar { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: var(--accent); color: white; font-size: 14px; }
+#embedded-controls { display: flex; align-items: center; gap: 10px; }
+#btn-finish-edit { background: white; color: var(--accent); border: 0; border-radius: 5px; padding: 7px 12px; font-size: 13px; white-space: nowrap; }
+#chat-version-notice { margin: 8px 12px 0; }
+#chat-version-notice button { margin-left: 12px; }
 main { flex: 1; min-height: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 12px; padding: 12px; overflow: hidden; }
 main.show-data { grid-template-columns: 180px minmax(0, 1fr) 390px; }
 .panel { min-width: 0; min-height: 0; background: white; border: 1px solid var(--line); border-radius: 9px; display: flex; flex-direction: column; overflow: hidden; }

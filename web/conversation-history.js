@@ -5,7 +5,7 @@
   const overlay = $('conversation-overlay');
   const drawer = $('conversation-drawer');
   const list = $('conversation-list');
-  const resumeLinks = [...document.querySelectorAll('a[href="/resume"], #btn-open-full')];
+  const resumeLinks = [...document.querySelectorAll('a[href="/resume"]')];
   const initialTarget = new URLSearchParams(location.search).get('session');
   const drafts = new Map();
   let conversations = [];
@@ -96,7 +96,7 @@
     $('canvas-empty').classList.remove('hidden');
     $('canvas-sheet-wrap').classList.add('hidden');
     $('live-sheet').srcdoc = '';
-    $('btn-export-docx').disabled = true;
+    window.HuhuaResumeActions?.reset();
     window.HuhuaWorkspace?.reset();
     renderStageRail();
   }

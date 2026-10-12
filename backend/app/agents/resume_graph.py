@@ -2404,7 +2404,7 @@ async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         "**待核对简历草稿已准备好。**\n\n"
         "请在右侧预览中逐项核对姓名、联系方式、日期、个人职责和项目状态；"
         "缺项可以继续在对话中补充。\n\n"
-        "核对后打开 [模板页](/resume)，可导出 PDF 或通用 Word。"
+        "核对后在右侧「写简历」下方点击「下载 PDF」或「下载 Word」。需要局部修改可点击「精细编辑」。"
         "PDF 使用所选模板，Word 使用统一排版；下载后请再检查文件内容与排版。"
     )
     return {"messages": [AIMessage(content=reply)]}

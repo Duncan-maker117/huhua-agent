@@ -31,6 +31,58 @@
     conflict: false, recovery: null, backupAvailable: true,
     sessionInvalid: false, requireAccount: true, sampleSource: null, creatingDraft: false, createdDraftSession: null,
   };
+  const query = new URLSearchParams(location.search);
+  const embedded = query.get('embedded') === '1';
+  let editorLoaded = false, pendingChatRevision = null, chatRefresh = null, currentRead = 0;
+  const unsaved = () => state.savedVersion !== state.revision || Boolean(state.saving);
+  function notifyParent(message) {
+    if (embedded) window.parent.postMessage(message, location.origin);
+  }
+  function chatVersionNotice() {
+    $('chat-version-notice').hidden = !pendingChatRevision;
+    $('btn-refresh-chat-version').disabled = unsaved();
+    $('chat-version-message').textContent = unsaved() ? '对话里有新版本，保存后可刷新' : '对话里有新版本，可刷新当前简历';
+  }
+  async function refreshFromChat() {
+    if (!pendingChatRevision || !editorLoaded || chatRefresh || unsaved()) { chatVersionNotice(); return; }
+    const requested = pendingChatRevision;
+    chatRefresh = window.HuhuaEditor.refreshCurrent();
+    try {
+      if (await chatRefresh && (pendingChatRevision === requested || pendingChatRevision === state.serverRevision)) pendingChatRevision = null;
+    } catch (error) { setStatus(error.message, true); }
+    finally { chatRefresh = null; chatVersionNotice(); }
+    if (pendingChatRevision && pendingChatRevision !== requested && !unsaved()) refreshFromChat();
+  }
+  async function finishEdit() {
+    const done = $('btn-finish-edit');
+    if (done.disabled) return;
+    done.disabled = true;
+    try { if (await flushSave()) notifyParent({type: 'resume-editor-close'}); }
+    finally { done.disabled = false; }
+  }
+  if (embedded) {
+    $('header').hidden = true;
+    $('embedded-toolbar').hidden = false;
+    for (const id of ['btn-mobile-preview', 'btn-mobile-edit', 'btn-toggle-data']) $('embedded-controls').insertBefore($(id), $('btn-finish-edit'));
+    $('btn-finish-edit').addEventListener('click', finishEdit);
+    $('btn-refresh-chat-version').addEventListener('click', refreshFromChat);
+    window.addEventListener('message', event => {
+      if (event.origin !== location.origin || event.source !== window.parent || !event.data || typeof event.data !== 'object') return;
+      if (event.data.type === 'resume-refresh' && typeof event.data.revision === 'string' && event.data.revision !== state.serverRevision) {
+        pendingChatRevision = event.data.revision;
+        refreshFromChat();
+      } else if (event.data.type === 'resume-editor-open') {
+        const template = state.templates.find(item => item.id === event.data.template);
+        if (template && template.id !== state.template?.id) selectTemplate(template);
+        requestAnimationFrame(scalePreview);
+        $('btn-finish-edit').focus({preventScroll: true});
+      } else if (event.data.type === 'resume-account-changed') {
+        window.HuhuaAccount?.refreshAccount().then(() => {
+          if (editorLoaded && (!state.data || state.mode === 'sample')) return window.HuhuaEditor.refreshCurrent();
+        }).catch(error => setStatus(error.message, true));
+      }
+    });
+  }
   const removedSections = new Map();
   const itemGroups = ['projects', 'education', 'work_experience', 'open_source', 'awards'];
   const pendingRemovedItems = new Map();
@@ -102,6 +154,7 @@
     $('btn-retry-save').hidden = !state.saveFailed || state.conflict || !state.canSave;
     $('btn-load-latest').hidden = !state.conflict;
     $('btn-download-draft').hidden = !state.data || state.mode !== 'personal' || (!state.saveFailed && state.savedVersion === state.revision);
+    if (embedded) chatVersionNotice();
   }
 
   // Recovery is deliberately memory-only. Leaving with unsaved changes warns below.
@@ -165,6 +218,7 @@
           state.serverRevision = result.revision;
           state.savedVersion = version;
           state.saveFailed = false;
+          notifyParent({type: 'resume-saved', revision: result.revision});
           if (state.savedVersion < state.revision) keepBackup();
         }
         clearBackup();
@@ -176,7 +230,7 @@
         else keepBackup();
         setSaveStatus(error.name === 'AbortError' ? '保存等待超时，结果尚未确认。当前修改仍在本页，请重试或下载备份。' : error.message.includes('fetch') ? '连接已断开，当前修改尚未保存，仅留在本页。关闭前请重试或下载备份。' : error.message, true);
         return false;
-      } finally { state.saving = null; }
+      } finally { state.saving = null; if (embedded) chatVersionNotice(); }
     })();
     return state.saving;
   }
@@ -1064,7 +1118,7 @@
         // Retrying a failed read reuses the explicitly created conversation.
         state.session = state.createdDraftSession;
         window.HuhuaAccount?.rememberSession(state.session);
-        const query = new URLSearchParams(location.search); query.set('session', state.session);
+        const query = new URLSearchParams(location.search); query.set(query.has('session_id') ? 'session_id' : 'session', state.session);
         history.replaceState({}, '', location.pathname + '?' + query.toString());
         $('back-to-chat').href = '/?session=' + encodeURIComponent(state.session);
         const response = await fetch('/api/resume/current?session_id=' + encodeURIComponent(state.session));
@@ -1133,7 +1187,7 @@
     try {
       const account = await window.HuhuaAccount?.ready;
       state.requireAccount = account?.require_account !== false;
-      let session = new URLSearchParams(location.search).get('session');
+      let session = query.get('session_id') || query.get('session');
       if (!session) session = window.HuhuaAccount?.rememberedSession();
       state.session = session;
       $('back-to-chat').href = session ? `/?session=${encodeURIComponent(session)}` : '/';
@@ -1174,6 +1228,10 @@
       offerRecovery();
       if (state.templates.length) selectTemplate(restoreTemplate());
       else setStatus('暂无可用模板', true);
+      editorLoaded = true;
+      notifyParent({type: 'resume-editor-ready', revision: state.serverRevision});
+      if (pendingChatRevision === state.serverRevision) pendingChatRevision = null;
+      refreshFromChat();
     } catch (error) {
       setStatus(error.message.includes('fetch') ? '连接已断开，请确认服务运行后刷新' : error.message, true);
       editor.replaceChildren(element('p', 'empty-section', '暂时无法加载简历内容，请刷新页面重试。'));
@@ -1184,6 +1242,7 @@
     setSaveStatus('登录已成功，当前体验待保存；请重试保留当前对话。', true);
   });
   window.addEventListener('huhua-account-changed', event => {
+    notifyParent({type: 'resume-account-changed'});
     if (event.detail?.session_id && (!state.data || state.mode === 'sample')) {
       state.session = event.detail.session_id; window.HuhuaEditor.refreshCurrent().catch(error => setStatus(error.message, true));
     }
@@ -1195,13 +1254,18 @@
   window.HuhuaEditor = {
     prepareProfileChange: async () => state.mode !== 'personal' || await flushSave(),
     async refreshCurrent() {
-      const response = await fetch('/api/resume/current?session_id=' + encodeURIComponent(state.session));
+      if (unsaved()) return false;
+      const session = state.session, version = state.revision, request = ++currentRead;
+      const response = await fetch('/api/resume/current?session_id=' + encodeURIComponent(session));
       if (!response.ok) throw new Error('档案信息已保存，但编辑页读取失败。请刷新后核对最新简历。');
       const current = await response.json();
+      // A delayed refresh must not replace text typed while it was in flight.
+      if (session !== state.session || version !== state.revision || request !== currentRead || unsaved()) return false;
       if (!current.has_data || !current.data) throw new Error('档案信息已提交，请回到对话核对成稿。');
       state.serverRevision = current.revision;
       state.canSave = current.can_save !== false;
       clearBackup(); activateData(current.data, 'personal');
+      return true;
     },
   };
   initialise();

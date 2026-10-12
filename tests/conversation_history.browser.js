@@ -116,7 +116,8 @@ async (page) => {
   check(await page.locator('.bubble-user').textContent() === 'B 的 JD 和项目', '切换恢复 B 的消息');
   await page.waitForFunction(() => document.getElementById('live-sheet').srcdoc.includes('B 保存的简历'));
   check(!(await page.locator('#messages').textContent()).includes('A 的 JD'), 'B 不混入 A 消息');
-  check((await page.locator('#btn-open-full').getAttribute('href')).includes('history-b'), '编辑入口带当前对话 ID');
+  await page.waitForFunction(() => document.getElementById('resume-editor-frame')?.src.includes('history-b'));
+  check((await page.locator('#resume-editor-frame').getAttribute('src')).includes('session_id=history-b'), '编辑入口带当前对话 ID');
   check((await page.locator('header nav a').nth(1).getAttribute('href')).includes('history-b'), '顶部模板入口随切换同步');
   await select('history-a');
   check(await page.locator('#input').inputValue() === 'A 未发送的补充', '返回 A 恢复未发送草稿');

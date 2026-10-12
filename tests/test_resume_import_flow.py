@@ -298,7 +298,7 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
             {"configurable": {"thread_id": "export-in-same-turn"}},
         )
         self.assertEqual(result["stage"], "EXPORT")
-        self.assertIn("[模板页](/resume)", result["messages"][-1].content)
+        self.assertIn("右侧「写简历」", result["messages"][-1].content)
         self.assertEqual(result["resume_data"], saved)
         self.assertEqual(result["resume_draft"], draft)
 

@@ -5,6 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 import sys
+import shutil
 import subprocess
 import tempfile
 from contextvars import ContextVar
@@ -373,6 +374,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
 
 
 class PlanCommandTest(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed (production image)')
     def test_frontend_renderer_discloses_diff_and_sends_exact_deduplicated_choice(self):
         result = subprocess.run(['node', str(ROOT / 'tests' / 'structure_plan.dom.js'),
                                  str(ROOT / 'web' / 'resume-workspace.js')], capture_output=True, text=True)

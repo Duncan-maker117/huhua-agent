@@ -1,4 +1,5 @@
 """Offline UI controllers and export routing; no live models or user stores."""
+import shutil
 import subprocess
 import sys
 import unittest
@@ -15,6 +16,7 @@ from app.services.resume_workspace import build_workspace  # noqa: E402
 
 
 class EmbeddedResumeTest(unittest.IsolatedAsyncioTestCase):
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed (production image)')
     def test_embedded_dom_controllers(self):
         result = subprocess.run(['node', str(ROOT / 'tests/resume_embedded.dom.js')],
                                 capture_output=True, text=True, timeout=20)

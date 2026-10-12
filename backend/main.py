@@ -268,8 +268,26 @@ app.include_router(resume_changes.router, prefix="/api/resume", tags=["resume"])
 
 # 静态文件（前端）
 WEB_DIR = os.path.join(os.path.dirname(__file__), "..", "web")
+class CachedStaticFiles(StaticFiles):
+    """Versioned assets (?v=...) never change under the same URL; cache them for a year."""
+
+    async def __call__(self, scope, receive, send):
+        versioned = b"v=" in scope.get("query_string", b"")
+
+        async def send_with_cache(message):
+            if message["type"] == "http.response.start" and message.get("status") == 200:
+                headers = [(k, v) for k, v in message.get("headers", []) if k.lower() != b"cache-control"]
+                headers.append((b"cache-control", b"public, max-age=31536000, immutable" if versioned else b"no-cache"))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await super().__call__(scope, receive, send_with_cache)
+
+
 if os.path.exists(WEB_DIR):
-    app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
+    from starlette.middleware.gzip import GZipMiddleware
+    # Compress only the static mount; streamed chat replies stay uncompressed.
+    app.mount("/static", GZipMiddleware(CachedStaticFiles(directory=WEB_DIR), minimum_size=1024), name="static")
 
     @app.get("/")
     async def index():

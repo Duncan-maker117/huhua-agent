@@ -173,4 +173,5 @@ async function editorChecks() {
   direct.run('resume-editor.js', code => code.replace('  initialise();', ''));
   assert.equal(direct.ids.get('header').hidden, false); assert.equal(direct.ids.get('embedded-toolbar').hidden, true);
 }
-(async () => { await parentChecks(true); await parentChecks(false); await editorChecks(); console.log('embedded resume DOM checks passed'); })().catch(error => {console.error(error); process.exitCode = 1;});
+module.exports = {fixture, tick};
+if (require.main === module) (async () => { await parentChecks(true); await parentChecks(false); await editorChecks(); console.log('embedded resume DOM checks passed'); })().catch(error => {console.error(error); process.exitCode = 1;});

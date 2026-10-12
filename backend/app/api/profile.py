@@ -40,6 +40,11 @@ class ResolveConflict(BaseModel):
     value: str | None = Field(default=None, max_length=4000)
 
 
+class UndoUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_revision: int = Field(ge=1)
+
+
 class FactReference(BaseModel):
     fact_id: str = Field(min_length=1, max_length=128)
     revision: int = Field(ge=1)
@@ -106,6 +111,11 @@ def edit_fact(fact_id: str, req: EditFact, request: Request, db=Depends(get_db))
 @router.delete("/facts/{fact_id}")
 def delete_fact(fact_id: str, request: Request, expected_revision: int = Query(ge=1), db=Depends(get_db)):
     return _call(db, archive.delete_fact, _account(request), fact_id, expected_revision)
+
+
+@router.post("/facts/{fact_id}/undo-update")
+def undo_update(fact_id: str, req: UndoUpdate, request: Request, db=Depends(get_db)):
+    return _call(db, archive.undo_fact_update, _account(request), fact_id, **req.model_dump())
 
 
 @router.post("/conflicts/{conflict_id}/resolve")

@@ -8,6 +8,7 @@
 Agent 用 interrupt() 暂停等待用户输入，用户回复后继续推进。
 """
 
+import asyncio
 import copy
 import json
 import logging
@@ -2791,7 +2792,9 @@ async def stream_agent(
             resume_data = state.values.get("resume_data") or {}
             if not resume_data and not state.values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
                 resume_data = _serialize_to_resume_data(state.values)
-            committed = save_resume_session(
+            # The saver creates/closes its own DB session. Page layout and its
+            # transaction stay on one worker thread, away from the event loop.
+            save_task = asyncio.create_task(asyncio.to_thread(save_resume_session,
                 session_id=session_id,
                 resume_data=resume_data,
                 resume_draft=state.values.get("resume_draft", ""),
@@ -2801,7 +2804,15 @@ async def stream_agent(
                 resume_meta=state.values.get("resume_meta") or {},
                 resume_versions=state.values.get("resume_versions") or [],
                 session_constraints=state.values.get("session_constraints") or {},
-            )
+            ))
+            try:
+                committed = await asyncio.shield(save_task)
+            except asyncio.CancelledError:
+                # Threads cannot be cancelled. Keep the caller's session lock
+                # until the transaction ends, so deletion/another turn cannot
+                # race a still-running save after a client disconnects.
+                await save_task
+                raise
     except Exception as e:
         logger.error("final state save error: %s", type(e).__name__)
         # The graph checkpoint is ahead of the SQL resume. Do not replay its

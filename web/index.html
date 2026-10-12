@@ -6,8 +6,8 @@
 <title>胡话简历 · The Curator</title>
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261002-1"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261002-1"/>
-<link rel="stylesheet" href="/static/account-profile.css?v=20261004"/>
-<script src="/static/account-profile.js?v=20261012-embedded"></script>
+<link rel="stylesheet" href="/static/account-profile.css?v=20261013-profile"/>
+<script src="/static/account-profile.js?v=20261013-profile"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -670,29 +670,36 @@ function highlightBullet(value) {
 }
 
 let canvasPaintRequest = 0;
+let canvasPaintController = null;
 let canvasReadRequest = 0;
 async function paintSheet(data) {
   restoreCanvasTemplate();
   const request = ++canvasPaintRequest;
+  canvasPaintController?.abort();
+  const controller = new AbortController();
+  canvasPaintController = controller;
+  const session = SESSION_ID;
+  const template = canvasState.templateId;
   const emptyEl = document.getElementById('canvas-empty');
   const wrap = document.getElementById('canvas-sheet-wrap');
   const iframe = document.getElementById('live-sheet');
   if (!iframe || !wrap) return;
   try {
-    const res = await fetch(`/api/resume/render/${canvasState.templateId}?session_id=${encodeURIComponent(SESSION_ID)}`,  {
+    const res = await fetch(`/api/resume/render/${template}?session_id=${encodeURIComponent(session)}`,  {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
+      signal: controller.signal,
     });
     if (!res.ok) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
     const html = await res.text();
-    if (request !== canvasPaintRequest) return false;
+    if (request !== canvasPaintRequest || session !== SESSION_ID || template !== canvasState.templateId) return false;
     iframe.srcdoc = applyHighlight(html);
     emptyEl.classList.add('hidden');
     wrap.classList.remove('hidden');
     requestAnimationFrame(scaleSheet);
     return true;
-  } catch (e) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
+  } catch (e) { if (e.name !== 'AbortError' && request === canvasPaintRequest && session === SESSION_ID) window.HuhuaWorkspace?.canvasError(); return false; }
 }
 
 async function refreshCanvas() {

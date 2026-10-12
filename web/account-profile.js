@@ -14,6 +14,7 @@
   clearPrivateCache();
   let account = {authenticated: false, require_account: true, login_available: false};
   let profile = null, overlay, content, status, opener, busy = false, loadVersion = 0;
+  let profileView = 'facts';
   let loginTimer, syncLoginControls = () => {};
   let loginReason = '', guestSession = null, pendingClaim = null;
   const guestSessionKey = 'huhua_guest_session_id';
@@ -107,6 +108,7 @@
   }
   function close() { if (pendingClaim) { say('当前对话尚待关联，请点击重试；内容仍保留。', true); return; } overlay.hidden = true; clearInterval(loginTimer); opener?.setAttribute('aria-expanded', 'false'); opener?.focus(); }
   async function open(reason = '') {
+    profileView = 'facts';
     loginReason = typeof reason === 'string' ? reason : ''; 
     overlay.hidden = false; opener?.setAttribute('aria-expanded', 'true'); document.getElementById('btn-close-profile').focus();
     say('正在连接账号服务…');
@@ -246,6 +248,7 @@
       details.append(line);
     }
     if (fact.effective_at) details.append(node('p', '生效时间：' + fact.effective_at));
+    for (const entry of fact.history || []) details.append(node('p', '历史记录：' + text(entry.value) + (entry.until ? '（截至 ' + entry.until + '）' : '')));
     return details;
   }
   function editFact(card, fact) {
@@ -258,23 +261,48 @@
     card.replaceChildren(form); value.focus();
   }
   function renderFact(fact) {
-    const card = node('article', undefined, 'profile-card'); card.dataset.factId = fact.id;
-    card.append(node('p', categories[fact.category] || fact.category, 'profile-eyebrow'), node('h3', [fact.subject, fieldNames[fact.field] || fact.field].filter(Boolean).join(' · ')), node('p', text(fact.value), 'profile-value'), sourceDetails(fact));
-    const actions = node('div', undefined, 'profile-actions');
+    const card = node('div', undefined, 'profile-fact-row'); card.dataset.factId = fact.id;
+    const body = node('div', undefined, 'profile-fact-body');
+    const label = fact.field === 'name' && fact.category !== 'basic' ? '名称' : fieldNames[fact.field] || fact.field;
+    body.append(node('strong', label, 'profile-field-name'), node('p', text(fact.value), 'profile-value'), sourceDetails(fact));
+    const actions = node('div', undefined, 'profile-actions profile-field-actions');
     actions.append(button('更正', () => editFact(card, fact)), button('删除', () => {
       const confirmBox = node('div', undefined, 'profile-notice');
       confirmBox.append(node('p', '从个人档案删除，并停止后续引用。相关原始聊天可能仍保留，可到历史对话单独删除；备份按保留期限清理。'));
       confirmBox.append(button('确认删除这条事实', () => mutate(() => request('/api/profile/facts/' + encodeURIComponent(fact.id) + '?expected_revision=' + encodeURIComponent(fact.revision), undefined, 'DELETE'), '已删除，后续不再使用这条事实。')), button('取消', renderProfile));
       actions.replaceChildren(confirmBox);
     }));
-    const session = new URLSearchParams(location.search).get('session');
-    if (session && fact.category !== 'preference') actions.append(button('用于当前简历', () => mutate(async () => {
+    card.append(body, actions); return card;
+  }
+  function currentProfileSession() {
+    const params = new URLSearchParams(location.search);
+    return params.get('session_id') || params.get('session');
+  }
+  function renderEntry(category, subject, facts) {
+    const card = node('article', undefined, 'profile-card profile-entry');
+    card.dataset.category = category; card.dataset.subject = subject;
+    const head = node('div', undefined, 'profile-entry-head'); head.append(node('h3', subject));
+    const session = currentProfileSession();
+    if (session && category !== 'preference') head.append(button('用于当前简历', () => mutate(async () => {
       if (window.HuhuaEditor && !await window.HuhuaEditor.prepareProfileChange()) throw new Error('当前简历还有未保存修改，请先重试保存或下载草稿。');
-      await request('/api/resume/session/' + encodeURIComponent(session) + '/profile-facts', {fact_ids: [fact.id]}, 'POST');
+      await request('/api/resume/session/' + encodeURIComponent(session) + '/profile-facts', {fact_ids: facts.map(fact => fact.id)}, 'POST');
       if (window.HuhuaEditor) await window.HuhuaEditor.refreshCurrent();
       if (window.HuhuaWorkspace) await window.HuhuaWorkspace.refresh?.();
     }, '已用于当前简历，可在预览中核对。', false)));
-    card.append(actions); return card;
+    card.append(head, ...facts.map(renderFact)); return card;
+  }
+  function renderFactGroups(facts) {
+    for (const category of Object.keys(categories)) {
+      const groups = new Map();
+      for (const fact of facts.filter(fact => fact.category === category)) {
+        const subject = category === 'basic' ? '基本信息' : fact.subject;
+        if (!groups.has(subject)) groups.set(subject, []);
+        groups.get(subject).push(fact);
+      }
+      if (!groups.size) continue;
+      content.append(node('h2', categories[category], 'profile-section-title'));
+      for (const [subject, entries] of groups) content.append(renderEntry(category, subject, entries));
+    }
   }
   function addFact() {
     const card = node('form', undefined, 'profile-card profile-form');
@@ -296,7 +324,7 @@
     const actions = node('div', undefined, 'profile-actions');
     const resolve = (choice, value) => mutate(() => request('/api/profile/conflicts/' + encodeURIComponent(conflict.id) + '/resolve', {choice, value, expected_revision: conflict.expected_revision}, 'POST'), '冲突已处理。');
     actions.append(button('保留原记录', () => resolve('keep')), button('采用新说法', () => resolve('replace')), button('我来更正', () => {
-      const form = node('form', undefined, 'profile-form'); const input = inputField(form, '正确说法', '', 'textarea'); const save = node('button', '确认更正', 'profile-button'); save.type = 'submit'; form.append(save);
+      const form = node('form', undefined, 'profile-form'); const input = inputField(form, '正确说法', '', 'textarea'); const save = node('button', '确认更正', 'profile-button'); save.type = 'submit'; form.append(save, button('取消', renderProfile));
       form.addEventListener('submit', e => { e.preventDefault(); if (form.reportValidity()) resolve('custom', input.value.trim()); }); actions.replaceChildren(form); input.focus();
     })); card.append(actions); return card;
   }
@@ -304,7 +332,12 @@
     clearInterval(loginTimer); syncLoginControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile) return;
     const identity = node('div', undefined, 'profile-identity'); identity.append(node('strong', account.account?.email || '已登录'), node('p', '本人唯一主档案 · ' + profile.revision + ' 次修订', 'profile-muted'));
     identity.append(button('退出登录', () => { if (busy) return; if (!confirm('退出登录将清除本页未保存内容。请先确认聊天与简历已保存。')) return; mutate(async () => { await request('/api/account/logout', {}, 'POST'); clearPrivateCache(true); window.dispatchEvent(new Event('huhua-account-reset')); location.href = '/'; }, '已退出', false); })); content.append(identity);
-    const actions = node('div', undefined, 'profile-actions'); actions.append(button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
+    const actions = node('div', undefined, 'profile-actions');
+    const confirmation = button('信息确认', () => { profileView = profileView === 'confirmations' ? 'facts' : 'confirmations'; renderProfile(); });
+    confirmation.classList.add('profile-confirm-button'); confirmation.setAttribute('aria-expanded', String(profileView === 'confirmations'));
+    const pendingCount = (profile.conflicts || []).length;
+    if (pendingCount) { const badge = node('span', String(pendingCount), 'profile-confirm-badge'); badge.setAttribute('aria-label', pendingCount + ' 条待确认'); confirmation.append(badge); }
+    actions.append(confirmation, button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
       const note = node('div', undefined, 'profile-notice'); note.append(node('p', '把此浏览器凭证下可认领的旧对话关联到当前账号，并整理其中明确的本人信息。只导入你自己的资料。'));
       note.append(button('确认导入本人旧对话', () => mutate(() => request('/api/account/claim-browser', {}, 'POST'), '已认领可导入的旧对话，整理状态见下方。')), button('取消', renderProfile)); actions.replaceChildren(note);
     })); content.append(actions);
@@ -320,11 +353,23 @@
       const notice = node('div', undefined, 'profile-notice'); notice.append(node('strong', `档案整理：${state.pending || 0} 待处理 · ${state.running || 0} 处理中 · ${state.failed || 0} 失败`), node('p', '聊天保存与档案整理分开进行；整理完成后可在其他对话使用。'));
       for (const task of state.tasks || []) { const row = node('p', task.message || stateNames[task.status] || '等待更新'); if (task.status === 'failed' && task.id && task.retryable !== false) row.append(button('重试整理', () => mutate(() => request('/api/profile/tasks/' + encodeURIComponent(task.id) + '/retry', {}, 'POST'), '已重新加入整理队列。'))); notice.append(row); } content.append(notice);
     }
-    for (const conflict of profile.conflicts || []) content.append(renderConflict(conflict));
-    content.append(node('h2', '个人事实', 'profile-section-title'));
-    const facts = profile.facts || []; if (!facts.length) content.append(node('p', '还没有已整理的信息。你可以直接补充，或在聊天中介绍自己的经历。', 'profile-muted')); facts.forEach(fact => content.append(renderFact(fact)));
-    if (profile.preferences?.length) { content.append(node('h2', '长期偏好', 'profile-section-title')); profile.preferences.forEach(fact => content.append(renderFact(fact))); }
-    const currentSession = new URLSearchParams(location.search).get('session');
+    if (profileView === 'confirmations') {
+      content.append(button('返回已有信息', () => { profileView = 'facts'; renderProfile(); }));
+      content.append(node('h2', '待确认信息', 'profile-section-title'));
+      if (!pendingCount) content.append(node('p', '没有待确认的信息。', 'profile-muted'));
+      for (const conflict of profile.conflicts || []) content.append(renderConflict(conflict));
+      return;
+    }
+    content.append(node('h2', '已有信息', 'profile-section-title'));
+    for (const update of profile.updates || []) {
+      const notice = node('div', undefined, 'profile-notice');
+      notice.append(node('strong', '已更新 · ' + update.subject + ' · ' + (fieldNames[update.field] || update.field)), node('p', text(update.previous_value) + ' → ' + text(update.value)));
+      notice.append(button('撤销更新', () => mutate(() => request('/api/profile/facts/' + encodeURIComponent(update.fact_id) + '/undo-update', {expected_revision: update.revision}, 'POST'), '已撤销这次自动更新。')));
+      content.append(notice);
+    }
+    const facts = profile.facts || []; if (!facts.length) content.append(node('p', '还没有已整理的信息。你可以直接补充，或在聊天中介绍自己的经历。', 'profile-muted'));
+    renderFactGroups([...facts, ...(profile.preferences || [])]);
+    const currentSession = currentProfileSession();
     if (currentSession) content.append(button('保存当前岗位版本', () => {
       const form = node('form', undefined, 'profile-card profile-form'); const name = inputField(form, '岗位版本名称'); const save = node('button', '保存岗位版本', 'profile-button'); save.type = 'submit'; form.append(save, button('取消', renderProfile));
       form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) mutate(() => request('/api/profile/jobs', {session_id: currentSession, name: name.value.trim()}, 'POST'), '已保存岗位版本。'); }); content.prepend(form); name.focus();

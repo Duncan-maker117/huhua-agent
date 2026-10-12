@@ -103,14 +103,14 @@ class LayoutRegression(unittest.TestCase):
         self.assertEqual(award_lines[0].count('；'), 4)
         self.assertEqual(sum('负责现场演示和答辩' in text for text in paragraphs), 1)
 
-    def test_positioning_is_header_only_in_six_templates_and_word(self):
+    def test_positioning_is_above_body_in_all_templates_and_word(self):
         data = layout_fixture()
         data['self_evaluation'] = '愿意认真记录问题并复查自己的工作'
         data['projects'] = data['projects'][:2]
         for template in list_templates():
             with self.subTest(template=template['id']):
                 soup = fromstring(render_resume(template['id'], data))
-                header = select(soup, '.header-text')
+                header = select(soup, '.positioning-block' if template['id'] == 't004-jianyue' else '.header-text')
                 self.assertEqual(select(header, '[data-field-path="/summary"]').text_content(), data['summary'])
                 self.assertEqual(soup.text_content().count(data['summary']), 1)
                 self.assertEqual(select(soup, '[data-field-path="/self_evaluation"]').text_content(), data['self_evaluation'])

@@ -40,6 +40,78 @@ class ProfileValidationError(ValueError):
     pass
 
 
+# Symmetric character-bigram Dice overlap. Short strings require exact matches;
+# changed numbers, tools or polarity must never disappear as "just wording".
+NARRATIVE_NGRAM_SIZE = 2
+NARRATIVE_DUPLICATE_THRESHOLD = 0.82
+NARRATIVE_FIELDS = {
+    "project": {"description", "result", "tool", "deliverable"},
+    "work": {"description", "result", "deliverable"},
+    "open_source": {"description", "result", "summary"},
+}
+
+
+def _normalized_text(value):
+    return re.sub(r"[\W_]+", "", value.casefold())
+
+
+def narrative_duplicate(left, right):
+    # Compare quantity tokens before dropping punctuation (1.5 != 15; 10% != 10).
+    quantities = r"\d+(?:\.\d+)?%?|[零一二三四五六七八九十百千万]+"
+    if set(re.findall(quantities, left)) != set(re.findall(quantities, right)):
+        return False
+    tools = r"[a-z][a-z0-9]*(?:\+\+|#)?(?:[-./][a-z0-9]+)*"
+    if set(re.findall(tools, left.casefold())) != set(re.findall(tools, right.casefold())):
+        return False
+    left, right = _normalized_text(left), _normalized_text(right)
+    if left == right:
+        return True
+    if min(len(left), len(right)) < 8:
+        return False
+    qualifiers = r"尚未|没有|未|不|无|仅|只|计划|准备|预计|已经|原型|上线|后来|参与|主导|独立|协助|负责|团队|个人|合并|关闭|停止"
+    for pattern in (qualifiers, r"[a-z]+"):
+        if set(re.findall(pattern, left)) != set(re.findall(pattern, right)):
+            return False
+    def grams(value):
+        return {value[i:i + NARRATIVE_NGRAM_SIZE] for i in range(len(value) - NARRATIVE_NGRAM_SIZE + 1)}
+    a, b = grams(left), grams(right)
+    return 2 * len(a & b) / (len(a) + len(b)) >= NARRATIVE_DUPLICATE_THRESHOLD
+
+
+def _narrative_slot(category, field, value):
+    if field not in NARRATIVE_FIELDS.get(category, set()):
+        return False
+    # Counts in legacy result/summary fields are single-valued metrics too.
+    # The extractor keeps longer actions in description and metrics in result.
+    quantity = (r"\d+(?:\.\d+)?\s*(?:%|％|ms\b|秒|毫秒|次|人|个|条|项|万|千|stars?\b|[kw]\b)"
+                r"|[一二三四五六七八九十百千万]+(?:次|人|个|条|项|万|千)"
+                r"|(?:star|星标|用户数|数量|访问量|调用量|覆盖率|耗时)[^，。；;]{0,8}\d"
+                r"|^\s*\d+(?:\.\d+)?\s*$")
+    if field in {"result", "summary"} and re.search(quantity, value, re.I):
+        return False
+    return True
+
+
+def _mention(db, row, source):
+    old = _open(row)
+    old["source_ids"] = list(dict.fromkeys([*old.get("source_ids", []), source.id]))[-100:]
+    old["last_mentioned_at"] = _iso(max(_dt(old.get("last_mentioned_at")) or source.recorded_at, source.recorded_at))
+    row.payload = _seal(row, old)
+
+
+def _time_progress(proposal, source):
+    # Inspect only the clause carrying this value, not a different project's
+    # "now" elsewhere in the input. Explicit historical/future wording wins.
+    for clause in re.split(r"[，,。；;！？!?\n]", _open(source).get("human_text", "")):
+        if _normalized_text(proposal.value) not in _normalized_text(clause):
+            continue
+        if re.search(r"过去|以前|曾经|当时|去年|原来|不是现在|并非现在|计划|准备|预计|将来", clause):
+            continue
+        if re.search(r"现在|目前|已经|后来|上线了", clause):
+            return True
+    return False
+
+
 def _now():
     return datetime.now(UTC).replace(tzinfo=None)
 
@@ -105,6 +177,7 @@ def _owned(db, model, account_id, item_id):
 
 def _fact_view(db, row):
     data = _open(row)
+    notice = data.pop("auto_update", None)
     sources = []
     for source_id in data.get("source_ids", []):
         source = db.get(ProfileSource, source_id)
@@ -114,7 +187,11 @@ def _fact_view(db, row):
                             "recorded_at": _iso(source.recorded_at),
                             "excerpt": source_data.get("human_text", "")[:400]})
     # Temporal history is viewable to the user, but never routine model context.
-    return {**data, "id": row.id, "revision": row.revision, "category": row.category,
+    update_notice = ({"fact_id": row.id, "revision": row.revision,
+                      "subject": data["subject"], "field": data["field"], "value": data["value"],
+                      "previous_value": notice["previous"]["value"], "recorded_at": data.get("recorded_at")}
+                     if notice and notice.get("revision") == row.revision else None)
+    return {**data, "id": row.id, "revision": row.revision, "category": row.category, "update": update_notice,
             "status": row.status, "source_type": "user_provided", "sources": sources}
 
 
@@ -126,7 +203,10 @@ def _archive_task_view(row):
         "archive_timeout": "这次整理超时，已保存的聊天仍在，可以稍后重试。",
         "revision_conflict": "档案刚有更新，这次整理将依据最新资料重试。",
         "archive_unavailable": "暂时无法完成整理，已保存的聊天仍在，可以稍后重试。",
+        "archive_invalid_response": "这次返回的整理内容不完整，未写入档案。请重试整理。",
     }
+    if reason and reason not in messages:
+        reason = "archive_unavailable"
     message = messages.get(reason, "等待整理" if row.status == "pending" else "正在整理" if row.status == "running" else "整理尚未完成，请稍后重试。")
     return {"id": row.id, "status": row.status, "attempts": row.attempts,
             "error_code": reason, "reason_type": reason, "message": message,
@@ -135,6 +215,7 @@ def _archive_task_view(row):
 
 def get_profile(db, account_id):
     profile = ensure_profile(db, account_id)
+    migrate_legacy_narrative_conflicts(db, account_id)
     facts = [_fact_view(db, row) for row in db.scalars(select(ProfileFact).where(
         ProfileFact.account_id == account_id, ProfileFact.status == "active",
     )).all()]
@@ -178,6 +259,7 @@ def get_profile(db, account_id):
             "facts": [f for f in facts if f["category"] != "preference"],
             "preferences": [f for f in facts if f["category"] == "preference"],
             "conflicts": conflicts, "jobs": jobs,
+            "updates": [fact["update"] for fact in facts if fact.get("update")],
             "import_status": {**{status: imports.get(status, 0)
                                   for status in ("pending", "running", "failed", "completed")},
                               "tasks": import_tasks},
@@ -299,9 +381,13 @@ def _replace_fact(db, row, value, source_id, expected_revision, effective_at=Non
     updated = {**old, "value": value, "effective_at": _iso(effective_at),
                "recorded_at": _iso(recorded_at or _now()), "last_mentioned_at": _iso(recorded_at or _now()),
                "source_ids": [source_id] if source_id else [], "history": []}
+    updated.pop("auto_update", None)
     # Corrections are not alternate résumé facts; only valid time-based state
     # changes keep a user-visible history, and context retrieval omits it.
     if reason == "state_change":
+        previous = {key: value for key, value in old.items() if key != "auto_update"}
+        updated["auto_update"] = {"revision": expected_revision + 1, "previous": previous,
+                                  "previous_revision": expected_revision}
         updated["history"] = [*old.get("history", []), {
             "value": old.get("value"), "effective_at": old.get("effective_at"),
             "until": _iso(effective_at), "status": "historical",
@@ -333,6 +419,34 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
     key = _key(account_id, [proposal.category, proposal.subject.strip(), proposal.field])
     row = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
     timestamp = source.recorded_at
+    narrative = _narrative_slot(proposal.category, proposal.field, proposal.value)
+    if narrative:
+        rows = [candidate for candidate in db.scalars(select(ProfileFact).where(
+            ProfileFact.account_id == account_id, ProfileFact.category == proposal.category,
+            ProfileFact.status == "active")).all()
+                if (data := _open(candidate)).get("subject") == proposal.subject.strip() and data.get("field") == proposal.field]
+        if proposal.operation == "correct":
+            targets = [candidate for candidate in rows if candidate.id == proposal.target_fact_id] if proposal.target_fact_id else rows
+            if len(targets) != 1:
+                return "ambiguous_correction"
+            row = targets[0]
+        else:
+            # Tombstones and corrections apply to every value in this slot,
+            # including legacy rows whose slot key did not contain a value.
+            if not allow_restore:
+                for invalid in db.scalars(select(ProfileInvalidation).where(
+                    ProfileInvalidation.account_id == account_id,
+                    ProfileInvalidation.reason.in_(["correction", "deleted"]))).all():
+                    old = _open(invalid)
+                    if (old.get("category"), old.get("subject"), old.get("field")) == (proposal.category, proposal.subject.strip(), proposal.field) and narrative_duplicate(old.get("value", ""), proposal.value):
+                        return "blocked"
+            for candidate in rows:
+                if narrative_duplicate(_open(candidate)["value"], proposal.value):
+                    _mention(db, candidate, source)
+                    return "duplicate"
+            if row is not None:
+                key = _key(account_id, [proposal.category, proposal.subject.strip(), proposal.field, "value", proposal.value.strip()])
+                row = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
     if row is None or (row.status == "deleted" and allow_restore):
         if row is None:
             row = ProfileFact(id=new_id(), account_id=account_id, category=proposal.category,
@@ -350,26 +464,27 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
         return "blocked"
     old = _open(row)
     if old["value"] == proposal.value:
-        old["source_ids"] = list(dict.fromkeys([*old.get("source_ids", []), source.id]))[-100:]
-        old["last_mentioned_at"] = _iso(max(_dt(old.get("last_mentioned_at")) or timestamp, timestamp))
-        row.payload = _seal(row, old)
+        _mention(db, row, source)
         # Repetition changes provenance, not fact revision or verification.
         return "duplicate"
     old_effective = _dt(old.get("effective_at"))
     new_effective = _dt(proposal.effective_at)
-    if old_effective and new_effective and new_effective < old_effective:
+    correct = proposal.operation == "correct" and proposal.expected_revision == row.revision
+    if not correct and old_effective and new_effective and new_effective < old_effective:
         historical = {"value": proposal.value, "effective_at": _iso(new_effective),
                       "until": _iso(old_effective), "status": "historical"}
         if historical not in old.get("history", []):
             old["history"] = [*old.get("history", []), historical][-30:]
             row.payload = _seal(row, old)
         return "historical"
-    correct = proposal.operation == "correct" and proposal.expected_revision == row.revision
-    state_change = proposal.operation == "state_change" and old_effective and new_effective and new_effective > old_effective
+    state_change = not narrative and (
+        (new_effective and new_effective > (old_effective or _dt(old.get("recorded_at")) or timestamp))
+        or (not new_effective and _time_progress(proposal, source)))
     # Delayed jobs cannot override corrections committed after that input.
     stale_input = timestamp < (_dt(old.get("recorded_at")) or timestamp)
     if (correct or state_change) and not stale_input:
-        _replace_fact(db, row, proposal.value, source.id, row.revision, proposal.effective_at,
+        effective_at = proposal.effective_at or (timestamp if state_change and not correct else None)
+        _replace_fact(db, row, proposal.value, source.id, row.revision, effective_at,
                       timestamp, "correction" if correct else "state_change")
         return "updated"
     conflict = db.scalar(select(ProfileConflict).where(
@@ -386,6 +501,75 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
         })
         db.add(conflict)
     return "conflict"
+
+
+def migrate_legacy_narrative_conflicts(db, account_id):
+    """One-time per pending row, idempotent on every profile read; no model.
+
+    Only close equivalent narrative wording with an active matching revision
+    and enabled source. Unknown/contradictory values remain reviewable.
+    """
+    changed = 0
+    for conflict in db.scalars(select(ProfileConflict).where(
+        ProfileConflict.account_id == account_id, ProfileConflict.status == "pending")).all():
+        fact = db.get(ProfileFact, conflict.fact_id)
+        if not fact or fact.account_id != account_id or fact.status != "active" or fact.revision != conflict.expected_revision:
+            continue
+        data, old = _open(conflict), _open(fact)
+        proposed = str(data.get("proposed_value") or "").strip()
+        if not (_narrative_slot(fact.category, old["field"], old["value"]) and proposed
+                and _source_enabled(db, account_id, data.get("source_id"))):
+            continue
+        source = db.get(ProfileSource, data.get("source_id")) if data.get("source_id") else None
+        if narrative_duplicate(old["value"], proposed):
+            if source:
+                _mention(db, fact, source)
+            conflict.status, conflict.payload = "kept", _seal(conflict, {})
+        else:
+            # A different description of the same item is more detail, not a
+            # contradiction: keep both, as new narrative input now does.
+            key = _key(account_id, [fact.category, old["subject"], old["field"], "value", proposed])
+            if db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id,
+                                                   ProfileFact.slot_key == key)) is None:
+                recorded = (source.recorded_at if source else None) or datetime.now(UTC)
+                row = ProfileFact(id=new_id(), account_id=account_id, category=fact.category,
+                                  slot_key=key, revision=1, status="active")
+                row.payload = _seal(row, {"subject": old["subject"], "field": old["field"], "value": proposed,
+                                         "source_ids": [source.id] if source else [],
+                                         "recorded_at": _iso(recorded), "last_mentioned_at": _iso(recorded),
+                                         "effective_at": data.get("effective_at"), "history": []})
+                db.add(row)
+            conflict.status, conflict.payload = "appended", _seal(conflict, {})
+        changed += 1
+    if changed:
+        _bump(db, ensure_profile(db, account_id))
+        db.flush()
+    return changed
+
+
+def undo_fact_update(db, account_id, fact_id, *, expected_revision):
+    fact = _owned(db, ProfileFact, account_id, fact_id)
+    _bump(db, ensure_profile(db, account_id))
+    db.refresh(fact)
+    current = _open(fact)
+    notice = current.get("auto_update") or {}
+    if fact.status != "active" or fact.revision != expected_revision or notice.get("revision") != expected_revision:
+        raise ProfileRevisionConflict("update_is_stale")
+    previous = notice["previous"]
+    event = enqueue_archive_event(db, account_id, new_id(), None,
+                                  {"human_text": previous["value"], "source_kind": "manual"}, "manual_fact")
+    _replace_fact(db, fact, previous["value"], event.source_id, expected_revision, previous.get("effective_at"))
+    # The prior value becomes valid again only through this explicit undo.
+    for invalid in db.scalars(select(ProfileInvalidation).where(
+        ProfileInvalidation.account_id == account_id, ProfileInvalidation.fact_id == fact_id,
+        ProfileInvalidation.revision == notice["previous_revision"], ProfileInvalidation.reason == "state_change")).all():
+        db.delete(invalid)
+    restored = _open(fact)
+    restored["history"] = previous.get("history", [])
+    fact.payload = _seal(fact, restored)
+    event.status, event.completed_at = "completed", _now()
+    db.flush()
+    return _fact_view(db, fact)
 
 
 def add_fact(db, account_id, *, category, subject, field, value, effective_at=None):
@@ -650,10 +834,10 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 item = {identity: subject, **({"profile_subject": subject} if category in {"open_source", "awards"} else {})}
                 items.append(item)
             plain_fields = {
-                "project": {"role", "start_date", "end_date", "description"},
+                "project": {"role", "start_date", "end_date"},
                 "work": {"title", "start_date", "end_date"},
                 "education": {"degree", "major", "start_date", "end_date", "highlights"},
-                "open_source": {"name", "summary", "pr", "start_date", "end_date"},
+                "open_source": {"name", "pr", "start_date", "end_date"},
                 "awards": {"name", "level", "date"},
             }[category]
             if field in plain_fields:
@@ -669,6 +853,11 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 if link not in item.setdefault("links", []):
                     item["links"].append(link)
                 bind(item, collection, "links", fact)
+            elif category == "open_source" and field == "summary":
+                lines = (item.get("summary") or "").splitlines()
+                if value not in lines:
+                    item["summary"] = "\n".join([*filter(None, lines), value])
+                bind(item, collection, "summary", fact)
             elif category == "education" and field in {"description", "result"}:
                 lines = (item.get("highlights") or "").splitlines()
                 if value not in lines:
@@ -682,7 +871,7 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 if value not in item.setdefault("bullets", []):
                     item["bullets"].append(value)
                 bind(item, collection, "bullets", fact)
-            elif category == "project" and field in {"result", "status", "tool", "deliverable"}:
+            elif category == "project" and field in {"description", "result", "status", "tool", "deliverable"}:
                 lines = (item.get("description") or "").splitlines()
                 if value not in lines:
                     item["description"] = "\n".join([*filter(None, lines), value])
@@ -1126,6 +1315,7 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
                     event.error_code = ("budget_exhausted" if exhausted
                                         else "revision_conflict" if isinstance(error, ProfileRevisionConflict)
                                         else "archive_timeout" if isinstance(error, TimeoutError)
+                                        else "archive_invalid_response" if isinstance(error, ValidationError)
                                         else "archive_unavailable")
                     event.available_at = ((_now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
                                           if exhausted else _now() + timedelta(seconds=min(300, 2 ** event.attempts)))

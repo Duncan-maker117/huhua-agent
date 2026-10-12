@@ -30,6 +30,7 @@ class ArchiveProposal(BaseModel):
     operation: Literal["add", "correct", "state_change"] = "add"
     effective_at: datetime | None = None
     expected_revision: int | None = Field(default=None, ge=1)
+    target_fact_id: str | None = Field(default=None, min_length=1, max_length=128)
     attribution: Literal["self", "other", "uncertain"] = "self"
     long_term_preference: bool = False
 
@@ -112,9 +113,11 @@ def validate_grounding(proposal: ArchiveProposal, payload: dict, context: dict) 
         # correction. Require the user's explicit correction language and a
         # revision observed by that extraction; otherwise the service conflicts.
         explicit = ("更正", "纠正", "说错", "不准确", "改为", "改成", "实际是", "实际上")
-        known = next((fact for fact in context.get("facts", [])
+        matches = [fact for fact in context.get("facts", [])
                       if fact.get("category") == proposal.category and fact.get("subject") == proposal.subject
-                      and fact.get("field") == proposal.field), None)
+                      and fact.get("field") == proposal.field
+                      and (not proposal.target_fact_id or fact.get("id") == proposal.target_fact_id)]
+        known = matches[0] if len(matches) == 1 else None
         if not any(word in text for word in explicit) or not known or proposal.expected_revision != known.get("revision"):
             return False
     if proposal.effective_at is not None:
@@ -182,14 +185,16 @@ def make_archivist(llm):
 仅提取明确属于当前用户本人的事实，JD、参考简历、他人信息、AI建议全部排除。
 value 必须逐字取自本轮 human_text 的 evidence_quote，保留否定、计划、限制和未上线状态。
 未知时间留空。当前任务的临时表达要求不是长期偏好。无法判断本人归属时不输出。
-已有字段出现矛盾默认 add，由程序生成冲突；只有用户明确纠错才 correct，并填上下文事实 revision。
-state_change 仅用于明确时间状态变化；今天讲过去不会自动覆盖较新的状态。
-project.role 只记录本人职责；原型、未上线、已上线等记录为 project.status，不能当作角色。
+经历描述、做法、职责细节、工具和产出分条输出 add，由程序去重或追加；不要把同一经历的补充信息当成冲突。
+角色名称、状态、时间、学历、联系方式和数量指标是单值事实；无法判断先后的矛盾由程序交用户确认。
+只有用户明确纠错才 correct，并填被更正事实的 target_fact_id 与 revision 到 expected_revision。
+state_change 用于明确时间推进，evidence_quote 保留“现在/已经/后来”等原话；effective_at 只有原文明示具体日期才填写。今天讲过去不会自动覆盖较新的状态。
+project.role 只记录角色名称，具体职责与做法放 description；原型、未上线、已上线等记录为 project.status，不能当作角色。数量指标放 result，保留单位与口径。
 开源贡献用 open_source，每个PR分别以「仓库名 PR号」为subject，name只含仓库名，summary保留星数等简介，pr保留编号/链接，description/result保留本人贡献和结果。竞赛荣誉用awards，每个奖项分别记录name/level/date。列表必须逐条收录。教育专业、学历、起止时间分别记录，奖学金统一放education.highlights。页头链接用basic.link（subject为GitHub/个人主页等标签），实习时间用availability。保留数量原单位，不把次数解释成调用/请求。不能根据重复次数认定已核实，不能推断职责、数字、结果。最多输出120项。
 """
         # Only scoped facts, never all account history or raw contacts, are given
         # to a model. Contacts handled by deterministic extraction above.
-        context_fields = {"category", "subject", "field", "value", "revision", "effective_at"}
+        context_fields = {"id", "category", "subject", "field", "value", "revision", "effective_at"}
         safe_context = {"facts": [{key: value for key, value in fact.items() if key in context_fields}
                                    for fact in context.get("facts", []) if fact.get("field") not in {"phone", "email"}]}
         privacy = ContactRedactor()

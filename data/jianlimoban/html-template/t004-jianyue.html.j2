@@ -83,6 +83,7 @@
   .h-obj { font-size: 11pt; color: #444; }
   .contact { font-size: 9.5pt; color: #555; margin-top: 2px; }
   .photo { margin-left: 16px; }
+  .positioning-block { color: #2b2b2b; background: #fff; margin-bottom: var(--section-gap); }
   {{ m.layout_styles() }}
 </style>
 </head>
@@ -93,10 +94,10 @@
     <div class="header-text">
       <div class="h-line">{{ m.name_line(basic_info) }}</div>
       <div class="contact">{{ m.contact_line(basic_info) }}</div>
-      {{ m.positioning_line(summary) }}
     </div>
     {{ m.photo_box(basic_info) }}
   </div>
+  {% if summary %}<div class="positioning-block">{{ m.positioning_line(summary) }}</div>{% endif %}
 
   {% for section in resume_sections %}
 {% if (section.kind == 'custom' and (section.title or section.content)) or (section.kind == 'education' and education) or (section.kind == 'work_experience' and work_experience) or (section.kind == 'projects' and projects) or (section.kind == 'open_source' and open_source) or (section.kind == 'awards' and awards) or (section.kind == 'skills' and (has_grouped_skills or skills)) or (section.kind == 'certificates' and certificates) or (section.kind == 'self_evaluation' and self_evaluation) %}

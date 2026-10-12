@@ -18,7 +18,6 @@ from app.database import SessionLocal
 from app.schemas.editor import ResumeData
 from app.services.renderer import list_templates, render_resume
 from app.services.resume_pdf import render_resume_pdf
-from app.services.resume_review import review_resume
 from app.services.resume_workspace import build_workspace, tailor_metadata
 from app.services.canonical_resume import (
     InvalidResumeSession,
@@ -32,7 +31,6 @@ from app.services.canonical_resume import (
 )
 from app.services.session_store import (
     load_resume_session,
-    resume_data_has_content,
     session_can_read_checkpoint,
     session_lock,
 )
@@ -83,10 +81,8 @@ async def sample():
 
 @router.get("/current")
 async def current_resume(request: Request, session_id: str = Query(..., description="聊天 session_id")):
-    """读聊天 session 当前产出的 ResumeData，内存没有时回退到 SQLite 持久化数据。"""
-    authorize_session(request, session_id)
-    async with session_lock(session_id):
-        return await _current_resume(request, session_id)
+    """读取已提交的简历快照，允许聊天同时生成下一版。"""
+    return await _current_resume(request, session_id)
 
 
 async def _current_resume(request: Request, session_id: str):
@@ -210,11 +206,11 @@ async def render(template_id: str, data: ResumeData, request: Request, interacti
     if export:
         _require_export_account(request)
         interactive = False
-    if session_id:
-        authorize_session(request, session_id)
-        async with session_lock(session_id):
-            return _render_payload(template_id, data, request, interactive, session_id, removed_item_ids)
-    return _render_payload(template_id, data, request, interactive, session_id, removed_item_ids)
+    # SQL reads provide a committed snapshot while a chat turn is still running.
+    # Interactive editor drafts are validated against that snapshot, never a
+    # partially generated checkpoint. Rendering must not wait for the writer.
+    return await run_in_threadpool(
+        _render_payload, template_id, data, request, interactive, session_id, removed_item_ids)
 
 
 def _render_payload(template_id, data, request, interactive, session_id, removed_item_ids):
@@ -241,11 +237,7 @@ async def export_docx(template_id: str, data: ResumeData, request: Request,
                       session_id: str | None = Query(None, min_length=1, max_length=128)):
     """把 ResumeData 导出为通用 Word 文件。template_id 仅用于文件名。"""
     _require_export_account(request)
-    if session_id:
-        authorize_session(request, session_id)
-        async with session_lock(session_id):
-            return _export_docx_payload(template_id, data, request, session_id)
-    return _export_docx_payload(template_id, data, request, session_id)
+    return await run_in_threadpool(_export_docx_payload, template_id, data, request, session_id)
 
 
 @router.post("/export/pdf/{template_id}")
@@ -255,12 +247,8 @@ async def export_pdf(template_id: str, data: ResumeData, request: Request,
     _require_export_account(request)
     if template_id not in {template["id"] for template in list_templates()}:
         raise HTTPException(404, "模板不存在")
-    if session_id:
-        authorize_session(request, session_id)
-        async with session_lock(session_id):
-            payload = _output_payload(request, data, session_id=session_id, committed=True)
-    else:
-        payload = _output_payload(request, data, committed=True)
+    payload = await run_in_threadpool(
+        _output_payload, request, data, session_id=session_id, committed=True)
     try:
         pdf_bytes = await run_in_threadpool(render_resume_pdf, template_id, payload)
     except Exception:

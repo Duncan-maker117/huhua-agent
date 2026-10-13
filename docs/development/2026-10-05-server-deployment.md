@@ -21,7 +21,14 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-12 加载提速 + 页内精细编辑（最新）
+## 2026-10-13 预览提速 + 档案面板/记忆规则 + 对话标题（最新）
+
+- 镜像 `huhua-agent:20261013-1`（sha256:e7339b2f…），基于 `20261012-3`，代码 `968adc5`（提交 worktree 打包）。无 schema 迁移、未清数据（会话 7、账号 3、档案事实 84）。
+- 内容：render / current / 导出读已提交数据不等会话锁，保存测页走 `to_thread`；t004 个人定位移到白底、t002 深色页头浅色字；模板切换丢弃过期渲染；档案面板按条目合卡、「信息确认」红点、「我来更正」可取消；叙述类事实追加、状态类自动更新可撤销；对话标题按公司·岗位/方向/经历名生成。
+- 包 `huhua-deploy-20261013-1.tar.gz`（a77da1cc…）。容器测试 1321 项全过（skip 7）。演练正常。备份 `/opt/huhua-backups/pre-20261013-1/`；回滚拷回 `deploy/compose.env.pre-20261013-1` 后 up。
+- 线上验收（游客、虚构资料 handson-02）：方案卡→按推荐写→成稿→页内精细编辑正常；render 请求 8–12ms（上一版平均 16s）；对话标题为「AI 产品经理实习生（Agent 方向）」；发布后日志无异常。登录态档案面板待用户目视确认。
+
+## 2026-10-12 加载提速 + 页内精细编辑（历史）
 
 - 镜像 `huhua-agent:20261012-3`（sha256:1e2fe187…），基于 `20261012-2`，代码 `858221b`。无迁移、未清数据（会话 12、档案事实 84）。
 - 提速：Tailwind 改预编译 `web/tailwind.css`（配置 `web/tailwind.config.js`，含 @tailwindcss/forms；新增 class 需重新编译），去掉 Google Fonts，`/static` 开 gzip（只作用于静态挂载，不影响 SSE），带 `?v=` 的静态文件 `max-age=31536000, immutable`。线上 resume-editor.js 62KB/1.1s → 18KB/0.33s，样式 5.6KB。

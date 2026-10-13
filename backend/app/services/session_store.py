@@ -211,7 +211,8 @@ def save_resume_session(
                 collected_info if collected_info is not None else previous_state.get("collected_info"),
                 resume_meta if resume_meta is not None else previous_state.get("resume_meta"),
                 resume_versions if resume_versions is not None else previous_state.get("resume_versions"),
-                session_constraints if session_constraints is not None else previous_state.get("session_constraints"))
+                session_constraints if session_constraints is not None else previous_state.get("session_constraints"),
+                previous_state=previous_state)
             protected = protect_data(owner, {**row.resume_state, "resume_data": row.resume_data}, db=db)
             row.resume_data = protected.pop("resume_data")
             row.resume_state = protected
@@ -348,8 +349,11 @@ def purge_expired_resume_session(session_id: str, retention_days: int) -> None:
         db.close()
 
 
-def make_resume_state(collected_info, resume_meta=None, resume_versions=None, session_constraints=None):
+def make_resume_state(collected_info, resume_meta=None, resume_versions=None, session_constraints=None,
+                      *, previous_state=None):
     """Facts and document metadata share their document's SQL transaction."""
-    return copy.deepcopy({"authoritative": True, "collected_info": collected_info or {},
+    title_metadata = {key: previous_state[key] for key in ("title_source", "auto_title")
+                      if previous_state and key in previous_state}
+    return copy.deepcopy({**title_metadata, "authoritative": True, "collected_info": collected_info or {},
                           "resume_meta": resume_meta or {}, "resume_versions": (resume_versions or [])[-10:],
                           "session_constraints": session_constraints or {}})

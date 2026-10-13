@@ -7,7 +7,8 @@ import tempfile
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 from fastapi import FastAPI
@@ -26,14 +27,60 @@ os.environ.update({"APP_ENV": "local", "ALLOW_INSECURE_LOCAL_STORAGE": "true",
 from app.config import get_settings  # noqa: E402
 get_settings.cache_clear()
 
-from app.agents.resume_graph import _init_state, build_graph  # noqa: E402
+from app.agents.resume_graph import _init_state, build_graph, stream_agent  # noqa: E402
 from app.api import chat, conversations  # noqa: E402
 from app.database import Base  # noqa: E402
 from app.models.models import Conversation, ResumeSession  # noqa: E402
 from app.models.legacy_suggestions import ResumeSuggestion  # noqa: E402,F401 - register the isolated cleanup table
 from app.schemas.editor import ResumeData  # noqa: E402
-from app.services.conversation_store import WORKSPACE_COOKIE, touch_conversation  # noqa: E402
-from app.services.session_store import DELETED_STAGE, load_resume_session  # noqa: E402
+from app.services.conversation_store import (  # noqa: E402
+    WORKSPACE_COOKIE, derive_conversation_title, set_initial_title,
+    touch_conversation, update_conversation_title,
+)
+from app.services.session_store import DELETED_STAGE, load_resume_session, save_resume_session  # noqa: E402
+from app.services.canonical_resume import resume_revision, save_canonical_resume  # noqa: E402
+from app.agents.resume_graph import _serialize_to_resume_data  # noqa: E402
+
+
+class ConversationTitleDerivationTest(unittest.TestCase):
+    def test_jd_fields_take_priority_and_company_is_optional(self):
+        values = {"jd_info": {"company": "星河科技", "job_title": "AI 产品经理"},
+                  "collected_info": {"basic_info": {"objective": "后端开发"}}}
+        self.assertEqual(derive_conversation_title(values), "星河科技 · AI 产品经理")
+        values["jd_info"]["company"] = ""
+        self.assertEqual(derive_conversation_title(values), "AI 产品经理")
+
+    def test_direction_locations_and_experience_fallback(self):
+        for values in (
+            {"collected_info": {"basic_info": {"objective": "AI 产品经理"}}},
+            {"resume_data": {"basic_info": {"objective": "AI 产品经理"}}},
+            {"basic_info": {"objective": "AI 产品经理"}},
+            {"role_direction": "AI 产品经理"},
+            {"jd_info": {"role_direction": "AI 产品经理"}},
+        ):
+            with self.subTest(values=values):
+                self.assertEqual(derive_conversation_title(values), "AI 产品经理简历")
+        self.assertEqual(derive_conversation_title({"collected_info": {
+            "projects": [{"name": "课程助手"}, {"name": "知识库原型"}, {"name": "第三项"}]
+        }}), "课程助手 / 知识库原型")
+        self.assertEqual(derive_conversation_title({"collected_info": {
+            "work_experience": [{"company": "星河科技"}], "internship": [{"company": "月海科技"}]
+        }}), "星河科技 / 月海科技")
+
+    def test_unstructured_greetings_and_material_do_not_create_titles(self):
+        for text in ("你好", "请依据下列已确认材料直接写一份…", "我是虚构候选人"):
+            self.assertIsNone(derive_conversation_title({"messages": [HumanMessage(content=text)]}))
+        self.assertIsNone(derive_conversation_title({}))
+
+    def test_length_cut_preserves_latin_words_and_direction_suffix(self):
+        values = {"jd_info": {"company": "星河科技", "job_title": "Senior Software Engineer"}}
+        self.assertEqual(derive_conversation_title(values), "星河科技 · Senior Software")
+        self.assertEqual(derive_conversation_title({"role_direction": "Senior Software Engineer"}),
+                         "Senior Software简历")
+        chinese = derive_conversation_title({"jd_info": {"job_title": "智能应用产品研发工程师" * 4}})
+        self.assertEqual(len(chinese), 24)
+        self.assertEqual(derive_conversation_title({"jd_info": {
+            "job_title": "Développeur Senior Applications"}}), "Développeur Senior")
 
 
 class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
@@ -172,6 +219,8 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
             HumanMessage(content="我的针对性能力：Python，课程原型未上线"),
         ]
         await self.checkpoint(session_id, stage="EVALUATING", messages=messages, jd_text="目标岗位 JD 原文", jd_info={"job_title": "AI 产品经理"}, collected_info=facts, resume_data={"basic_info": {"name": "未提交checkpoint内容"}}, eval_result={"private": "PRIVATE_EVALUATION"})
+        update_conversation_title(self.owner(), session_id,
+                                  {"jd_info": {"company": "极飞科技", "job_title": "AI 产品经理"}})
         with self.factory() as db:
             row = db.get(ResumeSession, session_id)
             row.resume_data = latest
@@ -181,7 +230,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
         restored = await self.detail(session_id)
         self.assertEqual(restored.status_code, 200, restored.text)
         data = restored.json()
-        self.assertEqual(data["title"], "极飞科技 AI 产品经理")
+        self.assertEqual(data["title"], "极飞科技 · AI 产品经理")
         self.assertEqual(data["jd_text"], "目标岗位 JD 原文")
         self.assertEqual(data["jd_info"], {"job_title": "AI 产品经理"})
         self.assertEqual(data["collected_info"], facts)
@@ -192,7 +241,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("PRIVATE", restored.text)
         self.assertNotIn("additional_kwargs", restored.text)
 
-    async def test_touch_keeps_first_title_and_updates_recency_before_a_failed_turn(self):
+    async def test_touch_keeps_default_title_and_updates_recency_before_a_failed_turn(self):
         first = await self.create()
         touch_conversation(first, "第一条输入 " * 20, self.owner())
         with self.factory() as db:
@@ -205,7 +254,124 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
         touch_conversation(first, "后续输入不能改标题", self.owner())
         after = (await self.client.get("/api/chat/conversations")).json()["conversations"]
         self.assertEqual(after[0]["session_id"], first)
-        self.assertEqual(after[0]["title"], ("第一条输入 " * 20).strip()[:40])
+        self.assertEqual(after[0]["title"], "新对话")
+        self.assertEqual(set_initial_title(self.owner(), first, "请依据下列材料" * 20), "新对话")
+
+    async def test_committed_stream_updates_title_from_latest_state_each_turn(self):
+        sid = await self.create()
+        values = {"stage": "COLLECTING", "jd_info": {}, "collected_info": {}, "resume_data": {}}
+
+        async def events(*args, **kwargs):
+            if False:
+                yield
+
+        graph = SimpleNamespace(astream=events, aget_state=AsyncMock(
+            side_effect=lambda *_args: SimpleNamespace(values=values)), aupdate_state=AsyncMock())
+        with patch("app.agents.resume_graph.get_graph", return_value=graph):
+            for structured, expected in (
+                ({}, "新对话"),
+                ({"role_direction": "AI 产品经理"}, "AI 产品经理简历"),
+                ({"company": "星河科技", "job_title": "AI 产品经理"}, "星河科技 · AI 产品经理"),
+                ({"company": "月海科技", "job_title": "后端开发"}, "月海科技 · 后端开发"),
+            ):
+                values["jd_info"] = structured
+                _ = [chunk async for chunk in stream_agent([{"content": "虚构测试"}], sid, object())]
+                items = (await self.client.get("/api/chat/conversations")).json()["conversations"]
+                self.assertEqual(items[0]["title"], expected)
+
+    async def test_manual_titles_survive_automatic_updates_and_state_saves(self):
+        for source in (None, "manual", "auto"):
+            sid = await self.create()
+            with self.factory() as db:
+                row = db.get(ResumeSession, sid)
+                row.resume_state = ({"title_source": source, "auto_title": "原自动标题"} if source else {})
+                db.get(Conversation, sid).title = "我手动命名的会话"
+                db.commit()
+            values = {"jd_info": {"company": "星河科技", "job_title": "AI 产品经理"},
+                      "messages": [HumanMessage(content="你好")]}
+            self.assertEqual(update_conversation_title(self.owner(), sid, values), "我手动命名的会话")
+            save_resume_session(sid, {}, stage="COLLECTING", collected_info={})
+            self.assertEqual(update_conversation_title(self.owner(), sid, values), "我手动命名的会话")
+            await save_canonical_resume(sid, resume_revision({}),
+                                        {"basic_info": {"name": "虚构编辑者"}},
+                                        self.graph, _serialize_to_resume_data)
+            self.assertEqual(update_conversation_title(self.owner(), sid, values), "我手动命名的会话")
+            with self.factory() as db:
+                self.assertEqual(db.get(ResumeSession, sid).resume_state["title_source"], "manual")
+
+    async def test_legacy_title_backfill_is_encrypted_idempotent_and_preserves_recency(self):
+        from app.services.data_crypto import DataCrypto
+        crypto = DataCrypto({"test": os.urandom(32)}, "test")
+        with patch("app.services.data_crypto.get_crypto", return_value=crypto):
+            sid = await self.create()
+            message = "  请依据下列已确认材料\n直接写一份虚构的简历，材料如下：" * 3
+            await self.checkpoint(sid, messages=[HumanMessage(content=message)],
+                                  jd_info={"company": "星河科技", "job_title": "AI 产品经理"})
+            with self.factory() as db:
+                row = db.get(ResumeSession, sid)
+                row.resume_state = {}
+                row.updated_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=5)
+                db.get(Conversation, sid).title = " ".join(message.split())[:40]
+                db.commit()
+                before = row.updated_at
+            first = (await self.client.get("/api/chat/conversations")).json()
+            self.assertEqual(first["conversations"][0]["title"], "星河科技 · AI 产品经理")
+            with self.factory() as db:
+                row = db.get(ResumeSession, sid)
+                conversation = db.get(Conversation, sid)
+                self.assertEqual(row.updated_at, before)
+                self.assertEqual(row.resume_state["title_source"], "auto")
+                self.assertTrue(crypto.is_encrypted(conversation._title))
+                self.assertTrue(crypto.is_encrypted(row._resume_state))
+                versions = (row.version, conversation.version)
+            with patch.object(self.saver, "aget_tuple", side_effect=AssertionError("already repaired")):
+                second = (await self.client.get("/api/chat/conversations")).json()
+            self.assertEqual(first, second)
+            with self.factory() as db:
+                self.assertEqual((db.get(ResumeSession, sid).version, db.get(Conversation, sid).version), versions)
+
+    async def test_legacy_greeting_with_direction_backfills_but_greeting_alone_stays(self):
+        for direction, expected in (("后端开发", "后端开发简历"), (None, "你好")):
+            sid = await self.create()
+            await self.checkpoint(sid, messages=[HumanMessage(content="你好")],
+                                  collected_info={"basic_info": {"objective": direction}})
+            with self.factory() as db:
+                db.get(ResumeSession, sid).resume_state = {}
+                db.get(Conversation, sid).title = "你好"
+                db.commit()
+            items = (await self.client.get("/api/chat/conversations")).json()["conversations"]
+            self.assertEqual(next(item["title"] for item in items if item["session_id"] == sid), expected)
+
+    async def test_list_survives_optional_checkpoint_or_title_write_failure(self):
+        sid = await self.create()
+        await self.checkpoint(sid, messages=[HumanMessage(content="你好")],
+                              jd_info={"company": "星河科技", "job_title": "AI 产品经理"})
+        with self.factory() as db:
+            db.get(ResumeSession, sid).resume_state = {}
+            db.get(Conversation, sid).title = "你好"
+            db.commit()
+        for failure in (patch.object(self.saver, "aget_tuple", side_effect=RuntimeError("synthetic read failure")),
+                        patch.object(conversations, "update_conversation_title", side_effect=RuntimeError("synthetic write failure"))):
+            with failure:
+                response = await self.client.get("/api/chat/conversations")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["conversations"][0]["title"], "你好")
+
+    async def test_missing_checkpoint_does_not_mark_legacy_title_manual_and_allows_retry(self):
+        sid = await self.create()
+        with self.factory() as db:
+            db.get(ResumeSession, sid).resume_state = {}
+            db.get(Conversation, sid).title = "你好"
+            db.commit()
+        response = await self.client.get("/api/chat/conversations")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["conversations"][0]["title"], "你好")
+        with self.factory() as db:
+            self.assertNotIn("title_source", db.get(ResumeSession, sid).resume_state)
+        await self.checkpoint(sid, messages=[HumanMessage(content="你好")],
+                              jd_info={"company": "星河科技", "job_title": "AI 产品经理"})
+        response = await self.client.get("/api/chat/conversations")
+        self.assertEqual(response.json()["conversations"][0]["title"], "星河科技 · AI 产品经理")
 
     async def test_durable_reopen_can_continue_same_chat_without_crossing_or_trusting_client_history(self):
         first = await self.create()
@@ -243,6 +409,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Python", " ".join(model.received))
         self.assertNotIn("FORGED_HISTORY", " ".join(model.received))
         restored = (await self.detail(first)).json()
+        self.assertEqual(restored["title"], "AI产品经理")
         self.assertEqual(restored["resume_data"], canonical)
         self.assertEqual(restored["collected_info"], facts)
         self.assertEqual(restored["jd_text"], "极飞科技AI产品经理，要求Python")

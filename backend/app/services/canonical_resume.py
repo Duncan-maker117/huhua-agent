@@ -172,7 +172,8 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
         state = make_resume_state(
             facts, resume_meta if resume_meta is not None else authoritative.get("resume_meta"),
             resume_versions if resume_versions is not None else authoritative.get("resume_versions"),
-            session_constraints if session_constraints is not None else authoritative.get("session_constraints"))
+            session_constraints if session_constraints is not None else authoritative.get("session_constraints"),
+            previous_state=row.resume_state)
         from app.services.resume_versions import valid_bullet_metadata
         if "bullets" in state["resume_meta"]:
             state["resume_meta"] = valid_bullet_metadata(canonical, state["resume_meta"])

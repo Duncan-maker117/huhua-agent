@@ -16,7 +16,7 @@ from app.services.conversation_store import (
     create_conversation,
     list_conversations,
     load_conversation,
-    set_initial_title,
+    update_conversation_title,
 )
 from app.services.account_service import resolve_owner
 from app.services.profile_bridge import protect_data, protect_state
@@ -40,8 +40,25 @@ async def conversations(request: Request, response: Response):
     response.headers["Cache-Control"] = "no-store"
     owner_hash = resolve_owner(request, response)
     try:
+        recovery_ids = []
+        items = list_conversations(owner_hash, title_recovery_ids=recovery_ids)
+        checkpointer = getattr(request.app.state, "checkpointer", None)
+        for item in items:
+            session_id = item["session_id"]
+            if session_id not in recovery_ids or checkpointer is None:
+                continue
+            lock = session_lock(session_id)
+            if lock.locked():
+                continue
+            try:
+                async with lock:
+                    snapshot = await checkpointer.aget_tuple({"configurable": {"thread_id": session_id}})
+                    values = (snapshot.checkpoint.get("channel_values") if snapshot else {}) or {}
+                    item["title"] = update_conversation_title(owner_hash, session_id, values, legacy_only=True)
+            except Exception:
+                logger.warning("Legacy conversation title recovery failed")
         return {
-            "conversations": list_conversations(owner_hash),
+            "conversations": items,
             "retention_days": get_settings().SESSION_RETENTION_DAYS,
         }
     except Exception:
@@ -63,9 +80,7 @@ async def new_conversation(request: Request, response: Response, body: CreateCon
                     try:
                         snapshot = await checkpointer.aget_tuple({"configurable": {"thread_id": session_id}})
                         values = (snapshot.checkpoint.get("channel_values") if snapshot else {}) or {}
-                        first_user = next((message for message in _public_messages(values) if message["role"] == "user"), None)
-                        if first_user:
-                            metadata["title"] = set_initial_title(owner_hash, session_id, first_user["content"])
+                        metadata["title"] = update_conversation_title(owner_hash, session_id, values)
                     except Exception:
                         # Recovering a label is optional; keep the successful
                         # claim and let the detail endpoint report read errors.

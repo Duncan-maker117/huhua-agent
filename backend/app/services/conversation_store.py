@@ -12,6 +12,7 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.database import SessionLocal
 from app.models.legacy_suggestions import ResumeSuggestion
@@ -23,6 +24,48 @@ GUEST_COOKIE = "huhua_guest"
 WORKSPACE_COOKIE_MAX_AGE = 365 * 24 * 60 * 60
 DEFAULT_TITLE = "新对话"
 _COOKIE_PATTERN = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
+_TITLE_WORD = re.compile(r"[^\W\u3400-\u9fff]+(?:[.+#'-][^\W\u3400-\u9fff]+)*(?:\+\+|#)?")
+
+
+def _short_title(value: str, limit: int = 24) -> str:
+    """CJK characters can wrap individually; Latin words must stay whole."""
+    value = " ".join(value.split())
+    end = min(len(value), limit)
+    for word in _TITLE_WORD.finditer(value):
+        if word.start() < end < word.end():
+            end = word.start()
+            break
+    return value[:end].rstrip(" /·,，;；-:：")
+
+
+def derive_conversation_title(state_values: dict) -> str | None:
+    """Use structured job/candidate data only, never the opening utterance."""
+    values = state_values or {}
+    jd = values.get("jd_info") or {}
+    role = jd.get("job_title")
+    if isinstance(role, str) and role.strip():
+        company = jd.get("company") or ""
+        return _short_title(f"{company} · {role}" if company.strip() else role) or None
+    sources = [values.get("collected_info") or {}, values.get("resume_data") or {}, values]
+    direction = next((source.get("basic_info", {}).get("objective") for source in sources
+                      if (source.get("basic_info") or {}).get("objective")), None)
+    direction = direction or values.get("role_direction") or jd.get("role_direction")
+    if isinstance(direction, str) and direction.strip():
+        direction = direction.strip().removesuffix("简历")
+        shortened = _short_title(direction, 22)
+        return f"{shortened}简历" if shortened else None
+    names = []
+    for source in sources:
+        for group in ("projects", "work_experience", "internship", "open_source", "education"):
+            for item in source.get(group) or []:
+                name = item.get("name") or item.get("company") or item.get("school")
+                if isinstance(name, str) and name.strip() and name.strip() not in names:
+                    names.append(name.strip())
+                if len(names) == 2:
+                    return _short_title(" / ".join(names)) or None
+        if names:
+            break
+    return _short_title(" / ".join(names)) or None
 
 
 class ConversationNotFound(Exception):
@@ -94,7 +137,7 @@ def _metadata(conversation: Conversation, row: ResumeSession) -> dict:
     }
 
 
-def list_conversations(owner_hash: str) -> list[dict]:
+def list_conversations(owner_hash: str, *, title_recovery_ids: list[str] | None = None) -> list[dict]:
     with SessionLocal() as db:
         rows = (
             db.query(Conversation, ResumeSession)
@@ -103,7 +146,19 @@ def list_conversations(owner_hash: str) -> list[dict]:
             .order_by(ResumeSession.updated_at.desc(), Conversation.created_at.desc())
             .all()
         )
-        return [_metadata(conversation, row) for conversation, row in rows if _active(row)]
+        result = []
+        for conversation, row in rows:
+            if not _active(row):
+                continue
+            result.append(_metadata(conversation, row))
+            if title_recovery_ids is not None:
+                try:
+                    if not (row.resume_state or {}).get("title_source"):
+                        title_recovery_ids.append(row.session_id)
+                except Exception:
+                    # Optional label metadata must not break the catalog read.
+                    pass
+        return result
 
 
 def create_conversation(owner_hash: str, session_id: str | None = None) -> dict:
@@ -124,7 +179,8 @@ def create_conversation(owner_hash: str, session_id: str | None = None) -> dict:
                 return _metadata(conversation, row)
         else:
             session_id = str(uuid.uuid4())
-            row = ResumeSession(session_id=session_id, owner_key=owner_hash, resume_data={}, stage="JD_INPUT")
+            row = ResumeSession(session_id=session_id, owner_key=owner_hash, resume_data={}, stage="JD_INPUT",
+                                resume_state={"title_source": "auto", "auto_title": DEFAULT_TITLE})
             db.add(row)
             # Keep insertion order valid on databases with foreign keys enabled.
             db.flush()
@@ -159,15 +215,66 @@ def load_conversation(owner_hash: str | None, session_id: str) -> dict:
 
 
 def set_initial_title(owner_hash: str, session_id: str, first_input: str) -> str:
-    """Name migrated chats without changing their original activity time."""
+    """Compatibility entry point: an opening utterance is never a title."""
     with SessionLocal() as db:
         conversation = db.get(Conversation, session_id)
         if not conversation or conversation.owner_hash != owner_hash:
             raise ConversationNotFound()
-        if conversation.title == DEFAULT_TITLE:
-            conversation.title = " ".join(first_input.split())[:40] or DEFAULT_TITLE
-            db.commit()
         return conversation.title
+
+
+def update_conversation_title(owner_hash: str, session_id: str, state_values: dict,
+                              *, legacy_only: bool = False) -> str:
+    """Update automatic labels using the same encrypted ORM fields as before.
+
+    Source and the last automatic value live in the existing encrypted state.
+    The value comparison also protects direct/manual title edits, even though
+    the current API does not expose a conversation rename endpoint.
+    """
+    from app.services.profile_bridge import protect_data, protect_state
+    from langchain_core.messages import HumanMessage
+
+    with SessionLocal() as db:
+        conversation = db.get(Conversation, session_id)
+        row = db.get(ResumeSession, session_id)
+        if not conversation or conversation.owner_hash != owner_hash or not _active(row):
+            raise ConversationNotFound()
+        title = conversation.title
+        metadata = row.resume_state or {}
+        source = metadata.get("title_source")
+        if source not in (None, "auto") or (legacy_only and source):
+            return title
+        if source == "auto" and title != metadata.get("auto_title", DEFAULT_TITLE):
+            metadata = {**metadata, "title_source": "manual"}
+        elif source is None and title != DEFAULT_TITLE:
+            first = next((message for message in state_values.get("messages") or []
+                          if isinstance(message, HumanMessage)), None)
+            first_text = first.content if first and isinstance(first.content, str) else ""
+            old_title = " ".join(first_text.split())[:40]
+            if not old_title:
+                return title
+            if title != old_title:
+                # Unmarked custom labels are conservatively treated as manual.
+                metadata = {**metadata, "title_source": "manual"}
+        if metadata.get("title_source") != "manual":
+            values = state_values
+            if metadata.get("authoritative"):
+                values = {**values, "collected_info": metadata.get("collected_info") or {},
+                          "resume_data": row.resume_data or {}}
+            derived = derive_conversation_title(protect_state(owner_hash, values))
+            if not derived:
+                return title
+            title = protect_data(owner_hash, derived, db=db) or DEFAULT_TITLE
+            metadata = {**metadata, "title_source": "auto", "auto_title": title}
+        if conversation.title != title or row.resume_state != metadata:
+            conversation.title = title
+            # A lazy title repair must not reorder historical conversations.
+            updated_at = row.updated_at
+            row.resume_state = metadata
+            row.updated_at = updated_at
+            flag_modified(row, "updated_at")
+            db.commit()
+        return title
 
 
 def touch_conversation(session_id: str, first_input: str, owner_hash: str | None = None) -> None:
@@ -182,8 +289,6 @@ def touch_conversation(session_id: str, first_input: str, owner_hash: str | None
         if conversation is None and owner_hash:
             conversation = Conversation(session_id=session_id, owner_hash=owner_hash, title=DEFAULT_TITLE)
             db.add(conversation)
-        if conversation and conversation.title == DEFAULT_TITLE:
-            conversation.title = " ".join(first_input.split())[:40] or DEFAULT_TITLE
         row.updated_at = datetime.now(UTC).replace(tzinfo=None)
         db.commit()
 

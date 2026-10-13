@@ -2871,5 +2871,12 @@ async def stream_agent(
                 await repair(config, repair_values)
             except Exception:
                 logger.warning("Resume committed; checkpoint reconciliation failed")
+    try:
+        from app.services.conversation_store import session_owner, update_conversation_title
+        title_values = {**state.values, **(committed if isinstance(committed, dict) else {})}
+        update_conversation_title(session_owner(session_id), session_id, title_values)
+    except Exception:
+        # Label maintenance must never turn a committed turn into a save error.
+        logger.warning("Conversation saved; automatic title update failed")
     for reply in pending_replies:
         yield reply

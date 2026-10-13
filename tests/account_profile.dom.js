@@ -14,8 +14,11 @@ const facts = [
   ['awards','虚构竞赛','level','参与奖'],
   ['project','虚构项目','role','参与者'],
 ].map(([category,subject,field,value], i) => ({id:'f'+i, revision:1, category,subject,field,value,sources:[]}));
+facts[2].proficiency = '精通';
+facts[2].history = [{value:'Python',proficiency:'熟悉'}];
 let profile = {revision:1, facts, conflicts:[{id:'c1', subject:'虚构项目', field:'role', current_value:'参与者', proposed_value:'负责人', expected_revision:1}],
-  updates:[{fact_id:'f8', revision:2, subject:'虚构项目',field:'status',previous_value:'原型',value:'内测'}],
+  updates:[{fact_id:'f8', revision:2, subject:'虚构项目',field:'status',previous_value:'原型',value:'内测'},
+    {fact_id:'f2',revision:2,subject:'语言',field:'skill',previous_value:'Python',value:'Python',previous_proficiency:'熟悉',proficiency:'精通'}],
   archive_status:{failed:1,tasks:[{id:'task1',status:'failed',message:'这次整理超时，已保存的聊天仍在，可以稍后重试。',retryable:true}]}};
 const calls = [];
 f.context.fetch = async (url, options) => {
@@ -34,6 +37,9 @@ const cls = (name, nodes = all()) => nodes.filter(n => n.className.split(' ').in
   f.run('account-profile.js'); await tick();
   await f.window.HuhuaAccount.open(); await tick();
   assert.ok(all().some(n => n.textContent === '已有信息'));
+  assert.ok(all().some(n => n.textContent === '精通 Python'));
+  assert.ok(all().some(n => n.textContent === '历史记录：熟悉 Python'));
+  assert.ok(all().some(n => n.textContent === '熟悉 Python → 精通 Python'));
   assert.equal(cls('conflict').length, 0, 'confirmation list is collapsed on open');
   assert.equal(cls('profile-confirm-badge')[0].textContent, '1');
   assert.deepEqual(cls('profile-entry').map(n => n.dataset.category), ['basic','education','project','work','open_source','awards','skill']);

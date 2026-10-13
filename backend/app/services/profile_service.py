@@ -25,6 +25,7 @@ from app.models.profile import (
 )
 from app.services.account_service import blind_index
 from app.services.data_crypto import CryptoConfigurationError, get_crypto
+from app.services.profile_equivalence import equivalent_value, normalize_skill, split_skill_values
 from app.services.resume_field_hygiene import is_project_status, trim_name_punctuation
 
 
@@ -49,6 +50,7 @@ NARRATIVE_FIELDS = {
     "work": {"description", "result", "deliverable"},
     "open_source": {"description", "result", "summary"},
 }
+_UNSET = object()
 
 
 def _normalized_text(value):
@@ -189,7 +191,9 @@ def _fact_view(db, row):
     # Temporal history is viewable to the user, but never routine model context.
     update_notice = ({"fact_id": row.id, "revision": row.revision,
                       "subject": data["subject"], "field": data["field"], "value": data["value"],
-                      "previous_value": notice["previous"]["value"], "recorded_at": data.get("recorded_at")}
+                      "previous_value": notice["previous"]["value"], "recorded_at": data.get("recorded_at"),
+                      "proficiency": data.get("proficiency"),
+                      "previous_proficiency": notice["previous"].get("proficiency")}
                      if notice and notice.get("revision") == row.revision else None)
     return {**data, "id": row.id, "revision": row.revision, "category": row.category, "update": update_notice,
             "status": row.status, "source_type": "user_provided", "sources": sources}
@@ -216,6 +220,8 @@ def _archive_task_view(row):
 def get_profile(db, account_id):
     profile = ensure_profile(db, account_id)
     migrate_legacy_narrative_conflicts(db, account_id)
+    migrate_legacy_equivalent_conflicts(db, account_id)
+    migrate_legacy_skill_facts(db, account_id)
     facts = [_fact_view(db, row) for row in db.scalars(select(ProfileFact).where(
         ProfileFact.account_id == account_id, ProfileFact.status == "active",
     )).all()]
@@ -371,26 +377,33 @@ def _invalidate(db, row, old, reason):
 
 
 def _replace_fact(db, row, value, source_id, expected_revision, effective_at=None,
-                  recorded_at=None, reason="correction"):
+                  recorded_at=None, reason="correction", *, proficiency=_UNSET):
     if row.status != "active" or row.revision != expected_revision:
         raise ProfileRevisionConflict("fact_revision_conflict")
     old = _open(row)
-    if old.get("value") == value and _dt(old.get("effective_at")) == _dt(effective_at):
+    if (old.get("value") == value and _dt(old.get("effective_at")) == _dt(effective_at)
+            and (proficiency is _UNSET or proficiency == old.get("proficiency"))):
         return row
-    _invalidate(db, row, old, reason)
+    # 只改熟练度不否定技能名称；旧引用按修订失效，不能让正文过滤器删掉技能。
+    if row.category == "skill" and old.get("value") == value:
+        _mark_jobs_stale(db, row.account_id, row.id)
+    else:
+        _invalidate(db, row, old, reason)
     updated = {**old, "value": value, "effective_at": _iso(effective_at),
                "recorded_at": _iso(recorded_at or _now()), "last_mentioned_at": _iso(recorded_at or _now()),
                "source_ids": [source_id] if source_id else [], "history": []}
     updated.pop("auto_update", None)
-    # Corrections are not alternate résumé facts; only valid time-based state
-    # changes keep a user-visible history, and context retrieval omits it.
-    if reason == "state_change":
+    if proficiency is not _UNSET:
+        updated["proficiency"] = proficiency
+    # 状态推进和等价补全保留可撤销历史；历史不进入日常模型上下文。
+    if reason in {"state_change", "refine"}:
         previous = {key: value for key, value in old.items() if key != "auto_update"}
         updated["auto_update"] = {"revision": expected_revision + 1, "previous": previous,
-                                  "previous_revision": expected_revision}
+                                  "previous_revision": expected_revision, "reason": reason}
         updated["history"] = [*old.get("history", []), {
             "value": old.get("value"), "effective_at": old.get("effective_at"),
             "until": _iso(effective_at), "status": "historical",
+            "proficiency": old.get("proficiency"), "reason": reason,
         }][-30:]
     result = db.execute(update(ProfileFact).where(
         ProfileFact.id == row.id, ProfileFact.account_id == row.account_id,
@@ -403,6 +416,12 @@ def _replace_fact(db, row, value, source_id, expected_revision, effective_at=Non
     for conflict in db.scalars(select(ProfileConflict).where(
         ProfileConflict.fact_id == row.id, ProfileConflict.status == "pending",
     )).all():
+        if reason == "refine":
+            # 精度补全不取消其它真实分歧，只把待确认卡对齐到新修订。
+            if conflict.expected_revision == expected_revision:
+                conflict.expected_revision = expected_revision + 1
+                conflict.payload = _seal(conflict, {**_open(conflict), "current_value": value})
+            continue
         conflict.status = "superseded"
         conflict.payload = _seal(conflict, {})
     return row
@@ -415,7 +434,92 @@ def _is_invalidated_value(db, account_id, fact_id, value):
     )).all())
 
 
+def _skill_key(account_id, value):
+    return _key(account_id, ["skill", "value", normalize_skill(value)])
+
+
+def _skill_blocked(db, account_id, value):
+    for invalid in db.scalars(select(ProfileInvalidation).where(
+        ProfileInvalidation.account_id == account_id,
+        ProfileInvalidation.reason.in_(["correction", "deleted"]))).all():
+        old = _open(invalid)
+        if old.get("category") == "skill" and any(
+                normalize_skill(item["value"]) == normalize_skill(value)
+                for item in split_skill_values(old.get("value", ""))):
+            return True
+    return False
+
+
+def _save_skill(db, account_id, item, data, source=None, *, allow_restore=False):
+    key = _skill_key(account_id, item["value"])
+    row = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
+    if not allow_restore and (_skill_blocked(db, account_id, item["value"]) or (row and row.status != "active")):
+        return "blocked"
+    if row is None or row.status != "active":
+        if row is None:
+            row = ProfileFact(id=new_id(), account_id=account_id, category="skill", slot_key=key,
+                              revision=1, status="active")
+        else:
+            row.status, row.revision = "active", row.revision + 1
+        row.payload = _seal(row, {**data, **item, "skill_set_version": 1})
+        db.add(row)
+        db.flush()
+        return "added"
+    old = _open(row)
+    timestamp = _dt(data.get("recorded_at"))
+    old_effective, new_effective = _dt(old.get("effective_at")), _dt(data.get("effective_at"))
+    if (item.get("proficiency") is not None and item["proficiency"] != old.get("proficiency")
+            and timestamp and timestamp >= (_dt(old.get("recorded_at")) or timestamp)
+            and not (old_effective and new_effective and new_effective < old_effective)):
+        _replace_fact(db, row, old["value"], source.id if source else None, row.revision,
+                      data.get("effective_at") or old.get("effective_at"), timestamp, "state_change",
+                      proficiency=item["proficiency"])
+        if source is None:
+            updated = _open(row)
+            updated["source_ids"] = data.get("source_ids", [])
+            row.payload = _seal(row, updated)
+        return "updated"
+    if source:
+        _mention(db, row, source)
+    else:
+        old["source_ids"] = list(dict.fromkeys([*old.get("source_ids", []), *data.get("source_ids", [])]))[-100:]
+        dates = [_dt(value) for value in (old.get("last_mentioned_at"), data.get("last_mentioned_at")) if value]
+        old["last_mentioned_at"] = _iso(max(dates)) if dates else None
+        row.payload = _seal(row, old)
+    return "duplicate"
+
+
+def _apply_skill_proposal(db, account_id, proposal, source, *, allow_restore=False):
+    items = split_skill_values(proposal.value)
+    if not items:
+        return "blocked"
+    if proposal.operation == "correct":
+        # 单项更正必须指向已读到的事实，不能把改名当成添加后删除。
+        row = db.get(ProfileFact, proposal.target_fact_id) if proposal.target_fact_id else None
+        if (len(items) != 1 or not row or row.account_id != account_id or row.category != "skill"
+                or row.status != "active" or row.revision != proposal.expected_revision):
+            return "ambiguous_correction"
+        old = _open(row)
+        if source.recorded_at < (_dt(old.get("recorded_at")) or source.recorded_at):
+            return "blocked"
+        key = _skill_key(account_id, items[0]["value"])
+        other = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
+        if other and other.id != row.id:
+            return "ambiguous_correction"
+        _replace_fact(db, row, items[0]["value"], source.id, row.revision, proposal.effective_at,
+                      source.recorded_at, proficiency=items[0]["proficiency"])
+        row.slot_key = key
+        return "updated"
+    data = {"subject": proposal.subject.strip(), "field": proposal.field, "source_ids": [source.id],
+            "recorded_at": _iso(source.recorded_at), "last_mentioned_at": _iso(source.recorded_at),
+            "effective_at": _iso(proposal.effective_at), "history": []}
+    results = [_save_skill(db, account_id, item, data, source, allow_restore=allow_restore) for item in items]
+    return next((result for result in ("updated", "added", "duplicate") if result in results), "blocked")
+
+
 def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore=False):
+    if proposal.category == "skill":
+        return _apply_skill_proposal(db, account_id, proposal, source, allow_restore=allow_restore)
     key = _key(account_id, [proposal.category, proposal.subject.strip(), proposal.field])
     row = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
     timestamp = source.recorded_at
@@ -487,6 +591,14 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
         _replace_fact(db, row, proposal.value, source.id, row.revision, effective_at,
                       timestamp, "correction" if correct else "state_change")
         return "updated"
+    equivalence = equivalent_value(proposal.category, proposal.field, old["value"], proposal.value)
+    if equivalence in {"same", "old_more_specific"}:
+        _mention(db, row, source)
+        return "duplicate"
+    if equivalence == "new_more_specific" and not stale_input:
+        _replace_fact(db, row, proposal.value, source.id, row.revision,
+                      proposal.effective_at or old.get("effective_at"), timestamp, "refine")
+        return "updated"
     conflict = db.scalar(select(ProfileConflict).where(
         ProfileConflict.account_id == account_id, ProfileConflict.event_id == event_id,
         ProfileConflict.fact_id == row.id,
@@ -501,6 +613,101 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
         })
         db.add(conflict)
     return "conflict"
+
+
+def migrate_legacy_equivalent_conflicts(db, account_id):
+    """只处理当前修订和有效来源；关闭后不再参与后续读取迁移。"""
+    changed = 0
+    for conflict in db.scalars(select(ProfileConflict).where(
+            ProfileConflict.account_id == account_id, ProfileConflict.status == "pending")).all():
+        if conflict.status != "pending":
+            continue
+        fact = db.get(ProfileFact, conflict.fact_id)
+        if (not fact or fact.account_id != account_id or fact.status != "active"
+                or fact.revision != conflict.expected_revision):
+            continue
+        data, old = _open(conflict), _open(fact)
+        if fact.category == "skill" or not _source_enabled(db, account_id, data.get("source_id")):
+            continue
+        proposed = data.get("proposed_value") or ""
+        result = equivalent_value(fact.category, old["field"], old["value"], proposed)
+        source = db.get(ProfileSource, data["source_id"]) if data.get("source_id") else None
+        if result == "different" or not proposed:
+            continue
+        old_effective, new_effective = _dt(old.get("effective_at")), _dt(data.get("effective_at"))
+        if old_effective and new_effective and new_effective < old_effective:
+            continue
+        if result == "new_more_specific" and source and source.recorded_at < (_dt(old.get("recorded_at")) or source.recorded_at):
+            continue
+        if not changed:
+            _bump(db, ensure_profile(db, account_id))
+        if result == "new_more_specific":
+            _replace_fact(db, fact, proposed, source.id if source else None, conflict.expected_revision,
+                          data.get("effective_at") or old.get("effective_at"),
+                          source.recorded_at if source else None, "refine")
+        elif source:
+            _mention(db, fact, source)
+        conflict.status, conflict.payload = "equivalent", _seal(conflict, {})
+        changed += 1
+    if changed:
+        db.flush()
+    return changed
+
+
+def migrate_legacy_skill_facts(db, account_id):
+    """旧技能拆成集合，保留原行的加密快照；不复活用户删除的技能。"""
+    changed = 0
+    rows = db.scalars(select(ProfileFact).where(ProfileFact.account_id == account_id,
+                      ProfileFact.category == "skill", ProfileFact.status == "active")).all()
+    for fact in rows:
+        old = _open(fact)
+        items = split_skill_values(old["value"])
+        conflicts = db.scalars(select(ProfileConflict).where(
+            ProfileConflict.account_id == account_id, ProfileConflict.fact_id == fact.id,
+            ProfileConflict.status == "pending", ProfileConflict.expected_revision == fact.revision)).all()
+        needs_split = items and (old.get("skill_set_version") != 1 or len(items) != 1
+                                or fact.slot_key != _skill_key(account_id, items[0]["value"]))
+        eligible = []
+        for conflict in conflicts:
+            data = _open(conflict)
+            proposed = split_skill_values(data.get("proposed_value") or "")
+            if (proposed and _source_enabled(db, account_id, data.get("source_id"))
+                    and not any(_skill_blocked(db, account_id, item["value"]) for item in proposed)):
+                eligible.append((conflict, data, proposed))
+        if not needs_split and not eligible:
+            continue
+        if not changed:
+            _bump(db, ensure_profile(db, account_id))
+        if needs_split:
+            for item in items:
+                item["proficiency"] = item["proficiency"] or old.get("proficiency")
+            same_slot = len(items) == 1 and fact.slot_key == _skill_key(account_id, items[0]["value"])
+            # CAS 保护旧行；仅改变存储形态，不制造删除屏障。
+            changes = {"status": "active" if same_slot else "superseded", "revision": fact.revision + 1}
+            if same_slot:
+                changes["payload"] = _seal(fact, {**old, **items[0], "skill_set_version": 1})
+            result = db.execute(update(ProfileFact).where(
+                ProfileFact.id == fact.id, ProfileFact.revision == fact.revision,
+                ProfileFact.status == "active").values(**changes)
+                .execution_options(synchronize_session=False))
+            if result.rowcount != 1:
+                raise ProfileRevisionConflict("fact_revision_conflict")
+            _mark_jobs_stale(db, account_id, fact.id)
+            db.expire(fact)
+            for item in items:
+                _save_skill(db, account_id, item, {key: value for key, value in old.items() if key != "auto_update"})
+        for conflict, data, proposed in eligible:
+            source = db.get(ProfileSource, data["source_id"]) if data.get("source_id") else None
+            incoming = {**old, "history": [], "source_ids": [source.id] if source else [],
+                        "recorded_at": _iso(source.recorded_at if source else _dt(old.get("recorded_at"))),
+                        "effective_at": data.get("effective_at")}
+            results = [_save_skill(db, account_id, item, incoming, source) for item in proposed]
+            if "blocked" not in results:
+                conflict.status, conflict.payload = "equivalent", _seal(conflict, {})
+        changed += 1
+    if changed:
+        db.flush()
+    return changed
 
 
 def migrate_legacy_narrative_conflicts(db, account_id):
@@ -558,11 +765,14 @@ def undo_fact_update(db, account_id, fact_id, *, expected_revision):
     previous = notice["previous"]
     event = enqueue_archive_event(db, account_id, new_id(), None,
                                   {"human_text": previous["value"], "source_kind": "manual"}, "manual_fact")
-    _replace_fact(db, fact, previous["value"], event.source_id, expected_revision, previous.get("effective_at"))
+    _replace_fact(db, fact, previous["value"], event.source_id, expected_revision, previous.get("effective_at"),
+                  reason="undo" if fact.category == "skill" else "correction",
+                  proficiency=previous.get("proficiency") if fact.category == "skill" else _UNSET)
     # The prior value becomes valid again only through this explicit undo.
     for invalid in db.scalars(select(ProfileInvalidation).where(
         ProfileInvalidation.account_id == account_id, ProfileInvalidation.fact_id == fact_id,
-        ProfileInvalidation.revision == notice["previous_revision"], ProfileInvalidation.reason == "state_change")).all():
+        ProfileInvalidation.revision == notice["previous_revision"],
+        ProfileInvalidation.reason == notice.get("reason", "state_change"))).all():
         db.delete(invalid)
     restored = _open(fact)
     restored["history"] = previous.get("history", [])
@@ -595,11 +805,24 @@ def edit_fact(db, account_id, fact_id, *, value, expected_revision, effective_at
     if not isinstance(value, str) or not value.strip() or len(value) > 4000:
         raise ProfileValidationError("invalid_value")
     row = _owned(db, ProfileFact, account_id, fact_id)
+    skill = None
+    if row.category == "skill":
+        items = split_skill_values(value)
+        if len(items) != 1:
+            raise ProfileValidationError("edit_one_skill_at_a_time")
+        skill = items[0]
+        other = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id,
+                          ProfileFact.slot_key == _skill_key(account_id, skill["value"])))
+        if other and other.id != row.id:
+            raise ProfileValidationError("skill_already_exists")
     profile = ensure_profile(db, account_id)
     _bump(db, profile)
     event = enqueue_archive_event(db, account_id, new_id(), None,
                                   {"human_text": value, "source_kind": "manual"}, "manual_fact")
-    _replace_fact(db, row, value.strip(), event.source_id, expected_revision, effective_at)
+    _replace_fact(db, row, skill["value"] if skill else value.strip(), event.source_id, expected_revision, effective_at,
+                  proficiency=skill["proficiency"] if skill else _UNSET)
+    if skill:
+        row.slot_key = _skill_key(account_id, skill["value"])
     event.status, event.completed_at = "completed", _now()
     db.flush()
     return _fact_view(db, row)
@@ -730,6 +953,7 @@ def get_context(db, account_id, *, subject_ids=None, limit=30, include_contacts=
         facts.append({"id": row.id, "revision": row.revision, "category": row.category,
                       "subject": data["subject"], "field": data["field"], "value": data["value"],
                       "effective_at": data.get("effective_at"), "source_type": "user_provided",
+                      **({"proficiency": data.get("proficiency")} if row.category == "skill" else {}),
                       "source_ids": data.get("source_ids", [])})
     profile = db.scalar(select(PersonalProfile).where(PersonalProfile.account_id == account_id))
     return {"profile_id": profile.id if profile else None, "revision": profile.revision if profile else 0,
@@ -781,6 +1005,15 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
     result.setdefault("open_source", [])
     result.setdefault("awards", [])
     result.setdefault("skills", [])
+    # 既有稿也可能同时含 py/Python；保留先出现的写法与附带证据。
+    skills, known_skills = [], set()
+    for entry in result["skills"]:
+        name = entry.get("name", "") if isinstance(entry, dict) else entry
+        normalized = normalize_skill(name)
+        if normalized not in known_skills:
+            skills.append(entry)
+            known_skills.add(normalized)
+    result["skills"] = skills
 
     def bind(item, collection, field, fact):
         if not item.get("item_id"):
@@ -820,8 +1053,12 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 if not result["basic_info"].get(field):
                     result["basic_info"][field] = value
         elif category == "skill":
-            if value not in [entry.get("name") if isinstance(entry, dict) else entry for entry in result["skills"]]:
-                result["skills"].append(value)
+            known = {normalize_skill(entry.get("name", "") if isinstance(entry, dict) else entry)
+                     for entry in result["skills"]}
+            for skill in split_skill_values(value):
+                if normalize_skill(skill["value"]) not in known:
+                    result["skills"].append(skill["value"])
+                    known.add(normalize_skill(skill["value"]))
         elif category in {"project", "work", "education", "open_source", "awards"}:
             collection, identity = {"project": ("projects", "name"),
                                     "work": ("work_experience", "company"),

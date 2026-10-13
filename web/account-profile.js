@@ -248,12 +248,15 @@
       details.append(line);
     }
     if (fact.effective_at) details.append(node('p', '生效时间：' + fact.effective_at));
-    for (const entry of fact.history || []) details.append(node('p', '历史记录：' + text(entry.value) + (entry.until ? '（截至 ' + entry.until + '）' : '')));
+    for (const entry of fact.history || []) details.append(node('p', '历史记录：' + factValue(entry) + (entry.until ? '（截至 ' + entry.until + '）' : '')));
     return details;
+  }
+  function factValue(fact) {
+    return (fact.proficiency ? text(fact.proficiency) + ' ' : '') + text(fact.value);
   }
   function editFact(card, fact) {
     const form = node('form', undefined, 'profile-form');
-    const value = inputField(form, '更正本人事实', fact.value, 'textarea'); value.maxLength = 4000;
+    const value = inputField(form, '更正本人事实', factValue(fact), 'textarea'); value.maxLength = 4000;
     form.append(node('p', '这里会更正个人档案，并提示受影响的简历同步。只调整本份简历的措辞，请到简历编辑。', 'profile-muted'));
     const save = node('button', '保存更正', 'profile-button'); save.type = 'submit';
     form.append(save, button('取消', renderProfile));
@@ -264,7 +267,7 @@
     const card = node('div', undefined, 'profile-fact-row'); card.dataset.factId = fact.id;
     const body = node('div', undefined, 'profile-fact-body');
     const label = fact.field === 'name' && fact.category !== 'basic' ? '名称' : fieldNames[fact.field] || fact.field;
-    body.append(node('strong', label, 'profile-field-name'), node('p', text(fact.value), 'profile-value'), sourceDetails(fact));
+    body.append(node('strong', label, 'profile-field-name'), node('p', factValue(fact), 'profile-value'), sourceDetails(fact));
     const actions = node('div', undefined, 'profile-actions profile-field-actions');
     actions.append(button('更正', () => editFact(card, fact)), button('删除', () => {
       const confirmBox = node('div', undefined, 'profile-notice');
@@ -363,7 +366,7 @@
     content.append(node('h2', '已有信息', 'profile-section-title'));
     for (const update of profile.updates || []) {
       const notice = node('div', undefined, 'profile-notice');
-      notice.append(node('strong', '已更新 · ' + update.subject + ' · ' + (fieldNames[update.field] || update.field)), node('p', text(update.previous_value) + ' → ' + text(update.value)));
+      notice.append(node('strong', '已更新 · ' + update.subject + ' · ' + (fieldNames[update.field] || update.field)), node('p', factValue({value: update.previous_value, proficiency: update.previous_proficiency}) + ' → ' + factValue(update)));
       notice.append(button('撤销更新', () => mutate(() => request('/api/profile/facts/' + encodeURIComponent(update.fact_id) + '/undo-update', {expected_revision: update.revision}, 'POST'), '已撤销这次自动更新。')));
       content.append(notice);
     }

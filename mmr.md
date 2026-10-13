@@ -27,6 +27,16 @@
 
 ## 当前状态
 
+2026-10-13「档案等价判断」评审修复：仅调整 `profile_equivalence.py` 的技能拆分，熟练度要求明确边界且剥离后非空，逐行去掉 ≤8 字且不跨分隔符的分组标签，保护 A/B 测试/Test 的大小写与空格变体，中文连接词仅在至少一侧紧邻 ASCII 技能时拆分；保留熟练度继承及符号分隔行为。`tests/test_profile_equivalence.py` 新增8项回归，定向34/34（含原有迁移测试），旧数据迁移实现未改。为遵守禁读范围，在排除私有目录、输出及本地凭证的临时源码副本运行指定全量命令：1355项，1353通过、2项私有样例测试自动跳过、0失败（42.286s）；Ruff（忽略既有E402）及差异检查通过。未访问原仓库 cases-private/、runs-private/、data/output/ 或 key，未 commit/push/部署。后续须继续保留上一轮未提交改动。
+
+2026-10-13「档案同一件事判断」本地完成：在 `overhaul/tailor` 将 skill 按账号内规范名称存为集合，槽位含 casefold/去空白/别名后的技能值，独立保留 proficiency；保护 C++、C#、F#、Node.js、Next.js、Vue.js、CI/CD、TCP/IP、.NET。重复只合并提及，熟练度变化复用 state_change 历史/通知/撤销；否定技能输入不新增正向事实、不执行删除。单项更正继续走原入口，防止改名后留下重复槽位；简历投影保持平铺并按规范值去重，模板和分组不变。
+
+新增纯函数 `equivalent_value`：四位年份日期、精度与 planned/done 语气、学历别名、学校明确简称表及校区括注、其它短字段保守比较；数字（含正负号）、工具名、否定含义变化不合并。学校不使用宽泛子序列匹配；两位年份、解析失败及精度与语气各有增减的日期仍返回 different。等价补全以 refine 留历史且可撤销。读取档案时按账号、有效来源和 expected_revision 迁移旧技能与假冲突，关闭为 equivalent；旧技能行留加密快照并标 superseded，关联岗位引用标待同步；已删除技能不复活。补全引起修订变化时，其它真实冲突保持 pending 并对齐修订，避免从面板消失。
+
+改动：`backend/app/services/{profile_service,profile_equivalence}.py`、`backend/scripts/replay_profile_equivalence.py`、`tests/test_profile_equivalence.py`、`tests/account_profile.dom.js`、`web/account-profile.js`、`web/{index,resume}.html`（脚本缓存版本）及本交接。新增 26 项虚构/临时加密库回归，含迁移幂等、并发更正保护、撤销、来源保留、删除屏障、投影去重和只读统计；DOM 覆盖熟练度正文/历史/通知。指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 最终 **1347/1347（41.391s）**；修改 Python Ruff（忽略既有 E402）、JS 语法、档案 DOM、差异检查通过。
+
+离线评估入口：在已有应用解密配置的环境执行 `.venv/bin/python backend/scripts/replay_profile_equivalence.py DB_PATH`，参数必须是待评估数据库副本。脚本使用应用 DataCrypto 解密与 SQLite `mode=ro`，不加载 `.env`、不初始化应用库，stdout 仅含计数/字段分类，失败只给 errors 计数；技能计数包含各状态行，另列 active 数量，预计拆分项数按每条事实内去重后求和。测试验证只读连接拒绝写入、文件哈希不变、输出无原文。本轮未在真实库执行回放或迁移，未查看凭证或进入指定私有目录，未 commit/push/部署；没有已知本地阻塞。
+
 2026-10-13「历史对话标题」本地完成：保留 `overhaul/tailor` 既有提交与全部回放产物。标题仅由结构化状态确定性派生：`jd_info.company · job_title`（缺公司只用岗位）→ `basic_info.objective` / `role_direction` +「简历」→ 前两个经历名；无可用字段时不派生，首次寒暄/长材料均保持「新对话」。上限24字，拉丁词及常见连字符技术词保留完整，中文按字符边界截断。成功保存每轮后更新，标题来源 `title_source` 与上次自动值 `auto_title` 复用加密 `resume_state`；聊天/编辑保存均保留这两项，显式手动来源、自动值被手改或不符合旧首句规则的自定义标题不覆盖。列表对无来源且等于首条用户消息规范化前40字的旧标题按 checkpoint / 已提交状态回填一次，保留活动时间；失败不影响列表，缺失 checkpoint 不误标手动，允许后续重试。无需新增列或结构迁移，沿用 ORM 标题加密与 profile_bridge 隐私过滤。
 
 改动：`backend/app/services/{conversation_store,session_store,canonical_resume}.py`、`backend/app/agents/resume_graph.py`、`backend/app/api/conversations.py`、`tests/test_conversations.py` 与本交接。新增10项虚构/fake回归，覆盖优先级/缺公司/方向/经历/寒暄/长度、逐轮更新、手动保护与两种保存、加密幂等回填/活动时间、失败隔离与缺 checkpoint 重试。指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 最终 **1321/1321（39.754s）**；修改 Python 文件 Ruff（忽略测试原有 E402）及差异检查通过。无真实模型调用、key读取/打印、commit/push/部署或真实库迁移；没有已知本地阻塞。

@@ -110,7 +110,8 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
                 ):
                     result = await evaluating_node(state, object())
                 extract.assert_awaited_once()
-                self.assertIn(supplement, result['resume_draft'])
+                from app.services.candidate_language import resume_bullet
+                self.assertIn(resume_bullet(supplement, name='纸页工具'), result['resume_draft'])
                 self.assertEqual(result['collected_info']['projects'][0]['facts'][-1]['text'], supplement)
 
     async def test_repeated_build_does_not_claim_a_change(self):

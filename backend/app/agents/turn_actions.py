@@ -11,6 +11,7 @@ import json
 import re
 import uuid
 
+from app.services.candidate_language import safe_major
 from app.services.fact_guard import strip_absence
 from app.services.resume_facts import new_fact, normalize_fact_store
 
@@ -24,7 +25,7 @@ _ROLE_ANSWER = re.compile(r"一个人|都是我|独立|我负责|我写|我做|�
 _AWARD_LINE = re.compile(r"竞赛|比赛|大赛|杯|奖|证书")
 _EDU_HEADER = re.compile(
     r"(?ms)^[ \t#]*(?:教育背景|教育经历|教育)[ \t]*[：:]?[ \t]*(?:\n)?(.*?)(?=^[ \t#]*(?:项目经历|项目|实习经历|工作经历|实习|"
-    r"开源贡献|竞赛荣誉|竞赛和荣誉|竞赛与荣誉|技能|专业技能|奖项|荣誉|获奖|证书|自我评价|个人评价|个人定位)[ \t]*[：:]?|\Z)")
+    r"校园经历|校园活动|社团经历|开源贡献|竞赛荣誉|竞赛和荣誉|竞赛与荣誉|技能|专业技能|奖项|荣誉|获奖|证书|自我评价|个人评价|个人定位)[ \t]*[：:]?|\Z)")
 
 
 def _clauses(message: str) -> list[str]:
@@ -42,7 +43,7 @@ def _clean_school(name: str) -> str:
 
 
 def _school_token(clause: str) -> str:
-    if _AWARD_LINE.search(clause):
+    if _AWARD_LINE.search(clause) or re.search(r"协会|社团|学生会|时候|工作", clause):
         return ""  # 竞赛/奖项/证书行不产生教育字段
     # 「…大学」后面紧跟 生/程序/竞赛/比赛/大赛/杯 时是更长名称的一部分（如「…大学生程序设计竞赛」），作废
     named = re.search(r"([\u4e00-\u9fffA-Za-z]{2,24}(?:大学|学院))(?!生|程序|竞赛|比赛|大赛|杯)", clause)
@@ -65,6 +66,8 @@ def parse_education_fields(message: str) -> dict[str, str]:
     # 有「教育背景」栏目时只从该栏取，避免奖项/项目行里的「…大学」干扰
     education_text = section.group(1) if section and section.group(1).strip() else message
     for clause in _clauses(education_text):
+        if re.search(r"协会|社团|学生会|宣传部|担任", clause):
+            continue
         school_hint = _school_token(clause)
         if not _EDU_WORD.search(clause) and not school_hint:
             continue
@@ -78,7 +81,7 @@ def parse_education_fields(message: str) -> dict[str, str]:
         major = re.search(r"([\u4e00-\u9fffA-Za-z0-9与和]{2,30})专业", clause)
         if major:
             fields["major"] = major.group(1)
-        elif (studied := re.search(r"读([\u4e00-\u9fff]{2,8})", clause)):
+        elif (studied := re.search(r"(?:就读|学的(?:是)?|读的是|读)(?!者)([\u4e00-\u9fff]{2,12}?)(?=专业|本科|专科|$)", clause)):
             token = studied.group(1)
             if token not in {"本科", "硕士", "博士", "专科", "大学", "学院"}:
                 fields["major"] = token
@@ -107,7 +110,8 @@ def parse_education_fields(message: str) -> dict[str, str]:
             token = middle.group(1)
             if token and token not in {"本科", "硕士", "博士", "专科"}:
                 fields["major"] = token
-    return {key: value for key, value in fields.items() if value and value in message}
+    return {key: value for key, value in fields.items() if value and value in message
+            and (key != "major" or safe_major(value))}
 
 
 def education_confirmation(fields: dict) -> str:
@@ -205,7 +209,7 @@ def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str
         return collected
     result = normalize_fact_store(collected)
     pools = [(item.get("name") or item.get("company") or "", item)
-             for section in ("projects", "work_experience", "internship")
+             for section in ("projects", "work_experience", "internship", "campus")
              for item in result.get(section) or [] if isinstance(item, dict)]
     def named(text):
         return [item for label, item in pools if label and re.search(
@@ -240,6 +244,8 @@ def bind_role_followup(collected: dict, question: str, answer: str, turn_id: str
         explicit = named(quote)
         choices = explicit if explicit else list(contextual.values())
         target = choices[0] if len(choices) == 1 else None
+        if target is None and not re.search(r"团队|分工|我们|队友|[两二三四五六七八九十2-9](?:个)?人", quote):
+            continue
         moved = []
         for _, item in pools:
             kept = []
@@ -295,7 +301,7 @@ def bind_reason_followup(collected: dict, question: str, answer: str, turn_id: s
         return collected
     result = normalize_fact_store(collected)
     names = re.findall(r'「([^」]+)」的决策(?:「[^」]*」)?：这样做是为了解决什么', question)
-    pools = [item for section in ('projects', 'work_experience', 'internship')
+    pools = [item for section in ('projects', 'work_experience', 'internship', 'campus')
              for item in result.get(section) or []]
     named = [item for item in pools if (label := item.get('name') or item.get('company')) and label in answer]
     choices = [item for item in (named or pools) if (item.get('name') or item.get('company')) in names]
@@ -388,7 +394,7 @@ def edit_clauses(message: str) -> list[str]:
 
 def _item_labels(data: dict | None) -> list[str]:
     labels = []
-    for section in ("projects", "work_experience", "education", "open_source", "awards"):
+    for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
         for item in (data or {}).get(section) or []:
             if isinstance(item, dict):
                 label = item.get("name") or item.get("company") or item.get("school") or ""
@@ -464,7 +470,7 @@ def _same_target(left: str, right: str, data: dict | None) -> bool:
     if left == right or name_matches(left, right) or name_matches(right, left):
         return True
     names = {}
-    for section in ("projects", "work_experience", "education", "open_source", "awards"):
+    for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
         for item in (data or {}).get(section) or []:
             if isinstance(item, dict) and item.get("item_id"):
                 label = str(item.get("name") or item.get("company") or item.get("school") or "")
@@ -529,12 +535,12 @@ def deterministic_only(message: str, planned_ops: list[dict], writer_requests: l
         return False
     if planned_ops and any(op.get("op") == "move_item" for op in planned_ops):
         moved_ids = {op.get("target") for op in planned_ops if op.get("op") == "move_item"}
-        moved_ids.update(item.get("item_id") for section in ("projects", "work_experience", "internship", "open_source", "awards")
+        moved_ids.update(item.get("item_id") for section in ("projects", "work_experience", "internship", "campus", "open_source", "awards")
                          for item in (before or {}).get(section) or []
                          if (item.get("name") or item.get("company")) in moved_ids)
         def unrelated(store):
             result = deepcopy(store or {})
-            for section in ("projects", "work_experience", "internship", "open_source", "awards"):
+            for section in ("projects", "work_experience", "internship", "campus", "open_source", "awards"):
                 result[section] = [item for item in result.get(section) or []
                                    if item.get("item_id") not in moved_ids
                                    and (item.get("name") or item.get("company")) not in moved_ids]
@@ -571,7 +577,7 @@ def detail_gap_rows(message: str, rows: list[dict], before: dict, after_meta: di
     if not clauses:
         return rows
     evidence = active_facts_for_writer(collected or {})
-    items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship")
+    items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship", "campus")
              for item in evidence.get(section) or [] if isinstance(item, dict)}
     output = []
     for row in rows:
@@ -777,7 +783,7 @@ def _clause_has_op(clause: str, plan: list[dict], labels: list[str], data: dict 
 
 def _display_target(target: str, before: dict, after: dict) -> str:
     for document in (before, after):
-        for section in ("projects", "work_experience", "education", "open_source", "awards"):
+        for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
             for item in document.get(section) or []:
                 if isinstance(item, dict) and item.get("item_id") == target:
                     return str(item.get("name") or item.get("company") or item.get("school") or target)
@@ -834,7 +840,7 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
     hidden_targets = {"", "whole", "understand", "set_field", "set_constraint"}
 
     def find(document: dict, item_id: str):
-        for section in ("projects", "work_experience", "education", "open_source", "awards"):
+        for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
             for item in document.get(section) or []:
                 if isinstance(item, dict) and item.get("item_id") == item_id:
                     return item

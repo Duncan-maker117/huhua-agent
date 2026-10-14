@@ -95,7 +95,7 @@ ROUTER_CONTRACT = """把本轮用户消息按真实意图拆成 intents 和有�
 advice 不代表改稿，不得生成 edit_plan；只有同轮明确要求修改文稿才同时有 edit。新事实与 advice 可以并存。
 有现稿且用户要求改、调、优化、突出、精简、换、删除等，必须有 edit；同时补充本人新事实则还要 experience。
 edit_plan 中每项仅代表用户实际说出的操作，不替用户虚构目标、值或经历。目标用 item_id、明确名称、序号或 JSON pointer。
-确定性操作：delete_item/hide_item/set_field/cap_bullets/remove_section/set_constraint/clean_format/move_item；用户纠正「这是开源贡献」「这个放到竞赛荣誉」用move_item，args.section为open_source/awards，args.name为明确提供的仓库/奖项标题；不要改写成独立/团队职责问题。
+确定性操作：delete_item/hide_item/set_field/cap_bullets/remove_section/set_constraint/clean_format/move_item；用户纠正「这是开源贡献」「这个放到竞赛荣誉」用move_item，args.section为campus/open_source/awards，args.name为明确提供的仓库/奖项标题；不要改写成独立/团队职责问题。
 写作操作：rewrite/compress/refocus。多项可同时存在，按用户指令顺序列出。
 未能定位单个目标也要保留该项操作供执行器逐项提示，不得整体拒绝。
 只用摘要识别现有条目；JD/手册/旧 assistant 文案不能当作候选人新事实。"""
@@ -105,15 +105,15 @@ def _has_draft(state: dict) -> bool:
     data = state.get("resume_data") or {}
     basic = data.get("basic_info") or {}
     return bool(data.get("projects") or data.get("work_experience") or data.get("education")
-                or data.get("skills") or data.get("certificates") or data.get("open_source") or data.get("awards")
+                or data.get("skills") or data.get("certificates") or data.get("campus") or data.get("open_source") or data.get("awards")
                 or any(value for key, value in basic.items() if key != "objective")
                 or (basic.get("objective") and data.get("sections") is not None))
 
 
 def _outline(data: dict) -> list[dict]:
     result = []
-    for section in ("projects", "work_experience", "education", "open_source", "awards"):
-        field = "polished_bullets" if section == "projects" else "bullets" if section in {"work_experience", "open_source", "awards"} else "highlights"
+    for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
+        field = "polished_bullets" if section == "projects" else "bullets" if section in {"work_experience", "campus", "open_source", "awards"} else "highlights"
         for index, item in enumerate(data.get(section) or []):
             if not isinstance(item, dict):
                 continue

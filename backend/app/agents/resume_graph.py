@@ -204,6 +204,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
 
     base_basic = collected.get("basic_info") or {}
     opt = _extract_opt_basic_info(messages)
+    from app.services.candidate_language import safe_objective
     basic_info = {
         "name": base_basic.get("name", ""),
         "phone": base_basic.get("phone", ""),
@@ -230,6 +231,8 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
     # New collected facts may replace them; old messages/JD must not refill them.
     for key, value in (saved_resume.get("basic_info") or {}).items():
         basic_info[key] = base_basic.get(key, value)
+
+    basic_info["objective"] = safe_objective(basic_info.get("objective"))
 
     def _active_item(item: dict) -> dict:
         item = copy.deepcopy(item)
@@ -300,6 +303,12 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         open_source.append({**_presentation(item), **{key: item.get(key, "") for key in
                            ("name", "summary", "pr", "start_date", "end_date")},
                             "bullets": item.get("bullets") or item.get("description", "").splitlines()})
+    campus = []
+    for entry in collected.get("campus", []):
+        item = _active_item(entry)
+        campus.append({**_presentation(item), **{key: item.get(key, "") for key in
+                      ("name", "role", "start_date", "end_date")},
+                       "bullets": item.get("bullets") or item.get("description", "").splitlines()})
     awards = []
     for entry in collected.get("awards", []):
         item = _active_item(entry)
@@ -308,7 +317,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
 
     # Short, first-person experience fallback. Existing resume documents use
     # the section parser, so one long document can never become one project.
-    if not projects and not work_experience and not education and not open_source and not awards and not saved_resume:
+    if not projects and not work_experience and not education and not campus and not open_source and not awards and not saved_resume:
         fallback = _harvest_projects_from_messages(messages)
         projects = fallback
 
@@ -317,6 +326,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         "education": education,
         "work_experience": work_experience,
         "projects": projects,
+        "campus": campus,
         "open_source": open_source,
         "awards": awards,
         "skills": [skill.get("name", "") if isinstance(skill, dict) else skill
@@ -365,10 +375,10 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
         # Choosing ungrouped skills is also an explicit editor choice.
         merged["skill_groups"] = {}
 
-    for section in ("projects", "work_experience", "education", "open_source", "awards"):
+    for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
         old_items = saved.get(section) or []
         by_id = {item.get("item_id"): item for item in old_items if item.get("item_id")}
-        label_key = {"projects": "name", "work_experience": "company", "education": "school", "open_source": "name", "awards": "name"}[section]
+        label_key = {"projects": "name", "work_experience": "company", "education": "school", "campus": "name", "open_source": "name", "awards": "name"}[section]
         def identity(item):
             label = item.get(label_key)
             return (label, item.get("pr", "")) if section == "open_source" else (label, item.get("level", ""), item.get("date", "")) if section == "awards" else label
@@ -385,6 +395,8 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
 
     notes = list(merged.get("verification_notes") or [])
     for note in saved.get("verification_notes") or []:
+        if isinstance(note, str) and note.startswith("这句没有记下来：") and "verification_notes" in data:
+            continue  # 事实库已清理的拒收提示不能从旧文稿复活。
         if isinstance(note, str) and note not in notes:
             notes.append(note)
     merged["verification_notes"] = notes[:30]
@@ -401,14 +413,8 @@ def _guess_project_name(text: str) -> str:
         name = next(value for value in quoted.groups() if value is not None).strip()
         if name:
             return name
-    for match in _re.finditer(
-        r"(?:做过|做|在|参与|负责|搞)\s*([A-Za-z\u4e00-\u9fa5][\w\u4e00-\u9fa5\-]{0,30}?)(?:\s*项目|\s*这个|\s*时|\s*的|[，,。\s]|$)",
-        text,
-    ):
-        name = _re.sub(r"^(?:一些|一个|一套|几个|一款)", "", match.group(1))
-        if name and name not in {"的", "了", "过", "着"}:
-            return name
-    return ""
+    from app.services.candidate_language import literal_item_name
+    return literal_item_name(text, "projects")
 
 
 def _snippet_matches_experience(snippet: str, experience: dict) -> bool:
@@ -438,7 +444,7 @@ def _snippet_was_extracted(previous: dict, collected: dict, snippet: str) -> boo
     return any(
         experience not in previous.get(section, [])
         and _snippet_matches_experience(snippet, experience)
-        for section in ("projects", "work_experience", "internship", "open_source")
+        for section in ("projects", "work_experience", "internship", "campus", "open_source")
         for experience in collected.get(section, [])
     )
 
@@ -564,7 +570,7 @@ def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
 
     for section in FACT_SECTIONS:
         target_items = result.setdefault(section, [])
-        identity_field = {"projects": "name", "education": "school", "work_experience": "company", "internship": "company", "open_source": "name", "awards": "name"}[section]
+        identity_field = {"projects": "name", "education": "school", "work_experience": "company", "internship": "company", "campus": "name", "open_source": "name", "awards": "name"}[section]
         def item_identity(item):
             label = item.get(identity_field, "").strip().casefold()
             return (label, item.get("pr", "")) if section == "open_source" else (label, item.get("level", ""), item.get("date", "")) if section == "awards" else label
@@ -664,7 +670,7 @@ def _apply_explicit_project_removals(collected: dict, text: str) -> dict:
 def _new_raw_note_owner(collected: dict, previous: dict, text: str) -> dict | None:
     """Use an extractor's unique, current-turn note attachment as ownership evidence."""
     added_notes = []
-    for section in ("projects", "work_experience", "internship", "open_source"):
+    for section in ("projects", "work_experience", "internship", "campus", "open_source"):
         for item in collected.get(section, []):
             if text not in item.get("raw_notes", []):
                 continue
@@ -701,11 +707,11 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     corrected = _apply_explicit_project_removals(collected, text)
     if corrected != collected:
         return corrected
-    previous_ids = {fact.get("id") for section in ("projects", "work_experience", "internship", "open_source")
+    previous_ids = {fact.get("id") for section in ("projects", "work_experience", "internship", "campus", "open_source")
                     for item in previous.get(section, []) for fact in item.get("facts", [])}
     if any(fact.get("id") not in previous_ids and fact.get("source") == "chat"
            and fact.get("source_quote") and fact["source_quote"] in text
-           for section in ("projects", "work_experience", "internship", "open_source")
+           for section in ("projects", "work_experience", "internship", "campus", "open_source")
            for item in collected.get(section, []) for fact in item.get("facts", [])):
         return collected
     # Ambiguous negations/corrections need the semantic extractor, not append-only fallback.
@@ -713,14 +719,14 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
         return collected
     matches = [
         item
-        for key in ("projects", "work_experience", "internship", "open_source")
+        for key in ("projects", "work_experience", "internship", "campus", "open_source")
         for item in collected.get(key, [])
         if _snippet_matches_experience(text, item)
     ]
     # A short answer about ownership/status is not a newly discovered project.
     # If extraction could not resolve its subject, keep it in the conversation
     # rather than creating a generic experience and asking the same question.
-    if not matches and any(collected.get(key) for key in ("projects", "work_experience", "internship", "open_source")) and _re.fullmatch(
+    if not matches and any(collected.get(key) for key in ("projects", "work_experience", "internship", "campus", "open_source")) and _re.fullmatch(
         r"(?:这个|该项目|项目)?[，,\s]*(?:是)?(?:我|本人|我们团队)?(?:是)?(?:自己|独立|一起)?"
         r"(?:完成|开发|做|负责)(?:的|了)?[。.!！\s]*", text,
     ):
@@ -753,7 +759,7 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
         return collected
     result = normalize_fact_store(collected)
     if len(matches) == 1:
-        for key in ("projects", "work_experience", "internship", "open_source"):
+        for key in ("projects", "work_experience", "internship", "campus", "open_source"):
             for item in result.get(key, []):
                 if item.get("item_id") == matches[0].get("item_id") or (
                     not matches[0].get("item_id") and
@@ -803,7 +809,10 @@ async def _recover_candidate_history(state: ResumeState, llm: ChatOpenAI) -> dic
         # Each source is a user turn. Assistant suggestions are never included.
         source = "\n\n".join(message.content for message in followups)
         previous = copy.deepcopy(collected)
+        target = collected.pop("followup_target", None)
         collected = await _extract_info_from_message(source, collected, extract_llm)
+        if target:
+            collected["followup_target"] = target  # 历史重放不消费当前追问。
         for message in followups:
             collected = _keep_unextracted_experience(collected, previous, message)
     return collected
@@ -938,7 +947,7 @@ def _collected_summary(collected: dict) -> str:
         parts.append(f"实习经历 {len(collected['internship'])} 条")
     if collected.get("projects"):
         parts.append(f"项目经历 {len(collected['projects'])} 条")
-    for key, label in (("open_source", "开源贡献"), ("awards", "竞赛荣誉")):
+    for key, label in (("campus", "校园经历"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉")):
         if collected.get(key):
             parts.append(f"{label} {len(collected[key])} 条")
     if collected.get("skills"):
@@ -953,10 +962,102 @@ def _hash_text(text: str) -> str:
     return hashlib.sha256(str(text or "").encode("utf-8")).hexdigest()[:16]
 
 
+def _bind_followup_target(previous: dict, collected: dict, reply: str, *, focus_ids=None) -> dict:
+    """Only a named item, an explicit interviewer target or a unique fact update owns a question."""
+    from app.agents.fact_extractor import fact_item_outline
+    from app.services.fact_guard import normalize_text
+    from app.services.resume_workspace import _question_kind, _reply_question
+
+    result = copy.deepcopy(collected)
+    result.pop("followup_target", None)
+    question = _reply_question(reply)
+    if not question or _question_kind(question) == "next_action":
+        return result
+    if _re.search(r"还做过|还有.{0,8}(?:项目|经历)|(?:其他|别的|另外|新).{0,4}(?:项目|经历|工作|实习)", question):
+        return result
+    if not focus_ids and len(_re.findall(r"(?m)^\s*\d+[.)、].*[？?]", reply)) > 1:
+        return result  # 多个问题可以任选时，不能只凭本轮更新猜用户会回答哪一段。
+    outline = fact_item_outline(result)
+    named = [item for item in outline if item["name"] and normalize_text(item["name"]) in normalize_text(question)]
+    old_ids = {fact["id"] for item in fact_item_outline(previous) for fact in item["facts"]}
+    changed = [item for item in outline if any(fact["id"] not in old_ids for fact in item["facts"])]
+    focused = [item for item in outline if item["item_id"] in (focus_ids or [])]
+    candidates = focused or named or (changed if _re.search(r"需要你补充|请你补充|待你补充", reply) else [])
+    # Repeating the same unanswered question may keep its established target.
+    if not candidates:
+        prior = previous.get("followup_target") or {}
+        if prior.get("asked_hash") == _hash_text(question):
+            candidates = [item for item in outline if item["item_id"] == prior.get("item_id")]
+    if len(candidates) == 1 and len(named) <= 1:
+        item = candidates[0]
+        if not named or named[0]["item_id"] == item["item_id"]:
+            result["followup_target"] = {"item_id": item["item_id"], "section": item["section"],
+                                         "asked_hash": _hash_text(question)}
+    return result
+
+
+def _finish_followup_turn(state: dict, result: dict) -> dict:
+    if result.get("messages"):
+        reply = "\n\n".join(m.content for m in result["messages"] if isinstance(m, AIMessage) and isinstance(m.content, str))
+        previous = state.get("collected_info") or {}
+        collected = result.get("collected_info", previous)
+        from app.services.candidate_language import placeholder_name
+        from app.schemas.facts import FACT_LABELS, FACT_SECTIONS
+        missing = [(section, item) for section in FACT_SECTIONS for item in collected.get(section) or []
+                   if placeholder_name(item.get(FACT_LABELS[section], "")) and not item.get("name_asked")]
+        if missing:
+            collected = copy.deepcopy(collected)
+            section, candidate = missing[0]
+            item = next(row for row in collected[section] if row["item_id"] == candidate["item_id"])
+            item["name_asked"] = True
+            question = f"「{item[FACT_LABELS[section]]}」的名称是什么？可以直接回复公司、岗位或组织名称。"
+            result["messages"] = [*result["messages"], AIMessage(content="\n\n需要你补充：" + question)]
+            reply += "\n\n需要你补充：" + question
+            from app.services.resume_workspace import _reply_question
+            collected["followup_target"] = {"item_id": item["item_id"], "section": section,
+                                             "asked_hash": _hash_text(_reply_question(reply))}
+            result["collected_info"] = collected
+        # The interviewer may already have supplied the target before returning.
+        from app.services.resume_workspace import _reply_question
+        target = collected.get("followup_target") or {}
+        focus = [target["item_id"]] if target.get("asked_hash") == _hash_text(_reply_question(reply)) else []
+        updated = _bind_followup_target(previous, collected, reply, focus_ids=focus)
+        if updated != collected or "collected_info" in result:
+            result["collected_info"] = updated
+    return result
+
+
+def _clean_unrecorded_notes(collected: dict, previous: dict, patch: dict) -> None:
+    from app.agents.fact_extractor import _clause_covered, fact_item_outline
+    from app.services.fact_guard import lexical_fact_errors, normalize_text
+
+    quotes = [normalize_text(fact.get("source_quote", "")) for item in fact_item_outline(collected)
+              for fact in item["facts"] if fact.get("source_quote")]
+    prior = previous.get("unrecorded") or {}
+    target = previous.get("followup_target") or {}
+    answered = bool(target.get("item_id") and prior.get("item_id") == target["item_id"]
+                    and not patch.get("uncovered") and any(
+                        item.get("item_id") == target["item_id"] and item.get("facts") for item in patch.get("items") or []))
+    old_clauses = (prior.get("clauses") or []) if answered else []
+    notes = []
+    for note in collected.get("verification_notes") or []:
+        if isinstance(note, str) and note.startswith("这句没有记下来："):
+            clause = note.removeprefix("这句没有记下来：")
+            if clause in old_clauses or any(
+                not lexical_fact_errors(clause, quote) and _clause_covered(normalize_text(clause), [quote])
+                for quote in quotes
+            ):
+                continue
+        notes.append(note)
+    if "verification_notes" in collected or notes:
+        collected["verification_notes"] = notes
+
+
 def unrecorded_notice(collected: dict, latest_human: str) -> str:
     """本轮抽取没能记下的原话；只在产生它的那一轮提示一次。"""
     pending = [row for row in (collected or {}).get('pending_ownership') or []
-               if row.get('source_quote') and row['source_quote'] in latest_human]
+               if row.get('source_quote') and row['source_quote'] in latest_human
+               and _re.search(r'团队|分工|我们|队友|[两二三四五六七八九十2-9](?:个)?人', row['source_quote'])]
     if pending:
         team = '三人团队这句说的是哪个项目？' if _re.search(r'三(?:个)?人|3(?:个)?人', pending[0]['source_quote']) else '这句团队分工说的是哪个项目？'
         return '\n\n' + team
@@ -964,7 +1065,7 @@ def unrecorded_notice(collected: dict, latest_human: str) -> str:
     if info.get("source") != _hash_text(latest_human):
         return ""
     recorded = "\n".join(f"{fact.get('text', '')}\n{fact.get('source_quote', '')}"
-                         for section in ("projects", "work_experience", "internship", "education", "open_source", "awards")
+                         for section in ("projects", "work_experience", "internship", "education", "campus", "open_source", "awards")
                          for item in (collected.get(section) or []) if isinstance(item, dict)
                          for fact in item.get("facts") or [] if fact.get("status", "active") == "active")
     missing = [clause for clause in info.get("clauses") or [] if clause not in recorded]  # 后续兜底已原文保留的不再提示
@@ -978,6 +1079,23 @@ def _notice_messages(collected: dict, latest_human: str) -> list:
     return [AIMessage(content=notice)] if notice else []  # 保留开头的空行：流式拼接时与上一条回复分段
 
 
+async def _collection_reply(llm, messages: list, collected: dict, latest_human: str) -> AIMessage:
+    notice = unrecorded_notice(collected, latest_human)
+    if "这句我没记下来" in notice:
+        from app.agents.fact_extractor import fact_item_outline
+        recorded = any(fact.get("source_quote") and fact["source_quote"] in latest_human
+                       for item in fact_item_outline(collected) for fact in item["facts"])
+
+        def receipt(text):
+            if recorded:
+                return _re.sub(r"(?<!部分)已记下", "部分已记下", text)
+            text = _re.sub(r"(?:部分)?已记下，右侧草稿会同步更新", "这轮还有内容需要确认", text)
+            return _re.sub(r"(?:部分)?已记下", "这轮还有内容需要确认", text)
+
+        return await stream_public_reply(llm, messages, transform=receipt)
+    return await stream_public_reply(llm, messages)
+
+
 def _latest_human_text(state: dict) -> str:
     return next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)
                  and isinstance(m.content, str)), "")
@@ -987,10 +1105,15 @@ async def _extract_info_from_message(
     message: str, current: dict, llm: ChatOpenAI,
 ) -> dict:
     """Apply a sparse, per-fact validated user message patch."""
-    from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch
+    from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch, followup_item
     from app.services.resume_facts import normalize_fact_store
 
     normalized = normalize_fact_store(current)
+    previous_reply = _previous_assistant.get()
+    if previous_reply and normalized.get("followup_target"):
+        from app.services.resume_workspace import _reply_question
+        if normalized["followup_target"].get("asked_hash") != _hash_text(_reply_question(previous_reply)):
+            normalized.pop("followup_target", None)
     try:
         patch = await extract_facts_patch(
             message, normalized, llm, metadata_context=normalized.get("metadata_context"),
@@ -1000,6 +1123,9 @@ async def _extract_info_from_message(
                 and _re.search(r'职责|分工|独立|团队|一个人|谁做', _previous_assistant.get())):
             from app.agents.turn_actions import bind_role_followup
             result = bind_role_followup(result, _previous_assistant.get(), message)
+        _clean_unrecorded_notes(result, normalized, patch)
+        result.pop("followup_target", None)
+        result.pop("unrecorded", None)
         uncovered = [str(c) for c in patch.get("uncovered") or []][:3]
         incomplete = [str(c) for c in patch.get("incomplete") or []][:1]
         if uncovered or incomplete:
@@ -1015,9 +1141,12 @@ async def _extract_info_from_message(
                     notes.append(note)
             result["verification_notes"] = notes[-30:]
             result["unrecorded"] = {"source": _hash_text(message), "clauses": uncovered, "incomplete": incomplete}
+            if followup_item(normalized, evidence=message):
+                result["unrecorded"]["item_id"] = normalized["followup_target"]["item_id"]
         return result
     except Exception as e:
         logger.warning("Info extraction failed: %s", type(e).__name__)
+        normalized.pop("followup_target", None)
         return normalized
 
 
@@ -1041,6 +1170,7 @@ STAGE_PROMPTS = {
 应用已先完成事实提取。独立资料中的 candidate_facts 是当前事实，resume_updated 表示本轮是否实际更新右侧草稿。
 全条回复最多 120 个中文字、两小段。不要输出经历原文、可复制简历句、完整改写、整段清单、JD逐项映射或缺口盘点。
 若 resume_updated 为 true，面向用户只说「已记下，右侧草稿会同步更新」；为 false 时不得声称已记录/已更新，说明尚需明确哪一点。
+若本轮仍有 unrecorded 子句，更新成功也只能说「部分已记下」，不得声称全部记下。
 内部约束（不得复述给用户）：保存尚未完成，不得声称已保存完成或已更新到右侧；不输出保存状态、同步过程或内部规则。
 然后二选一：用「**我的建议**」给一条针对当前经历的短建议，或用「**需要你补充**」问一个会改变简历表述的具体问题。每轮最多问一个问题，不要同时给建议和追问。
 鼓励一次把所有经历和材料都贴进来，可以是旧简历、截图或列表；不限制用户只讲一段经历。
@@ -1556,8 +1686,13 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 def _latest_previous_assistant(messages: list) -> str:
-    return next((m.content for m in reversed(messages)
-                 if isinstance(m, AIMessage) and isinstance(m.content, str)), "")
+    replies = []
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage) and replies:
+            break
+        if isinstance(message, AIMessage) and isinstance(message.content, str):
+            replies.append(message.content)
+    return "\n\n".join(reversed(replies))
 
 
 async def _extract_with_previous_assistant(message: str, current: dict, extract_llm, previous_assistant: str) -> dict:
@@ -1570,7 +1705,8 @@ async def _extract_with_previous_assistant(message: str, current: dict, extract_
 
 async def _collecting_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     async with SpeculativeScope() as scope:
-        return await _collecting_turn_impl(state, llm, scope)
+        result = await _collecting_turn_impl(state, llm, scope)
+        return _finish_followup_turn(state, result)
 
 
 async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: SpeculativeScope) -> dict:
@@ -1641,8 +1777,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         # "按已有资料生成" should not incur another extraction call.
         if _generation_contains_facts(last_human):
             extract_llm = _make_non_streaming_llm(llm, temperature=0)
-            collected = await _extract_info_from_message(
-                last_human, collected, extract_llm
+            collected = await _extract_with_previous_assistant(
+                last_human, collected, extract_llm, _latest_previous_assistant(messages)
             )
             if collected == previous_collected:
                 collected = _keep_unextracted_experience(collected, previous_collected, source_message)
@@ -1795,8 +1931,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                 experience_snippet=snippet,
             )
         )
-        response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(reply_state)] + messages
+        response = await _collection_reply(
+            llm, [sys_msg, _stage_context(reply_state)] + messages, collected, last_human
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -1804,8 +1940,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     # 分支 C：追问经历
     if action == TriageAction.ASK_EXPERIENCE:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_ASK_EXP", state))
-        response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages
+        response = await _collection_reply(
+            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -1813,8 +1949,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     # 分支 D：兜底推荐方向（硬禁令已写进 prompt）
     if action == TriageAction.SUGGEST_PROJECT:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_SUGGEST", state))
-        response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages
+        response = await _collection_reply(
+            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -1840,8 +1976,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
 
     # 兜底：按 ASK_EXP 走
     sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_ASK_EXP", state))
-    response = await stream_public_reply(
-        llm, [sys_msg, _stage_context(state)] + messages
+    response = await _collection_reply(
+        llm, [sys_msg, _stage_context(state)] + messages, collected, last_human
     )
     base_update["messages"] = [response, *_notice_messages(collected, last_human)]
     return base_update
@@ -1886,6 +2022,7 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
     current = state.get("resume_data") or {}
     # Targeted rewrites retain unrelated manually edited content exactly.
     base = copy.deepcopy(current) if scope != 'whole' and current else serialized
+    base['verification_notes'] = serialized['verification_notes']
     base = overlay_education(collected, base)
     from app.agents.turn_actions import explicit_objective
     _objective = explicit_objective(next((m.content for m in reversed(state.get("messages", []))
@@ -1957,7 +2094,7 @@ def _writer_reply(result: dict) -> str:
     data = result['resume_data']
     counts = []
     for key, label in (("projects", "段项目"), ("work_experience", "段工作/实习"),
-                       ("education", "条教育经历"), ("open_source", "条开源贡献"), ("awards", "条竞赛荣誉"), ("skills", "条技能"), ("certificates", "条奖项/活动")):
+                       ("education", "条教育经历"), ("campus", "段校园经历"), ("open_source", "条开源贡献"), ("awards", "条竞赛荣誉"), ("skills", "条技能"), ("certificates", "条奖项/活动")):
         rows = [item for item in data.get(key) or [] if not isinstance(item, dict) or not item.get('hidden')]
         if rows:
             counts.append(f"{len(rows)} {label}")
@@ -1987,7 +2124,7 @@ def _writer_reply(result: dict) -> str:
         if page.get('within_page_limit') is False:
             plan = result.get('confirmed_plan') or result.get('match_plan') or {}
             treatments = {row['item_id']: row['treatment'] for row in plan.get('experience_plan') or []}
-            rows = [item.get('name') or item.get('company') for section in ('projects', 'work_experience', 'open_source')
+            rows = [item.get('name') or item.get('company') for section in ('projects', 'work_experience', 'campus', 'open_source')
                     for item in data.get(section) or [] if not item.get('hidden')
                     and treatments.get(item.get('item_id')) in {'brief', 'backup'}]
             from app.services.resume_capacity import small_page_overflow
@@ -2016,6 +2153,14 @@ def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
         {**state, **result}, match_plan=result.get('match_plan'),
         version_number=len(result.get('resume_versions') or state.get('resume_versions') or []) + 1)
     text = composed.get('text') or ''
+    questions = composed.get('questions') or []
+    targets = {row.get('improves', {}).get('item_id') for row in questions}
+    from app.services.resume_workspace import _reply_question
+    if (len(targets) == 1 and None not in targets and '' not in targets
+            and _reply_question(text) in {row.get('q') for row in questions}):
+        result['collected_info'] = _bind_followup_target(
+            state.get('collected_info') or {}, result.get('collected_info') or state.get('collected_info') or {},
+            text, focus_ids=targets)
     marker = '**这版的思路**'
     if marker in text:
         return '\n\n' + text[text.index(marker):], composed.get('asked_questions') or []
@@ -2029,12 +2174,12 @@ async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmatio
         return receipt
     result = await _write_resume_update(state, llm)
     if result.pop('plan_card', False):
-        return _plan_card_update(result)
+        return _finish_followup_turn(state, _plan_card_update(result))
     suffix, asked = _interview_suffix(state, result)
     notice = unrecorded_notice(result.get('collected_info') or state.get('collected_info'), _latest_human_text(state))
     result.update(messages=[AIMessage(content=_writer_reply(result) + suffix + notice)], stage='EVALUATING',
                   resume_draft=resume_to_text(result['resume_data']), asked_questions=asked)
-    return result
+    return _finish_followup_turn(state, result)
 
 
 def _plan_card_update(result: dict) -> dict:
@@ -2170,7 +2315,7 @@ async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if confirmed and result.get('resume_data'):
         # Router field/move/delete operations can also change the structure.
         confirmed = copy.deepcopy(confirmed)
-        live = {row.get('item_id'): row for section in ('projects', 'work_experience', 'open_source')
+        live = {row.get('item_id'): row for section in ('projects', 'work_experience', 'campus', 'open_source')
                 for row in result['resume_data'].get(section) or [] if isinstance(row, dict)}
         confirmed['experience_plan'] = [row for row in confirmed['experience_plan'] if row['item_id'] in live]
         for row in confirmed['experience_plan']:
@@ -2206,7 +2351,8 @@ def _router_model(llm):
 
 async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     async with SpeculativeScope() as scope:
-        return await _evaluating_turn_impl(state, llm, scope)
+        result = await _evaluating_turn_impl(state, llm, scope)
+        return _finish_followup_turn(state, result)
 
 
 async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: SpeculativeScope) -> dict:
@@ -2250,8 +2396,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     imported = parse_existing_resume(text)
     updated = collected
     route_task = None
-    previous_assistant = next((m.content for m in reversed(state.get('messages', []))
-                               if isinstance(m, AIMessage) and isinstance(m.content, str) and m is not message), "")
+    previous_assistant = _latest_previous_assistant(state.get('messages', []))
     if imported:
         updated = _merge_imported_candidate(collected, imported)
     elif _generation_contains_facts(text, editing_existing=True):
@@ -2418,7 +2563,7 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
     from app.agents.tailor_pipeline import turn_instruction
     data = state.get('resume_data') or {}
     has_body = any(not item.get('hidden') and (item.get('polished_bullets') or item.get('bullets') or item.get('description'))
-                   for section in ('projects', 'work_experience', 'open_source', 'awards') for item in data.get(section) or []
+                   for section in ('projects', 'work_experience', 'campus', 'open_source', 'awards') for item in data.get(section) or []
                    if isinstance(item, dict))
     if not has_body:
         return False
@@ -2431,7 +2576,7 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
         if not _re.search(edit_words, clause):
             continue
         clause = clause.strip()
-        for section in ('projects', 'work_experience', 'open_source', 'awards'):
+        for section in ('projects', 'work_experience', 'campus', 'open_source', 'awards'):
             for item in data.get(section) or []:
                 name = item.get('name') or item.get('company') or ''
                 if name:

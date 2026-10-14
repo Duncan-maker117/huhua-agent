@@ -1,13 +1,14 @@
 """Shared, deliberately small contract for candidate evidence."""
 
-FACT_SECTIONS = ("projects", "work_experience", "internship", "education", "open_source", "awards")
+FACT_SECTIONS = ("projects", "work_experience", "internship", "education", "campus", "open_source", "awards")
 FACT_LABELS = {"projects": "name", "work_experience": "company", "internship": "company",
-               "education": "school", "open_source": "name", "awards": "name"}
+               "education": "school", "campus": "name", "open_source": "name", "awards": "name"}
 FACT_FIELDS = {
     "projects": {"name", "role", "start_date", "end_date"},
     "work_experience": {"company", "title", "role", "start_date", "end_date"},
     "internship": {"company", "title", "role", "start_date", "end_date"},
     "education": {"school", "major", "degree", "grade", "start_date", "end_date", "highlights"},
+    "campus": {"name", "role", "start_date", "end_date"},
     "open_source": {"name", "summary", "pr", "start_date", "end_date"},
     "awards": {"name", "level", "date"},
 }

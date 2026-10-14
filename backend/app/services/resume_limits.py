@@ -151,11 +151,11 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
     """
     result, metadata = deepcopy(data), deepcopy(meta)
     source = active_facts_for_writer(collected_info)
-    source_items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship", "open_source")
+    source_items = {item.get("item_id"): item for section in ("projects", "work_experience", "internship", "campus", "open_source", "awards")
                     for item in source.get(section, []) if isinstance(item, dict)}
     allowed = set(item_ids)
     fallbacks = []
-    for section in ("projects", "work_experience", "open_source"):
+    for section in ("projects", "work_experience", "campus", "open_source", "awards"):
         field = "polished_bullets" if section == "projects" else "bullets"
         for item in result.get(section, []):
             identifier = item.get("item_id")

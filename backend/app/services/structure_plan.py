@@ -10,10 +10,10 @@ from app.services.fact_guard import (TERM_FILE, contains_term, guard_bullets,
                                      lexical_fact_errors, ngram_overlap, normalize_text, validate_skill_groups)
 
 SECTION_LABELS = {'education': '教育经历', 'work_experience': '工作/实习经历',
-                  'projects': '项目经历', 'open_source': '开源贡献', 'awards': '竞赛荣誉',
+                  'projects': '项目经历', 'campus': '校园经历', 'open_source': '开源贡献', 'awards': '竞赛荣誉',
                   'skills': '技能', 'certificates': '证书/活动'}
 ALIASES = {'教育': 'education', '工作': 'work_experience', '实习': 'work_experience',
-           '项目': 'projects', '开源': 'open_source', '荣誉': 'awards', '竞赛': 'awards',
+           '项目': 'projects', '校园': 'campus', '社团': 'campus', '开源': 'open_source', '荣誉': 'awards', '竞赛': 'awards',
            '技能': 'skills', '证书': 'certificates'}
 
 
@@ -298,7 +298,7 @@ def edit_plan(plan: dict, text: str, collected: dict) -> tuple[dict, bool]:
         ordinal = re.search(r'第([一二三四五六七八九1-9])(?:个|段)?(项目|经历|开源贡献|工作|实习)', clause)
         if ordinal:
             number = int(ordinal[1]) if ordinal[1].isdigit() else '一二三四五六七八九'.index(ordinal[1]) + 1
-            section = {'项目': 'projects', '开源贡献': 'open_source', '工作': 'work_experience', '实习': 'work_experience'}.get(ordinal[2])
+            section = {'项目': 'projects', '校园': 'campus', '社团': 'campus', '开源贡献': 'open_source', '工作': 'work_experience', '实习': 'work_experience'}.get(ordinal[2])
             ids = {item.get('item_id') for key in (('work_experience', 'internship') if section == 'work_experience' else (section,))
                    for item in collected.get(key) or [] if isinstance(item, dict)} if section else set(labels)
             candidates = [row for row in result['experience_plan'] if row['item_id'] in ids and row['treatment'] != 'backup']

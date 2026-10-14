@@ -173,7 +173,7 @@
   // Every visible bullet of the saved draft with its model evidence (aligned by position; {} when hand-edited).
   function draftBullets() {
     const rows = [], evidence = workspace.tailor?.resume_meta?.bullets || {};
-    for (const [section, field] of [['projects', 'polished_bullets'], ['work_experience', 'bullets'], ['open_source', 'bullets']]) {
+    for (const [section, field] of [['projects', 'polished_bullets'], ['work_experience', 'bullets'], ['campus', 'bullets'], ['open_source', 'bullets'], ['awards', 'bullets']]) {
       for (const item of list(resumeData?.[section])) {
         if (!item || item.hidden === true) continue;
         const records = list(evidence[item.item_id]);
@@ -293,7 +293,7 @@
     for (const item of items) {
       const card = node('article', undefined, 'workspace-card');
       card.append(node('h3', item.name || '待命名经历'));
-      facts(card, [['类型', ({project:'项目',work:'工作 / 实习',education:'教育',open_source:'开源贡献',awards:'竞赛荣誉'})[item.kind] || item.kind], ['职责', item.role], ['时间', item.period]]);
+      facts(card, [['类型', ({project:'项目',work:'工作 / 实习',education:'教育',campus:'校园经历',open_source:'开源贡献',awards:'竞赛荣誉'})[item.kind] || item.kind], ['职责', item.role], ['时间', item.period]]);
       bulletList(card, item.bullets);
       if (list(item.missing).length) {
         const missing = node('div', undefined, 'workspace-missing-box');
@@ -465,7 +465,7 @@
   }
   function renderStructurePlan(dock, guidance, key) {
     const card = guidance.structure_plan;
-    const labels = {education: '教育经历', work_experience: '工作/实习经历', projects: '项目经历', open_source: '开源贡献', awards: '竞赛荣誉', skills: '技能', certificates: '证书/活动'};
+    const labels = {education: '教育经历', work_experience: '工作/实习经历', projects: '项目经历', campus: '校园经历', open_source: '开源贡献', awards: '竞赛荣誉', skills: '技能', certificates: '证书/活动'};
     const treatments = {lead: '写（重点）', keep: '写', brief: '压缩', backup: '不写'};
     function content(panel, plan) {
       const statement = plain(plan.profile_statement) || plain(plan.positioning);

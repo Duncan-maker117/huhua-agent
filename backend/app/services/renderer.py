@@ -72,7 +72,7 @@ def render_resume(template_id: str, data: dict[str, Any], interactive: bool = Fa
     sections = get_resume_sections(data)
     visible = {
         kind: [{**item, "_source_index": index} for index, item in visible_items(data, kind)]
-        for kind in ("education", "work_experience", "projects", "open_source", "awards")
+        for kind in ("education", "work_experience", "projects", "campus", "open_source", "awards")
     }
     html = template.render(**{
         **data,

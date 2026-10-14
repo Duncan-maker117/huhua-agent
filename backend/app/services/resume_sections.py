@@ -8,6 +8,7 @@ DEFAULT_SECTIONS = (
     ("education", "教育背景"),
     ("work_experience", "实习经历"),
     ("projects", "项目经历"),
+    ("campus", "校园经历"),
     ("open_source", "开源贡献"),
     ("awards", "竞赛荣誉"),
     ("skills", "技能证书"),
@@ -23,11 +24,26 @@ def visible_items(data: dict[str, Any], kind: str) -> list[tuple[int, dict[str, 
         if not isinstance(item, dict) or item.get("hidden") is True:
             continue
         item = dict(item)
+        from app.services.candidate_language import PLACEHOLDER_NAMES, placeholder_name
+        for field in ("name", "company", "school"):
+            if placeholder_name(item.get(field, "")):
+                item[field] = "[待补]"
+        # Descriptive pending labels are intake UI only, never resume prose.
+        for field in ("role", "title", "description", "summary", "highlights", "bullets", "polished_bullets"):
+            value = item.get(field)
+            def clean(text):
+                for label in PLACEHOLDER_NAMES.values():
+                    text = text.replace(label, "")
+                return text.strip()
+            if isinstance(value, str):
+                item[field] = clean(value)
+            elif isinstance(value, list):
+                item[field] = [clean(text) if isinstance(text, str) else text for text in value]
         if kind == "projects":
             item["role"] = project_role(item.get("role") or "")
         if kind == "awards":
             item["name"] = trim_name_punctuation(item.get("name"))
-        if kind in {"open_source", "awards"}:
+        if kind in {"campus", "open_source", "awards"}:
             item["_display_bullets"] = display_bullets(item, kind)
         rows.append((index, item))
     return rows

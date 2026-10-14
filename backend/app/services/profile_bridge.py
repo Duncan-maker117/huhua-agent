@@ -187,7 +187,7 @@ def sanitize_fact_history(state, *, original=None):
     if not isinstance(state, dict) or "collected_info" not in state:
         return state
     result = copy.deepcopy(state)
-    sections = ("projects", "education", "work_experience", "internship", "open_source", "awards")
+    sections = ("projects", "education", "work_experience", "internship", "campus", "open_source", "awards")
     active = {fact.get("id") for section in sections
               for item in (result.get("collected_info") or {}).get(section, [])
               for fact in item.get("facts", []) if fact.get("status", "active") == "active"}

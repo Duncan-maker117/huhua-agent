@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[3]
 CAPACITY_PATH = ROOT / "data" / "jianlimoban" / "capacity.json"
 DEFAULT_TEMPLATE_ID = "t001-jianyue"
 MAX_COMPRESSION_ROUNDS = 2
-EXPERIENCE_SECTIONS = ("work_experience", "projects", "open_source")
+EXPERIENCE_SECTIONS = ("work_experience", "projects", "campus", "open_source", "awards")
 
 
 def resume_data_hash(resume_data: Mapping[str, Any]) -> str:

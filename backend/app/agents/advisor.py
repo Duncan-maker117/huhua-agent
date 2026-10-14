@@ -55,7 +55,7 @@ ADVISOR_CONTRACT = """只读检查当前文稿，对照 active facts 和岗位�
 
 
 def _active_index(evidence: dict) -> dict[str, dict]:
-    return {fact["id"]: fact for section in ("projects", "work_experience", "internship", "education")
+    return {fact["id"]: fact for section in ("projects", "work_experience", "internship", "education", "campus", "open_source", "awards")
             for item in evidence.get(section) or [] for fact in item.get("facts") or [] if fact.get("id")}
 
 
@@ -89,7 +89,7 @@ def _at_location(data: dict, location: str) -> str | None:
     if parts[0] == "basic_info" and len(parts) == 2:
         value = (data.get("basic_info") or {}).get(parts[1])
         return str(value or "")
-    if parts[0] in {"projects", "work_experience", "education"} and len(parts) >= 2 and parts[1].isdigit():
+    if parts[0] in {"projects", "work_experience", "education", "campus", "open_source", "awards"} and len(parts) >= 2 and parts[1].isdigit():
         rows = data.get(parts[0]) or []
         index = int(parts[1])
         if index >= len(rows) or not isinstance(rows[index], dict):
@@ -130,7 +130,7 @@ def _validated_issues(output: AdvisorOutput, data: dict, facts: dict, jd_info: d
             continue
         if any(fid not in facts for fid in row.fact_ids) or any(rid not in requirements for rid in row.req_ids):
             continue
-        item_path = re.fullmatch(r"/(projects|work_experience|education)/(\d+)(?:/.*)?", row.location)
+        item_path = re.fullmatch(r"/(projects|work_experience|education|campus|open_source|awards)/(\d+)(?:/.*)?", row.location)
         if item_path and row.fact_ids:
             item_id = data[item_path[1]][int(item_path[2])].get("item_id")
             if any(facts[fid].get("item_id") != item_id for fid in row.fact_ids):

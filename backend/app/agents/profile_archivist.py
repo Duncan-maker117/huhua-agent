@@ -11,7 +11,7 @@ from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor, redact_model_messages
 from app.services.resume_field_hygiene import is_project_status
 
-Category = Literal["basic", "education", "project", "work", "open_source", "awards", "skill", "preference"]
+Category = Literal["basic", "education", "project", "work", "campus", "open_source", "awards", "skill", "preference"]
 FactField = Literal[
     "name", "phone", "email", "location", "objective", "school", "degree",
     "major", "start_date", "end_date", "company", "title", "role", "status",
@@ -41,6 +41,7 @@ class ArchiveProposal(BaseModel):
             "education": {"school", "degree", "major", "start_date", "end_date", "highlights", "description", "result"},
             "project": {"name", "role", "status", "start_date", "end_date", "description", "result", "tool", "deliverable"},
             "work": {"company", "title", "role", "start_date", "end_date", "description", "result", "deliverable"},
+            "campus": {"name", "role", "description", "result", "link", "start_date", "end_date"},
             "open_source": {"name", "summary", "pr", "description", "result", "link", "start_date", "end_date"},
             "awards": {"name", "level", "date", "description", "result", "link"},
             "skill": {"skill", "tool"},
@@ -97,7 +98,7 @@ def validate_grounding(proposal: ArchiveProposal, payload: dict, context: dict) 
         persistent = ("以后", "今后", "默认", "长期", "每次", "一直", "我喜欢", "我偏好", "我习惯")
         if not any(word in text for word in persistent) or any(word in scope for word in ("这次", "本次", "这份")):
             return False
-    if proposal.category in {"project", "work", "education", "open_source", "awards"}:
+    if proposal.category in {"project", "work", "education", "campus", "open_source", "awards"}:
         known = {_compact(fact.get("subject", "")) for fact in context.get("facts", [])}
         labelled_subject = False
         if proposal.category == "open_source":
@@ -190,6 +191,7 @@ value 必须逐字取自本轮 human_text 的 evidence_quote，保留否定、�
 只有用户明确纠错才 correct，并填被更正事实的 target_fact_id 与 revision 到 expected_revision。
 state_change 用于明确时间推进，evidence_quote 保留“现在/已经/后来”等原话；effective_at 只有原文明示具体日期才填写。今天讲过去不会自动覆盖较新的状态。
 project.role 只记录角色名称，具体职责与做法放 description；原型、未上线、已上线等记录为 project.status，不能当作角色。数量指标放 result，保留单位与口径。
+学生组织、社团、学生会、班委、志愿服务、协会用 campus，不归 project/open_source，subject为组织名，role为职务。
 开源贡献用 open_source，每个PR分别以「仓库名 PR号」为subject，name只含仓库名，summary保留星数等简介，pr保留编号/链接，description/result保留本人贡献和结果。竞赛荣誉用awards，每个奖项分别记录name/level/date。列表必须逐条收录。教育专业、学历、起止时间分别记录，奖学金统一放education.highlights。页头链接用basic.link（subject为GitHub/个人主页等标签），实习时间用availability。保留数量原单位，不把次数解释成调用/请求。不能根据重复次数认定已核实，不能推断职责、数字、结果。最多输出120项。
 """
         # Only scoped facts, never all account history or raw contacts, are given

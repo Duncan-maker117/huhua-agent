@@ -14,7 +14,7 @@ from sqlalchemy import select
 from app.models.profile import ProfileFact, ProfileJobVersion, new_id
 
 
-COLLECTIONS = ("education", "work_experience", "projects", "open_source", "awards")
+COLLECTIONS = ("education", "work_experience", "projects", "campus", "open_source", "awards")
 PAYLOAD_KEY = "projection_v1"
 
 
@@ -63,6 +63,7 @@ def _content_signature(collection, item):
     fields = {"projects": ("role", "start_date", "end_date", "description", "polished_bullets"),
               "education": ("degree", "major", "start_date", "end_date", "highlights"),
               "work_experience": ("title", "start_date", "end_date", "bullets"),
+              "campus": ("role", "start_date", "end_date", "bullets"),
               "open_source": ("summary", "pr", "start_date", "end_date", "bullets"),
               "awards": ("level", "date", "bullets")}[collection]
     content = {key: item[key] for key in fields if item.get(key) not in (None, "", [])}

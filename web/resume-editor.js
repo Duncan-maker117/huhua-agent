@@ -14,6 +14,7 @@
     {id: 'education', kind: 'education', title: '教育背景'},
     {id: 'work_experience', kind: 'work_experience', title: '实习经历'},
     {id: 'projects', kind: 'projects', title: '项目经历'},
+    {id: 'campus', kind: 'campus', title: '校园经历'},
     {id: 'open_source', kind: 'open_source', title: '开源贡献'},
     {id: 'awards', kind: 'awards', title: '竞赛荣誉'},
     {id: 'skills', kind: 'skills', title: '技能证书'},
@@ -103,7 +104,7 @@
     });
   }
   const removedSections = new Map();
-  const itemGroups = ['projects', 'education', 'work_experience', 'open_source', 'awards'];
+  const itemGroups = ['projects', 'education', 'work_experience', 'campus', 'open_source', 'awards'];
   const pendingRemovedItems = new Map();
   let trackedItemIds = new Set(), removalSequence = 0;
   const sampleReadOnly = () => state.mode === 'sample' && state.requireAccount;
@@ -308,7 +309,7 @@
   function normaliseData(data) {
     const copy = JSON.parse(JSON.stringify(data || {}));
     if (!copy.basic_info || typeof copy.basic_info !== 'object') copy.basic_info = {};
-    for (const key of ['education', 'work_experience', 'projects', 'open_source', 'awards', 'skills', 'certificates']) {
+    for (const key of ['education', 'work_experience', 'projects', 'campus', 'open_source', 'awards', 'skills', 'certificates']) {
       if (!Array.isArray(copy[key])) copy[key] = [];
     }
     if (!copy.skill_groups || Array.isArray(copy.skill_groups) || typeof copy.skill_groups !== 'object') copy.skill_groups = {};
@@ -317,7 +318,7 @@
     }
     for (const item of copy.work_experience) if (!Array.isArray(item.bullets)) item.bullets = [];
     for (const item of copy.projects) if (!Array.isArray(item.polished_bullets)) item.polished_bullets = [];
-    for (const kind of ['open_source', 'awards']) for (const item of copy[kind]) {
+    for (const kind of ['campus', 'open_source', 'awards']) for (const item of copy[kind]) {
       if (!Array.isArray(item.bullets)) item.bullets = [];
       if (!Array.isArray(item.links)) item.links = [];
     }
@@ -605,6 +606,7 @@
     const builders = {
       education: buildEducationContent, work_experience: buildWorkContent,
       projects: buildProjectsContent, skills: buildSkillsContent,
+      campus: body => buildContributionContent(body, 'campus'),
       open_source: body => buildContributionContent(body, 'open_source'),
       awards: body => buildContributionContent(body, 'awards'),
       certificates: buildCertificatesContent, self_evaluation: buildEvaluationContent,
@@ -714,18 +716,19 @@
   }
 
   function buildContributionContent(container, kind) {
-    const rows = state.data[kind], openSource = kind === 'open_source';
+    const rows = state.data[kind], openSource = kind === 'open_source', campus = kind === 'campus';
+    const title = campus ? '校园经历' : openSource ? '开源贡献' : '竞赛荣誉';
     rows.forEach((item, index) => {
-      const box = itemEditor(container, `${openSource ? '开源贡献' : '竞赛荣誉'} ${index + 1}`, () => rows.splice(index, 1));
+      const box = itemEditor(container, `${title} ${index + 1}`, () => rows.splice(index, 1));
       const grid = element('div', 'field-grid'); box.append(grid);
-      const fields = openSource ? [['name', '仓库 / 项目名'], ['summary', '简介（如星数）'], ['pr', 'PR 号或链接'], ['start_date', '开始时间'], ['end_date', '结束时间']]
+      const fields = campus ? [['name', '组织 / 社团名称'], ['role', '担任职务'], ['start_date', '开始时间'], ['end_date', '结束时间']] : openSource ? [['name', '仓库 / 项目名'], ['summary', '简介（如星数）'], ['pr', 'PR 号或链接'], ['start_date', '开始时间'], ['end_date', '结束时间']]
         : [['name', '名称'], ['level', '级别 / 名次'], ['date', '时间（可选）']];
       for (const [key, label] of fields) field(grid, label, pointer(kind, index, key), item[key], {full: true});
-      stringList(box, item.bullets, [kind, index, 'bullets'], openSource ? '本人贡献与结果' : '补充说明', true);
+      stringList(box, item.bullets, [kind, index, 'bullets'], openSource || campus ? '本人贡献与结果' : '补充说明', true);
       buildLinksContent(box, item.links, [kind, index, 'links']);
     });
-    container.append(button(`＋ 添加${openSource ? '开源贡献' : '竞赛荣誉'}`, 'add-button', () => changeStructure(() => rows.push(
-      openSource ? {name: '', summary: '', pr: '', start_date: '', end_date: '', bullets: [], links: []}
+    container.append(button(`＋ 添加${title}`, 'add-button', () => changeStructure(() => rows.push(
+      campus ? {name: '', role: '', start_date: '', end_date: '', bullets: [], links: []} : openSource ? {name: '', summary: '', pr: '', start_date: '', end_date: '', bullets: [], links: []}
         : {name: '', level: '', date: '', bullets: [], links: []}))));
   }
 

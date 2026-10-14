@@ -7,6 +7,7 @@ or the normal LangGraph model-message stream.
 
 import asyncio
 import logging
+from typing import Callable
 from uuid import uuid4
 
 from langchain_core.messages import AIMessage
@@ -36,7 +37,8 @@ def _public_text(content) -> str:
 
 
 async def stream_public_reply(
-    llm, messages: list, *, suffix: str = "", timeout: float | None = None
+    llm, messages: list, *, suffix: str = "", timeout: float | None = None,
+    transform: Callable[[str], str] | None = None,
 ) -> AIMessage:
     """Stream an explicitly public call and return its completed checkpoint text.
 
@@ -62,7 +64,7 @@ async def stream_public_reply(
         if not text:
             return
         parts.append(text)
-        if writer is not None:
+        if writer is not None and transform is None:
             writer(
                 {
                     "type": PUBLIC_REPLY_EVENT,
@@ -103,6 +105,11 @@ async def stream_public_reply(
         emit(PUBLIC_REPLY_INTERRUPTED)
     if not interrupted:
         emit(suffix)
+    if transform is not None:
+        # Receipt corrections must precede public deltas, not only checkpointing.
+        parts = [transform("".join(parts))]
+        if writer is not None:
+            writer({"type": PUBLIC_REPLY_EVENT, "node": node, "reply_id": reply_id, "content": parts[0]})
     return AIMessage(
         content="".join(parts),
         id=reply_id,

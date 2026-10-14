@@ -74,6 +74,8 @@ def _latest_turn(values: dict) -> tuple[str, str, str]:
         if isinstance(message, AIMessage) and not reply:
             if not message.tool_calls and isinstance(message.content, str):
                 reply = message.content
+        elif isinstance(message, AIMessage) and not message.tool_calls and isinstance(message.content, str):
+            reply = message.content + "\n\n" + reply
         if isinstance(message, HumanMessage):
             request = message.content if isinstance(message.content, str) else ""
             material = message.additional_kwargs.get("career_material_type", "")
@@ -99,8 +101,11 @@ def _reply_question(reply: str) -> str:
     so the option classifier can leave them as free text.
     """
     cleaned = re.sub(r"```[\s\S]*?```", "", reply)
+    # Coverage notices are receipts, including when appended on the same line.
+    cleaned = re.sub(r"这句(?:我没|没有)记下来[^\n]*|「[^」\n]*」后面还没说完[^\n]*", "", cleaned)
     groups, current = [], []
     numbered = []  # Parallel to groups: each numbered list item is its own question.
+    current_item = False
     explicit_section = False
     for raw in cleaned.splitlines():
         line = raw.strip()
@@ -246,7 +251,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     # populate its panels from an older collected_info object in that case.
     source = canonical if canonical else facts
     fact_items = []
-    for key, kind in (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉")):
+    for key, kind in (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"), ("campus", "校园经历"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉")):
         for item in facts.get(key) or []:
             if isinstance(item, dict) and _active_fact_rows(item):
                 fact_items.append((key, kind, item))
@@ -254,7 +259,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     if fact_items:
         hidden_ids = {
             item.get("item_id"): bool(item.get("hidden"))
-            for key, _kind in (("projects", ""), ("work_experience", ""), ("internship", ""), ("open_source", ""), ("awards", ""))
+            for key, _kind in (("projects", ""), ("work_experience", ""), ("internship", ""), ("campus", ""), ("open_source", ""), ("awards", ""))
             for item in (canonical or {}).get(key) or [] if isinstance(item, dict) and item.get("item_id")
         }
         for _key, kind, item in fact_items:
@@ -279,7 +284,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
                 "period": " — ".join(str(item.get(k)) for k in ("start_date", "end_date") if item.get(k)),
                 "bullets": bullets, "missing": missing,
             })
-    for key, kind in (() if fact_items else (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉"))):
+    for key, kind in (() if fact_items else (("projects", "项目"), ("work_experience", "工作"), ("internship", "实习"), ("campus", "校园经历"), ("open_source", "开源贡献"), ("awards", "竞赛荣誉"))):
         for item in source.get(key) or []:
             if not isinstance(item, dict):
                 continue
@@ -407,6 +412,10 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
         if fact_skills:
             skills = fact_skills
     education_rows = copy.deepcopy((facts.get("education") if fact_items and facts.get("education") else source.get("education")) or [])
+    notes = _strings(source.get("verification_notes"))
+    if "verification_notes" in facts:
+        current_notes = _strings(facts.get("verification_notes"))
+        notes = [note for note in notes if not note.startswith("这句没有记下来：") or note in current_notes]
     return {
         "tailor": tailor_metadata(values, canonical),
         "web_sources": bounded_web_sources(values.get("web_sources")),
@@ -414,7 +423,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
         "experiences": {"items": items, "basic_info": basic, "skills": skills,
                         "education": education_rows,
                         "certificates": _strings(source.get("certificates")),
-                        "verification_notes": _strings(source.get("verification_notes"))},
+                        "verification_notes": notes},
         "resume": {"has_data": has_data, "version": resume_revision(canonical)},
         "review": {"items": review_resume(canonical, jd) if has_data else [], "reply": reply if material == "review" else ""},
         "guidance": guidance, "suggestions": suggestions, "focus": focus,

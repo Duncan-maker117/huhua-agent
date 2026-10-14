@@ -24,13 +24,14 @@ from app.services.speculative import SpeculativeScope
 from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
 from app.services.resume_capacity import normalize_session_constraints, writer_capacity_budget
+from app.services.candidate_language import resume_bullet, safe_objective
 from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_limits import preserve_item_limits
 from app.services.resume_sections import DEFAULT_SECTIONS
 
 
-SECTIONS = ("projects", "work_experience", "open_source")
-ALL_SECTIONS = ("education", "work_experience", "projects", "open_source", "awards", "skills", "certificates")
+SECTIONS = ("projects", "work_experience", "campus", "open_source", "awards")
+ALL_SECTIONS = ("education", "work_experience", "projects", "campus", "open_source", "awards", "skills", "certificates")
 HEADER_FIELDS = {"name", "company", "school", "role", "title", "start_date", "end_date",
                  "duration", "degree", "major", "summary", "pr", "level", "date", "link"}
 WRITER_TIMEOUT_SECONDS = 60
@@ -47,7 +48,7 @@ recommended 和每个备选的 profile_statement 必填：由 thesis 改写为�
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
 直接命中 JD 核心职责/要求或 job_context 中公司关注点的经历，即使只有一条事实也至少 brief，不得 backup；backup 只给与本岗位无关的经历。
 reason、thesis 等面向用户的文本用要求原文或岗位信号原文，不写 r1/r2/s2 等内部编号；编号仅用于结构化引用字段。
-section_order 支持 education/work_experience/projects/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 一律输出 plain；只有用户在方案卡选择「问题-决策-结果」写法时才是 labeled。
+section_order 支持 education/work_experience/projects/campus/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 一律输出 plain；只有用户在方案卡选择「问题-决策-结果」写法时才是 labeled。
 requirements/questions 沿用匹配计划，最多3个问题。用户给出的结构取舍必须遵守。严格输出 StructurePlan。"""
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。保留数量的原单位及对象（人/次/个/条）；「20次」不得改成「20次调用/请求」。开源贡献必须用仓库名作标题，每个PR及其本人贡献、结果都要保留；教育与竞赛荣誉按结构字段保留，不能压成一句。
 开源 PR 号在标题行，bullet 不重复 PR 号前缀；summary 是页头定位句，自我评价只保留用户真正提供的自评。
@@ -78,6 +79,9 @@ plain 写法的一条 bullet = 问题/场景+本人动作与方法+结果或产�
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
 _STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；「问题：」只复述资料中的问题本身，不添加频率（常/经常/总是）、程度或后果（如「无法使用」「影响体验」），标签须与内容一致：描述问题的句子不能标为「结果」；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
+_PROSE_CONTRACT = """所有经历正文（projects/work_experience/campus/open_source/awards，实习已合并至 work_experience）都要改写为简历语言，动词开头，去第一人称、时间铺垫和口语。组织/参与经历与担任职务合并在标题和角色，不重复成 bullet。排除自评、计划、提问（如认为能力尚浅、想知道适合什么岗位、认为可以接单）。不把「运用可画完成」升级为「独立设计」；独立性与动作必须分别有原文支持。"""
+_WRITE_CONTRACT += '\n' + _PROSE_CONTRACT
+_ONE_PASS_CONTRACT += '\n' + _PROSE_CONTRACT
 _WRITE_CONTRACT += '\n' + _STYLE_CONTRACT
 _ONE_PASS_CONTRACT += '\n' + _STYLE_CONTRACT
 _WRITE_CONTRACT += '\n' + _COMPRESSION_ACTION_CONTRACT
@@ -478,7 +482,7 @@ def _source_evidence(collected_info: dict) -> tuple[dict, dict, dict]:
     facts: dict[str, dict] = {}
     duplicate_ids: set[str] = set()
     seen_items: set[str] = set()
-    for section in (*SECTIONS, "education", "awards"):
+    for section in (*SECTIONS, "education"):
         source[section] = [item for item in source.get(section, [])
                            if isinstance(item, dict) and item.get("item_id") and item.get("facts")]
         for item in source[section]:
@@ -498,7 +502,7 @@ def _source_evidence(collected_info: dict) -> tuple[dict, dict, dict]:
     for fid in duplicate_ids:
         facts.pop(fid, None)
     # A duplicated fact ID cannot be safely cited from either source item.
-    for section in (*SECTIONS, "education", "awards"):
+    for section in (*SECTIONS, "education"):
         for item in source[section]:
             item["facts"] = [fact for fact in item["facts"] if fact.get("id") in facts]
         source[section] = [item for item in source[section] if item["facts"]]
@@ -524,7 +528,7 @@ def _scope_targets(scope: str, targets: Sequence[str], current_data: dict, items
         if scope == "item" and target in items:
             allowed.add(target)
             continue
-        match = re.fullmatch(r"/(projects|work_experience)/(\d+)(?:/(polished_bullets|bullets)/(\d+))?", target)
+        match = re.fullmatch(r"/(projects|work_experience|campus|open_source|awards)/(\d+)(?:/(polished_bullets|bullets)/(\d+))?", target)
         if not match:
             continue
         section, index = match[1], int(match[2])
@@ -656,7 +660,7 @@ def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict,
     if any(_is_substantive(facts[fid]) for fid in own):
         own = [fid for fid in own if _is_substantive(facts[fid])]
     for fid in own:
-        cleaned = strip_absence(facts[fid].get("text") or "")
+        cleaned = resume_bullet(strip_absence(facts[fid].get("text") or ""), name=name)
         if cleaned and not _bare_phase(cleaned, name) and len(cleaned) > len(best):
             best, best_id = cleaned, fid
     return (best, [best_id]) if best else ("", [])
@@ -686,7 +690,7 @@ def _apply_section_order(output: dict, order: Sequence[str], previous: dict | No
     if existing is None:
         existing = [{"id": kind, "kind": kind, "title": title, "content": ""}
                     for kind, title in DEFAULT_SECTIONS]
-    for kind in ("open_source", "awards"):
+    for kind in ("campus", "open_source", "awards"):
         if output.get(kind) and not (previous or {}).get(kind) and not any(row.get("kind") == kind for row in existing):
             existing = [*existing, {"id": kind, "kind": kind, "title": dict(DEFAULT_SECTIONS)[kind], "content": ""}]
     rank = {kind: index for index, kind in enumerate(order)}
@@ -706,7 +710,7 @@ def _seed_item(section: str, source_item: dict, current: dict | None) -> dict:
     item[label] = source_item.get(label, "")
     for fact in source_item.get("facts", []):
         field = fact.get("field")
-        if field in {"role", "title", "start_date", "end_date", "summary", "pr"} and not item.get(field):
+        if field in {"role", "title", "start_date", "end_date", "summary", "pr", "level", "date"} and not item.get(field):
             item[field] = project_role(fact.get("text", "")) if field == "role" else fact.get("text", "")
     if section == "projects":
         item.setdefault("description", "")
@@ -926,7 +930,7 @@ def _reusable_plan(previous: Any, current: Mapping[str, Any]) -> MatchPlan | Non
     """Previous match plan for an edit round, or None (first draft / no usable plan)."""
     has_body = any(isinstance(item, dict) and any(isinstance(text, str) and text.strip()
                                                   for text in item.get(field) or [])
-                   for section, field in (("projects", "polished_bullets"), ("work_experience", "bullets"))
+                   for section, field in (("projects", "polished_bullets"), ("work_experience", "bullets"), ("campus", "bullets"), ("open_source", "bullets"), ("awards", "bullets"))
                    for item in current.get(section) or [])
     if not has_body or not isinstance(previous, Mapping):
         return None
@@ -1136,7 +1140,9 @@ async def _run_resume_writer(
                 writers[item_id] = WrittenItem(item_id=item_id, section=section,
                                                bullets=[WrittenBullet(text=cleaned, fact_ids=[fact["id"]])
                                                         for fact in selected
-                                                        if (cleaned := strip_absence(fact.get("text") or ""))
+                                                        if (cleaned := resume_bullet(strip_absence(fact.get("text") or ""),
+                                                                                   name=item.get("name") or item.get("company") or "",
+                                                                                   role=item.get("role") or item.get("title") or ""))
                                                         and not _bare_phase(cleaned, str(item.get("name") or item.get("company") or ""))])
     elif scope != "bullet":
         # A deliberate zero needs no model-written row, but still clears the
@@ -1191,11 +1197,14 @@ async def _run_resume_writer(
                 reasons.append("unknown_or_cross_item_fact_id")
             candidate_rows.append({"id": f"b{len(candidate_rows)}", "item_id": item_id,
                                    "section": written.section, "field": field, "bullet_index": bullet_index,
-                                   "text": LABEL.sub("", bullet.text.strip()), "fact_ids": refs,
+                                   "text": resume_bullet(LABEL.sub("", bullet.text.strip()),
+                                                         name=item.get("name") or item.get("company") or "",
+                                                         role=item.get("role") or item.get("title") or ""), "fact_ids": refs,
                                    "req_ids": [req for req in bullet.req_ids if req in req_ids],
                                    "allowed_reqs": req_ids, "flags": [flag for flag in bullet.flags if flag == "transferable"],
                                    "needs_metric": bullet.needs_metric, "metric_question": bullet.metric_question,
                                    "valid_refs": not reasons, "invalid_reasons": reasons})
+    candidate_rows = [row for row in candidate_rows if row["text"]]
     if scope != "bullet":
         candidate_rows = _merge_context_only_rows(candidate_rows, facts, bullet_style)
     # The summary check reads only the draft summary and the fact store, never the bullet
@@ -1255,10 +1264,10 @@ async def _run_resume_writer(
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"
                 item[field] = []
-                if target_caps[item_id] == 0 and section == "projects":
+                if section == "projects":
                     item["description"] = ""
                 metadata[item_id] = []
-                if writer_diagnostic.get("status") != "model_fallback" and not any(
+                if section != "awards" and writer_diagnostic.get("status") != "model_fallback" and not any(
                     _body_fact(fact) for fact in items[item_id][1]["facts"]
                 ):
                     item["hidden"] = True
@@ -1336,7 +1345,7 @@ async def _run_resume_writer(
         output["skill_groups"] = groups
         target_role = role_profile.get("target_role")
         if isinstance(target_role, str) and target_role.strip() and not output.get("basic_info", {}).get("objective"):
-            output.setdefault("basic_info", {})["objective"] = target_role.strip()[:120]
+            output.setdefault("basic_info", {})["objective"] = safe_objective(target_role)
         # A source-free summary could smuggle facts; use it only when guard can
         # verify a caller-supplied set of active fact references.
         if summary_task is not None:
@@ -1348,6 +1357,25 @@ async def _run_resume_writer(
         output, meta, collected_info, item_ids=list(by_item),
         bullet_indices=bullet_targets if scope == "bullet" else None)
     fallbacks.extend(limit_fallbacks)
+    for section in SECTIONS:
+        field = "polished_bullets" if section == "projects" else "bullets"
+        for item in output.get(section) or []:
+            if item.get("item_id") not in writers or scope == "bullet":
+                continue
+            records = meta.get("bullets", {}).get(item["item_id"], [])
+            cleaned, kept_records = [], []
+            for index, text in enumerate(item.get(field) or []):
+                value = resume_bullet(text, name=item.get("name") or item.get("company") or "",
+                                      role=item.get("role") or item.get("title") or "")
+                if not value or value in cleaned:
+                    continue
+                cleaned.append(value)
+                record = records[index] if index < len(records) else {}
+                kept_records.append({**record, "text_hash": _hash(value)})
+            item[field] = cleaned
+            if section == "projects" and scope != "bullet":
+                item["description"] = resume_bullet(item.get("description", ""), name=item.get("name", ""))
+            meta.setdefault("bullets", {})[item["item_id"]] = kept_records
     # Canonical text and provenance hashes must agree with the compact display.
     from app.services.resume_field_hygiene import strip_pr_prefix
     for item in output.get("open_source") or []:

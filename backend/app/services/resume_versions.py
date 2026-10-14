@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 import hashlib
 import uuid
 
-ITEM_SECTIONS = ('education', 'work_experience', 'projects', 'open_source', 'awards')
+ITEM_SECTIONS = ('education', 'work_experience', 'projects', 'campus', 'open_source', 'awards')
 
 
 def text_hash(text: str) -> str:
@@ -19,7 +19,7 @@ def valid_bullet_metadata(data: dict, meta: dict) -> dict:
     result = deepcopy(meta or {})
     existing = result.get('bullets') or {}
     valid = {}
-    for section, field in (('projects', 'polished_bullets'), ('work_experience', 'bullets'), ('open_source', 'bullets'), ('awards', 'bullets')):
+    for section, field in (('projects', 'polished_bullets'), ('work_experience', 'bullets'), ('campus', 'bullets'), ('open_source', 'bullets'), ('awards', 'bullets')):
         for item in data.get(section) or []:
             available = defaultdict(deque)
             for record in existing.get(item.get('item_id'), []):

@@ -289,7 +289,7 @@ class MCPService:
         template_check(template_id)
         data = await asyncio.to_thread(self._fill_contacts, principal, validate_resume(resume))
         # A new document gets no client-controlled provenance bindings.
-        for group in ('education', 'projects', 'work_experience', 'open_source', 'awards'):
+        for group in ('education', 'projects', 'work_experience', 'campus', 'open_source', 'awards'):
             for item in data.get(group) or []:
                 item.pop('item_id', None)
         checked = await self._check_resume(principal, data, citations)

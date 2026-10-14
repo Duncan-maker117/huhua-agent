@@ -105,7 +105,7 @@ async def _checked_options(response, facts: dict, privacy: ContactRedactor, llm)
 async def wording_advice(state: dict, message: str, llm) -> str:
     evidence = active_facts_for_writer(state.get("collected_info") or {})
     facts = {fact["id"]: {**fact, "item_name": item.get("name") or item.get("company") or item.get("school") or ""}
-             for section in ("projects", "work_experience", "internship", "education")
+             for section in ("projects", "work_experience", "internship", "education", "campus", "open_source", "awards")
              for item in evidence.get(section) or [] for fact in item.get("facts") or []}
     if not facts:
         return ("还没有足够的本人事实来给具体改写。可以这样开始：\n\n"

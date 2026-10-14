@@ -55,7 +55,7 @@ def resume_to_text(data: dict) -> str:
             if dates:
                 lines.append(dates)
             bullets = item.get("bullets") or item.get("polished_bullets") or []
-            if key in {"awards", "open_source"}:
+            if key in {"campus", "awards", "open_source"}:
                 bullets = [bullet for _, bullet in item["_display_bullets"]]
             if not bullets and item.get("description"):
                 bullets = [item["description"]]
@@ -97,7 +97,7 @@ def review_resume(data: dict, jd_info: dict | None = None) -> list[str]:
         checks.append("补全姓名。")
     if not basic.get("phone") and not basic.get("email"):
         checks.append("补全至少一种联系方式。")
-    if not (visible_items(data, "work_experience") or visible_items(data, "projects") or visible_items(data, "open_source")):
+    if not (visible_items(data, "work_experience") or visible_items(data, "projects") or visible_items(data, "campus") or visible_items(data, "open_source")):
         checks.append("补充至少一段能证明能力的工作或项目经历。")
     text = resume_to_text(data)
     if re.search(r"\d+(?:[.,]\d+)?%?\*", text):

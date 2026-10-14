@@ -138,7 +138,7 @@ def resume_data_to_docx(data: dict[str, Any]) -> bytes:
             has_content = bool(resume_section["title"] or resume_section["content"])
         elif kind == "skills":
             has_content = any((data.get("skill_groups") or {}).values()) or bool(data.get("skills"))
-        elif kind in {"education", "work_experience", "projects", "open_source", "awards"}:
+        elif kind in {"education", "work_experience", "projects", "campus", "open_source", "awards"}:
             has_content = bool(visible_items(data, kind))
         else:
             has_content = bool(data.get(kind))
@@ -187,8 +187,8 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
             p.add_run(line).bold = True
             for b in job.get("bullets") or []:
                 doc.add_paragraph(b, style="List Bullet")
-    elif kind == "projects":
-        for _, proj in visible_items(data, "projects"):
+    elif kind in {"projects", "campus"}:
+        for _, proj in visible_items(data, kind):
             line = " / ".join(
                 x
                 for x in [
@@ -202,7 +202,7 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
             )
             p = doc.add_paragraph()
             p.add_run(line).bold = True
-            bullets = proj.get("polished_bullets") or []
+            bullets = proj.get("polished_bullets" if kind == "projects" else "bullets") or []
             if bullets:
                 for b in bullets:
                     doc.add_paragraph(b, style="List Bullet")

@@ -74,7 +74,7 @@ class WriterSchemaStructureTest(unittest.TestCase):
         item = objects["WrittenItem"]["allowed_fields"]
         self.assertNotIn("summary", item)
         self.assertEqual(item["bullets"], {"array_of": "WrittenBullet"})
-        self.assertEqual(item["section"], {"one_of": ["projects", "work_experience", "open_source"]})
+        self.assertEqual(item["section"], {"one_of": ["projects", "work_experience", "campus", "open_source", "awards"]})
         self.assertEqual(set(objects["WrittenBullet"]["allowed_fields"]),
                          {"text", "fact_ids", "req_ids", "flags", "needs_metric", "metric_question"})
         self.assertEqual(objects["WrittenBullet"]["required_fields"], ["text"])

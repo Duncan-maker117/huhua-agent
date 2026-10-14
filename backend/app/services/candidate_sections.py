@@ -3,11 +3,12 @@
 import re
 import uuid
 
+from app.services.candidate_language import literal_item_name, safe_objective
 from app.services.resume_facts import new_fact
 from app.services.resume_field_hygiene import trim_name_punctuation
 
 
-SECTION_LABELS = {"开源贡献": "open_source", "开源经历": "open_source",
+SECTION_LABELS = {"校园经历": "campus", "社团经历": "campus", "校园活动": "campus", "开源贡献": "open_source", "开源经历": "open_source",
                   "竞赛荣誉": "awards", "竞赛和荣誉": "awards", "竞赛与荣誉": "awards"}
 _OTHER_SECTION = re.compile(r"^(?:基本信息|教育背景|教育经历|教育|项目经历|工作经历|实习经历|"
                             r"技能|专业技能|产品与技术能力|技能与工具|证书|自我评价|个人总结)\s*[：:]?")
@@ -34,7 +35,9 @@ def parse_header_fields(text: str) -> dict:
         ("objective", r"(?:求职意向|求职方向)[ \t]*(?:是|为|[：:])[ \t]*([^\n，,；;。]+)"),
     ):
         if match := re.search(pattern, text, re.I):
-            basic[field] = match[1].strip()
+            value = match[1].strip()
+            if field != "objective" or safe_objective(value):
+                basic[field] = value
     links = []
     for label, value in re.findall(
             r"(GitHub|个人主页|个人网站|主页|网站)(?:\s*(?:是|为|[：:])\s*|\s+)"
@@ -75,7 +78,7 @@ def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") 
     Only labelled candidate sections are parsed. Callers exclude JD/reference
     material before invoking this helper. Wrapped lines stay with their PR.
     """
-    rows = {"open_source": [], "awards": []}
+    rows = {"campus": [], "open_source": [], "awards": []}
     section = ""
     pending = []
 
@@ -88,7 +91,15 @@ def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") 
         if not quote or re.search(r"待确认|待核实|待补|假设|虚构", quote):
             return
         plain = _MARKDOWN_LINK.sub(lambda m: m[1], quote).replace("**", "")
-        if section == "open_source":
+        if section == "campus":
+            name = literal_item_name(plain, "campus")
+            if not name:
+                return
+            fields = {"name": name}
+            role = re.search(r"(?:担任|[|｜])\s*([^，,。；;|｜\n]{1,16}(?:部长|干事|委员|主席|负责人))", plain)
+            if role:
+                fields["role"] = role[1]
+        elif section == "open_source":
             fields = contribution_fields(quote)
             if not fields["name"] or (not _PR.search(quote) and not re.search(r"贡献|修复|提交|维护|实现", quote)):
                 return
@@ -111,7 +122,7 @@ def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") 
                 fact["field"] = field
                 item["facts"].append(fact)
         # The complete original entry preserves personal contribution and result.
-        item["facts"].append(new_fact(plain, kind="action" if section == "open_source" else "result_qualitative",
+        item["facts"].append(new_fact(plain, kind="action" if section in {"campus", "open_source"} else "result_qualitative",
                                       quote=quote, source=source, turn_id=turn_id))
         if links := literal_links(quote):
             item["links"] = links

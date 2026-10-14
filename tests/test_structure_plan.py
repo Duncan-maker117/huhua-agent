@@ -42,14 +42,14 @@ def card():
     return {'recommended': {'label': '主线叙事型', 'positioning': '修复跨语言记忆污染',
                 'thesis': '通过修复跨语言记忆污染展示记忆处理实践',
                 'requirements': [{'req_id': 'r1', 'status': 'direct', 'fact_ids': ['f2']}],
-                'section_order': ['open_source', 'projects', 'education', 'awards', 'skills', 'work_experience', 'certificates'],
+                'section_order': ['open_source', 'projects', 'education', 'awards', 'skills', 'work_experience', 'certificates', 'campus'],
                 'experience_plan': [
                     {'item_id': 'o1', 'treatment': 'lead', 'target_bullets': 3,
                      'reason': 'EchoKit 修复跨语言记忆污染，直接对应 JD 的记忆处理。'},
                     {'item_id': 'p1', 'treatment': 'brief', 'target_bullets': 1,
                      'reason': '纸舟计划整理用户反馈，可补充问题发现过程，和记忆处理关联较弱。'}]},
             'alternatives': [{'label': '问题发现型', 'positioning': '整理用户反馈并分类', 'thesis': '整理用户反馈并分类',
-                'section_order': ['projects', 'open_source', 'education', 'awards', 'skills', 'work_experience', 'certificates'],
+                'section_order': ['projects', 'open_source', 'education', 'awards', 'skills', 'work_experience', 'certificates', 'campus'],
                 'experience_plan': [{'item_id': 'p1', 'treatment': 'lead', 'target_bullets': 3,
                                      'reason': '纸舟计划的反馈分类可从用户问题切入记忆处理。'}]}]}
 
@@ -137,7 +137,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
                 result = await graph.structure_plan_node(current, FakeModel([('WriterDraft', writer_draft())]))
                 self.assertEqual(result['confirmed_plan']['label'], '问题发现型')
                 treatments = {row['item_id']: row['treatment'] for row in result['confirmed_plan']['experience_plan']}
-                self.assertEqual(treatments, {'o1': 'lead', 'p1': 'lead'})
+                self.assertEqual(treatments, {'o1': 'lead', 'p1': 'lead', 'a1': 'keep'})
                 self.assertEqual(result['resume_data']['sections'][0]['kind'], 'projects')
 
     async def test_colloquial_confirmation_is_deterministic(self):
@@ -170,7 +170,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         written = await graph.structure_plan_node({**current, **result, 'messages': [HumanMessage(content='按推荐写')]},
                                                  FakeModel([('WriterDraft', writer_draft())]))
         self.assertTrue(written['resume_data']['projects'][0]['hidden'])
-        self.assertEqual(written['confirmed_plan']['experience_plan'][-1]['treatment'], 'backup')
+        self.assertEqual(next(row for row in written['confirmed_plan']['experience_plan'] if row['item_id'] == 'p1')['treatment'], 'backup')
 
     async def test_thesis_change_calls_only_plan_and_clears_old_confirmation(self):
         current, _ = await self.planned()

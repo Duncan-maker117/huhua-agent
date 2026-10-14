@@ -56,7 +56,7 @@ def derive_conversation_title(state_values: dict) -> str | None:
         return f"{shortened}简历" if shortened else None
     names = []
     for source in sources:
-        for group in ("projects", "work_experience", "internship", "open_source", "education"):
+        for group in ("projects", "work_experience", "internship", "campus", "open_source", "education"):
             for item in source.get(group) or []:
                 name = item.get("name") or item.get("company") or item.get("school")
                 if isinstance(name, str) and name.strip() and name.strip() not in names:

@@ -159,7 +159,7 @@ def normalize_fact_store(collected: dict | None) -> dict:
 def _editor_texts(item: dict, section: str) -> list[str]:
     if section == "projects":
         bullets = item.get("polished_bullets") or []
-    elif section in {"work_experience", "internship", "open_source", "awards"}:
+    elif section in {"work_experience", "internship", "campus", "open_source", "awards"}:
         bullets = item.get("bullets") or []
     else:
         bullets = item.get("highlights") or []

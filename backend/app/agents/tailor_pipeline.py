@@ -41,7 +41,7 @@ def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
     """Unambiguous named/ordinal selections; PR5 router handles compound intents."""
     matches = []
     aliases = {}
-    for section in ('projects', 'work_experience', 'open_source'):
+    for section in ('projects', 'work_experience', 'campus', 'open_source', 'awards'):
         for item in data.get(section) or []:
             name = item.get('name') or item.get('company')
             if not isinstance(name, str) or not item.get('item_id'):
@@ -67,7 +67,7 @@ def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
 
 
 def _has_visible_experience_body(data: dict) -> bool:
-    for section, field in (('projects', 'polished_bullets'), ('work_experience', 'bullets'), ('open_source', 'bullets')):
+    for section, field in (('projects', 'polished_bullets'), ('work_experience', 'bullets'), ('campus', 'bullets'), ('open_source', 'bullets'), ('awards', 'bullets')):
         for item in data.get(section) or []:
             if not isinstance(item, dict) or item.get('hidden'):
                 continue
@@ -126,7 +126,7 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
     current = state.get('resume_data') or {}
     data = deepcopy(base_data)
     meta = deepcopy(state.get('resume_meta') or {})
-    active_refs = {fact['id'] for section in ('projects', 'work_experience', 'internship', 'education', 'open_source', 'awards')
+    active_refs = {fact['id'] for section in ('projects', 'work_experience', 'internship', 'education', 'campus', 'open_source', 'awards')
                    for item in source.get(section) or [] for fact in item.get('facts') or []}
     for section, source_sections, body_fields in (
         ('projects', ('projects',), ('description', 'polished_bullets')),
@@ -171,7 +171,7 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
 
 def _compression_item(data: dict, action: dict) -> tuple[str, dict] | None:
     parts = str(action.get('target', '')).split('/')
-    if len(parts) < 3 or parts[1] not in {'projects', 'work_experience', 'open_source'} or not parts[2].isdigit():
+    if len(parts) < 3 or parts[1] not in {'projects', 'work_experience', 'campus', 'open_source', 'awards'} or not parts[2].isdigit():
         return None
     rows = data.get(parts[1]) or []
     index = int(parts[2])

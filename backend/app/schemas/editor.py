@@ -64,6 +64,17 @@ class ProjectItem(BaseModel):
     links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 
 
+class CampusItem(BaseModel):
+    item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
+    name: str = ""
+    role: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    bullets: list[str] = Field(default_factory=list)
+    hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
+    links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
+
+
 class OpenSourceItem(BaseModel):
     item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     name: str = ""
@@ -89,7 +100,7 @@ class AwardItem(BaseModel):
 class ResumeSection(BaseModel):
     id: str = Field(min_length=1, max_length=128)
     kind: Literal[
-        "education", "work_experience", "projects", "open_source", "awards", "skills",
+        "education", "work_experience", "projects", "campus", "open_source", "awards", "skills",
         "certificates", "self_evaluation", "custom",
     ]
     title: str = Field(max_length=100)
@@ -114,6 +125,7 @@ class ResumeData(BaseModel):
     education: list[EducationItem] = []
     work_experience: list[WorkItem] = []
     projects: list[ProjectItem] = []
+    campus: list[CampusItem] = Field(default_factory=list, exclude_if=lambda value: not value)
     open_source: list[OpenSourceItem] = Field(default_factory=list, exclude_if=lambda value: not value)
     awards: list[AwardItem] = Field(default_factory=list, exclude_if=lambda value: not value)
     # flat 技能（旧字段，兼容保留）

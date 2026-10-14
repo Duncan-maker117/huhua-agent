@@ -11,6 +11,10 @@ import re
 import uuid
 
 from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
+from app.services.candidate_language import (
+    PLACEHOLDER_NAMES, campus_evidence, literal_item_name, placeholder_name,
+    safe_item_name, safe_major, safe_objective,
+)
 from app.services.llm_compat import label_run, without_thinking
 from app.services.resume_facts import new_fact, normalize_fact_store
 from app.services.resume_field_hygiene import is_project_status
@@ -18,11 +22,14 @@ from app.services.resume_field_hygiene import is_project_status
 logger = logging.getLogger(__name__)
 
 _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch：
-{"items":[{"section":"projects|work_experience|internship|education|open_source|awards","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","field":"结构字段可选","text":"规范化陈述","source_quote":"本轮连续原文"}],"links":[{"text":"PR或链接名","url":"用户提供的链接"}],"raw_notes":["本轮相关原话"]}],"basic_info":{"name":"姓名","phone":"电话占位原文","email":"邮箱占位原文","location":"城市","objective":"求职意向","links":[{"text":"GitHub或个人主页","url":"原文URL/域名/账号"}],"availability":"可实习时间原文"},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
+{"items":[{"section":"projects|work_experience|internship|education|campus|open_source|awards","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","field":"结构字段可选","text":"规范化陈述","source_quote":"本轮连续原文"}],"links":[{"text":"PR或链接名","url":"用户提供的链接"}],"raw_notes":["本轮相关原话"]}],"basic_info":{"name":"姓名","phone":"电话占位原文","email":"邮箱占位原文","location":"城市","objective":"求职意向","links":[{"text":"GitHub或个人主页","url":"原文URL/域名/账号"}],"availability":"可实习时间原文"},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
 口语可转书面，但不能新增数字、动作、职责、成果或工具；否定、计划、Demo、未上线必须保留。归属已有经历须用已有 item_id。
+followup_target 是当前追问针对的已有经历；用户短答未重复经历名时优先带该 item_id。用户转向其他/新经历时不得沿用，归属不明确不要猜。
 更正旧事实用 corrections，删除事实用 removals；删除文稿的句子不等于删除事实。
 JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
 教育的学校、专业、学历、起止时间分别标 field=school/major/degree/start_date/end_date；奖学金标 highlights，保留在 education，不重复放 awards。学校简称保持原词，不要自行扩写全称，不能压成「就读于某大学」一句。
+学生组织、社团、学生会、志愿服务、班委、协会归 campus，不归 projects/open_source；name 用原文组织名，role 放职务。无法确定名称时留空，不影响保留事实。
+求职意向只填不超过20字的明确岗位名；方向迷茫、兴趣、自评、计划和提问不填 objective，也不是经历动作。
 开源贡献归 open_source，name 用仓库/项目名，简介（如星数）标 summary，PR号或链接标 pr，本人贡献和结果分别为正文事实；每个PR一条item，不能把「自己」当项目名。竞赛荣誉归 awards，名称、级别/名次、时间分别标 name/level/date。
 原型、未上线、已上线等是状态，标 kind=status_limit，不得标为 role 或 field=role；荣誉 name 去掉首尾标点。
 用户一次列出多个PR、多个奖项时必须逐条收录，不得只收第一条。数字及其单位（人/次/个/条）保留，不能把「20次」解释为「20次调用/请求」。
@@ -200,6 +207,41 @@ def _log_rejected(rejected: list[dict], turn_id: str) -> None:
         logger.info("fact_rejected turn=%s code=%s hash=%s%s", turn_id or "-", _reason_code(row.get("reason")), digest, extra)
 
 
+def fact_item_outline(collected: dict) -> list[dict]:
+    return [{"section": section, "item_id": item.get("item_id"),
+             "name": item.get("name") or item.get("company") or item.get("school") or "",
+             "facts": [f for f in item.get("facts", []) if f.get("status") == "active"]}
+            for section in FACT_SECTIONS for item in collected.get(section, [])
+            if isinstance(item, dict) and item.get("item_id")]
+
+
+def followup_item(collected: dict, *, evidence: str | None = None) -> dict | None:
+    target = collected.get("followup_target") or {}
+    outline = fact_item_outline(collected)
+    matches = [item for item in outline
+               if item["item_id"] == target.get("item_id")]
+    if len(matches) != 1 or matches[0]["section"] != target.get("section"):
+        return None
+    if evidence is not None and not _implicit_followup_allowed(evidence, outline, matches[0]):
+        return None
+    return matches[0]
+
+
+def _implicit_followup_allowed(evidence: str, outline: list[dict], target: dict) -> bool:
+    from app.services.fact_guard import normalize_text
+    if re.search(r"另外|(?:新(?:的)?(?:一(?:个|项|段))?|另(?:一(?:个|项|段|次)|的)?|别的|其他(?:的)?)\s*(?:项目|活动|经历|工作|实习|公司)", evidence):
+        return False
+    # An explicit newly named subject also stops an implicit carry-over.
+    subjects = re.findall(r'[“「\"\']([^”」\"\']+)[”」\"\']\s*(?:项目|活动)|(?:项目|活动|小程序|应用|工具).{0,8}(?:叫|名为)\s*[“「\"\']?([^，。；;\s”」\"\']+)', evidence)
+    names = [name for pair in subjects for name in pair if name]
+    names += re.findall(r'(?:我在|我(?:开发|参与|做)(?:了|过)?)\s*([^，,。；;\s「“\"\']{1,30}?)\s*(?:项目|活动)', evidence)
+    if any(normalize_text(name) not in normalize_text(target["name"])
+           and normalize_text(target["name"]) not in normalize_text(name) for name in names):
+        return False
+    mentioned = [item for item in outline if item["name"] and normalize_text(item["name"]) in normalize_text(evidence)]
+    return all(item["item_id"] == target["item_id"] for item in mentioned)
+
+
 async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: str = "",
                               metadata_context=None, semantic_check=None,
                               previous_assistant: str = "") -> dict:
@@ -212,13 +254,22 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     if not isinstance(message, str) or not message.strip() or llm is None:
         return empty
     visible = normalize_fact_store(collected)
-    outline = [{"section": section, "item_id": item.get("item_id"),
-                "name": item.get("name") or item.get("company") or item.get("school") or "",
-                "facts": [{"id": f.get("id"), "text": f.get("text")}
-                          for f in item.get("facts", []) if f.get("status") == "active"]}
-               for section in FACT_SECTIONS for item in visible.get(section, []) if isinstance(item, dict)]
-    payload = {"message": complete, "existing": outline, "metadata_context": metadata_context or [],
+    outline = fact_item_outline(visible)
+    evidence = _candidate_evidence(complete)
+    prior_target = followup_item(visible)
+    target = followup_item(visible, evidence=evidence)
+    naming_answer = bool(prior_target and placeholder_name(prior_target["name"])
+                         and re.search(r"名称|名字|公司.{0,5}(?:叫|名)|组织.{0,5}(?:叫|名)", previous_assistant)
+                         and not re.search(r"新项目|另一个|另外|其他", evidence))
+    if naming_answer and not any(item["item_id"] != prior_target["item_id"] and item["name"]
+                                 and normalize_text(item["name"]) in normalize_text(evidence) for item in outline):
+        target = prior_target
+    payload = {"message": complete, "existing": [
+        {**item, "facts": [{"id": f["id"], "text": f["text"]} for f in item["facts"]]} for item in outline],
+               "metadata_context": metadata_context or [],
                "previous_assistant": (previous_assistant or "")[:500]}
+    if target:
+        payload["followup_target"] = {key: target[key] for key in ("item_id", "section", "name")}
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
         from app.services.model_privacy import ContactRedactor, redact_model_messages
@@ -242,6 +293,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                    for item in visible.get(section, []) if isinstance(item, dict)}
     semantic_pairs = []
     pending = []
+    ambiguous_owner = False
 
     def validated(raw):
         if not isinstance(raw, dict):
@@ -267,18 +319,56 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if not isinstance(raw_item, dict) or raw_item.get("section") not in FACT_SECTIONS:
             continue
         item_id = raw_item.get("item_id")
+        owner = None
         if item_id and item_id not in known_items:
             result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "unknown_item_id"})
             continue
-        if not item_id and raw_item.get("name") and normalize_text(raw_item["name"]) not in normalize_text(evidence):
-            result["rejected"].append({"text": str(raw_item["name"]), "reason": "item_name_not_in_candidate_message"})
+        if (prior_target and item_id == prior_target["item_id"] and target is None
+                and normalize_text(prior_target["name"]) not in normalize_text(evidence)):
+            result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "conflicting_followup_target"})
             continue
+        if not item_id:
+            name = normalize_text(raw_item.get("name", ""))
+            matches = [item for item in outline if name and item["name"] and (
+                name in normalize_text(item["name"]) or normalize_text(item["name"]) in name)]
+            if len(matches) > 1:
+                ambiguous_owner = True
+                result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "item_name_not_in_candidate_message"})
+                continue
+            if matches and (name in normalize_text(evidence) or _implicit_followup_allowed(evidence, outline, matches[0])):
+                owner = matches[0]
+            elif target and (naming_answer or not name or name not in normalize_text(evidence)):
+                owner = target
+            if owner:
+                item_id = owner["item_id"]
+        section = owner["section"] if owner else raw_item["section"]
         raw_facts = raw_item.get("facts") if isinstance(raw_item.get("facts"), list) else []
+        item_evidence = "\n".join(str(f.get("source_quote") or "") for f in raw_facts
+                                  if isinstance(f, dict) and f.get("source_quote")
+                                  and str(f["source_quote"]) in evidence)
+        if not item_id and section in {"projects", "open_source", "campus"} and campus_evidence(item_evidence):
+            section = "campus"
+        from app.services.resume_field_hygiene import trim_name_punctuation
+        label = trim_name_punctuation(raw_item.get("name") or "")
+        literal = literal_item_name(item_evidence or evidence, section)
+        if owner:
+            label = owner["name"]
+        elif not item_id:
+            label = literal or (label if safe_item_name(label) and normalize_text(label) in normalize_text(evidence)
+                                else PLACEHOLDER_NAMES[section])
         facts = []
         for raw in raw_facts:
             if fact := validated(raw):
-                if raw.get("field") in FACT_FIELDS[raw_item["section"]]:
+                if raw.get("field") in FACT_FIELDS[section]:
                     fact["field"] = raw["field"]
+                if fact.get("field") == "major" and not safe_major(fact["text"]):
+                    continue
+                if fact.get("field") == FACT_LABELS[section] and section != "awards" and not safe_item_name(fact["text"]):
+                    continue
+                if section == "campus" and (role := re.search(r"担任(?:了)?([^，,。；;\n]{1,16}(?:部长|干事|委员|主席|负责人))", fact["source_quote"])):
+                    role_fact = new_fact(role[1], kind="role", quote=role[1], turn_id=turn_id)
+                    role_fact["field"] = "role"
+                    facts.append(role_fact)
                 if (fact.get("field") == "role" or fact["kind"] == "role") and is_project_status(fact["text"]):
                     fact["kind"] = "status_limit"
                     fact.pop("field", None)
@@ -288,8 +378,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                  if isinstance(note, str) and note.strip() and normalize_text(note) in normalize_text(evidence)]
         if not facts and not notes:
             continue
-        result["items"].append({"section": raw_item["section"], "item_id": item_id or str(uuid.uuid4()),
-                                "name": str(raw_item.get("name", "")).strip(), "facts": facts,
+        result["items"].append({"section": section, "item_id": item_id or str(uuid.uuid4()),
+                                "name": label, "facts": facts,
                                 "raw_notes": list(dict.fromkeys(notes))})
         links = raw_item.get("links") or []
         accepted = [link for link in links if isinstance(link, dict)
@@ -319,6 +409,9 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     if isinstance(basic, dict):
         for key, value in basic.items():
             if key in {"name", "phone", "email", "location", "city", "github", "objective", "availability"} and isinstance(value, str) and value.strip() and normalize_text(value) in normalize_text(evidence) and not _quote_has_unquoted_limit(evidence, value):
+                if key == "objective" and not safe_objective(value):
+                    result.setdefault("metadata_context", []).append(value.strip())
+                    continue
                 result["basic_info"]["location" if key == "city" else key] = value.strip()
             elif key == "links" and isinstance(value, list):
                 result["basic_info"][key] = [link for link in value if isinstance(link, dict)
@@ -406,7 +499,23 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 fact = new_fact(value, kind="context", quote=value, turn_id=turn_id)
                 fact["field"] = field
                 owner["facts"].append(fact)
-    _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text)
+    _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text,
+                           followup_target=None if ambiguous_owner else target)
+    # A literal answer to the one naming question updates the existing identity,
+    # even when the model returns no facts or invents a new item without an ID.
+    if target and naming_answer:
+        label = literal_item_name(evidence, target["section"])
+        if not label and safe_item_name(evidence.strip(" 。")) and len(evidence.strip(" 。")) <= 20:
+            label = evidence.strip(" 。")
+        if label:
+            entries = [item for item in result["items"] if item["item_id"] == target["item_id"] or item["name"] == label]
+            entry = entries[0] if entries else {"section": target["section"], "item_id": target["item_id"], "facts": [], "raw_notes": []}
+            if not entries:
+                result["items"].append(entry)
+            entry.update(section=target["section"], item_id=target["item_id"], name=label)
+            fact = new_fact(label, kind="context", quote=label, turn_id=turn_id)
+            fact["field"] = FACT_LABELS[target["section"]]
+            entry["facts"].append(fact)
     for item in result["items"]:
         item["raw_notes"].extend(fact["source_quote"] for fact in item["facts"]
                                  if fact["source_quote"] not in item["raw_notes"])
@@ -415,17 +524,20 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     return result
 
 
-def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fact_errors, normalize_text) -> None:
+def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fact_errors, normalize_text,
+                           *, followup_target: dict | None = None) -> None:
     """未被任何已接受事实覆盖的动作/结果子句：用子句原文作保守事实重试，仍不行则记入 uncovered。"""
     quotes = [fact["source_quote"] for item in result["items"] for fact in item["facts"]]
     quotes += [entry["replacement"]["source_quote"] for entry in result["corrections"]]
     for clause in uncovered_action_clauses(evidence, quotes):
-        owner = _owner_item(result["items"], clause, evidence, normalize_text)
+        owner = _owner_item(result["items"], clause, evidence, normalize_text, followup_target=followup_target)
         errors = lexical_fact_errors(clause, clause) if owner is not None else ["no_owner_item"]
         if owner is None or errors or _quote_has_unquoted_limit(evidence, clause):
             result["rejected"].append({"text": clause, "reason": "coverage_fallback_failed:" + _reason_code(errors or "limit")})
             result["uncovered"].append(clause)
             continue
+        if not any(item is owner for item in result["items"]):
+            result["items"].append(owner)
         owner["facts"].append(new_fact(_third_person(clause), kind=_fact_kind_for_clause(clause), quote=clause,
                                        source="chat", turn_id=turn_id))
         logger.info("fact_coverage_fallback turn=%s hash=%s", turn_id or "-",
@@ -438,33 +550,49 @@ def _third_person(clause: str) -> str:
     return cleaned if len(cleaned) >= 4 else clause
 
 
-def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text):
-    """子句归属：同一句（按句号切分）里已有事实/raw_notes 的经历；跨句不猜归属。"""
+def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text,
+                *, followup_target: dict | None = None):
+    """同句已有事实优先；否则只接续确定的追问目标，新经历不沿用。"""
     wanted = normalize_text(clause)
     sentence = next((part for part in re.split(r"(?<=[。！？!?\n])", evidence) if clause in part), "")
     sentence_norm = normalize_text(sentence)
-    candidates = [item for item in items if item["section"] in {"projects", "work_experience", "internship", "open_source", "awards"}]
-    for item in candidates:
-        if any(wanted in normalize_text(note) for note in item.get("raw_notes", [])):
-            return item
+    candidates = [item for item in items if item["section"] in {"projects", "work_experience", "internship", "campus", "open_source", "awards"}]
+    candidates = [item for item in candidates if _implicit_followup_allowed(clause, candidates, item)]
+    noted = [item for item in candidates if any(wanted in normalize_text(note) for note in item.get("raw_notes", []))]
+    if noted:
+        return noted[0] if len({item["item_id"] for item in noted}) == 1 else None
     start = sentence.find(clause)
-    best, best_end = None, -1
+    best, best_end, ambiguous = None, -1, False
     for item in candidates:
         for fact in item["facts"]:
             pos = sentence.find(fact["source_quote"]) if sentence else -1
             if 0 <= pos <= start and pos > best_end and normalize_text(fact["source_quote"]) in sentence_norm:
                 best, best_end = item, pos
+                ambiguous = False
+            elif best is not None and pos == best_end and item["item_id"] != best["item_id"]:
+                ambiguous = True
+    if ambiguous:
+        return None
     if best is None and split_incomplete_tail(evidence)[1]:
         same_sentence = [item for item in candidates if any(
             normalize_text(fact["source_quote"]) in sentence_norm for fact in item["facts"])]
         if len(same_sentence) == 1:
             return same_sentence[0]
-    return best
+    if best is not None:
+        return best
+    if followup_target and _implicit_followup_allowed(evidence, candidates, followup_target):
+        return next((item for item in items if item["item_id"] == followup_target["item_id"]),
+                    {**{key: followup_target[key] for key in ("section", "item_id", "name")},
+                     "facts": [], "raw_notes": []})
+    return None
 
 
 def apply_fact_patch(collected: dict, patch: dict) -> dict:
     """Apply validated sparse patch; previous facts remain available for audit."""
     result = normalize_fact_store(collected)
+    if patch.get("metadata_context"):
+        context = result.setdefault("metadata_context", [])
+        context.extend(value for value in patch["metadata_context"] if value not in context)
     basic = result.setdefault("basic_info", {})
     for key, value in (patch.get("basic_info") or {}).items():
         # A sparse extraction's empty field is absence, not a deletion command.
@@ -491,6 +619,8 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
             item = {"item_id": item_id, label: entry.get("name", ""), "facts": [], "raw_notes": []}
             result.setdefault(section, []).append(item)
             by_id[item_id] = item
+        elif placeholder_name(item.get(FACT_LABELS[section], "")) and not placeholder_name(entry.get("name", "")) and entry.get("name"):
+            item[FACT_LABELS[section]] = entry["name"]
         if entry.get("links"):
             item.setdefault("links", []).extend(link for link in entry["links"] if link not in item["links"])
         existing = {fact.get("id") for fact in item.setdefault("facts", [])}

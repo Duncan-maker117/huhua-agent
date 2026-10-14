@@ -35,13 +35,13 @@ def first_draft_ready(state: dict) -> bool:
                     or state.get("role_direction"))
     evidence = active_facts_for_writer(state.get("collected_info") or {})
     has_experience = any(len(item.get("facts") or []) >= 2 for section in
-                         ("projects", "work_experience", "internship") for item in evidence.get(section) or [])
+                         ("projects", "work_experience", "internship", "campus") for item in evidence.get(section) or [])
     return bool(has_role and has_experience)
 
 
 def _item_has_role(collected: dict, item_id: str) -> bool:
     evidence = active_facts_for_writer(collected or {})
-    for section in ("projects", "work_experience", "internship"):
+    for section in ("projects", "work_experience", "internship", "campus"):
         for item in evidence.get(section) or []:
             if item.get("item_id") == item_id and any(
                 fact.get("kind") == "role" for fact in item.get("facts") or []
@@ -52,7 +52,7 @@ def _item_has_role(collected: dict, item_id: str) -> bool:
 
 def _known_targets(data: dict) -> dict[str, tuple[str, int, dict]]:
     return {item["item_id"]: (section, index, item)
-            for section in ("projects", "work_experience")
+            for section in ("projects", "work_experience", "campus", "open_source", "awards")
             for index, item in enumerate(data.get(section) or [])
             if isinstance(item, dict) and item.get("item_id") and item.get("hidden") is not True}
 
@@ -166,7 +166,7 @@ def _reason_candidates(state: dict, plan: dict, data: dict, already: set[str]) -
     known = _known_targets(data)
     evidence = active_facts_for_writer(state.get('collected_info') or {})
     candidates = []
-    for section in ('projects', 'work_experience', 'internship'):
+    for section in ('projects', 'work_experience', 'internship', 'campus'):
         for item in evidence.get(section) or []:
             iid = item.get('item_id')
             if iid not in known or not decision_without_reason(item.get('facts') or []):
@@ -213,10 +213,10 @@ def _playbook_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
         return []
     evidence = active_facts_for_writer(state.get("collected_info") or {})
     evidence_by_item = {item.get("item_id"): [str(f.get("text") or "") for f in item.get("facts") or []]
-                        for section in ("projects", "work_experience", "internship")
+                        for section in ("projects", "work_experience", "internship", "campus")
                         for item in evidence.get(section) or [] if isinstance(item, dict)}
     facts_by_item = {item.get("item_id"): " ".join(str(f.get("text") or "") for f in item.get("facts") or [])
-                     for section in ("projects", "work_experience", "internship")
+                     for section in ("projects", "work_experience", "internship", "campus")
                      for item in evidence.get(section) or [] if isinstance(item, dict)}
     lead = [row.get("item_id") for row in plan.get("experience_plan") or [] if row.get("treatment") == "lead"]
     order = [i for i in lead if i in known] + [i for i in known if i not in lead]
@@ -260,7 +260,7 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     profile = role_profile if role_profile is not None else (state.get("jd_info") or {}).get("role_profile") or {}
     data = state.get("resume_data") or {}
     asked = deepcopy(state.get("asked_questions") or [])
-    has_draft = bool(data.get("projects") or data.get("work_experience") or data.get("education"))
+    has_draft = bool(data.get("projects") or data.get("work_experience") or data.get("campus") or data.get("education"))
     ready = first_draft_ready(state)
     if not has_draft:
         if ready:
@@ -314,7 +314,7 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     reasons = [plan_summary(confirmed, state.get("collected_info") or {}, profile)] if confirmed else []
     evidence = active_facts_for_writer(state.get('collected_info') or {})
     item_facts = {item.get('item_id'): {fact.get('id') for fact in item.get('facts') or []}
-                  for section in ('projects', 'work_experience', 'internship', 'open_source')
+                  for section in ('projects', 'work_experience', 'internship', 'campus', 'open_source')
                   for item in evidence.get(section) or []}
     req_text = {row.get("id"): row.get("text") for row in profile.get("requirements") or []
                 if isinstance(row, dict)}

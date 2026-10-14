@@ -117,7 +117,7 @@ def item_text(item: dict) -> str:
 
 
 def _experience_items(document: dict):
-    for section in ("projects", "work_experience", "internship"):
+    for section in ("projects", "work_experience", "internship", "campus"):
         for item in (document or {}).get(section) or []:
             if isinstance(item, dict) and not item.get("hidden"):
                 yield item
@@ -164,7 +164,7 @@ def recover_named_facts(message: str, collected: dict, history: list[str], label
         if term_in_facts(result, term):
             continue
         owner, clause = None, ""
-        for section in ("projects", "work_experience", "internship"):
+        for section in ("projects", "work_experience", "internship", "campus"):
             for item in result.get(section) or []:
                 if not isinstance(item, dict):
                     continue
@@ -196,7 +196,7 @@ def _owner_by_position(collected: dict, text: str, clause: str):
     """历史原话里 clause 之前最近出现名字的经历。"""
     start = text.find(clause)
     best, best_pos = None, -1
-    for section in ("projects", "work_experience", "internship"):
+    for section in ("projects", "work_experience", "internship", "campus"):
         for item in collected.get(section) or []:
             label = item_label(item) if isinstance(item, dict) else ""
             pos = text.casefold().rfind(label.casefold(), 0, start + len(clause)) if label else -1
@@ -216,7 +216,7 @@ def named_content_rows(message: str, rows: list[dict], before: dict, after: dict
     if not terms:
         return rows
     after_items = list(_experience_items(after))
-    corpus = {item.get("item_id"): _fact_corpus(item) for section in ("projects", "work_experience", "internship")
+    corpus = {item.get("item_id"): _fact_corpus(item) for section in ("projects", "work_experience", "internship", "campus")
               for item in (collected or {}).get(section) or [] if isinstance(item, dict)}
     output = [dict(r) for r in rows]
     extra: list[dict] = []

@@ -47,10 +47,10 @@ class ResumeSectionsTest(unittest.TestCase):
                 data.pop("sections")
             default = get_resume_sections(data)
             self.assertEqual([s["kind"] for s in default], [
-                "education", "work_experience", "projects", "open_source", "awards", "skills", "certificates", "self_evaluation",
+                "education", "work_experience", "projects", "campus", "open_source", "awards", "skills", "certificates", "self_evaluation",
             ])
             self.assertEqual([s["title"] for s in default], [
-                "教育背景", "实习经历", "项目经历", "开源贡献", "竞赛荣誉", "技能证书", "证书", "自我评价",
+                "教育背景", "实习经历", "项目经历", "校园经历", "开源贡献", "竞赛荣誉", "技能证书", "证书", "自我评价",
             ])
             self.assertEqual(default[2]["title_path"], "/experience_section_title")
             self.assertTrue(all(s["title_path"] is None for i, s in enumerate(default) if i != 2))

@@ -27,6 +27,32 @@
 
 ## 当前状态
 
+2026-10-14 校园经历、名称与非技术用户成稿修复（未提交）：在 `overhaul/tailor` 保留上一轮追问归属与编辑器预览改动。新经历名称不在原文时仅降级名称，已校验事实保留；明确组织名称按原文提取，否则分栏待补。复用 followup_target 追问一次名称，后续无 item_id 的命名回答更新原条目；投递渲染只在名称处显示 `[待补]`，描述性占位不进入正文。
+
+根因与修复：`fact_extractor.py:349` 分离名称/事实准入；`resume_graph.py:406` 原宽泛项目名截取改为明确命名结构；`turn_actions.py:60` 关闭社团句教育解析及「读者」误命中；`candidate_language.py:25` 统一求职意向短岗位名约束，迷茫原话可存 metadata_context，明确逐字改意向逻辑保留；`resume_graph.py:1082` 修复「部分这轮」组合；`turn_actions.py:247` 无团队语义时不产生 pending_ownership；`resume_writer.py:33/82/1360` 增加校园和奖项正文改写，实习继续归并 work_experience，生成/兜底去第一人称与口语、去重、过滤自评/提问/计划，角色归标题，保留事实及语义核验。
+
+`campus` 已贯通 FACT_SECTIONS/FACT_FIELDS、抽取与归档 prompt、ResumeData/WriterDraft、writer/section_order、7 款 HTML 模板共用 macro、Word/纯文本/PDF 渲染入口、编辑器/工作区/档案 UI、canonical 存取、档案投影与撤销屏障、MCP schema/输出、版本/容量/路由/编辑与追问。旧数据缺字段按空处理；不迁移既有真实用户数据。web 仅栏目配置/字段入口，没有新增 Tailwind 类，未动预览机制。
+
+验证：新 `tests/test_campus_and_naming.py` 17 项（含 `campus_editor.dom.js`），使用虚构逐轮状态、错名/缺 ID/错 open_source 栏/原话回贴/异常 writer 桩；包括数字短答归属、改名不新建、技术项目不因服务协会而误归校园、虚构数字/独立设计拒绝、HTML/Word、档案投影、回执及 DOM。排除私有目录、运行数据与配置的源码副本 `/private/tmp/huhua-campus-safe-24ml1ey7` 执行 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1434 项，1432 通过、2 项私有样例自动跳过、0 失败（135.146s）**；日志 `/private/tmp/huhua-campus-final.log`。57 份已测源码与工作区哈希一致；JS 语法、差异检查通过，Ruff 无新增问题（8 项既有问题原样保留）。未调用真实 LLM，未访问实际私有目录或凭证，未 commit/push/部署；真实模型润色质量未实测。名称提取保持保守，无法确定的名称仍待用户补充。
+
+本轮改动文件清单（相对仓库根，上一轮 `public_reply.py` 与 `test_followup_answer_binding.py` 保持）：
+- `backend/app/agents/`：advisor.py、fact_extractor.py、interviewer.py、profile_archivist.py、resume_graph.py、resume_writer.py、router.py、tailor_pipeline.py、turn_actions.py、wording_advice.py。
+- `backend/app/schemas/`：editor.py、facts.py、writer.py。
+- `backend/app/services/`：新增 candidate_language.py；candidate_material.py、candidate_sections.py、canonical_resume.py、conversation_store.py、edit_plan.py、mcp_service.py、named_content.py、profile_bridge.py、profile_service.py、renderer.py、resume_capacity.py、resume_facts.py、resume_limits.py、resume_provenance.py、resume_review.py、resume_sections.py、resume_versions.py、resume_workspace.py、session_store.py、structure_plan.py。
+- `backend/app/tools/resume_data_docx.py`；`data/jianlimoban/html-template/`：_macros.html.j2、t001-jianyue.html.j2、t002-jianyue.html.j2、t003-shenlan.html.j2、t004-jianyue.html.j2、t1000.html.j2、t1001.html.j2、t1002-jianyue.html.j2。
+- `web/`：resume-editor.js、resume-workspace.js、account-profile.js、change-card.js。
+- `tests/`：新增 test_campus_and_naming.py、campus_editor.dom.js；更新 test_complete_resume_task.py、test_resume_sections.py、test_structure_plan.py、test_tailor_pr5_gate.py、test_writer_repair_context.py、test_writer_schema_structure.py 中因新增栏目/去第一人称而变化的断言。交接：本 mmr.md。
+
+2026-10-14 追问短答归属修复（未提交）：核实无 item_id 且经历名未出现在本轮原话时会整条拒收、逐句兜底只看同句归属、拒收回执被当作当前问题、旧核对提示不会清理，均在后端链路，与登录无关。收集回复没有通用 focus；现在优先使用 interviewer 已知且唯一的目标，其次问题点名或「需要你补充」当轮唯一新增事实所在经历，在 collected 保存 `followup_target={item_id,section,asked_hash}`。下一轮抽取前核对上一轮实际问题 hash，消费后清除；后续追问重新确定目标，同一问题重问可续用，历史重放不消费当前目标。名称规范化唯一匹配可恢复已有 ID；无名称匹配时和逐句兜底可使用有效追问目标；多义名称、跨经历、新经历及失效目标不猜。prompt 带目标名称及 ID，原有数字/职责/语义校验保持。
+
+有拒收子句的收集回复先校正回执再公开输出：有已记录事实说「部分已记下」，全未记录不声称成功；正常回复继续流式。工作区合并同轮回复并忽略拒收/未说完提示。旧拒收核对提示由 active source_quote 覆盖时清理；换说法仅在同一目标上一轮有拒收、本轮确实新增事实且没有新的 uncovered 时清理上一轮提示。草稿合并及核对页阻止旧拒收提示复活，保留其他核对信息及手动删除结果。历史无目标元数据且不能被原文覆盖的同义旧提示仍保守保留；没有真实 LLM 或线上验证。
+
+本轮文件：`backend/app/agents/{fact_extractor,resume_graph,public_reply}.py`、`backend/app/services/resume_workspace.py`、`tests/test_followup_answer_binding.py`（17 项回归）及本交接。排除私有目录、运行数据与凭证的源码副本 `/private/tmp/huhua-followup-safe-ocde7um5` 执行指定 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1417 项，1415 通过、2 项私有样例自动跳过、0 失败（56.158s）**；日志 `/private/tmp/huhua-followup-tests-final.log`。包含并保留并行模板预览测试，相关源码快照无漂移；修改文件 Ruff（忽略既有 E402）及差异检查通过。未修改 `web/`，未访问 cases-private/、runs-private/、data/output/ 或凭证；仅假 LLM/桩测试，未 commit/push/部署。
+
+2026-10-14 模板预览提速（未提交）：编辑器与主页面共用新增 `web/template-preview.js`，按当前 revision 在内存缓存各模板 HTML，悬停 / 聚焦 80ms 预取，当前预览完成后 idle 串行预取（总在途上限 2，正式请求复用预取 Promise）。输入沿用 180ms 防抖，revision / 返回布局 / 账号 / 会话变化中止旧任务并清缓存；会话重置清空两个 iframe。保留旧预览至后台 iframe load、字体 ready（300ms 等待兜底）与缩放完成，再原子交换可见性、固定 ID 和可访问性属性。加载消息以 source + 独立序号验证，另有 revision / request / template / session 校验；字段交互、高度报告、Escape 始终只接收可见 iframe。主页面 sandbox 仅增加 allow-scripts，用于前端注入就绪桥接，仍无 allow-same-origin。performance mark / measure 使用 `huhua-template-switch`，只记录最新有效切换，不输出控制台。
+
+新增 11 项 DOM 回归，扩充已有模板竞态用例，覆盖缓存 / 在途复用 / 失效 / 快速选择 / 旧加载消息 / 字体兜底 / 交互与缩放 / 并发 / 错误重试 / 重置。最终源码隔离副本 `/private/tmp/huhua-tpl-safe-ibj_s7ls`（排除私有目录、输出、真实库与凭证）执行指定全量命令：**1400 项，1398 通过、2 项私有样例自动跳过、0 失败（50.160s）**；日志 `/private/tmp/huhua-tpl-tests-final.log`。JS / HTML 内联脚本语法、差异检查通过；脚本与编辑器 CSS 版本更新为 `20261014-tpl1`，未新增 Tailwind 类。模板、后端渲染、PDF / Word 导出未修改；未 commit / push / 部署。浏览器回归首次等待超时，随后 Chrome / daemon 与本地测试服务器启动受沙箱权限阻断，故未完成视觉及真实耗时验收；缓存热切换仍需 iframe 解析 / 字体 / 排版，不能宣称实测 <100ms。
+
 2026-10-14 前端重复操作修复（未提交）：档案「改名」「保存当前岗位版本」「补充一条信息」复用同一位置的已有表单并聚焦，岗位按钮同步 aria-expanded；保留既有 mutate / MCP 令牌及收件箱行为。检查简历从读取当前稿到模型请求结束保持锁定，失败或切换会话不触发检查；被新修改淘汰的撤销按钮在旧请求失败后保持禁用。编辑器保存重试、导出选项及重试、新建草稿按钮补齐请求期间禁用与结束恢复；精细编辑支持 Escape，先关闭内层菜单或走既有保存再关闭，保存失败保留编辑器，预览 iframe 转发 Escape。更新相关 JS 缓存版本，未改样式或 Tailwind 类。
 
 排查全部 `web/*.js` 与两份 HTML 的内联脚本；持续节点监听仅初始化绑定，未发现重渲染重复绑定，已有历史对话 / 联网 / MCP 请求保护保留。新增 `tests/frontend_reentrancy.dom.js` 与 `tests/test_frontend_reentrancy.py` 共 12 项 DOM 回归；既有档案、MCP、内嵌编辑器 DOM 验证通过，令牌及收件箱函数与本轮开始时逐字一致。排除私有目录、输出、真实数据库和凭证的临时源码副本 `/private/tmp/huhua-ui-safe-wnm8sw8v` 执行指定全量命令：**1389 项，1387 通过、2 项私有样例自动跳过、0 失败（48.975s）**。全前端 JS / HTML 内联脚本语法与差异检查通过；日志 `/private/tmp/huhua-ui-tests-final.log`。原有未提交改动保留，未 commit / push / 部署；未做真实账号或浏览器端到端验收。

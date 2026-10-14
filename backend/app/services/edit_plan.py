@@ -12,7 +12,7 @@ from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_sections import DEFAULT_SECTIONS
 
 
-ITEM_SECTIONS = ("projects", "work_experience", "education", "open_source", "awards")
+ITEM_SECTIONS = ("projects", "work_experience", "education", "campus", "open_source", "awards")
 WRITER_OPS = {"rewrite", "compress", "refocus"}
 SECTION_ALIASES = {"项目": "projects", "项目经历": "projects", "projects": "projects",
                    "工作": "work_experience", "经历": "work_experience", "实习": "work_experience",
@@ -22,13 +22,14 @@ SECTION_ALIASES = {"项目": "projects", "项目经历": "projects", "projects":
                    "证书": "certificates", "certificates": "certificates",
                    "自我评价": "self_evaluation", "个人总结": "self_evaluation",
                    "self_evaluation": "self_evaluation"}
-SECTION_ALIASES.update({"开源贡献": "open_source", "开源经历": "open_source", "open_source": "open_source",
+SECTION_ALIASES.update({"校园经历": "campus", "社团经历": "campus", "校园": "campus", "campus": "campus", "开源贡献": "open_source", "开源经历": "open_source", "open_source": "open_source",
                         "竞赛荣誉": "awards", "竞赛和荣誉": "awards", "竞赛与荣誉": "awards", "awards": "awards"})
 BASIC_FIELDS = {"name", "phone", "email", "location", "objective", "gender", "age", "birthday",
                 "hometown", "political", "ethnicity", "height", "availability"}
 HEADER_FIELDS = {"projects": {"name", "role", "start_date", "end_date"},
                  "work_experience": {"company", "title", "start_date", "end_date"},
                  "education": {"school", "degree", "major", "start_date", "end_date"},
+                 "campus": {"name", "role", "start_date", "end_date"},
                  "open_source": {"name", "summary", "pr", "start_date", "end_date"},
                  "awards": {"name", "level", "date"}}
 FIELD_LABELS = {"name": ("姓名",), "phone": ("电话", "手机号"), "email": ("邮箱",),
@@ -37,7 +38,7 @@ FIELD_LABELS = {"name": ("姓名",), "phone": ("电话", "手机号"), "email": 
                 "start_date": ("开始时间", "起始时间", "日期"),
                 "end_date": ("结束时间", "截止时间", "日期")}
 _ORDINAL = re.compile(r"第([一二两三四五六七八九十\d]+)(?:个|段|条)?(项目|经历|工作|实习|教育)")
-_ITEM_POINTER = re.compile(r"^/(projects|work_experience|education|open_source|awards)/(\d+)(?:/([^/]+)(?:/(\d+))?)?$")
+_ITEM_POINTER = re.compile(r"^/(projects|work_experience|education|campus|open_source|awards)/(\d+)(?:/([^/]+)(?:/(\d+))?)?$")
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]+)\]\((https?://[^\s)]+)\)")
 
 
@@ -137,7 +138,7 @@ def _section_scope_explicit(target: str, instruction: str) -> bool:
     if section not in ITEM_SECTIONS:
         return False
     labels = {"projects": "项目", "work_experience": "(?:工作|实习|经历)",
-              "education": "教育", "open_source": "开源(?:贡献|经历)", "awards": "竞赛(?:和|与)?荣誉"}
+              "education": "教育", "campus": "(?:校园|社团)(?:经历|活动)?", "open_source": "开源(?:贡献|经历)", "awards": "竞赛(?:和|与)?荣誉"}
     label = labels[section]
     return bool(re.search(rf"(?:所有|全部|每个|各个|各|[一二两三四五六七八九十\d]+个).{{0,6}}{label}"
                           rf"|{label}.{{0,6}}(?:各|全部|都)", instruction))
@@ -312,7 +313,7 @@ def execute_edit_plan(
             destination = SECTION_ALIASES.get(str(args.get("section") or ""))
             from app.agents.turn_actions import section_move_ops
             requested = section_move_ops(instruction, output)
-            if destination not in {"open_source", "awards", "projects", "work_experience"} or not any(
+            if destination not in {"campus", "open_source", "awards", "projects", "work_experience"} or not any(
                     (entry.get("args") or {}).get("section") == destination for entry in requested):
                 results.append(_result(index, op, target, "needs_confirmation", "未明确要求移动到该栏目"))
                 continue
@@ -430,7 +431,7 @@ def execute_edit_plan(
                     continue
                 changed = False
                 for section, _, item in rows:
-                    field = "polished_bullets" if section == "projects" else "bullets" if section in {"work_experience", "open_source", "awards"} else ""
+                    field = "polished_bullets" if section == "projects" else "bullets" if section in {"work_experience", "campus", "open_source", "awards"} else ""
                     if not field:
                         continue
                     if field and isinstance(item.get(field), list) and len(item[field]) > n:

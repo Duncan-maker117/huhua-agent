@@ -9,13 +9,14 @@ import copy
 import re
 
 from app.services.resume_facts import new_fact
+from app.services.candidate_language import safe_major, safe_objective
 from app.services.resume_field_hygiene import project_role
 from app.services.candidate_sections import SECTION_LABELS, parse_header_fields, parse_labelled_items
 
 _PROJECT_SECTION = re.compile(r"^项目经历(?:\s*[（(].*[）)])?$")
 _EDUCATION_SECTION = re.compile(r"^教育(?:背景|经历)(?:\s*[（(].*[）)])?$")
 _SKILL_SECTION = re.compile(r"^(?:产品与技术能力|专业技能|技能(?:与工具)?)(?:\s*[（(].*[）)])?$")
-_AWARD_SECTION = re.compile(r"^(?:校园活动|获奖经历|荣誉奖项|证书|竞赛与活动)(?:\s*[（(].*[）)])?$")
+_AWARD_SECTION = re.compile(r"^(?:获奖经历|荣誉奖项|证书|竞赛与活动)(?:\s*[（(].*[）)])?$")
 _STOP_SECTION = re.compile(
     r"^(?:编辑记录|备注|不进(?:入)?\s*(?:PDF|Word)|到馆后的定稿顺序|定稿顺序|后续计划|工作计划|自我评价|"
     r"个人总结|个人定位|工作经历|实习经历)(?:\s*[（(].*[）)])?$"
@@ -205,7 +206,7 @@ def _education(line: str) -> dict | None:
     degree = degree_match.group(1) if degree_match else next((part for part in parts[2:] if part in {"本科", "硕士", "博士", "专科"}), "")
     return {
         "school": parts[0], "degree": degree,
-        "major": re.sub(r"[（(](?:本科|硕士|博士|专科)[）)]", "", parts[1]).strip(),
+        "major": (major if safe_major(major := re.sub(r"[（(](?:本科|硕士|博士|专科)[）)]", "", parts[1]).strip()) else ""),
         "start_date": "", "end_date": next((part for part in parts[2:] if re.search(r"20\d{2}", part)), ""),
         "highlights": "",
     }
@@ -303,6 +304,9 @@ def _parse_document(text: str) -> dict | None:
                     value = match.group(0) if (match := _PHONE.search(value)) else ""
                 elif field == "email":
                     value = match.group(0) if (match := _EMAIL.search(value)) and not match.group(0).lower().endswith("@example.com") else ""
+                if field == "objective" and not safe_objective(value):
+                    result["metadata_context"].append(value)
+                    value = ""
                 if field and value:
                     basic.setdefault(field, value)
                 continue
@@ -313,11 +317,11 @@ def _parse_document(text: str) -> dict | None:
         if section == "intro":
             title = _PROJECT_HEADING.fullmatch(line)
             if title and title.group(1).strip() in {"求职意向", "求职方向"}:
-                basic.setdefault("objective", title.group(2).strip())
+                basic.setdefault("objective", safe_objective(title.group(2)))
             elif (title and title.group(1).strip() not in _LABELS and "简历" not in title.group(1)
                   and not _EMAIL.search(line) and not _PHONE.search(line)):
                 basic.setdefault("name", title.group(1).strip())
-                basic.setdefault("objective", title.group(2).strip())
+                basic.setdefault("objective", safe_objective(title.group(2)))
             elif not basic.get("name") and re.fullmatch(r"[\u4e00-\u9fff·]{2,5}", line) and line not in _LABELS:
                 basic["name"] = line
             email, phone = _EMAIL.search(line), _PHONE.search(line)
@@ -394,7 +398,7 @@ def parse_existing_resume(text: str, *, user_fields: dict | None = None) -> dict
     parsed = [(name, result) for name, body in _documents(text) if (result := _parse_document(body))]
     if not parsed:
         return None
-    merged = {"basic_info": {}, "education": [], "projects": [], "open_source": [], "awards": [], "skills": [], "certificates": [],
+    merged = {"basic_info": {}, "education": [], "projects": [], "campus": [], "open_source": [], "awards": [], "skills": [], "certificates": [],
               "verification_notes": [], "imported_documents": [], "field_conflicts": [], "personal_summary": "",
               "metadata_context": []}
     owners: dict[tuple, list[dict]] = {}
@@ -443,7 +447,7 @@ def parse_existing_resume(text: str, *, user_fields: dict | None = None) -> dict
         merged["field_conflicts"].append(conflict)
 
     for source, result in parsed:
-        for section in ("open_source", "awards"):
+        for section in ("campus", "open_source", "awards"):
             for item in result.get(section) or []:
                 identity = (item.get("name"), item.get("pr")) if section == "open_source" else (item.get("name"), item.get("level"), item.get("date"))
                 existing = next((old for old in merged[section] if (

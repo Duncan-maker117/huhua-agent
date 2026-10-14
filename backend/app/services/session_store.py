@@ -45,6 +45,7 @@ def resume_data_has_content(resume_data: dict | None) -> bool:
         resume_data.get("work_experience")
         or resume_data.get("projects")
         or resume_data.get("education")
+        or resume_data.get("campus")
         or resume_data.get("open_source")
         or resume_data.get("awards")
         or any(value for key, value in basic.items() if key != "objective")
@@ -201,7 +202,7 @@ def save_resume_session(
                                 moved_item_ids=moved_ids)
             validate_item_ids(db, owner.split(":", 1)[1], session_id, previous_data, resume_data)
             row.resume_data = protect_data(owner, row.resume_data, db=db)
-            has_bindings = any(item.get("item_id") for group in ("projects", "education", "work_experience", "open_source", "awards")
+            has_bindings = any(item.get("item_id") for group in ("projects", "education", "work_experience", "campus", "open_source", "awards")
                                for item in (row.resume_data.get(group) or []))
             row.resume_draft = (resume_to_text(row.resume_data) if has_bindings
                                 else protect_data(owner, row.resume_draft, db=db))

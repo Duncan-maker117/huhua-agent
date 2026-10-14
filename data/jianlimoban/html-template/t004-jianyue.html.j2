@@ -100,7 +100,7 @@
   {% if summary %}<div class="positioning-block">{{ m.positioning_line(summary) }}</div>{% endif %}
 
   {% for section in resume_sections %}
-{% if (section.kind == 'custom' and (section.title or section.content)) or (section.kind == 'education' and education) or (section.kind == 'work_experience' and work_experience) or (section.kind == 'projects' and projects) or (section.kind == 'open_source' and open_source) or (section.kind == 'awards' and awards) or (section.kind == 'skills' and (has_grouped_skills or skills)) or (section.kind == 'certificates' and certificates) or (section.kind == 'self_evaluation' and self_evaluation) %}
+{% if (section.kind == 'custom' and (section.title or section.content)) or (section.kind == 'education' and education) or (section.kind == 'work_experience' and work_experience) or (section.kind == 'projects' and projects) or (section.kind == 'campus' and campus) or (section.kind == 'open_source' and open_source) or (section.kind == 'awards' and awards) or (section.kind == 'skills' and (has_grouped_skills or skills)) or (section.kind == 'certificates' and certificates) or (section.kind == 'self_evaluation' and self_evaluation) %}
   <div class="section">
   {% if section.title %}
   <div class="section-title"><span{% if section.title_path %} data-field-path="{{ section.title_path }}"{% endif %}>{{ section.title }}</span></div>
@@ -148,6 +148,8 @@
       </div>
       {% endfor %}
 
+  {% elif section.kind == 'campus' %}
+  {{ m.campus_section() }}
   {% elif section.kind in ['open_source', 'awards'] %}
   {{ m.contribution_sections(section) }}
   {% elif section.kind == 'skills' %}

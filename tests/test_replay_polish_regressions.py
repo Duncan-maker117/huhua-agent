@@ -204,7 +204,7 @@ class PositioningPolishRegression(unittest.IsolatedAsyncioTestCase):
                      HumanMessage(content='我在纸舟计划整理用户反馈并分类。')]}
         model = ExtractModel({})
 
-        async def public_reply(_llm, messages):
+        async def public_reply(_llm, messages, **kwargs):
             public = messages[0].content.split('内部约束', 1)[0]
             self.assertIn('已记下，右侧草稿会同步更新', public)
             self.assertNotIn('保存尚未完成', public)

@@ -13,8 +13,9 @@ import uuid
 from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.candidate_language import (
     PLACEHOLDER_NAMES, campus_evidence, coursework_evidence, literal_item_name, placeholder_name,
-    safe_item_name, safe_major, safe_objective,
+    non_fact, safe_item_name, safe_major, safe_objective,
 )
+from app.services.candidate_skills import canonical_skill_text, declared_skills, skill_declaration
 from app.services.llm_compat import label_run, without_thinking
 from app.services.resume_facts import new_fact, normalize_fact_store
 from app.services.resume_field_hygiene import is_project_status
@@ -120,7 +121,7 @@ _CLAUSE_SPLIT = re.compile(r"[，,。；;！!？?：:\n、]+")
 _ACTION_VERB = re.compile(
     r"做|写|搭|开发|设计|实现|改成|改为|改|优化|发了|发布|发|推广|查|修|解决|提升|降低|增加|减少|完成|负责|带|用|调|"
     r"训练|部署|上线|测试|分析|整理|蒸馏|获得|拿到|拿了|star|推荐|挑|接入|重构|迁移|爬|抓|标注|评估|对接|拆|统计|获奖|参与|主导|协助|组织|运营")
-_NARRATIVE = re.compile(r"我|本人|后来|一开始|起初|最初|之后|最后|最终|现在|还|已经|做过|做的|写的|搭的|\d")
+_NARRATIVE = re.compile(r"我|本人|后来|一开始|起初|最初|之后|最后|最终|现在|还|已经|做过|做的|写的|搭的|[一二三四五六七八九十]+张|\d")
 _INSTRUCTION = re.compile(
     r"帮我|给我|请|突出|按JD|按岗位|改改|改一下|写详细|写上|写进|也写|删掉|去掉|精简|压缩|调整|优化一下|换成|"
     r"能不能|可以吗|是否|要不要|吗|全称|出一版|生成|撤销|导出", re.I)
@@ -180,7 +181,7 @@ def uncovered_action_clauses(evidence: str, quotes: list[str]) -> list[str]:
         clauses = [part for clause in clauses for part in re.split(r"\s+(?=有一个|我|本人|还有一个)", clause)]
     for raw in clauses:
         clause = raw.strip()
-        if len(clause) < 6 or _INSTRUCTION.search(clause) or _PLAN_OR_NEGATED.search(clause) or re.fullmatch(r"(?:我)?(?:还)?做过.{0,6}(?:东西|项目|事情?)", clause):
+        if non_fact(clause) or skill_declaration(clause) or len(clause) < 6 or _INSTRUCTION.search(clause) or _PLAN_OR_NEGATED.search(clause) or re.fullmatch(r"(?:我)?(?:还)?做过.{0,6}(?:东西|项目|事情?)", clause):
             continue
         team = tail and re.search(r"[一二两三四五六七八九十\d]+(?:个)?人(?:的)?(?:团队|小组)", clause)
         if not (team or (_ACTION_VERB.search(clause) and _NARRATIVE.search(clause))):
@@ -222,14 +223,103 @@ def followup_item(collected: dict, *, evidence: str | None = None) -> dict | Non
                if item["item_id"] == target.get("item_id")]
     if len(matches) != 1 or matches[0]["section"] != target.get("section"):
         return None
-    if evidence is not None and not _implicit_followup_allowed(evidence, outline, matches[0]):
+    item = {**matches[0], **({"question_kind": "name"} if target.get("question_kind") == "name" else {})}
+    if evidence is not None and not _implicit_followup_allowed(evidence, outline, item):
         return None
-    return matches[0]
+    return item
+
+
+def _name_answer(evidence: str, target: dict) -> str:
+    """A naming follow-up accepts nouns or a refusal, never an experience paragraph."""
+    text = evidence.strip(" 。！!\n")
+    if re.fullmatch(r"(?:不方便(?:说|透露)|没有|不想说|暂不提供)", text):
+        return "refused"
+    if skill_declaration(text) or re.fullmatch(
+            r"(?:(?:Photoshop|Illustrator|Word|Excel|PPT|可画|即梦|WorkBuddy)|[和及、/\s])+", canonical_skill_text(text), re.I):
+        return ""
+    if len(text) > 45 or non_fact(text) or re.search(
+        r"[，,；;\n？?]|完成|海报|作业|课程|会用|会使用|使用|运用|做过|做了|采购和行政|几乎|独立", text):
+        return ""
+    label = literal_item_name(text, target["section"])
+    if label:
+        return label
+    if re.search(r"^(?:我|本人)|没有|不方便|用了|用过|能力|大约|约\d|[零一二两三四五六七八九十\d]+(?:张|份|次|人)", text):
+        return ""
+    return text if len(text) <= 20 and safe_item_name(text) else ""
+
+
+def _subject_hint(text: str) -> tuple[str, str]:
+    """Explicit subjects outrank the extractor's section and follow-up ID."""
+    if coursework_evidence(text):
+        return "projects", "course"
+    if re.search(r"周末|日常(?!用品|工作|行政|管理)|练手|自己玩|个人练习|自己练习", text):
+        return "projects", "personal"
+    if re.search(r"(?:在|入职|就职于).{0,16}公司|公司里", text) and not re.search(
+        r"(?:没|未|不).{0,8}(?:做|设计|工作)", text):
+        return "work_experience", ""
+    if campus_evidence(text) or re.search(r"部长|海报", text):
+        return "campus", ""
+    if re.search(r"采购|行政|考勤", text):
+        return "work_experience", ""
+    return "", ""
+
+
+def _clause_subject(quote: str, evidence: str) -> tuple[str, str, str]:
+    section, kind = _subject_hint(quote)
+    context = quote
+    if not section and quote and quote in evidence:
+        # Only inherit within this sentence, and stop at an explicit new subject.
+        prefix = re.split(r"[。！？!?\n]", evidence[:evidence.find(quote)])[-1]
+        for part in reversed(re.split(r"[，,；;：:]", prefix)):
+            section, kind = _subject_hint(part)
+            if section:
+                context = part + "，" + quote
+                break
+    return section, kind, context
+
+
+def _subject_owner(quote: str, evidence: str, items: list[dict], target=None) -> dict | None:
+    section, kind, context = _clause_subject(quote, evidence)
+    if not section:
+        return None
+    sentence = next((part for part in re.split(r"[。！？!?\n]", evidence) if quote in part), context)
+    if re.search(r"另外|另一个|新的?(?:项目|工作|经历)|其他(?:的)?(?:项目|工作|经历)", sentence):
+        return None
+    # A poster for an explicitly established company/design project can belong
+    # there. An unrelated purchasing/admin follow-up supplies no such evidence.
+    if section == "campus" and not campus_evidence(context) and target:
+        prior = " ".join(f["text"] for f in target.get("facts", []))
+        if target["section"] != "campus" and re.search(r"海报|产品图|设计", prior) and not re.search(r"没有|没做|未做", prior):
+            section = target["section"]
+    name = literal_item_name(context, section)
+    if section == "campus" and re.fullmatch(r"(?:协会|社团|学生会)?(?:的)?(?:宣传部)?", name):
+        name = ""
+    if kind == "course" and not name:
+        sentence = next((part for part in re.split(r"[。！？!?\n]", evidence) if quote in part), context)
+        name = literal_item_name(sentence, section)
+    candidates = [item for item in items if item["section"] == section or (
+        section == "work_experience" and item["section"] == "internship")]
+    if kind and not name:
+        candidates = [item for item in candidates if _subject_hint(
+            " ".join([item["name"], *[f.get("source_quote", "") for f in item.get("facts", [])]]))[1] == kind]
+    if name:
+        candidates = [item for item in candidates if item["name"] == name]
+    if len({item["item_id"] for item in candidates}) == 1:
+        return candidates[0]
+    label = name or ("课程作业（待补名称）" if kind == "course" else
+                     "个人练习（待补名称）" if kind == "personal" else PLACEHOLDER_NAMES[section])
+    return {"section": section, "item_id": str(uuid.uuid4()), "name": label, "facts": [], "raw_notes": []}
 
 
 def _implicit_followup_allowed(evidence: str, outline: list[dict], target: dict) -> bool:
     from app.services.fact_guard import normalize_text
-    if target["section"] == "campus" and coursework_evidence(evidence):
+    if target.get("question_kind") == "name":
+        return bool(_name_answer(evidence, target))
+    if non_fact(evidence) or skill_declaration(evidence):
+        return False
+    section, kind = _subject_hint(evidence)
+    if section and (section != target["section"] or (kind and _subject_hint(
+            " ".join(f["text"] for f in target.get("facts", [])))[1] != kind)):
         return False
     if re.search(r"另外|(?:新(?:的)?(?:一(?:个|项|段))?|另(?:一(?:个|项|段|次)|的)?|别的|其他(?:的)?)\s*(?:项目|活动|经历|工作|实习|公司)", evidence):
         return False
@@ -241,7 +331,18 @@ def _implicit_followup_allowed(evidence: str, outline: list[dict], target: dict)
            and normalize_text(target["name"]) not in normalize_text(name) for name in names):
         return False
     mentioned = [item for item in outline if item["name"] and normalize_text(item["name"]) in normalize_text(evidence)]
-    return all(item["item_id"] == target["item_id"] for item in mentioned)
+    if mentioned:
+        return all(item["item_id"] == target["item_id"] for item in mentioned)
+    if section:
+        return True
+    # A short numeric/ownership answer can omit its subject. Longer content
+    # needs a shared topic; merely containing a generic action verb is not enough.
+    if re.fullmatch(r"(?:是|我|本人|我们|基本|大约|约|共|一共|有|由|了|的|都|自己|独立|一起|完成|负责|制作|[零一二两三四五六七八九十百\d余多]+|人|张|个|家|次|[，,。\s])+", evidence):
+        return True
+    context = " ".join([target["name"], *[f["text"] for f in target.get("facts", [])], *target.get("raw_notes", [])])
+    generic = r"我|本人|目前|这个|那个|主要|后来|完成|负责|参与|使用|工作|做了|做过|一个|项目|经历"
+    left, right = (re.sub(generic, "", normalize_text(value)) for value in (evidence, context))
+    return bool(_bigrams(left) & _bigrams(right))
 
 
 async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: str = "",
@@ -259,13 +360,11 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     outline = fact_item_outline(visible)
     evidence = _candidate_evidence(complete)
     prior_target = followup_item(visible)
-    target = followup_item(visible, evidence=evidence)
-    naming_answer = bool(prior_target and placeholder_name(prior_target["name"])
-                         and re.search(r"名称|名字|公司.{0,5}(?:叫|名)|组织.{0,5}(?:叫|名)", previous_assistant)
-                         and not re.search(r"新项目|另一个|另外|其他", evidence))
-    if naming_answer and not any(item["item_id"] != prior_target["item_id"] and item["name"]
-                                 and normalize_text(item["name"]) in normalize_text(evidence) for item in outline):
-        target = prior_target
+    if prior_target and placeholder_name(prior_target["name"]) and re.search(
+            r"名称|名字|公司.{0,5}(?:叫|名)|组织.{0,5}(?:叫|名)", previous_assistant):
+        prior_target["question_kind"] = "name"
+    naming_answer = _name_answer(evidence, prior_target) if prior_target and prior_target.get("question_kind") == "name" else ""
+    target = prior_target if prior_target and _implicit_followup_allowed(evidence, outline, prior_target) else None
     payload = {"message": complete, "existing": [
         {**item, "facts": [{"id": f["id"], "text": f["text"]} for f in item["facts"]]} for item in outline],
                "metadata_context": metadata_context or [],
@@ -304,6 +403,17 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if not text or not quote or normalize_text(quote) not in normalize_text(evidence):
             result["rejected"].append({"text": text, "reason": "source_quote_not_in_candidate_message"})
             return None
+        if non_fact(text) or non_fact(quote):
+            result.setdefault("metadata_context", []).append(quote)
+            return None
+        if skill_declaration(quote):
+            return None
+        if naming_answer == "refused":
+            return None
+        context_clauses = [part for part in re.split(r"[，,。；;\n]", evidence) if quote in part]
+        if context_clauses and all(non_fact(part) for part in context_clauses):
+            result.setdefault("metadata_context", []).extend(context_clauses)
+            return None
         if _quote_has_unquoted_limit(evidence, quote):
             result["rejected"].append({"text": text, "reason": "source_quote_omits_limit"})
             return None
@@ -318,29 +428,69 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         return fact
 
     raw_items = []
-    for raw_item in candidate.get("items", []) if isinstance(candidate.get("items"), list) else []:
+    subject_items = copy.deepcopy(outline)
+    for raw_index, raw_item in enumerate(candidate.get("items", []) if isinstance(candidate.get("items"), list) else []):
         if not isinstance(raw_item, dict):
             continue
-        # Even an explicit model-supplied campus ID cannot override a different
-        # subject in the quote. Split mixed rows before any follow-up binding.
+        raw_item = {**raw_item, "_raw_index": raw_index}
         raw_facts = raw_item.get("facts")
         raw_facts = [fact for fact in raw_facts if isinstance(fact, dict)] if isinstance(raw_facts, list) else []
-        course = [fact for fact in raw_facts if isinstance(fact, dict)
-                  and (coursework_evidence(str(fact.get("source_quote") or ""))
-                       or (coursework_evidence(evidence) and fact.get("source_quote")
-                           and fact["source_quote"] in evidence))]
-        owner = next((row for row in outline if row["item_id"] == raw_item.get("item_id")), {})
-        if course and (owner.get("section") == "campus" or raw_item.get("section") in {"campus", "open_source"}):
-            quotes = [fact["source_quote"] for fact in course]
-            raw_items.append({"section": "projects", "name": literal_item_name("\n".join(quotes), "projects")
-                              or (literal_item_name(evidence, "projects") if coursework_evidence(evidence) else ""),
-                              "facts": course, "raw_notes": quotes})
-            remaining = [fact for fact in raw_facts if fact not in course]
-            if remaining:
-                raw_items.append({**raw_item, "facts": remaining,
-                                  "raw_notes": [fact.get("source_quote", "") for fact in remaining]})
+        if not raw_facts:
+            if prior_target and prior_target.get("question_kind") == "name" and not naming_answer:
+                result.setdefault("raw_notes", []).extend(note for note in raw_item.get("raw_notes") or []
+                    if isinstance(note, str) and note in evidence)
+            else:
+                raw_items.append(raw_item)
+        for fact in raw_facts:
+            quote = str(fact.get("source_quote") or "")
+            parts = [part.strip() for part in re.split(r"[，,。；;\n]", quote) if part.strip()]
+            scopes = {_subject_hint(part) for part in parts} - {("", "")}
+            split = len(parts) > 1 and (len(scopes) > 1 or any(non_fact(p) or skill_declaration(p) for p in parts))
+            fragments = [{"text": part, "source_quote": part, "kind": fact.get("kind", "action")}
+                         for part in parts] if split else [fact]
+            for fragment in fragments:
+                quote = str(fragment.get("source_quote") or "")
+                if non_fact(quote) or non_fact(str(fragment.get("text") or "")):
+                    if quote and quote in evidence:
+                        result.setdefault("metadata_context", []).append(quote)
+                    continue
+                if skill_declaration(quote):
+                    continue
+                # Ordinary work/project matching retains the existing ambiguity
+                # checks. Override model ownership only for explicit other subjects.
+                scope_section = _clause_subject(quote, evidence)[0]
+                owner = (_subject_owner(quote, evidence, subject_items, target)
+                         if quote and quote in evidence and (scope_section != "work_experience"
+                             or raw_item.get("section") not in {"work_experience", "internship"}
+                             or (prior_target and (prior_target.get("question_kind") == "name" or target is None))) else None)
+                notes = [quote] if any(isinstance(note, str) and quote in note for note in raw_item.get("raw_notes") or []) else []
+                if owner:
+                    if not any(row["item_id"] == owner["item_id"] for row in subject_items):
+                        subject_items.append(owner)
+                        # Keep this new identity available to validation, without
+                        # pretending it was an existing model-supplied ID.
+                        known_items.add(owner["item_id"])
+                    owner.setdefault("facts", []).append({"text": quote, "source_quote": quote})
+                    raw_items.append({**raw_item, "section": owner["section"], "item_id": owner["item_id"],
+                                      "name": owner["name"], "facts": [fragment], "raw_notes": notes, "_scoped": True})
+                elif prior_target and prior_target.get("question_kind") == "name" and not naming_answer:
+                    # The model's stale work ID/name is not evidence of ownership.
+                    result.setdefault("raw_notes", []).append(quote)
+                elif prior_target and raw_item.get("item_id") == prior_target["item_id"] and not _implicit_followup_allowed(
+                        quote, outline, prior_target):
+                    result.setdefault("raw_notes", []).append(quote)
+                else:
+                    raw_items.append({**raw_item, "facts": [fragment],
+                                      "raw_notes": notes if split else raw_item.get("raw_notes", [])})
+    grouped = {}
+    for item in raw_items:
+        identity = (item["_raw_index"], item.get("item_id"))
+        if identity in grouped:
+            grouped[identity].setdefault("facts", []).extend(item.get("facts") or [])
+            grouped[identity].setdefault("raw_notes", []).extend(item.get("raw_notes") or [])
         else:
-            raw_items.append(raw_item)
+            grouped[identity] = item
+    raw_items = list(grouped.values())
     for raw_item in raw_items:
         if not isinstance(raw_item, dict) or raw_item.get("section") not in FACT_SECTIONS:
             continue
@@ -350,7 +500,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "unknown_item_id"})
             continue
         if (prior_target and item_id == prior_target["item_id"] and target is None
-                and normalize_text(prior_target["name"]) not in normalize_text(evidence)):
+                and normalize_text(prior_target["name"]) not in normalize_text(evidence)
+                and not raw_item.get("_scoped")):
             result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "conflicting_followup_target"})
             continue
         if not item_id:
@@ -367,6 +518,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 owner = target
             if owner:
                 item_id = owner["item_id"]
+        else:
+            owner = next((row for row in subject_items if row["item_id"] == item_id), None)
         section = owner["section"] if owner else raw_item["section"]
         raw_facts = raw_item.get("facts") if isinstance(raw_item.get("facts"), list) else []
         item_evidence = "\n".join(str(f.get("source_quote") or "") for f in raw_facts
@@ -447,7 +600,6 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                     and isinstance(link.get("url"), str) and link["url"] in evidence
                     and isinstance(link.get("text"), str) and link["text"].lower() in evidence.lower()]
     skills = candidate.get("skills")
-    from app.services.candidate_skills import canonical_skill_text, declared_skills
     if isinstance(skills, list):
         for value in skills:
             name = value if isinstance(value, str) else value.get("name") if isinstance(value, dict) else ""
@@ -535,28 +687,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 fact = new_fact(value, kind="context", quote=value, turn_id=turn_id)
                 fact["field"] = field
                 owner["facts"].append(fact)
-    # A clearly named course assignment remains its own subject even if the
-    # extractor omitted the entire row while following up on an association.
-    course_name = literal_item_name(evidence, "projects") if coursework_evidence(evidence) else ""
-    if (course_name and not _PLAN_OR_NEGATED.search(evidence)
-            and not any(row["section"] == "projects" and any(course_name in f["source_quote"] for f in row["facts"])
-                        for row in result["items"])):
-        prior = next((row for row in outline if row["section"] == "projects" and row["name"] == course_name), None)
-        owner = next((row for row in result["items"] if row["section"] == "projects" and row["name"] == course_name), None)
-        if owner is None:
-            owner = {"section": "projects", "item_id": prior["item_id"] if prior else str(uuid.uuid4()),
-                     "name": course_name, "facts": [], "raw_notes": []}
-            result["items"].append(owner)
-        owner["facts"].append(new_fact(evidence, quote=evidence, turn_id=turn_id))
-        owner["raw_notes"].append(evidence)
     _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text,
-                           followup_target=None if ambiguous_owner else target)
+                           followup_target=None if ambiguous_owner else target, outline=outline)
     # A literal answer to the one naming question updates the existing identity,
     # even when the model returns no facts or invents a new item without an ID.
-    if target and naming_answer:
-        label = literal_item_name(evidence, target["section"])
-        if not label and safe_item_name(evidence.strip(" 。")) and len(evidence.strip(" 。")) <= 20:
-            label = evidence.strip(" 。")
+    if target and naming_answer and naming_answer != "refused":
+        label = naming_answer
         if label:
             entries = [item for item in result["items"] if item["item_id"] == target["item_id"] or item["name"] == label]
             entry = entries[0] if entries else {"section": target["section"], "item_id": target["item_id"], "facts": [], "raw_notes": []}
@@ -566,7 +702,23 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             fact = new_fact(label, kind="context", quote=label, turn_id=turn_id)
             fact["field"] = FACT_LABELS[target["section"]]
             entry["facts"].append(fact)
+    merged = {}
     for item in result["items"]:
+        if item["item_id"] in merged:
+            row = merged[item["item_id"]]
+            row["facts"].extend(f for f in item["facts"] if not any(
+                (f["text"], f.get("field")) == (old["text"], old.get("field")) for old in row["facts"]))
+            row["raw_notes"].extend(note for note in item["raw_notes"] if note not in row["raw_notes"])
+            if item.get("links"):
+                row.setdefault("links", []).extend(link for link in item["links"] if link not in row["links"])
+        else:
+            merged[item["item_id"]] = item
+    result["items"] = list(merged.values())
+    for item in result["items"]:
+        course_quote = next((f["source_quote"] for f in item["facts"] if coursework_evidence(f["source_quote"])
+                             and not re.search(r"(?:不是|并非|不属于|没|未).{0,8}(?:作业|课程)", f["source_quote"])), "")
+        if item["section"] == "projects" and course_quote and not any(f["kind"] == "status_limit" for f in item["facts"]):
+            item["facts"].append(new_fact("课程作业", kind="status_limit", quote=course_quote, turn_id=turn_id))
         item["raw_notes"].extend(fact["source_quote"] for fact in item["facts"]
                                  if fact["source_quote"] not in item["raw_notes"])
     result["items"] = [item for item in result["items"] if item["facts"] or item["raw_notes"]]
@@ -575,7 +727,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
 
 
 def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fact_errors, normalize_text,
-                           *, followup_target: dict | None = None) -> None:
+                           *, followup_target: dict | None = None, outline: list[dict] | None = None) -> None:
     """未被任何已接受事实覆盖的动作/结果子句：用子句原文作保守事实重试，仍不行则记入 uncovered。"""
     quotes = [fact["source_quote"] for item in result["items"] for fact in item["facts"]]
     quotes += [entry["replacement"]["source_quote"] for entry in result["corrections"]]
@@ -584,8 +736,28 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
     quotes += [skill["source_quote"] for skill in result["skills"]
                if re.match(r"^(?:我)?(?:会(?:使用|用)?|熟悉|掌握|了解|用过|使用过|做过(?:日常摄影|产品拍摄))", skill["source_quote"])
                and not re.search(r"\d|完成|制作了|设计了|负责|交付|上线", skill["source_quote"])]
-    for clause in uncovered_action_clauses(evidence, quotes):
-        owner = _owner_item(result["items"], clause, evidence, normalize_text, followup_target=followup_target)
+    clauses = uncovered_action_clauses(evidence, quotes)
+    # Course headers and short delivery fragments have an explicit subject even
+    # when they lack the first-person/action pattern used by the generic fallback.
+    for clause in re.split(r"[，,。；;\n]", evidence):
+        clause = clause.strip()
+        if (clause and not non_fact(clause) and not skill_declaration(clause)
+                and not _PLAN_OR_NEGATED.search(clause) and not _INSTRUCTION.search(clause)
+                and _clause_subject(clause, evidence)[0] in {"projects", "campus"}
+                and (coursework_evidence(clause) or re.search(r"完成|拍摄|排版|海报|使用|做了", clause))
+                and not _clause_covered(normalize_text(clause), [normalize_text(q) for q in quotes])
+                and clause not in clauses):
+            clauses.append(clause)
+    for clause in clauses:
+        section = _clause_subject(clause, evidence)[0]
+        owner = (_subject_owner(clause, evidence, [*result["items"], *(outline or [])], followup_target)
+                 if section in {"projects", "campus"} else None)
+        if owner is not None:
+            # Existing outlines are read-only; a patch must contain new facts only.
+            owner = next((item for item in result["items"] if item["item_id"] == owner["item_id"]),
+                         {**owner, "facts": [], "raw_notes": []})
+        else:
+            owner = _owner_item(result["items"], clause, evidence, normalize_text, followup_target=followup_target)
         errors = lexical_fact_errors(clause, clause) if owner is not None else ["no_owner_item"]
         if owner is None or errors or _quote_has_unquoted_limit(evidence, clause):
             result["rejected"].append({"text": clause, "reason": "coverage_fallback_failed:" + _reason_code(errors or "limit")})
@@ -612,7 +784,8 @@ def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text,
     sentence = next((part for part in re.split(r"(?<=[。！？!?\n])", evidence) if clause in part), "")
     sentence_norm = normalize_text(sentence)
     candidates = [item for item in items if item["section"] in {"projects", "work_experience", "internship", "campus", "open_source", "awards"}]
-    candidates = [item for item in candidates if _implicit_followup_allowed(clause, candidates, item)]
+    candidates = [item for item in candidates if _implicit_followup_allowed(clause, candidates, item)
+                  or (split_incomplete_tail(evidence)[1] and _implicit_followup_allowed(sentence, candidates, item))]
     noted = [item for item in candidates if any(wanted in normalize_text(note) for note in item.get("raw_notes", []))]
     if noted:
         return noted[0] if len({item["item_id"] for item in noted}) == 1 else None
@@ -645,6 +818,9 @@ def _owner_item(items: list[dict], clause: str, evidence: str, normalize_text,
 def apply_fact_patch(collected: dict, patch: dict) -> dict:
     """Apply validated sparse patch; previous facts remain available for audit."""
     result = normalize_fact_store(collected)
+    if patch.get("raw_notes"):
+        notes = result.setdefault("raw_notes", [])
+        notes.extend(note for note in patch["raw_notes"] if note and note not in notes)
     if patch.get("metadata_context"):
         context = result.setdefault("metadata_context", [])
         context.extend(value for value in patch["metadata_context"] if value not in context)

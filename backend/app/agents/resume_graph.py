@@ -705,6 +705,15 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     text = message.content.strip()
     if not text or looks_like_existing_resume(text):
         return collected
+    from app.services.candidate_language import non_fact
+    from app.services.candidate_skills import skill_declaration
+    clauses = _re.split(r"[，,。；;\n]", text)
+    kept = [clause for clause in clauses if clause.strip() and not non_fact(clause) and not skill_declaration(clause)]
+    if not kept:
+        return collected
+    if len(kept) != len([clause for clause in clauses if clause.strip()]):
+        text = "，".join(kept)
+        message = message.model_copy(update={"content": text})
     if any(row.get('source_quote') in text for row in collected.get('pending_ownership') or [] if row.get('source_quote')):
         return collected
     corrected = _apply_explicit_project_removals(collected, text)
@@ -1001,6 +1010,16 @@ def _bind_followup_target(previous: dict, collected: dict, reply: str, *, focus_
 
 def _finish_followup_turn(state: dict, result: dict) -> dict:
     if result.get("messages"):
+        from app.services.resume_workspace import _reply_question
+        asked = False
+        messages = []
+        for message in result["messages"]:
+            if isinstance(message, AIMessage) and isinstance(message.content, str):
+                text = _one_followup_question(message.content, asked=asked)
+                asked = asked or bool(_re.search(r"[？?]", text))
+                message = message.model_copy(update={"content": text})
+            messages.append(message)
+        result["messages"] = messages
         reply = "\n\n".join(m.content for m in result["messages"] if isinstance(m, AIMessage) and isinstance(m.content, str))
         previous = state.get("collected_info") or {}
         collected = result.get("collected_info", previous)
@@ -1008,23 +1027,40 @@ def _finish_followup_turn(state: dict, result: dict) -> dict:
         from app.schemas.facts import FACT_LABELS, FACT_SECTIONS
         missing = [(section, item) for section in FACT_SECTIONS for item in collected.get(section) or []
                    if placeholder_name(item.get(FACT_LABELS[section], "")) and not item.get("name_asked")]
-        if missing:
+        # Content questions win. Naming is asked only at a quiet turn / draft
+        # boundary, never appended behind an existing interview question.
+        latest = _latest_human_text(state)
+        fresh_detail = bool(latest and collected != previous and result.get("stage") != "EVALUATING"
+                            and not _re.search(r"没有更多|就这些|先这样|没有了|暂时没有", latest))
+        question = _reply_question(reply)
+        has_question = bool(_re.search(r"[？?]|需要你补充|请你?补充|待你补充|能否|麻烦你", reply))
+        if missing and not has_question and not fresh_detail:
             collected = copy.deepcopy(collected)
             section, candidate = missing[0]
             item = next(row for row in collected[section] if row["item_id"] == candidate["item_id"])
             item["name_asked"] = True
-            question = f"「{item[FACT_LABELS[section]]}」的名称是什么？可以直接回复公司、岗位或组织名称。"
+            field = {"education": "学校名称", "work_experience": "公司名称和岗位",
+                     "internship": "公司名称和岗位", "campus": "组织名称"}.get(section, "名称")
+            question = f"「{item[FACT_LABELS[section]]}」的{field}是什么？"
             result["messages"] = [*result["messages"], AIMessage(content="\n\n需要你补充：" + question)]
             reply += "\n\n需要你补充：" + question
             from app.services.resume_workspace import _reply_question
             collected["followup_target"] = {"item_id": item["item_id"], "section": section,
-                                             "asked_hash": _hash_text(_reply_question(reply))}
+                                             "asked_hash": _hash_text(_reply_question(reply)), "question_kind": "name"}
             result["collected_info"] = collected
         # The interviewer may already have supplied the target before returning.
         from app.services.resume_workspace import _reply_question
         target = collected.get("followup_target") or {}
         focus = [target["item_id"]] if target.get("asked_hash") == _hash_text(_reply_question(reply)) else []
+        if not focus and has_question:
+            from app.agents.fact_extractor import _subject_hint, fact_item_outline
+            section = _subject_hint(question)[0]
+            relevant = [row for row in fact_item_outline(collected) if row["section"] == section]
+            if len(relevant) == 1:
+                focus = [relevant[0]["item_id"]]
         updated = _bind_followup_target(previous, collected, reply, focus_ids=focus)
+        if updated.get("followup_target") and target.get("question_kind") == "name" and focus:
+            updated["followup_target"]["question_kind"] = "name"
         if updated != collected or "collected_info" in result:
             result["collected_info"] = updated
     return result
@@ -1083,7 +1119,9 @@ def _notice_messages(collected: dict, latest_human: str) -> list:
 
 
 async def _collection_reply(llm, messages: list, collected: dict, latest_human: str) -> AIMessage:
+    from app.agents.public_reply import EmptyPublicReplyError
     notice = unrecorded_notice(collected, latest_human)
+    kwargs = {"single_question": True}
     if "这句我没记下来" in notice:
         from app.agents.fact_extractor import fact_item_outline
         recorded = any(fact.get("source_quote") and fact["source_quote"] in latest_human
@@ -1091,12 +1129,32 @@ async def _collection_reply(llm, messages: list, collected: dict, latest_human: 
 
         def receipt(text):
             if recorded:
-                return _re.sub(r"(?<!部分)已记下", "部分已记下", text)
+                return _one_followup_question(_re.sub(r"(?<!部分)已记下", "部分已记下", text))
             text = _re.sub(r"(?:部分)?已记下，右侧草稿会同步更新", "这轮还有内容需要确认", text)
-            return _re.sub(r"(?:部分)?已记下", "这轮还有内容需要确认", text)
+            return _one_followup_question(_re.sub(r"(?:部分)?已记下", "这轮还有内容需要确认", text))
 
-        return await stream_public_reply(llm, messages, transform=receipt)
-    return await stream_public_reply(llm, messages)
+        kwargs["transform"] = receipt
+    try:
+        return await stream_public_reply(llm, messages, **kwargs)
+    except EmptyPublicReplyError:
+        # Extraction has already succeeded. An empty guidance response must not
+        # discard this turn's facts or claim that a draft has been saved.
+        logger.warning("collection reply empty; preserving extracted facts")
+        return AIMessage(content="本轮回复未生成，已保留收集结果供核对。")
+
+
+def _one_followup_question(text: str, *, asked: bool = False) -> str:
+    """Keep the first direct question before publishing any response tokens."""
+    if not asked and len(_re.findall(r"[？?]", text)) <= 1:
+        return text
+    parts = []
+    for part in _re.split(r"(?<=[。！？!?])", text):
+        if _re.search(r"[？?]", part):
+            if asked:
+                continue
+            asked = True
+        parts.append(part)
+    return "".join(parts).strip()
 
 
 def _latest_human_text(state: dict) -> str:
@@ -1176,6 +1234,7 @@ STAGE_PROMPTS = {
 若本轮仍有 unrecorded 子句，更新成功也只能说「部分已记下」，不得声称全部记下。
 内部约束（不得复述给用户）：保存尚未完成，不得声称已保存完成或已更新到右侧；不输出保存状态、同步过程或内部规则。
 然后二选一：用「**我的建议**」给一条针对当前经历的短建议，或用「**需要你补充**」问一个会改变简历表述的具体问题。每轮最多问一个问题，不要同时给建议和追问。
+用户刚提供新经历时，优先问职责、产出或用途等最有价值的内容问题；占位的学校/公司/组织名称留到成稿前或用户没有更多内容时再问，不抢占内容追问。
 鼓励一次把所有经历和材料都贴进来，可以是旧简历、截图或列表；不限制用户只讲一段经历。
 已有交付物可用，不强求数字；保留未上线等限制，不创造事实。""",
     "COLLECTING_ASK_EXP": """你是「胡话简历」AI助手，当前阶段：追问经历。
@@ -1672,7 +1731,9 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         ))
     result["candidate_history_reconciled"] = True
     latest = result.get("collected_info", collected)
-    if latest_message and result.get("messages") and result.get("stage") != "BUILDING":
+    from app.services.resume_workspace import _reply_question
+    reply = "\n\n".join(m.content for m in result.get("messages", []) if isinstance(m.content, str))
+    if latest_message and result.get("messages") and result.get("stage") != "BUILDING" and not _reply_question(reply):
         from app.agents.interviewer import education_question
         note, asked = education_question({**state, **result, "messages": state.get("messages") or []})
         current_reply = result["messages"][-1]
@@ -2916,6 +2977,8 @@ async def stream_agent(
         turn_error = to_turn_error(e)
         logger.error("agent stream error code=%s error_type=%s status_code=%s",
                      turn_error.code, turn_error.error_type, turn_error.status_code)
+        if get_settings().APP_ENV == "local":
+            logger.debug("agent stream local traceback", exc_info=True)
         # Original exception text may carry provider details; keep only the code.
         raise turn_error from None
     finally:

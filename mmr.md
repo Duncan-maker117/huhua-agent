@@ -27,6 +27,17 @@
 
 ## 当前状态
 
+2026-10-14 追问目标范围修复（基于 `overhaul/tailor` / `208bd45`，未提交）：
+
+- `fact_extractor.py` 原名称追问仅看上一轮问句，普通追问主要排除显式换题，课程隔离又只覆盖 campus/open_source。改为校验名称答案、逐条原文判别主体，课程/校园/个人练习先独立归属，拒绝模型的错误 section/ID；无法确定的答非所问内容留 raw_notes。原有歧义名称、失效目标、数字与语义校验保留。课程作业保留独立项目和状态；明确「公司里用 PS 做产品图」仍可归工作。
+- 工具能力声明复用 `candidate_skills.py` 别名与使用级别，只入 skills；具体工具交付同时保留经历事实。`candidate_language._NON_FACT` 在抽取、逐句补漏和收集兜底中生效，裁掉自评前缀的模型引用也不能冒充完成事实。
+- `resume_graph.py` 原收集末尾无条件追加占位名问题，并可能再追加教育问题。现在内容追问优先，新事实轮次延后命名，名称每条只问一次，按学校名称/公司名称和岗位/组织名称区分。公开回复保留实时输出，第一个问题之后剔除多余问题；末尾追加也不叠问且保留消息 ID。
+- **ValueError 证据边界**：用自编第四轮状态在原 HEAD 复现：普通公开回复时海报错挂工作；公开模型桩返回空内容时，`collecting_node → _collection_reply → public_reply.py:98` 明确抛 `ValueError("Empty public reply")`，日志顺序与描述一致。改为专用异常，仅收集引导空回复走保留已抽取事实的兜底，不吞其他 ValueError。`APP_ENV=local` 的 stream error 额外 debug 堆栈；生产维持错误码/类型日志。原线上无堆栈，不能据此唯一确认那一次异常；未查私有材料、未跑真实模型。
+
+验证：新增 `tests/test_followup_target_scope.py` 15 项，包括无 ID/错 section/强绑目标、多轮归属、技能双归、自评裁剪、名称拒答、明确公司设计、课程否定、漏抽课程/海报、第四轮空回复和 local/production 日志。既有测试只调整一条分栏命名文案断言、一处公开回复桩参数。安全源码副本执行 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1462 项，1460 通过、2 项私有样例跳过、0 失败，48.981s**；日志 `/private/tmp/huhua-scope-accepted.log`。8 份改动 Python 源码与测试副本 SHA-256 一致，AST/差异检查通过，Ruff 仅有 HEAD 已存在的 `resume_graph.py:188 E402`。
+
+改动：`backend/app/agents/{fact_extractor,public_reply,resume_graph}.py`、`backend/app/services/{candidate_language,candidate_skills}.py`、`tests/{test_followup_target_scope,test_campus_and_naming,test_replay_polish_regressions}.py`、本交接。测试在排除私有目录、实际配置/凭证及运行数据的源码副本 `/private/tmp/huhua-scope-safe-7i659kz6` 执行；原 HEAD 复现日志 `/private/tmp/huhua-scope-baseline.log`。未 commit/push/部署，未改已有真实事实数据；词法主体判断对隐含换题仍保守留待确认。
+
 2026-10-14 六项成稿保真修复（基于 `overhaul/tailor` / `8cf646c`，未提交）：
 
 - **事实覆盖**：原 `resume_writer.py` 的默认 2 条、按 fact_id 相同/子集去重、0.6 n-gram 去重及单事实回退，会丢掉不同职责；原补漏只针对量化事实。改为按实际文字覆盖判断重复，完整表述可合并较短同义表述并保留引用；新增 `services/fact_coverage.py` 对每条 active 事实记录 covered/omitted、原文与原因。缺少明确方案限制时确定性补回，明确方案/条数限制时保留备用并在回复逐项说明。`tailor_pipeline.py` 对最终压缩稿和失败保留稿再次审计，覆盖结果存入 resume_meta.fact_coverage；advisor 是只读检查，不是删改入口。

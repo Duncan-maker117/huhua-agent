@@ -15,11 +15,15 @@ PLACEHOLDER_NAMES = {
 _CAMPUS = re.compile(r"协会|社团|学生会|学生组织|班委|志愿|宣传部|校园经历|校园活动")
 _PROSE_NAME = re.compile(r"^(?:我|本人|负责|运用|使用|对接|完成|参与|做过|做了|整理了|处理了)|^\d+(?:家|人|张)|[，,。；;？！?!\n]|时候|这些|那些|添加了|处理了|公司名字|工作内容|主要为|希望|不知道|我(?:们|的|在|做|参与)|(?:^|的)工作(?:在|$)")
 _NON_FACT = re.compile(r"[？?]|(?:我|个人|自己)(?:认为|觉得|感觉|希望|想知道|想问|打算|计划)|"
-                       r"^(?:计划|打算|希望|准备|以后|将来)|不知道|哪些岗位|什么方向|能力尚浅|希望.{0,12}(?:工作|职业)|可以接单")
+                       r"^(?:计划|打算|希望|准备|以后|将来)|不知道|哪些岗位|什么方向|能力尚浅|希望.{0,12}(?:工作|职业)|可以接单|有自信|有信心")
+
+
+def non_fact(text: str) -> bool:
+    return bool(_NON_FACT.search(text))
 
 
 def placeholder_name(value: str) -> bool:
-    return value in PLACEHOLDER_NAMES.values()
+    return value in PLACEHOLDER_NAMES.values() or value in {"课程作业（待补名称）", "个人练习（待补名称）"}
 
 
 def safe_objective(value: str) -> str:
@@ -51,7 +55,7 @@ def campus_evidence(text: str) -> bool:
 
 
 def coursework_evidence(text: str) -> bool:
-    return bool(re.search(r"作业|课程|课上|摄影课", text) and not _CAMPUS.search(text))
+    return bool(re.search(r"作业|课程|课上|摄影课|大学[^，。；;\n]{0,12}课", text) and not _CAMPUS.search(text))
 
 
 def literal_item_name(text: str, section: str) -> str:

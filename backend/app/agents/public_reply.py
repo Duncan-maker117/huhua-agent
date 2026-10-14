@@ -7,6 +7,7 @@ or the normal LangGraph model-message stream.
 
 import asyncio
 import logging
+import re
 from typing import Callable
 from uuid import uuid4
 
@@ -19,6 +20,10 @@ from app.services.model_privacy import ContactTokenStream, redact_model_messages
 logger = logging.getLogger(__name__)
 PUBLIC_REPLY_EVENT = "public_reply_delta"
 PUBLIC_REPLY_INTERRUPTED = "\n\n本次回复中断，请重试；以上内容可能不完整。"
+
+
+class EmptyPublicReplyError(ValueError):
+    """The provider completed successfully without public text."""
 
 
 def _public_text(content) -> str:
@@ -39,6 +44,7 @@ def _public_text(content) -> str:
 async def stream_public_reply(
     llm, messages: list, *, suffix: str = "", timeout: float | None = None,
     transform: Callable[[str], str] | None = None,
+    single_question: bool = False,
 ) -> AIMessage:
     """Stream an explicitly public call and return its completed checkpoint text.
 
@@ -59,6 +65,8 @@ async def stream_public_reply(
         node = ""
     parts: list[str] = []
     contact_text = ContactTokenStream()
+    question_tail: list[str] = []
+    asked = False
 
     def emit(text: str) -> None:
         if not text:
@@ -74,16 +82,29 @@ async def stream_public_reply(
                 }
             )
 
+    def emit_public(text: str) -> None:
+        nonlocal asked
+        if not single_question:
+            emit(text)
+        elif asked:
+            question_tail.append(text)
+        elif match := re.search(r"[？?]", text):
+            emit(text[:match.end()])
+            question_tail.append(text[match.end():])
+            asked = True
+        else:
+            emit(text)
+
     async def consume() -> None:
         stream = getattr(llm, "astream", None)
         if not callable(stream):
             response = await llm.ainvoke(messages)
-            emit(contact_text.feed(_public_text(response.content)))
+            emit_public(contact_text.feed(_public_text(response.content)))
             return
         iterator = stream(messages)
         try:
             async for chunk in iterator:
-                emit(contact_text.feed(_public_text(chunk.content)))
+                emit_public(contact_text.feed(_public_text(chunk.content)))
         finally:
             close = getattr(iterator, "aclose", None)
             if callable(close):
@@ -93,12 +114,15 @@ async def stream_public_reply(
     try:
         async with asyncio.timeout(timeout):
             await consume()
-        emit(contact_text.finish())
+        emit_public(contact_text.finish())
+        if question_tail:
+            emit("".join(part for part in re.split(r"(?<=[。！？!?])", "".join(question_tail))
+                         if not re.search(r"[？?]", part)))
         if not "".join(parts).strip():
-            raise ValueError("Empty public reply")
+            raise EmptyPublicReplyError("Empty public reply")
     except Exception as exc:
         emit(contact_text.finish())
-        if not parts:
+        if not parts or isinstance(exc, EmptyPublicReplyError):
             raise
         logger.warning("Public reply interrupted: %s", type(exc).__name__)
         interrupted = True

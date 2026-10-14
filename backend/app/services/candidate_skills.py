@@ -13,6 +13,12 @@ _USE = re.compile(r"会(?:使用|用)?|使用|用过|运用|用了|用|熟悉|�
 _LEVEL = re.compile(r"精通|熟练(?:使用)?|熟悉|掌握|会使用|会用|用过|使用过|了解|基础")
 
 
+def skill_declaration(text: str) -> bool:
+    """Tool ability alone is a skill; a concrete delivery is also an experience."""
+    return bool(re.search(r"会|熟悉|掌握|精通|使用|运用|用过|用了", text) and declared_skills(text) and not re.search(
+        r"作业|课程|课上|做(?:了|过|出)|完成|制作|设计(?:了|过)|海报|产品图|排版|拍摄|开发|负责|交付|上线|整理|处理|分析|统计", text))
+
+
 def canonical_skill_text(text: str) -> str:
     """AI means Illustrator only in the same design/PS clause."""
     parts = re.split(r"([。；;\n])", str(text or ""))
@@ -31,11 +37,12 @@ def canonical_skill_text(text: str) -> str:
 
 def declared_skills(text: str) -> list[dict]:
     from app.services.fact_guard import _skill_affirmed
+    from app.services.candidate_language import non_fact
     rows = []
     original = re.split(r"[，,。；;\n]", str(text or ""))
     canonical_clauses = re.split(r"[，,。；;\n]", canonical_skill_text(text))
     for clause, canonical in zip(original, canonical_clauses):
-        if not _USE.search(clause):
+        if non_fact(clause) or not _USE.search(clause):
             continue
         names = ("Photoshop", "Illustrator", "Excel", "PPT", "Word", "WorkBuddy", "即梦", "可画", "摄影", "产品拍摄")
         for name in sorted(names, key=lambda name: canonical.casefold().find(name.casefold())):

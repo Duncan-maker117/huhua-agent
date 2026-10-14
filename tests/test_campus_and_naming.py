@@ -127,7 +127,7 @@ class CampusNamingTest(unittest.IsolatedAsyncioTestCase):
     async def test_name_asked_once_and_literal_answer_renames_without_id(self):
         current = await fixture()
         first = graph._finish_followup_turn({}, {'collected_info': current, 'messages': [AIMessage(content='已记下。')]})
-        self.assertIn('的名称是什么', first['messages'][-1].content)
+        self.assertIn('的公司名称和岗位是什么', first['messages'][-1].content)
         previous = '\n\n'.join(m.content for m in first['messages'])
         answer = '公司名字是澄原设备公司'
         result = await graph._extract_with_previous_assistant(answer, first['collected_info'], ExtractorStub({}), previous)

@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Column, DateTime, Integer, JSON, String, Text
 
 from app.database import Base
 
@@ -21,6 +21,19 @@ class AccountSession(Base):
     account_id = Column(String(36), nullable=False, index=True)
     created_at = Column(DateTime, nullable=False)
     expires_at = Column(DateTime, nullable=False, index=True)
+
+
+class PersonalAccessToken(Base):
+    __tablename__ = "personal_access_tokens"
+    id = Column(String(36), primary_key=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    account_id = Column(String(36), nullable=False, index=True)
+    name = Column(String(80), nullable=False)
+    scopes = Column(JSON, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    last_used_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
 
 
 class LoginChallenge(Base):

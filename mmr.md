@@ -27,6 +27,18 @@
 
 ## 当前状态
 
+2026-10-14 前端重复操作修复（未提交）：档案「改名」「保存当前岗位版本」「补充一条信息」复用同一位置的已有表单并聚焦，岗位按钮同步 aria-expanded；保留既有 mutate / MCP 令牌及收件箱行为。检查简历从读取当前稿到模型请求结束保持锁定，失败或切换会话不触发检查；被新修改淘汰的撤销按钮在旧请求失败后保持禁用。编辑器保存重试、导出选项及重试、新建草稿按钮补齐请求期间禁用与结束恢复；精细编辑支持 Escape，先关闭内层菜单或走既有保存再关闭，保存失败保留编辑器，预览 iframe 转发 Escape。更新相关 JS 缓存版本，未改样式或 Tailwind 类。
+
+排查全部 `web/*.js` 与两份 HTML 的内联脚本；持续节点监听仅初始化绑定，未发现重渲染重复绑定，已有历史对话 / 联网 / MCP 请求保护保留。新增 `tests/frontend_reentrancy.dom.js` 与 `tests/test_frontend_reentrancy.py` 共 12 项 DOM 回归；既有档案、MCP、内嵌编辑器 DOM 验证通过，令牌及收件箱函数与本轮开始时逐字一致。排除私有目录、输出、真实数据库和凭证的临时源码副本 `/private/tmp/huhua-ui-safe-wnm8sw8v` 执行指定全量命令：**1389 项，1387 通过、2 项私有样例自动跳过、0 失败（48.975s）**。全前端 JS / HTML 内联脚本语法与差异检查通过；日志 `/private/tmp/huhua-ui-tests-final.log`。原有未提交改动保留，未 commit / push / 部署；未做真实账号或浏览器端到端验收。
+
+2026-10-14 MCP 实机验收反馈修复（未提交）：save / export 从当前账号 active basic 档案解密，复用既有 `context_to_collected_info` 链接投影和 `protect_data`，覆盖客户端姓名 / 电话 / 邮箱 / 个人链接，档案缺项留空；PDF / DOCX 及网页草稿始终包含档案已确认联系方式。无 `profile:contacts` 的工具返回及 fact_check 回显仍隐藏联系方式，标志改为 `contacts_filled_by_server: true`，工具描述明确服务端填入、不返回助手。按 conversation_id 导出使用服务端原稿后再填充。连接面板有效期 / 最后使用 / 最近调用按浏览器本地时区显示 `YYYY-MM-DD HH:mm`，调用缓存新增 UTC `called_at`，静态引用为 `20261014-mcp2`。
+
+新增 2 项 MCP 协议回归并扩充既有 PDF / DOCX 实物测试、审计断言及上海 / 纽约时区 DOM 测试，覆盖无 contacts scope 文件有电话邮箱但返回无、假值覆盖、缺项清空、账号隔离、网页保存导出和按对话导出。排除私有目录 / 输出 / 数据库 / 凭证的临时源码副本 `/private/tmp/huhua-mcp2-safe-_ejvdr1s` 执行指定全量命令：**1377 项，1375 通过、2 项私有样例自动跳过、0 失败（44.441s）**；Ruff（忽略既有 E402）、JS 语法与差异检查通过。原有未提交改动保留；未读取指定私有目录、真实 key，未 commit / push / 部署；修复后的真实 Claude Code 复验未在本轮执行。
+
+2026-10-14 MCP M1 + M2 本地完成：在 `overhaul/tailor` 增加 PAT / scopes / 限频、8 个 MCP 工具、资源与提示词模板、加密 AI 建议收件箱、Cookie 确认 API、一次性导出下载，以及网页“连接 AI 助手”和建议确认分组。核心边界：propose 只写收件箱；确认走既有 manual 来源和冲突 / 等价 / 撤销事务；save 只建带 mcp 标记的网页草稿，事实母版为空，不自动归档。新增两表由 create_all 创建，SCHEMA_VERSION 不变；固定 mcp==2.3.0，MCPServer session manager 随每次 lifespan 新建。
+
+隔离源码副本执行指定全量命令：1375 项，1373 通过、2 项私有样例测试自动跳过、0 失败（45.073s）；新增 18 项真实 SDK Streamable HTTP / ASGI 协议测试和 2 项前端测试。Ruff、JS 语法、差异检查通过；最后补充模板适用说明后重新定向验证 MCP。未读取私有目录、输出或真实 key，无网络、真实账号 / 数据库操作、commit / push / 部署。当前注册表保留 7 模板；网页最近 50 次调用缓存及下载缓存重启清空，元数据审计另写服务日志。实机 Claude Code / Inspector、服务器 P95 与 Python 3.12 镜像运行仍待后续验收。完整文件清单、接口约定与启动 / 连接 / smoke 步骤见 `docs/development/2026-10-14-mcp-handoff.md`。
+
 2026-10-13「档案等价判断」评审修复：仅调整 `profile_equivalence.py` 的技能拆分，熟练度要求明确边界且剥离后非空，逐行去掉 ≤8 字且不跨分隔符的分组标签，保护 A/B 测试/Test 的大小写与空格变体，中文连接词仅在至少一侧紧邻 ASCII 技能时拆分；保留熟练度继承及符号分隔行为。`tests/test_profile_equivalence.py` 新增8项回归，定向34/34（含原有迁移测试），旧数据迁移实现未改。为遵守禁读范围，在排除私有目录、输出及本地凭证的临时源码副本运行指定全量命令：1355项，1353通过、2项私有样例测试自动跳过、0失败（42.286s）；Ruff（忽略既有E402）及差异检查通过。未访问原仓库 cases-private/、runs-private/、data/output/ 或 key，未 commit/push/部署。后续须继续保留上一轮未提交改动。
 
 2026-10-13「档案同一件事判断」本地完成：在 `overhaul/tailor` 将 skill 按账号内规范名称存为集合，槽位含 casefold/去空白/别名后的技能值，独立保留 proficiency；保护 C++、C#、F#、Node.js、Next.js、Vue.js、CI/CD、TCP/IP、.NET。重复只合并提及，熟练度变化复用 state_change 历史/通知/撤销；否定技能输入不新增正向事实、不执行删除。单项更正继续走原入口，防止改名后留下重复槽位；简历投影保持平铺并按规范值去重，模板和分组不变。
@@ -130,6 +142,8 @@
 历史启用边界：2026-10-04 曾切换本地加密副本到 `huhua-account-v1.db` / `checkpoints-account-v1.sqlite3` 并验证 API，旧数据库保留；来源见 `docs/development/2026-10-04-login-activation.md`。Resend 当时只确认服务商接受一封已授权验证码，收件与真实登录未确认。测试发件域仅支持注册邮箱，对外需发信域验证；聊天中暴露过的旧密钥需轮换，不保存其值。跨对话档案的早期真实模型验收是连接失败，不因本轮“改写六例”通过而改写历史结论。
 
 ## 下一步
+
+本轮 MCP 开发交付已完成，先按 `docs/development/2026-10-14-mcp-handoff.md` 用测试账号做 Claude Code 两条手动验收路径，再评估发布；当前未获提交或部署授权，不自动进入 M3。旧主线记录保留如下。
 
 本轮 P3 已完成本地实施和离线验收，先审 P3 diff 与验收记录；后续需另行授权真实模型 benchmark，补 P2/P3 真实浏览器交互与视觉验收。当前未实施 P4，不自动提交、推送或发布。
 

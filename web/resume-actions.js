@@ -60,6 +60,9 @@
     document.querySelector('main').inert = wasInert;
     returnFocus?.focus({preventScroll: true});
   }
+  overlay.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !overlay.hidden) { event.preventDefault(); close(); }
+  });
   function clearExport() {
     if (exportObjectUrl) URL.revokeObjectURL(exportObjectUrl);
     exportObjectUrl = null;

@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261013-ui"/>
-<link rel="stylesheet" href="/static/account-profile.css?v=20261013-ui"/>
-<script src="/static/account-profile.js?v=20261013-equivalence"></script>
+<link rel="stylesheet" href="/static/account-profile.css?v=20261014-mcp2"/>
+<script src="/static/account-profile.js?v=20261014-ui1"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -281,9 +281,9 @@
   </aside>
 </div>
 
-<script src="/static/change-card.js?v=20261011-density"></script>
+<script src="/static/change-card.js?v=20261014-ui1"></script>
 <script src="/static/resume-workspace.js?v=20261012-embedded"></script>
-<script src="/static/resume-actions.js?v=20261012-embedded"></script>
+<script src="/static/resume-actions.js?v=20261014-ui1"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -368,6 +368,7 @@ let currentController = null;
 let selectedTask = 'auto';
 const sendBtnIcon = document.getElementById('btn-send-icon');
 let waitingTimer = null;
+let reviewPending = false;
 
 function updateFlowActions() {
   const actions = document.getElementById('flow-actions');
@@ -375,7 +376,7 @@ function updateFlowActions() {
   actions.classList.toggle('flex', messages.length > 0);
   document.getElementById('btn-build-draft').disabled = Boolean(currentController) || conversationBusy || !conversationReady;
   document.getElementById('btn-build-draft').classList.toggle('hidden', ['EVALUATING', 'EXPORT'].includes(canvasState.stage) && canvasState.hasData);
-  document.getElementById('btn-review-current').disabled = Boolean(currentController) || conversationBusy || !conversationReady || !canvasState.hasData;
+  document.getElementById('btn-review-current').disabled = reviewPending || Boolean(currentController) || conversationBusy || !conversationReady || !canvasState.hasData;
 }
 
 function setSendButtonMode(mode) {
@@ -1067,11 +1068,14 @@ document.getElementById('btn-build-draft').addEventListener('click', () => {
   send('请按已有真实资料生成简历草稿；尚未核实的内容保留核对提示。');
 });
 document.getElementById('btn-review-current').addEventListener('click', async () => {
-  if (currentController || !canvasState.hasData) return;
-  await refreshCanvas();
-  if (currentController || !canvasState.hasData) return;
-  selectedTask = 'review_resume';
-  send('请检查当前保存的简历，优先指出影响投递的事实与表达问题。');
+  if (reviewPending || currentController || !canvasState.hasData) return;
+  reviewPending = true; updateFlowActions();
+  const session = SESSION_ID;
+  try {
+    if (!await refreshCanvas() || session !== SESSION_ID || currentController || !canvasState.hasData) return;
+    selectedTask = 'review_resume';
+    await send('请检查当前保存的简历，优先指出影响投递的事实与表达问题。');
+  } finally { reviewPending = false; updateFlowActions(); }
 });
 window.addEventListener('focus', () => { if (!currentController) refreshCanvas(); });
 document.addEventListener('visibilitychange', () => {

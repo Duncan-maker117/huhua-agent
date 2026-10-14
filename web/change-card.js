@@ -134,7 +134,7 @@
     state.status.textContent = '之后又有新的修改，只能撤销最近一次。';
   }
   async function undo(state, options) {
-    if (state.busy || state.done) return;
+    if (state.busy || state.done || state.button?.disabled) return;
     if (options.busy?.()) { state.status.textContent = '正在回复中，稍后再撤销。'; return; }
     const session = options.session();
     state.busy = true; state.button.disabled = true; state.status.textContent = '正在撤销…';
@@ -156,7 +156,7 @@
         : code === 503 ? '撤销暂时失败，当前版本未更改，请稍后重试。'
         : code === 404 ? '会话不存在或已清除。' : '撤销没有成功，当前版本未更改，请重试。';
       if (code === 409) options.refresh?.();
-      if (state.button) state.button.disabled = code === 404;
+      if (state.button) state.button.disabled = code === 404 || Boolean(state.button.dataset.superseded);
     } finally { state.busy = false; }
   }
   function reset() { cards.length = 0; }

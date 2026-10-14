@@ -15,6 +15,7 @@
   let account = {authenticated: false, require_account: true, login_available: false};
   let profile = null, overlay, content, status, opener, busy = false, loadVersion = 0;
   let profileView = 'facts';
+  let inbox = {items: [], pending_count: 0}, connections = {tokens: [], recent_calls: []};
   let loginTimer, syncLoginControls = () => {};
   let loginReason = '', guestSession = null, pendingClaim = null;
   const guestSessionKey = 'huhua_guest_session_id';
@@ -106,9 +107,14 @@
     if (type !== 'textarea') input.type = type;
     input.value = text(value); input.required = true; wrap.append(input); form.append(wrap); return input;
   }
-  function close() { if (pendingClaim) { say('当前对话尚待关联，请点击重试；内容仍保留。', true); return; } overlay.hidden = true; clearInterval(loginTimer); opener?.setAttribute('aria-expanded', 'false'); opener?.focus(); }
+  function focusInlineForm(container, kind) {
+    const form = container.querySelector('form[data-profile-form="' + kind + '"]');
+    if (!form) return false;
+    form.querySelector('input,textarea,select')?.focus(); return true;
+  }
+  function close() { if (pendingClaim) { say('当前对话尚待关联，请点击重试；内容仍保留。', true); return; } overlay.hidden = true; if (account.authenticated) content.replaceChildren(); clearInterval(loginTimer); opener?.setAttribute('aria-expanded', 'false'); opener?.focus(); }
   async function open(reason = '') {
-    profileView = 'facts';
+    profileView = new URLSearchParams(location.search).get('profile') === 'inbox' ? 'confirmations' : 'facts';
     loginReason = typeof reason === 'string' ? reason : ''; 
     overlay.hidden = false; opener?.setAttribute('aria-expanded', 'true'); document.getElementById('btn-close-profile').focus();
     say('正在连接账号服务…');
@@ -308,7 +314,9 @@
     }
   }
   function addFact() {
+    if (focusInlineForm(content, 'fact')) return;
     const card = node('form', undefined, 'profile-card profile-form');
+    card.dataset.profileForm = 'fact';
     const label = node('label', undefined, 'profile-field'); label.append(node('span', '资料类别'));
     const category = node('select'); category.setAttribute('aria-label', '资料类别'); for (const [key, value] of Object.entries(categories)) { const option = node('option', value); option.value = key; category.append(option); } label.append(category); card.append(label);
     const subject = inputField(card, '属于哪段经历或信息', '基本信息');
@@ -331,6 +339,90 @@
       form.addEventListener('submit', e => { e.preventDefault(); if (form.reportValidity()) resolve('custom', input.value.trim()); }); actions.replaceChildren(form); input.focus();
     })); card.append(actions); return card;
   }
+  function renderInboxItem(item) {
+    const card = node('article', undefined, 'profile-card profile-inbox-item'); card.dataset.inboxId = item.id;
+    card.append(node('p', 'AI 助手建议 · 待你确认', 'profile-eyebrow'), node('h3', (categories[item.category] || item.category) + ' · ' + item.subject + ' · ' + (fieldNames[item.field] || item.field)), node('p', item.value, 'profile-value'));
+    const evidence = node('div', undefined, 'profile-source'); evidence.append(node('strong', '助手提供的依据（尚未核实）'), node('blockquote', item.evidence)); card.append(evidence);
+    const actions = node('div', undefined, 'profile-actions');
+    const accept = value => mutate(() => request('/api/account/mcp/inbox/' + encodeURIComponent(item.id) + '/accept', value === undefined ? {} : {value}, 'POST'), '已确认。若与已有资料冲突，请在信息确认中继续核对。');
+    actions.append(button('确认', () => accept(), false), button('改一下再确认', () => {
+      const form = node('form', undefined, 'profile-form'); const value = inputField(form, '确认进入档案的内容', item.value, 'textarea'); value.maxLength = 4000;
+      const submit = node('button', '确认修改并加入档案', 'profile-button'); submit.type = 'submit'; form.append(submit, button('取消', renderProfile));
+      form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) return accept(value.value.trim()); }); actions.replaceChildren(form); value.focus();
+    }), button('不要', () => mutate(() => request('/api/account/mcp/inbox/' + encodeURIComponent(item.id) + '/reject', {}, 'POST'), '已拒绝，未加入档案。')));
+    card.append(actions); return card;
+  }
+  async function copyMcp(value) {
+    try { await navigator.clipboard.writeText(value); say('已复制。'); }
+    catch (_) { say('未能复制，请选中配置内容手动复制。', true); }
+  }
+  function showMcpToken(token) {
+    const panel = node('section', undefined, 'profile-notice profile-token-once'); panel.setAttribute('aria-label', '仅显示一次的令牌');
+    panel.append(node('strong', '令牌仅显示这一次，请现在保存。关闭面板后无法再次查看。'));
+    const field = inputField(panel, '个人访问令牌', token, 'textarea'); field.readOnly = true; field.spellcheck = false;
+    panel.append(button('复制令牌', () => copyMcp(token)));
+    const origin = location.origin;
+    const command = 'claude mcp add --transport http huhua ' + origin + '/mcp --header "Authorization: Bearer ' + token + '"';
+    const cursor = JSON.stringify({mcpServers: {huhua: {url: origin + '/mcp', headers: {Authorization: 'Bearer ' + token}}}}, null, 2);
+    const codex = '[mcp_servers.huhua]\nurl = ' + JSON.stringify(origin + '/mcp') + '\nhttp_headers = { Authorization = ' + JSON.stringify('Bearer ' + token) + ' }';
+    for (const [label, value] of [['Claude Code', command], ['Cursor', cursor], ['Codex', codex]]) {
+      const details = node('details', undefined, 'profile-mcp-config'); details.open = label === 'Claude Code'; details.append(node('summary', label));
+      details.append(node('pre', value), button('复制 ' + label + (label === 'Claude Code' ? ' 命令' : ' 配置'), () => copyMcp(value))); panel.append(details);
+    }
+    panel.append(button('已保存，隐藏令牌', () => panel.remove()));
+    content.prepend(panel);
+  }
+  function mcpLocalTime(value, fallback = '未知') {
+    if (!value) return fallback;
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return fallback;
+    const pad = part => String(part).padStart(2, '0');
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+  }
+  function renderConnections() {
+    const section = node('section', undefined, 'profile-connections'); section.setAttribute('aria-label', '连接 AI 助手');
+    section.append(node('h2', '连接 AI 助手', 'profile-section-title'), node('p', '连接 Claude Code、Cursor 或 Codex。助手提出的信息需要你在网页确认，才会进入档案。', 'profile-muted'));
+    const form = node('form', undefined, 'profile-card profile-form');
+    const name = inputField(form, '令牌名称', '我的 AI 助手'); name.maxLength = 80;
+    const days = inputField(form, '有效天数（1–365，默认 90）', '90', 'number'); days.min = '1'; days.max = '365';
+    const scopeGroup = node('fieldset', undefined, 'profile-mcp-scopes'); scopeGroup.append(node('legend', '允许的操作'));
+    const scopes = [];
+    for (const [scope, label] of [['profile:read','读取档案'],['profile:contacts','包含联系方式'],['profile:propose','提交待确认建议'],['resume:read','读取简历'],['resume:write','保存简历草稿'],['resume:export','导出简历']]) {
+      const wrap = node('label'); const input = node('input'); input.type = 'checkbox'; input.value = scope; input.checked = scope !== 'profile:contacts';
+      input.setAttribute('aria-label', label); wrap.append(input, node('span', label)); scopeGroup.append(wrap); scopes.push(input);
+    }
+    const submit = node('button', '生成令牌', 'profile-button'); submit.type = 'submit'; form.append(scopeGroup, submit);
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); if (busy || !form.reportValidity()) return;
+      setBusy(true); say('正在生成令牌…');
+      try {
+        const result = await request('/api/account/mcp/tokens', {name: name.value.trim(), expires_days: Number(days.value), scopes: scopes.filter(input => input.checked).map(input => input.value)}, 'POST');
+        if (!result.token) throw new Error('未收到令牌，请刷新列表检查。');
+        // Retain the only copy even if the optional list refresh fails.
+        connections.tokens = [{...result, token: undefined}, ...(connections.tokens || [])];
+        renderProfile(); showMcpToken(result.token); say('令牌已生成，请复制接入配置。');
+      } catch (error) { say(error.message, true); }
+      finally { setBusy(false); }
+    });
+    section.append(form, node('h3', '已有令牌'));
+    if (!connections.tokens?.length) section.append(node('p', '尚未生成令牌。', 'profile-muted'));
+    for (const token of connections.tokens || []) {
+      const row = node('article', undefined, 'profile-card profile-token-row'); row.dataset.tokenId = token.id;
+      const expired = token.expires_at && Date.parse(token.expires_at) <= Date.now();
+      row.append(node('h3', token.name), node('p', (token.scopes || []).join(' · '), 'profile-muted'), node('p', '有效期至 ' + mcpLocalTime(token.expires_at)), node('p', '最后使用：' + mcpLocalTime(token.last_used_at, '尚未使用')));
+      if (token.revoked_at || expired) row.append(node('strong', token.revoked_at ? '已吊销' : '已过期'));
+      else row.append(button('吊销令牌', () => mutate(() => request('/api/account/mcp/tokens/' + encodeURIComponent(token.id), undefined, 'DELETE'), '令牌已吊销。')));
+      section.append(row);
+    }
+    section.append(node('h3', '最近调用'), node('p', '最多显示最近 50 次，只记录时间、令牌、工具、耗时和结果码；服务重启后清空。', 'profile-muted'));
+    const calls = node('ol', undefined, 'profile-mcp-audit');
+    for (const row of connections.recent_calls || []) {
+      const token = (connections.tokens || []).find(token => token.id === row.token_id);
+      calls.append(node('li', mcpLocalTime(row.called_at) + ' · ' + (token?.name || '令牌') + ' · ' + row.tool + ' · ' + row.duration_ms + 'ms · ' + row.status_code));
+    }
+    section.append(calls); if (!calls.children.length) section.append(node('p', '尚无调用记录。', 'profile-muted'));
+    content.append(section);
+  }
   function renderProfile() {
     clearInterval(loginTimer); syncLoginControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile) return;
     const identity = node('div', undefined, 'profile-identity'); identity.append(node('strong', account.account?.email || '已登录'), node('p', '本人唯一主档案 · ' + profile.revision + ' 次修订', 'profile-muted'));
@@ -338,12 +430,13 @@
     const actions = node('div', undefined, 'profile-actions');
     const confirmation = button('信息确认', () => { profileView = profileView === 'confirmations' ? 'facts' : 'confirmations'; renderProfile(); });
     confirmation.classList.add('profile-confirm-button'); confirmation.setAttribute('aria-expanded', String(profileView === 'confirmations'));
-    const pendingCount = (profile.conflicts || []).length;
+    const pendingCount = (profile.conflicts || []).length + (inbox.pending_count || 0);
     if (pendingCount) { const badge = node('span', String(pendingCount), 'profile-confirm-badge'); badge.setAttribute('aria-label', pendingCount + ' 条待确认'); confirmation.append(badge); }
-    actions.append(confirmation, button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
+    actions.append(confirmation, button('连接 AI 助手', () => { profileView = 'connections'; renderProfile(); }), button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
       const note = node('div', undefined, 'profile-notice'); note.append(node('p', '把此浏览器凭证下可认领的旧对话关联到当前账号，并整理其中明确的本人信息。只导入你自己的资料。'));
       note.append(button('确认导入本人旧对话', () => mutate(() => request('/api/account/claim-browser', {}, 'POST'), '已认领可导入的旧对话，整理状态见下方。')), button('取消', renderProfile)); actions.replaceChildren(note);
     })); content.append(actions);
+    if (profileView === 'connections') { renderConnections(); return; }
     const imports = profile.import_status || {};
     if (imports.pending || imports.running || imports.failed || imports.completed) {
       const notice = node('section', undefined, 'profile-notice'); notice.setAttribute('aria-label', '旧对话导入状态');
@@ -360,6 +453,9 @@
       content.append(button('返回已有信息', () => { profileView = 'facts'; renderProfile(); }));
       content.append(node('h2', '待确认信息', 'profile-section-title'));
       if (!pendingCount) content.append(node('p', '没有待确认的信息。', 'profile-muted'));
+      content.append(node('h3', '来自 AI 助手的建议', 'profile-section-title'));
+      if (!inbox.items?.length) content.append(node('p', '没有来自 AI 助手的待确认建议。', 'profile-muted'));
+      for (const item of inbox.items || []) content.append(renderInboxItem(item));
       for (const conflict of profile.conflicts || []) content.append(renderConflict(conflict));
       return;
     }
@@ -373,21 +469,26 @@
     const facts = profile.facts || []; if (!facts.length) content.append(node('p', '还没有已整理的信息。你可以直接补充，或在聊天中介绍自己的经历。', 'profile-muted'));
     renderFactGroups([...facts, ...(profile.preferences || [])]);
     const currentSession = currentProfileSession();
-    if (currentSession) content.append(button('保存当前岗位版本', () => {
-      const form = node('form', undefined, 'profile-card profile-form'); const name = inputField(form, '岗位版本名称'); const save = node('button', '保存岗位版本', 'profile-button'); save.type = 'submit'; form.append(save, button('取消', renderProfile));
-      form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) mutate(() => request('/api/profile/jobs', {session_id: currentSession, name: name.value.trim()}, 'POST'), '已保存岗位版本。'); }); content.prepend(form); name.focus();
-    }));
+    if (currentSession) {
+      const create = button('保存当前岗位版本', () => {
+        if (focusInlineForm(content, 'job')) return;
+        const form = node('form', undefined, 'profile-card profile-form'); form.dataset.profileForm = 'job'; const name = inputField(form, '岗位版本名称'); const save = node('button', '保存岗位版本', 'profile-button'); save.type = 'submit'; form.append(save, button('取消', renderProfile));
+        form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) mutate(() => request('/api/profile/jobs', {session_id: currentSession, name: name.value.trim()}, 'POST'), '已保存岗位版本。'); }); content.prepend(form); name.focus();
+        create.setAttribute('aria-expanded', 'true');
+      }); create.setAttribute('aria-expanded', 'false'); content.append(create);
+    }
     if (profile.jobs?.length) {
       content.append(node('h2', '岗位简历', 'profile-section-title'));
-      for (const job of profile.jobs) { const row = node('article', undefined, 'profile-card'); row.append(node('h3', job.name || '未命名岗位'), node('p', job.stale ? '档案已有更正，请在该对话核对并同步。' : '当前引用未标记待同步。', job.stale ? 'profile-eyebrow' : 'profile-muted')); const link = node('a', '打开岗位对话'); link.href = '/?session=' + encodeURIComponent(job.session_id); row.append(link, button('改名', () => {
-        const form = node('form', undefined, 'profile-form'); const name = inputField(form, '岗位版本名称', job.name); const save = node('button', '保存名称', 'profile-button'); save.type = 'submit'; form.append(save, button('取消', renderProfile)); form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) mutate(() => request('/api/profile/jobs/' + encodeURIComponent(job.id), {name: name.value.trim(), expected_revision: job.revision}, 'PATCH'), '名称已更新。'); }); row.append(form); name.focus();
-      })); content.append(row); }
+      for (const job of profile.jobs) { const row = node('article', undefined, 'profile-card'); row.append(node('h3', job.name || '未命名岗位'), node('p', job.stale ? '档案已有更正，请在该对话核对并同步。' : '当前引用未标记待同步。', job.stale ? 'profile-eyebrow' : 'profile-muted')); const link = node('a', '打开岗位对话'); link.href = '/?session=' + encodeURIComponent(job.session_id); const rename = button('改名', () => {
+        if (focusInlineForm(row, 'name')) return;
+        const form = node('form', undefined, 'profile-form'); form.dataset.profileForm = 'name'; const name = inputField(form, '岗位版本名称', job.name); const save = node('button', '保存名称', 'profile-button'); save.type = 'submit'; form.append(save, button('取消', renderProfile)); form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) mutate(() => request('/api/profile/jobs/' + encodeURIComponent(job.id), {name: name.value.trim(), expected_revision: job.revision}, 'PATCH'), '名称已更新。'); }); row.append(form); name.focus(); rename.setAttribute('aria-expanded', 'true');
+      }); rename.setAttribute('aria-expanded', 'false'); row.append(link, rename); content.append(row); }
     }
     content.append(node('p', '档案属于当前账号。这里的“用户提供”不表示已经独立核实；AI 建议和 JD 不作为本人事实。', 'profile-muted'));
   }
   async function loadProfile() {
     const version = ++loadVersion; say('正在读取个人档案…');
-    try { const value = await request('/api/profile'); if (version !== loadVersion) return; profile = value; renderProfile(); say('已读取最新档案。'); }
+    try { const [value, suggestions, tokens] = await Promise.all([request('/api/profile'), request('/api/account/mcp/inbox'), request('/api/account/mcp/tokens')]); if (version !== loadVersion) return; profile = value; inbox = suggestions; connections = tokens; renderProfile(); say('已读取最新档案。'); }
     catch (error) { if (version === loadVersion) { if (error.status === 401) { account.authenticated = false; profile = null; renderLogin(); } say(error.message, true); } }
   }
   function mount() {
@@ -409,6 +510,7 @@
     });
     syncAccountPresentation(); ready.then(() => {
       syncAccountPresentation();
+      if (account.authenticated && new URLSearchParams(location.search).get('profile') === 'inbox') open();
       if (pendingClaim) {
         document.querySelectorAll('main').forEach(main => { main.inert = true; });
         window.dispatchEvent(new Event('huhua-account-claim-pending'));

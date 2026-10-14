@@ -12,7 +12,9 @@ from pathlib import Path
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-from app.api import account, chat, conversations, profile, resume, resume_changes
+from app.api import account, chat, conversations, mcp_download, profile, resume, resume_changes
+from app.mcp.server import MCPApplication
+from starlette.routing import Route
 from app.database import init_db, SessionLocal, engine
 from app.config import get_settings
 from app.agents.resume_graph import configure_checkpointer
@@ -140,7 +142,7 @@ async def lifespan(app: FastAPI):
         async with AsyncPostgresSaver.from_conn_string(database_url) as saver:
             await saver.setup()
             secured = SecureCheckpointSaver(saver, crypto, checkpoint_owner) if crypto.enabled else saver
-            async with _checkpoint_lifespan(secured):
+            async with _checkpoint_lifespan(secured), mcp_app.lifespan():
                 yield
     else:
         checkpoint_path = Path(get_settings().CHECKPOINT_DB_PATH)
@@ -148,11 +150,17 @@ async def lifespan(app: FastAPI):
         async with AsyncSqliteSaver.from_conn_string(str(checkpoint_path)) as saver:
             await saver.setup()
             secured = SecureCheckpointSaver(saver, crypto, checkpoint_owner) if crypto.enabled else saver
-            async with _checkpoint_lifespan(secured):
+            async with _checkpoint_lifespan(secured), mcp_app.lifespan():
                 yield
 
 
 app = FastAPI(title="胡话简历 Agent", version="1.0.0", lifespan=lifespan)
+
+mcp_app = MCPApplication(
+    SessionLocal, lambda: getattr(get_settings(), 'APP_ORIGIN', '') or 'http://127.0.0.1:8000',
+    lambda: getattr(app.state, 'checkpointer', None))
+# An exact ASGI route avoids a /mcp -> /mcp/ redirect before authentication.
+app.router.routes.append(Route('/mcp', mcp_app, methods=['GET', 'POST', 'DELETE', 'OPTIONS']))
 
 _chat_requests: dict[tuple[str, str], deque[float]] = defaultdict(deque)
 _all_paid_requests: deque[float] = deque()
@@ -170,7 +178,8 @@ async def security_headers(request: Request, call_next):
             assert_same_origin(request)
             public = {"/api/account/me", "/api/account/login/start", "/api/account/login/verify", "/api/account/logout",
                       "/api/resume/templates", "/api/resume/sample", "/api/chat/templates", "/api/chat/tools"}
-            if request.url.path not in public and not request.url.path.startswith("/api/chat/templates/"):
+            if (request.url.path not in public and not request.url.path.startswith("/api/chat/templates/")
+                    and not request.url.path.startswith("/api/mcp-download/")):
                 # Account-only features enforce their own gate; an opaque,
                 # short-lived guest can use the current-chat experience.
                 resolve_owner(request, allow_guest=True)
@@ -263,6 +272,7 @@ app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 app.include_router(conversations.router, prefix="/api/chat", tags=["chat"])
 app.include_router(resume.router, prefix="/api/resume", tags=["resume"])
 app.include_router(account.router, prefix="/api", tags=["account"])
+app.include_router(mcp_download.router, tags=["mcp"])
 app.include_router(profile.router, prefix="/api/profile", tags=["profile"])
 app.include_router(resume_changes.router, prefix="/api/resume", tags=["resume"])
 

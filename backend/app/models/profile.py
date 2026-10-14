@@ -24,6 +24,18 @@ class PersonalProfile(Base):
     created_at = Column(DateTime, nullable=False, default=utc_now)
 
 
+class ProfileInbox(Base):
+    __tablename__ = "profile_inbox"
+    id = Column(String, primary_key=True, default=new_id)
+    account_id = Column(String, nullable=False, index=True)
+    token_id = Column(String(36), nullable=False)
+    status = Column(String(24), nullable=False, default="pending", index=True)
+    payload = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=utc_now)
+    expires_at = Column(DateTime, nullable=False, index=True)
+    resolved_at = Column(DateTime, nullable=True)
+
+
 class ProfileFact(Base):
     __tablename__ = "profile_facts"
     __table_args__ = (UniqueConstraint("account_id", "slot_key"),)

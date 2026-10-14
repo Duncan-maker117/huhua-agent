@@ -21,7 +21,7 @@ from app.agents.profile_archivist import (
 )
 from app.models.profile import (
     PersonalProfile, ProfileArchiveEvent, ProfileConflict, ProfileFact,
-    ProfileInvalidation, ProfileJobVersion, ProfileSource, new_id,
+    ProfileInbox, ProfileInvalidation, ProfileJobVersion, ProfileSource, new_id,
 )
 from app.services.account_service import blind_index
 from app.services.data_crypto import CryptoConfigurationError, get_crypto
@@ -799,6 +799,122 @@ def add_fact(db, account_id, *, category, subject, field, value, effective_at=No
     event.payload = _seal(event, {"results": [result]})
     db.flush()
     return get_profile(db, account_id)
+
+
+def _inbox_proposal(candidate):
+    if not isinstance(candidate, dict) or set(candidate) - {"category", "subject", "field", "value", "evidence"}:
+        raise ProfileValidationError("invalid_inbox_candidate")
+    evidence = candidate.get("evidence")
+    if not isinstance(evidence, str) or not evidence.strip() or len(evidence) > 4000:
+        raise ProfileValidationError("invalid_evidence")
+    try:
+        return ArchiveProposal(**{key: candidate[key] for key in ("category", "subject", "field", "value")},
+                               evidence_quote=candidate["value"],
+                               long_term_preference=candidate["category"] == "preference")
+    except (ValidationError, KeyError):
+        raise ProfileValidationError("invalid_inbox_candidate") from None
+
+
+def _inbox_equivalent(proposal, facts):
+    if proposal.category == "skill":
+        skills = split_skill_values(proposal.value)
+        return bool(skills) and all(any(
+            fact["category"] == "skill" and normalize_skill(fact["value"]) == normalize_skill(skill["value"])
+            and (not skill["proficiency"] or skill["proficiency"] == fact.get("proficiency"))
+            for fact in facts) for skill in skills)
+    return any((fact["category"], fact["subject"], fact["field"]) == (
+        proposal.category, proposal.subject.strip(), proposal.field)
+        and (equivalent_value(proposal.category, proposal.field, fact["value"], proposal.value)
+             in {"same", "old_more_specific"}
+             or (_narrative_slot(proposal.category, proposal.field, proposal.value)
+                 and narrative_duplicate(fact["value"], proposal.value))) for fact in facts)
+
+
+def expire_inbox_items(db, account_id):
+    for row in db.scalars(select(ProfileInbox).where(ProfileInbox.account_id == account_id,
+                         ProfileInbox.status == "pending", ProfileInbox.expires_at <= _now())):
+        changed = db.execute(update(ProfileInbox).where(ProfileInbox.id == row.id,
+                            ProfileInbox.status == "pending").values(
+                                status="expired", resolved_at=_now(), payload=_seal(row, {})))
+        if changed.rowcount:
+            db.expire(row)
+
+
+def propose_to_inbox(db, account_id, token_id, candidates):
+    """Only encrypted candidates are written here. No source/event/fact is created."""
+    if not isinstance(candidates, list) or not 1 <= len(candidates) <= 50:
+        raise ProfileValidationError("invalid_candidates")
+    proposals = [_inbox_proposal(candidate) for candidate in candidates]
+    # Deliberately avoid get_profile's read migrations on this write boundary.
+    facts = [{**_open(row), "category": row.category} for row in db.scalars(select(ProfileFact).where(
+        ProfileFact.account_id == account_id, ProfileFact.status == "active"))]
+    expire_inbox_items(db, account_id)
+    pending = list(db.scalars(select(ProfileInbox).where(ProfileInbox.account_id == account_id,
+                            ProfileInbox.status == "pending")))
+    result = []
+    for candidate, proposal in zip(candidates, proposals):
+        if _inbox_equivalent(proposal, facts):
+            result.append({"id": None, "status": "existing", "label": "已存在"})
+            continue
+        same = next((row for row in pending if all(_open(row).get(key) == candidate.get(key)
+                     for key in ("category", "subject", "field", "value"))), None)
+        if same:
+            result.append({"id": same.id, "status": "pending", "label": "待确认"})
+            continue
+        row = ProfileInbox(id=new_id(), account_id=account_id, token_id=token_id, status="pending",
+                           expires_at=_now() + timedelta(days=30))
+        row.payload = _seal(row, {**candidate, "field": proposal.field})
+        db.add(row)
+        pending.append(row)
+        result.append({"id": row.id, "status": "pending", "label": "待确认"})
+    db.flush()
+    return {"items": result}
+
+
+def list_inbox_items(db, account_id):
+    expire_inbox_items(db, account_id)
+    rows = db.scalars(select(ProfileInbox).where(ProfileInbox.account_id == account_id,
+                      ProfileInbox.status == "pending").order_by(ProfileInbox.created_at.desc())).all()
+    return {"items": [{**_open(row), "id": row.id, "status": row.status,
+                       "created_at": _iso(row.created_at), "expires_at": _iso(row.expires_at)} for row in rows],
+            "pending_count": len(rows)}
+
+
+def accept_inbox_item(db, account_id, item_id, *, value=None):
+    """Cookie-only caller confirms the exact value; same manual archive transaction."""
+    row = _owned(db, ProfileInbox, account_id, item_id)
+    if row.status != "pending" or row.expires_at <= _now():
+        raise ProfileRevisionConflict("inbox_not_pending")
+    candidate = _open(row)
+    if value is not None:
+        candidate["value"] = value
+    proposal = _inbox_proposal(candidate)
+    claimed = db.execute(update(ProfileInbox).where(ProfileInbox.id == item_id,
+                         ProfileInbox.account_id == account_id, ProfileInbox.status == "pending",
+                         ProfileInbox.expires_at > _now()).values(status="accepted", resolved_at=_now()))
+    if claimed.rowcount != 1:
+        raise ProfileRevisionConflict("inbox_not_pending")
+    _bump(db, ensure_profile(db, account_id))
+    event = enqueue_archive_event(db, account_id, "mcp-inbox:" + row.id, None,
+                                  {"human_text": proposal.subject + "：" + proposal.value,
+                                   "source_kind": "manual"}, "manual_fact")
+    source = _owned(db, ProfileSource, account_id, event.source_id)
+    result = _apply_proposal(db, account_id, proposal, source, event.id)
+    event.status, event.completed_at = "completed", _now()
+    event.payload = _seal(event, {"results": [result]})
+    row.payload = _seal(row, {**candidate, "archive_result": result})
+    db.flush()
+    return {"id": row.id, "status": "accepted", "archive_result": result}
+
+
+def reject_inbox_item(db, account_id, item_id):
+    row = _owned(db, ProfileInbox, account_id, item_id)
+    changed = db.execute(update(ProfileInbox).where(ProfileInbox.id == row.id,
+                         ProfileInbox.status == "pending", ProfileInbox.expires_at > _now()).values(
+                             status="rejected", resolved_at=_now(), payload=_seal(row, {})))
+    if changed.rowcount != 1:
+        raise ProfileRevisionConflict("inbox_not_pending")
+    return {"id": item_id, "status": "rejected"}
 
 
 def edit_fact(db, account_id, fact_id, *, value, expected_revision, effective_at=None):

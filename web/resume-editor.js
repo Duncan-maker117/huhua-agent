@@ -182,6 +182,7 @@
     if (state.mode !== 'personal' || state.savedVersion === state.revision) return true;
     if (state.saving) return state.saving;
     if (!state.canSave || state.conflict) return false;
+    $('btn-retry-save').disabled = true;
     state.saving = (async () => {
       try {
         while (state.savedVersion < state.revision) {
@@ -230,7 +231,7 @@
         else keepBackup();
         setSaveStatus(error.name === 'AbortError' ? '保存等待超时，结果尚未确认。当前修改仍在本页，请重试或下载备份。' : error.message.includes('fetch') ? '连接已断开，当前修改尚未保存，仅留在本页。关闭前请重试或下载备份。' : error.message, true);
         return false;
-      } finally { state.saving = null; if (embedded) chatVersionNotice(); }
+      } finally { state.saving = null; $('btn-retry-save').disabled = false; if (embedded) chatVersionNotice(); }
     })();
     return state.saving;
   }
@@ -873,6 +874,8 @@
       }
       highlightPreview();
       if (state.frameRevision === state.revision) setStatus('已实时更新');
+    } else if (message.type === 'resume-preview-escape') {
+      escapeEditor();
     } else if (message.type === 'resume-field-hover') {
       if (!state.ready) return;
       if (message.path !== null && !controls.has(message.path)) return;
@@ -1007,7 +1010,12 @@
     $('btn-export').setAttribute('aria-expanded', String(!exportMenu.hidden));
   });
   document.addEventListener('click', (event) => { if (!event.target.closest('#export-wrap')) closeExportMenu(); });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeExportMenu(); });
+  function escapeEditor() {
+    if ($('profile-overlay') && !$('profile-overlay').hidden) return;
+    if (!exportMenu.hidden) { closeExportMenu(); $('btn-export').focus(); }
+    else if (embedded) finishEdit();
+  }
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') escapeEditor(); });
 
   function clearExportFile() {
     if (state.exportObjectUrl) URL.revokeObjectURL(state.exportObjectUrl);
@@ -1033,6 +1041,8 @@
     state.exportFormat = format;
     clearExportFile();
     $('btn-retry-export').hidden = true;
+    $('btn-retry-export').disabled = true;
+    document.querySelectorAll('.export-opt').forEach(option => { option.disabled = true; });
     $('btn-export').disabled = true;
     exportStatus('正在保存并生成 ' + label + '…');
     try {
@@ -1064,6 +1074,8 @@
       $('btn-retry-export').hidden = false;
     } finally {
       state.exportBusy = false;
+      $('btn-retry-export').disabled = false;
+      document.querySelectorAll('.export-opt').forEach(option => { option.disabled = false; });
       $('btn-export').disabled = !state.data;
     }
   }
@@ -1101,9 +1113,11 @@
     renderPreview();
   }
 
-  async function startBlank() {
+  async function startBlank(event) {
     if (state.creatingDraft) return;
     state.creatingDraft = true;
+    const trigger = event?.currentTarget;
+    if (trigger) trigger.disabled = true;
     try {
       if (!state.canSave) {
         if (!state.requireAccount) return;
@@ -1134,7 +1148,7 @@
       // This explicit user action creates a saved draft; template preview does not.
       state.revision += 1; queueSave();
     } catch (error) { setStatus(error.message, true); }
-    finally { state.creatingDraft = false; }
+    finally { state.creatingDraft = false; if (trigger) trigger.disabled = !state.canSave && !state.requireAccount; }
   }
 
   function showStartChoice() {

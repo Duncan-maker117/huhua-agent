@@ -1,6 +1,6 @@
 """Account routes; deliberately no automatic legacy-browser claim on login."""
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
@@ -9,8 +9,86 @@ from app.services.account_service import (
     require_account, set_session_cookie,
 )
 from app.services.data_crypto import CryptoConfigurationError
+from app.database import get_db
+from app.mcp.auth import DEFAULT_SCOPES, TokenService, audit
+from app.services import profile_service
 
 router = APIRouter(prefix="/account", tags=["account"])
+
+
+class TokenCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    scopes: list[str] = Field(default_factory=lambda: list(DEFAULT_SCOPES), max_length=6)
+    expires_days: int = Field(default=90, ge=1, le=365, strict=True)
+
+
+class InboxAccept(BaseModel):
+    value: str | None = Field(default=None, min_length=1, max_length=4000)
+
+
+@router.get("/mcp/tokens")
+async def mcp_tokens(request: Request, response: Response):
+    principal = await run_in_threadpool(require_account, request)
+    response.headers["Cache-Control"] = "no-store"
+    tokens = await run_in_threadpool(TokenService(_service(request).session_factory).list, principal.id)
+    return {"tokens": tokens, "recent_calls": audit.recent({row["id"] for row in tokens}),
+            "audit_retention": "process_memory"}
+
+
+@router.post("/mcp/tokens")
+async def create_mcp_token(body: TokenCreate, request: Request, response: Response):
+    assert_same_origin(request)
+    principal = await run_in_threadpool(require_account, request)
+    response.headers["Cache-Control"] = "no-store"
+    return await run_in_threadpool(TokenService(_service(request).session_factory).create,
+                                   principal.id, body.name, body.scopes, body.expires_days)
+
+
+@router.delete("/mcp/tokens/{token_id}")
+async def revoke_mcp_token(token_id: str, request: Request, response: Response):
+    assert_same_origin(request)
+    principal = await run_in_threadpool(require_account, request)
+    response.headers["Cache-Control"] = "no-store"
+    return await run_in_threadpool(TokenService(_service(request).session_factory).revoke, principal.id, token_id)
+
+
+def _inbox_action(db, function, account_id, *args, **kwargs):
+    try:
+        result = function(db, account_id, *args, **kwargs)
+        db.commit()
+        return result
+    except profile_service.ProfileNotFound:
+        db.rollback()
+        raise HTTPException(404, "建议不存在") from None
+    except profile_service.ProfileRevisionConflict:
+        db.rollback()
+        raise HTTPException(409, "建议已被处理或过期，请刷新") from None
+    except profile_service.ProfileValidationError:
+        db.rollback()
+        raise HTTPException(422, "建议内容不正确，请检查后重试") from None
+
+
+@router.get("/mcp/inbox")
+def mcp_inbox(request: Request, response: Response, db=Depends(get_db)):
+    principal = require_account(request)
+    response.headers["Cache-Control"] = "no-store"
+    return _inbox_action(db, profile_service.list_inbox_items, principal.id)
+
+
+@router.post("/mcp/inbox/{item_id}/accept")
+def accept_mcp_inbox(item_id: str, body: InboxAccept, request: Request, response: Response, db=Depends(get_db)):
+    assert_same_origin(request)
+    principal = require_account(request)
+    response.headers["Cache-Control"] = "no-store"
+    return _inbox_action(db, profile_service.accept_inbox_item, principal.id, item_id, value=body.value)
+
+
+@router.post("/mcp/inbox/{item_id}/reject")
+def reject_mcp_inbox(item_id: str, request: Request, response: Response, db=Depends(get_db)):
+    assert_same_origin(request)
+    principal = require_account(request)
+    response.headers["Cache-Control"] = "no-store"
+    return _inbox_action(db, profile_service.reject_inbox_item, principal.id, item_id)
 
 
 class LoginStart(BaseModel):

@@ -113,7 +113,7 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
     The stores have separate transactions. A failed row commit restores graph values
     before reporting failure; the caller never receives a successful partial save.
     """
-    if source not in {"editor", "writer", "restore", "import"}:
+    if source not in {"editor", "writer", "restore", "import", "mcp"}:
         raise ValueError("Unknown resume save source")
     db = SessionLocal()
     config = {"configurable": {"thread_id": session_id}}
@@ -167,7 +167,7 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
             facts = append_editor_facts(facts, current, canonical, "editor:" + str(uuid.uuid4()))
             if owner.startswith("account:"):
                 register_fact_items(db, account, session_id, facts, canonical)
-        elif source == "import" and collected_info is not None:
+        elif source in {"import", "mcp"} and collected_info is not None:
             facts = copy.deepcopy(collected_info)
         state = make_resume_state(
             facts, resume_meta if resume_meta is not None else authoritative.get("resume_meta"),
@@ -197,6 +197,12 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
             "stage": "EVALUATING",
             "requested_task": "auto",
         }
+        if source == "mcp":
+            from langchain_core.messages import AIMessage
+            updates["messages"] = [AIMessage(
+                id=str(uuid.uuid4()), additional_kwargs={"source": "mcp"},
+                content="来自 AI 助手（MCP）的简历草稿已保存。请到右侧「核对」检查；草稿内容不会自动加入个人档案。")]
+            updates["candidate_history_reconciled"] = True
         await graph.aupdate_state(config, updates, as_node="building")
         checkpoint_written = True
         row.resume_state = state

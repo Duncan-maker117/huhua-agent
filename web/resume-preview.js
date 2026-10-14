@@ -51,6 +51,9 @@
     hover(field ? field.dataset.fieldPath : null);
   });
   document.addEventListener('mouseleave', () => hover(null));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') send({type: 'resume-preview-escape'});
+  });
   const preventLinkNavigation = (event) => {
     if (event.target instanceof Element && event.target.closest('a')) event.preventDefault();
   };

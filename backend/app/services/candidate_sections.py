@@ -10,7 +10,7 @@ from app.services.resume_field_hygiene import trim_name_punctuation
 
 SECTION_LABELS = {"校园经历": "campus", "社团经历": "campus", "校园活动": "campus", "开源贡献": "open_source", "开源经历": "open_source",
                   "竞赛荣誉": "awards", "竞赛和荣誉": "awards", "竞赛与荣誉": "awards"}
-_OTHER_SECTION = re.compile(r"^(?:基本信息|教育背景|教育经历|教育|项目经历|工作经历|实习经历|"
+_OTHER_SECTION = re.compile(r"^(?:基本信息|教育背景|教育经历|教育|课程项目|项目经历|工作经历|实习经历|"
                             r"技能|专业技能|产品与技术能力|技能与工具|证书|自我评价|个人总结)\s*[：:]?")
 _PR = re.compile(r"\bPR\s*#?\s*\d+|https?://github\.com/[^\s)）]+/pull/\d+", re.I)
 _URL = re.compile(r"https?://[^\s,，;；)）]+", re.I)

@@ -289,7 +289,7 @@ class LLMCompatTest(unittest.IsolatedAsyncioTestCase):
         async with self.offline_llm(output=output) as (llm, requests):
             result = await run_resume_writer(source, {}, llm, current_data=source)
         self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'], ['整理访谈笔记'])
-        self.assertEqual(len(requests), 1)
+        self.assertEqual(len(requests), 2)  # source echo triggers one local polish
         self.assert_deepseek_request(requests[0])
 
     async def test_semantic_guard_uses_deepseek_tool_call(self):

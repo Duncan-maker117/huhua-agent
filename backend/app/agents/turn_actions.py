@@ -11,12 +11,14 @@ import json
 import re
 import uuid
 
-from app.services.candidate_language import safe_major
+from app.services.candidate_language import discipline_name, safe_major
 from app.services.fact_guard import strip_absence
 from app.services.resume_facts import new_fact, normalize_fact_store
 
 
-_EDU_WORD = re.compile(r"大学|学院|专业|本科|硕士|博士|专科|大[一二三四]|研[一二三]|在读|学校|毕业|入学")
+_EDU_WORD = re.compile(r"大学|学院|本科|硕士|博士|大专|专科|大[一二三四]|研[一二三]|在读|学校|毕业|入学|就读")
+_MAJOR_FIELD = re.compile(r"专业(?:改成|改为|写成|写为|换成|为|是|[：:])\s*([^，,。；;\n]{2,30})")
+_PROFESSIONAL_WORDING = re.compile(r"更专业|专业一点|专业化|专业的?(?:表达|措辞)|润色|写得")
 _NOT_SCHOOL = {"我在大学", "在大学", "这所大学", "本校大学"}
 _ROLE_QUESTION = re.compile(r"职责|分工|独立|团队|一个人|谁做")
 _ROLE_ANSWER = re.compile(r"一个人|都是我|独立|我负责|我写|我做|本人")
@@ -24,7 +26,7 @@ _ROLE_ANSWER = re.compile(r"一个人|都是我|独立|我负责|我写|我做|�
 
 _AWARD_LINE = re.compile(r"竞赛|比赛|大赛|杯|奖|证书")
 _EDU_HEADER = re.compile(
-    r"(?ms)^[ \t#]*(?:教育背景|教育经历|教育)[ \t]*[：:]?[ \t]*(?:\n)?(.*?)(?=^[ \t#]*(?:项目经历|项目|实习经历|工作经历|实习|"
+    r"(?ms)^[ \t#]*(?:教育背景|教育经历|教育)[ \t]*[：:]?[ \t]*(?:\n)?(.*?)(?=^[ \t#]*(?:课程项目|项目经历|项目|实习经历|工作经历|实习|"
     r"校园经历|校园活动|社团经历|开源贡献|竞赛荣誉|竞赛和荣誉|竞赛与荣誉|技能|专业技能|奖项|荣誉|获奖|证书|自我评价|个人评价|个人定位)[ \t]*[：:]?|\Z)")
 
 
@@ -36,7 +38,7 @@ def _clean_school(name: str) -> str:
     cleaned = re.sub(
         r"^.*(?:写全称|写成|写为|改成|改为|换成|填成|填写|学校填|学校写|叫做|名叫|学校是|我是|我在|就读于|就读|毕业于|用|填|写)",
         "", name)
-    cleaned = cleaned.strip("吧了的啊呀呢 ")
+    cleaned = cleaned.strip("吧了的啊呀呢 ").removeprefix("在")
     if not cleaned or re.search(r"写|改|换|全称|填", cleaned):
         return ""
     return cleaned
@@ -65,11 +67,22 @@ def parse_education_fields(message: str) -> dict[str, str]:
     section = _EDU_HEADER.search(message)
     # 有「教育背景」栏目时只从该栏取，避免奖项/项目行里的「…大学」干扰
     education_text = section.group(1) if section and section.group(1).strip() else message
-    for clause in _clauses(education_text):
+    clauses = _clauses(education_text)
+    for index, clause in enumerate(clauses):
         if re.search(r"协会|社团|学生会|宣传部|担任", clause):
             continue
         school_hint = _school_token(clause)
-        if not _EDU_WORD.search(clause) and not school_hint:
+        labelled = _MAJOR_FIELD.search(clause)
+        if (index > 0 and _school_token(clauses[index - 1]) and 'major' not in fields
+                and discipline_name(clause) and not school_hint and not re.search(r'课程|项目|接口|系统', clause)
+                and not re.search(r'本科|硕士|博士|大专|专科', clause)):
+            fields['major'] = clause
+        if not _EDU_WORD.search(clause) and not school_hint and not labelled:
+            # A separate noun phrase is allowed inside an education paragraph.
+            if not (_EDU_WORD.search(education_text) and re.fullmatch(r"[\w与和]{2,30}专业", clause)
+                    and not _PROFESSIONAL_WORDING.search(clause)):
+                continue
+        if _PROFESSIONAL_WORDING.search(clause) and not labelled:
             continue
         if re.search(r"项目|实习|做过|开发|上线|实现", clause) and not re.search(
             r"学校|我是|就读|专业|本科|硕士|在读|大[一二三四]", clause
@@ -78,7 +91,6 @@ def parse_education_fields(message: str) -> dict[str, str]:
         school = school_hint
         if school:
             fields["school"] = school
-        labelled = re.search(r"专业(?:为|是|[：:])\s*([^，,。；;]{2,30})", clause)
         if labelled:
             fields["major"] = labelled[1]
         for field, label in (("end_date", "毕业"), ("start_date", "入学")):
@@ -86,13 +98,15 @@ def parse_education_fields(message: str) -> dict[str, str]:
             if dated:
                 fields[field] = dated[1]
         major = re.search(r"([\u4e00-\u9fffA-Za-z0-9与和]{2,30})专业", clause)
-        if major:
-            fields["major"] = major.group(1)
+        if major and not labelled:
+            token = re.split(r"大学|学院|就读|学的是|读的是|读", major[1])[-1]
+            if _EDU_WORD.search(education_text) and discipline_name(token):
+                fields["major"] = token
         elif (studied := re.search(r"(?:就读|学的(?:是)?|读的是|读)(?!者)([\u4e00-\u9fff]{2,12}?)(?=专业|本科|专科|$)", clause)):
             token = studied.group(1)
             if token not in {"本科", "硕士", "博士", "专科", "大学", "学院"}:
                 fields["major"] = token
-        degree = re.search(r"本科|硕士|博士|专科", clause)
+        degree = re.search(r"本科|硕士|博士|大专|专科", clause)
         if degree:
             fields["degree"] = degree.group(0)
             if "major" not in fields:
@@ -159,7 +173,7 @@ def absorb_education(collected: dict, previous: dict | None, message: str, turn_
     items = result.setdefault("education", [])
     target = next((item for item in items if isinstance(item, dict) and (
         item.get("item_id") and school and (item.get("school") == school or school in str(item.get("school") or ""))
-        or any(fact.get("field") == "school" and fact.get("status", "active") == "active" for fact in item.get("facts") or [])
+        or (not school and any(fact.get("field") == "school" and fact.get("status", "active") == "active" for fact in item.get("facts") or []))
     )), None)
     if target is None and len([item for item in items if isinstance(item, dict)]) == 1:
         target = next(item for item in items if isinstance(item, dict))
@@ -399,6 +413,14 @@ def edit_clauses(message: str) -> list[str]:
     return clauses
 
 
+def wording_only(message: str) -> bool:
+    """A request about phrasing carries no authority to change candidate fields."""
+    return bool(re.search(r"润色|改写|写得|专业一点|专业化|专业的?表达", message or "")
+                and not parse_education_fields(message)
+                and not explicit_objective(message)
+                and not re.search(r"补充(?:事实|经历)|新增|我还(?:做|负责|完成)|改成|改为|不是\s*\d", message))
+
+
 def _item_labels(data: dict | None) -> list[str]:
     labels = []
     for section in ("projects", "work_experience", "education", "campus", "open_source", "awards"):
@@ -454,7 +476,7 @@ def deterministic_compound_plan(message: str, data: dict | None = None) -> list[
             number = 2 if re.search(r"[两2]\s*页", clause) else 1
             ops.append({"op": "set_constraint", "target": "page_limit", "args": {"page_limit": number}})
             continue
-        if re.search(r"学校|专业|学历|本科|硕士|大[一二三四]", clause) and re.search(
+        if parse_education_fields(clause) and re.search(
             r"改成|改为|换成|加上|补充|写成|写全称|全称|填", clause
         ):
             continue
@@ -519,7 +541,11 @@ def _requested_op(op: dict, message: str) -> bool:
     if kind == "set_field":
         if (op.get("args") or {}).get("field") == "objective":
             return bool(explicit_objective(message)) and (op.get("args") or {}).get("value") == explicit_objective(message)
-        if not re.search(r"学校|专业|学历|本科|硕士|学院", message or ""):
+        field = _FIELD_ALIAS.get((op.get("args") or {}).get("field"), (op.get("args") or {}).get("field"))
+        if field == "major":
+            value = str((op.get("args") or {}).get("value") or "")
+            return safe_major(value) and parse_education_fields(message).get("major") == value
+        if not re.search(r"学校|学历|本科|硕士|学院", message or ""):
             return False
         value = str((op.get("args") or {}).get("value") or "")
         return not value or value in (message or "")
@@ -527,7 +553,7 @@ def _requested_op(op: dict, message: str) -> bool:
 
 
 _DETERMINISTIC_OPS = {"set_field", "clean_format", "move_item", "set_constraint"}
-_EDUCATION_CLAUSE = re.compile(r"学校|专业|学历|本科|硕士|博士|大专|年级|大[一二三四]|研[一二三]")
+_EDUCATION_CLAUSE = re.compile(r"学校|专业(?:改|是|为|写|[：:])|学历|本科|硕士|博士|大专|年级|大[一二三四]|研[一二三]")
 
 
 def deterministic_only(message: str, planned_ops: list[dict], writer_requests: list[dict],
@@ -740,7 +766,7 @@ def _choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
     return plan
 
 
-_CLAUSE_INTENT = re.compile(r"突出|写详细|写细|写上|补一句|加上|补上|删|压成|精简|改成|改为|换成|写全称|学校|专业")
+_CLAUSE_INTENT = re.compile(r"突出|写详细|写细|写上|补一句|加上|补上|删|压成|精简|改成|改为|换成|写全称|学校|专业(?:改|是|为|写|[：:])")
 
 
 def uncovered_edit_clauses(message: str, plan: list[dict], data: dict | None = None) -> list[dict]:
@@ -762,7 +788,7 @@ def _clause_has_op(clause: str, plan: list[dict], labels: list[str], data: dict 
     from app.services.resume_layout import density_operations
     if density_operations(clause) and any(op.get('op') == 'set_constraint' and op.get('target') == 'density' for op in plan):
         return True
-    if re.search(r"学校|专业|学历|写全称|填", clause) and any(
+    if parse_education_fields(clause) and any(
         op.get("op") == "set_field" for op in plan
     ):
         return True

@@ -37,11 +37,11 @@ def constraints_for_turn(state: dict, message: str) -> dict:
                                          seniority=profile.get('seniority', 'unknown'), overrides=overrides)
 
 
-def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
+def infer_edit_scope(data: dict, instruction: str, collected: dict | None = None) -> tuple[str, list[str]]:
     """Unambiguous named/ordinal selections; PR5 router handles compound intents."""
     matches = []
     aliases = {}
-    for section in ('projects', 'work_experience', 'campus', 'open_source', 'awards'):
+    for section in ('projects', 'work_experience', 'internship', 'campus', 'open_source', 'awards'):
         for item in data.get(section) or []:
             name = item.get('name') or item.get('company')
             if not isinstance(name, str) or not item.get('item_id'):
@@ -54,6 +54,28 @@ def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
     for alias, item_ids in aliases.items():
         if len(item_ids) == 1 and alias in instruction.casefold():
             matches.extend(item_ids)
+    if not matches:
+        # Users usually name a category or job title, not the company name.
+        for section, pattern in (('projects', r'课程项目|项目经历'),
+                                 ('work_experience', r'工作经历|实习经历'),
+                                 ('internship', r'实习经历'), ('campus', r'校园经历|学生组织')):
+            if re.search(pattern, instruction):
+                choices = [item for item in data.get(section) or [] if item.get('item_id') and not item.get('hidden')]
+                if '实习经历' in instruction and section == 'work_experience':
+                    choices = [item for item in choices if item.get('employment_type') == 'internship'
+                               or '实习' in str(item.get('title') or item.get('role') or '')]
+                if '课程项目' in instruction and section == 'projects' and len(choices) > 1:
+                    sources = {item.get('item_id'): item for item in (collected or {}).get('projects', [])}
+                    choices = [item for item in choices if re.search(r'课程|作业', str(item) + str(sources.get(item['item_id'], {})))]
+                matches.extend(item['item_id'] for item in choices)
+        role = re.search(r'([\u4e00-\u9fffA-Za-z]{2,12})经历', instruction)
+        if role and not matches:
+            label = re.sub(r'^.*(?:把|将)', '', role[1])
+            matches.extend(item['item_id'] for section in ('work_experience', 'internship')
+                           for item in data.get(section) or [] if item.get('item_id') and not item.get('hidden')
+                           and label in str(item.get('title') or item.get('role') or ''))
+        if not matches and re.search(r'实习经历|课程项目|客服经历|行政经历', instruction):
+            return 'item', []
     ordinal = re.search(r'第([一二三四五六七八九十1-9])(?:个|段)?(项目|经历|实习|工作)', instruction)
     if ordinal:
         number = int(ordinal[1]) if ordinal[1].isdigit() else '一二三四五六七八九十'.index(ordinal[1]) + 1
@@ -64,6 +86,21 @@ def infer_edit_scope(data: dict, instruction: str) -> tuple[str, list[str]]:
         elif not matches:
             return 'item', []
     return ('item', list(dict.fromkeys(matches))) if matches else ('whole', [])
+
+
+def preserve_wording_scope(before: dict, after: dict, targets) -> dict:
+    """Keep headers, other items and document settings byte-for-byte unchanged."""
+    result = deepcopy(before)
+    changed = {item.get('item_id'): item for section in ('projects', 'work_experience', 'internship', 'campus', 'open_source', 'awards')
+               for item in after.get(section) or [] if item.get('item_id') in targets}
+    for section in ('projects', 'work_experience', 'internship', 'campus', 'open_source', 'awards'):
+        for item in result.get(section) or []:
+            new = changed.get(item.get('item_id'))
+            if new is not None:
+                for field in ('bullets', 'polished_bullets', 'description'):
+                    if field in new:
+                        item[field] = deepcopy(new[field])
+    return result
 
 
 def _has_visible_experience_body(data: dict) -> bool:
@@ -335,6 +372,9 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         from app.services.resume_versions import document_diff
         preserved = _preserve_supported_body(state, base_data)
         data, meta = preserved['resume_data'], preserved['resume_meta']
+        from app.agents.turn_actions import wording_only
+        if scope == 'item' and wording_only(instruction):
+            data = preserve_wording_scope(state['resume_data'], data, targets)
         measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
         diff = document_diff(state['resume_data'], data)
         if diff:
@@ -344,6 +384,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
             version = _sanitize_preserved_state({**version, 'collected_info': preserved['collected_info']})
         else:
             version = {**preserved, 'version_id': meta.get('version_id'), 'changed': False, 'diff': []}
+            version['resume_data'] = data
         data = version['resume_data']
         meta = valid_bullet_metadata(data, version['resume_meta'])
         from app.services.fact_coverage import ensure_fact_coverage
@@ -473,6 +514,15 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         if not changed and not writer_used:
             break
     from app.services.fact_coverage import coverage_notice, ensure_fact_coverage
+    from app.agents.turn_actions import wording_only
+    if scope == 'item' and wording_only(instruction):
+        scoped = preserve_wording_scope(state.get('resume_data') or base_data, data, targets)
+        if scoped != data:
+            data = scoped
+            measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
+        for item_id, records in (state.get('resume_meta') or {}).get('bullets', {}).items():
+            if item_id not in targets:
+                meta.setdefault('bullets', {})[item_id] = deepcopy(records)
     coverage = ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     version = prepare_version(state.get('resume_data') or {}, state.get('resume_meta') or {},
                                state.get('resume_versions') or [], data, meta,
@@ -486,7 +536,9 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                                   compression_writer_diagnostics=compression_diagnostics,
                                   compression_retention_checks=retention_checks,
                                   guard_fallbacks=written.get('guard_fallbacks') or [])
-    changes = [line for line in written.get('change_summary') or [] if '条已确认事实保留为备用' not in line]
+    prior_notice = coverage_notice((written.get('resume_meta') or {}).get('fact_coverage') or {})
+    changes = [line for line in written.get('change_summary') or []
+               if line != prior_notice and '条已确认事实保留为备用' not in line]
     if notice := coverage_notice(coverage):
         changes.insert(0, notice)
     if not version['changed']:

@@ -14,7 +14,7 @@ from app.services.resume_field_hygiene import project_role
 from app.services.candidate_sections import SECTION_LABELS, parse_header_fields, parse_labelled_items
 
 _PROJECT_SECTION = re.compile(r"^项目经历(?:\s*[（(].*[）)])?$")
-_EDUCATION_SECTION = re.compile(r"^教育(?:背景|经历)(?:\s*[（(].*[）)])?$")
+_EDUCATION_SECTION = re.compile(r"^教育(?:背景|经历)?(?:\s*[（(].*[）)])?$")
 _SKILL_SECTION = re.compile(r"^(?:产品与技术能力|专业技能|技能(?:与工具)?)(?:\s*[（(].*[）)])?$")
 _AWARD_SECTION = re.compile(r"^(?:获奖经历|荣誉奖项|证书|竞赛与活动)(?:\s*[（(].*[）)])?$")
 _STOP_SECTION = re.compile(
@@ -82,8 +82,19 @@ def _contact_header(line: str) -> dict:
 
 def _resume_lines(text: str) -> list[str]:
     lines = []
+    # Labelled TXT attachments use one field per line rather than resume pipes.
+    text = re.sub(r"(?m)^学校[：:]\s*([^\n]+)\n专业[：:]\s*([^\n]+)\n学历[：:]\s*([^\n]+)(?:\n时间[：:]\s*([^\n]+))?",
+                  lambda m: '教育背景：' + '，'.join(value for value in m.groups() if value), text)
     for raw in text.splitlines():
         line = re.sub(r"^\s*#{1,6}\s+", "", raw).strip()
+        course = re.match(r"^课程项目(?:名称)?[：:]\s*([^，,。\n]+)(.*)$", line)
+        if course:
+            lines.extend(['项目经历', course[1].strip() + '｜课程项目'])
+            if course[2].strip('，, '):
+                lines.append(course[2].strip('，, '))
+            continue
+        line = re.sub(r'^课程项目时间[：:]\s*', '', line)
+        line = re.sub(r'^学生组织[：:]', '校园经历：', line)
         # Chat messages commonly put a section label and its first fact on one
         # line. Normalize only known labels, never arbitrary prose or commands.
         label, separator, content = re.sub(r"^\*\*(.+?)\*\*", r"\1", line).replace(":", "：", 1).partition("：")
@@ -105,7 +116,10 @@ def _documents(text: str) -> list[tuple[str, str]]:
         documents.append(("附带文字", text[:matches[0].start()]))
     for index, match in enumerate(matches):
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        documents.append((match.group(1).strip(), text[match.end():end]))
+        body, separator, instruction = text[match.end():end].partition('\n\n---\n\n')
+        documents.append((match.group(1).strip(), body))
+        if separator and instruction.strip():
+            documents.append(('附带文字', instruction))
     return documents
 
 
@@ -155,7 +169,10 @@ def _project_heading(line: str) -> dict | None:
 def _looks_like_document(text: str) -> bool:
     if _NON_CANDIDATE.search(text):
         return False
-    if any(parse_labelled_items(text).values()):
+    if re.match(r'^课程项目(?:名称)?[：:]', text) and '\n' not in text:
+        return False  # A short spoken experience still belongs to extraction.
+    if (re.search(r'(?m)^课程项目(?:名称)?[：:]', text) and re.search(r'(?m)^(?:姓名|教育|学校)[：:]', text)
+            or any(parse_labelled_items(text).values())):
         return True
     lines = _resume_lines(text)
     sections = {
@@ -169,6 +186,33 @@ def _looks_like_document(text: str) -> bool:
     return has_context and any(
         _project_heading(line) for line in lines if not _DOCUMENT_INSTRUCTION.match(_plain(line))
     )
+
+
+def personal_attachment(text: str) -> bool:
+    """Strong personal labels override a classifier guess for uploaded files."""
+    text = text.split('\n\n---\n\n', 1)[0]
+    return bool('[文件' in text and re.search(r'姓名[：:]|教育[：:]|学校[：:]', text)
+                and re.search(r'课程|项目经历|我负责|学生组织|校园经历', text)
+                and not re.search(r'岗位职责|任职要求|招聘|职位要求', text))
+
+
+def split_mixed_material(text: str) -> tuple[str, str]:
+    """Split explicitly marked JD blocks, ending at a clear personal boundary.
+
+    A first-person sentence inside an unlabelled recruiter brief is insufficient
+    to claim personal ownership. Keep that conservative provenance boundary.
+    """
+    marker = re.search(r'(?:目标岗位\s*JD|目标\s*JD|新的?\s*JD|(?:^|\n)\s*JD)\s*[：:]', text, re.I)
+    if not marker:
+        return text, ''
+    prefix, tail = text[:marker.start()], text[marker.end():]
+    boundary = re.search(r'(?:^|(?<=[。\n]))\s*(?:(?:20\d{2}[^。\n]{0,28})?\s*在.{1,30}(?:做|任|实习)|'
+                         r'姓名[：:]|教育[：:]|我的经历[：:]|本人经历[：:]|课程项目|实习[：:]|工作[：:]|我负责)', tail)
+    if not boundary:
+        return (prefix, text[marker.start():]) if re.search(r'姓名|教育|我叫|大学|学院', prefix) else (text, '')
+    candidate = prefix + tail[boundary.start():]
+    jd = text[marker.start():marker.end()] + tail[:boundary.start()]
+    return (candidate, jd.strip()) if re.search(r'姓名|教育|我叫|我负责|本人经历', candidate) else (text, '')
 
 
 def looks_like_existing_resume(text: str) -> bool:
@@ -201,7 +245,8 @@ def _education(line: str) -> dict | None:
     if fields.get("school") and fields.get("degree") and fields.get("major"):
         return {"school": fields["school"], "major": fields.get("major", ""),
                 "degree": fields["degree"], "start_date": fields.get("start_date", ""),
-                "end_date": fields.get("end_date", ""), "highlights": fields.get("highlights", "")}
+                "end_date": fields.get("end_date") or next((part for part in parts[2:] if re.search(r"20\d{2}", part)), ""),
+                "highlights": fields.get("highlights", "")}
     degree_match = re.search(r"[（(](本科|硕士|博士|专科)[）)]", parts[1])
     degree = degree_match.group(1) if degree_match else next((part for part in parts[2:] if part in {"本科", "硕士", "博士", "专科"}), "")
     return {
@@ -232,7 +277,7 @@ def _parse_document(text: str) -> dict | None:
     result = {"basic_info": {}, "education": [], "projects": [], "skills": [], "certificates": [], "verification_notes": notes,
               "metadata_context": []}
     summary_lines: list[str] = []
-    result.update(parse_labelled_items(text, source="import"))
+    result.update(parse_labelled_items(re.sub(r'(?m)^学生组织[：:]', '校园经历：', text), source="import"))
     basic = result["basic_info"]
     basic.update(parse_header_fields(text))
     section = "intro"
@@ -369,6 +414,9 @@ def _parse_document(text: str) -> dict | None:
                 _append_wrapped(current["_description_lines"], line)
         elif section in {"skills", "certificates"} and not heading_uncertain:
             if not _UNSAFE_CLAUSE.search(line):
+                if section == 'skills':
+                    line = '，'.join(part for part in re.split(r'[，,；;]', line)
+                                    if not re.search(r'不会|没有|未使用|不熟悉|不具备', part))
                 _append_wrapped(result[section], line)
         elif section == "summary" and not _UNSAFE_CLAUSE.search(line):
             _append_wrapped(summary_lines, line)

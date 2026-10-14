@@ -16,7 +16,7 @@ MAX_OTHER = 3
 
 _VOCABULARY: tuple[tuple[str, re.Pattern], ...] = (
     ("其他", re.compile(r"摄影|拍摄")),
-    ("设计工具", re.compile(r"photoshop|illustrator|可画|canva", re.I)),
+    ("设计工具", re.compile(r"photoshop|illustrator|可画|canva|剪映", re.I)),
     ("AI 工具", re.compile(r"即梦|workbuddy", re.I)),
     ("办公软件", re.compile(r"word|excel|ppt|powerpoint", re.I)),
     ("工具", re.compile(r"^(?:claude\s*code|codex|cursor|chatgpt|gemini|figma|google\s*stitch|openclaw|notion|xmind|excel|"
@@ -35,7 +35,7 @@ _GROUP_ALIASES = {
     "开发与工具": "开发", "前端": "开发", "后端": "开发", "数据库": "开发", "框架": "开发",
 }
 _SUFFIX = re.compile(r"(?:概念与应用场景|概念及应用|应用场景|开发经验|项目经验|辅助开发|生产级使用|熟练使用|经验|使用)$")
-_PREFIX = re.compile(r"^(?:使用(?!过)|用(?!户|过))\s*")
+_PREFIX = re.compile(r"^(?:会使用|会用|使用(?!过)|用(?!户|过))\s*")
 _BRACKET = re.compile(r"[（(][^）)]*[）)]")
 
 
@@ -53,8 +53,11 @@ def split_skills(values: Iterable[str]) -> list[str]:
             head, tail = re.split(r"[:：]", text, maxsplit=1)
             if len(head) <= 8 and tail.strip():
                 text = tail
-        text = _BRACKET.sub("", text)
+        text = _BRACKET.sub(lambda m: "（基础）" if m[0] in {"(基础)", "（基础）"} else "", text)
+        text = re.sub(r"^(?:会一点|会点|基础)(.+)$", r"\1（基础）", text)
         for part in re.split(r"[/、,，;；·|]|\s+及\s+|\s+和\s+", text):
+            if re.search(r"不会|没有|未(?:使用|掌握|学)|没用|不熟悉|不具备|不了解|无.{0,12}经验", part):
+                continue
             part = _PREFIX.sub("", trim_name_punctuation(part))
             part = _SUFFIX.sub("", part).strip()
             part = _SUFFIX.sub("", part).strip()
@@ -81,7 +84,7 @@ def normalize_skill_groups(groups: Mapping[str, Sequence[str]], extra: Iterable[
                            jd_terms: Iterable[str] = ()) -> dict[str, list[str]]:
     """Fixed categories, deduped, JD-ordered, ≤8 per group and ≤3 in 其他."""
     def identity(value):
-        return _key(re.sub(r"^(?:精通|熟练(?:使用)?|熟悉|掌握|会使用|会用|用过|使用过|了解|基础)", "", value))
+        return _key(re.sub(r"^(?:精通|熟练(?:使用)?|熟悉|掌握|会使用|会用|用过|使用过|了解|基础)", "", value).replace("（基础）", ""))
     extra = split_skills(extra)
     protected = {identity(skill) for skill in extra}
     seen: dict[str, tuple[str, str]] = {}

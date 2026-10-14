@@ -24,7 +24,8 @@ from app.services.speculative import SpeculativeScope
 from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
 from app.services.resume_capacity import normalize_session_constraints, writer_capacity_budget
-from app.services.candidate_language import resume_bullet, safe_objective
+from app.services.candidate_language import constraint_only, resume_bullet, safe_objective
+from app.services.auto_polish_gate import needs_polish
 from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_limits import preserve_item_limits
 from app.services.resume_sections import DEFAULT_SECTIONS
@@ -80,6 +81,7 @@ plain 写法的一条 bullet = 问题/场景+本人动作与方法+结果或产�
 _COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
 _STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；「问题：」只复述资料中的问题本身，不添加频率（常/经常/总是）、程度或后果（如「无法使用」「影响体验」），标签须与内容一致：描述问题的句子不能标为「结果」；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
 _PROSE_CONTRACT = """所有经历正文（projects/work_experience/campus/open_source/awards，实习已合并至 work_experience）都要改写为简历语言，动词开头，去第一人称、时间铺垫和口语。组织/参与经历与担任职务合并在标题和角色，不重复成 bullet。排除自评、计划、提问（如认为能力尚浅、想知道适合什么岗位、认为可以接单）。不把「运用可画完成」升级为「独立设计」；独立性与动作必须分别有原文支持。"""
+_PROSE_CONTRACT += "status_limit 中的后台权限、账号负责人、选题决定权、文案来源和数据缺失只约束措辞，不单独成 bullet 或备用条目；据此禁止升级为负责、运营账号、策划选题、独立完成或增长成果。"
 _WRITE_CONTRACT += '\n' + _PROSE_CONTRACT
 _ONE_PASS_CONTRACT += '\n' + _PROSE_CONTRACT
 _WRITE_CONTRACT += '\n' + _STYLE_CONTRACT
@@ -373,7 +375,7 @@ _FILLER = re.compile(r"课程原型|原型|demo|模拟数据|小组作业|形式
 
 
 def _is_substantive(fact: dict | None) -> bool:
-    return bool(fact) and fact.get("kind") in SUBSTANTIVE_KINDS
+    return bool(fact) and fact.get("kind") in SUBSTANTIVE_KINDS and not constraint_only(fact.get("source_quote") or fact.get("text", ""))
 
 
 def _merge_context_only_rows(rows: list[dict], facts: Mapping[str, dict], style: str = "plain") -> list[dict]:
@@ -821,6 +823,8 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
         refs = list(dict.fromkeys(proposal.fact_ids))
         if proposal.text.strip() and refs and all(fid in facts and facts[fid]["item_id"] == row["item_id"]
                                                    and _body_fact(facts[fid]) for fid in refs):
+            if proposal.text.strip() != row["text"]:
+                row.pop("polish_reasons", None)
             repaired.append({"id": row["id"], "item_id": row["item_id"], "text": proposal.text,
                              "fact_ids": refs})
             row.update(text=proposal.text, fact_ids=refs,
@@ -864,6 +868,63 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
             fallbacks[-1]["semantic_unsupported_spans"] = list(
                 (verdict.get("semantic") or {}).get("unsupported_spans") or [])
     return [row for row in candidates if row["text"] and row["fact_ids"]], fallbacks
+
+
+async def _polish_rows(rows: list[dict], facts: dict, model, writer_llm, role_family: str, *, force=False, unavailable_ids=()) -> list[dict]:
+    """Rewrite only gated bullets, with the same guard as ordinary writing."""
+    pending = []
+    for row in rows:
+        quotes = [facts[fid].get("source_quote") or facts[fid]["text"] for fid in row["fact_ids"] if fid in facts]
+        siblings = [other["text"] for other in rows if other is not row and other["item_id"] == row["item_id"]]
+        reasons = list(dict.fromkeys([*row.pop("polish_reasons", []), *needs_polish(row["text"], source_quotes=quotes, siblings=siblings)]))
+        if force:
+            reasons.append("coverage_restoration")
+        row["polish"] = {"rewritten": False, "reasons": reasons, "method": "unchanged"}
+        if reasons:
+            pending.append(row)
+    if not pending:
+        return rows
+    requests = [row for row in pending if row["id"] not in unavailable_ids]
+    ids = {row["id"] for row in requests}
+    item_ids = {row["item_id"] for row in pending}
+    payload = {"bullets": [{key: row[key] for key in ("id", "item_id", "text", "fact_ids", "polish")} for row in requests],
+               "active_facts": [fact for fact in facts.values() if fact["item_id"] in item_ids]}
+    contract = ("只润色给出的单条 bullet，返回 RepairOutput，保持 id 与原 fact_ids。未列出的句子不得改写。"
+                "去第一人称、口语与流水账，动词开头，不补原因、职责、工具、数量或结果，不丢原有独立动作。"
+                "同一动作的概括与具体描述合并，不为凑字数添加形容词。" + _PROSE_CONTRACT)
+    proposals = {}
+    try:
+        if requests:
+            result = await _call(writer_llm, RepairOutput, payload, contract, role_family, run_name="writer_polish")
+            proposals = {row.id: row for row in result.bullets if row.id in ids}
+    except Exception:
+        pass
+    candidates = []
+    for row in pending:
+        proposal = proposals.get(row["id"])
+        if proposal and set(proposal.fact_ids) == set(row["fact_ids"]) and all(
+                fid in facts and facts[fid]["item_id"] == row["item_id"] for fid in proposal.fact_ids):
+            text = proposal.text.strip()
+            if text and not constraint_only(text) and not {"first_person", "colloquial"}.intersection(needs_polish(text)):
+                candidates.append({"id": row["id"], "item_id": row["item_id"], "text": text, "fact_ids": proposal.fact_ids})
+    checked = await guard_bullets(candidates, list(facts.values()), llm=model, run_name="polish_semantic") if candidates else []
+    accepted = {row["id"] for row in checked if row["verdict"] == "pass"}
+    by_id = {row["id"]: row for row in candidates}
+    for row in pending:
+        before = row["text"]
+        if row["id"] in accepted:
+            row["text"] = by_id[row["id"]]["text"]
+            method = "writer"
+        else:
+            text = resume_bullet(strip_absence(before))
+            # Deletion/literal verb normalization is the outage fallback. It
+            # still passes lexical, quantity, ownership and tool checks.
+            fallback = {"id": row["id"], "item_id": row["item_id"], "text": text, "fact_ids": row["fact_ids"]}
+            verdict = await guard_bullets([fallback], list(facts.values()), lexical_only=True) if text else []
+            row["text"] = text if verdict and verdict[0]["verdict"] == "pass" else ""
+            method = "deterministic" if row["text"] else "rejected"
+        row["polish"].update(rewritten=_hash(row["text"]) != row.get("polish_original_hash", _hash(before)), method=method)
+    return [row for row in rows if row["text"]]
 
 
 _CONTRACT_REPAIR = """你在按编辑契约修复一个条目的 bullet。返回 RepairOutput：只返回需要改的 bullet，每个原样带 id，
@@ -1225,6 +1286,9 @@ async def _run_resume_writer(
                 reasons.append("unknown_or_cross_item_fact_id")
             candidate_rows.append({"id": f"b{len(candidate_rows)}", "item_id": item_id,
                                    "section": written.section, "field": field, "bullet_index": bullet_index,
+                                   "polish_reasons": needs_polish(LABEL.sub("", bullet.text.strip()), source_quotes=[
+                                       facts[fid].get("source_quote") or facts[fid]["text"] for fid in refs if fid in facts]),
+                                   "polish_original_hash": _hash(LABEL.sub("", bullet.text.strip())),
                                    "text": resume_bullet(LABEL.sub("", bullet.text.strip()),
                                                          name=item.get("name") or item.get("company") or "",
                                                          role=item.get("role") or item.get("title") or ""), "fact_ids": refs,
@@ -1253,6 +1317,9 @@ async def _run_resume_writer(
         instruction=instruction, scope=scope, targets=targets,
         constraints=effective_constraints, capacity_budget=capacity,
         extra_guards=extra_guards, guard_results=plan_checks)
+    unavailable = ([row["id"] for row in checked] if writer_diagnostic.get("status") == "model_fallback"
+                   else [row["bullet_id"] for row in fallbacks if row.get("bullet_id")])
+    checked = await _polish_rows(checked, facts, model, llm, role_family, unavailable_ids=unavailable)
     by_item = {}
     for row in checked:
         by_item.setdefault(row["item_id"], []).append(row)
@@ -1310,12 +1377,12 @@ async def _run_resume_writer(
                 if index >= len(texts):
                     continue
                 texts[index] = row["text"]
-                prior_meta[index] = {key: row[key] for key in ("fact_ids", "req_ids", "flags", "needs_metric", "metric_question")}
+                prior_meta[index] = {key: row[key] for key in ("fact_ids", "req_ids", "flags", "needs_metric", "metric_question", "polish") if key in row}
                 prior_meta[index]["text_hash"] = _hash(row["text"])
             item[field], metadata[item_id] = texts, prior_meta
         else:
             item[field] = [row["text"] for row in rows]
-            metadata[item_id] = [{**{key: row[key] for key in ("fact_ids", "req_ids", "flags", "needs_metric", "metric_question")},
+            metadata[item_id] = [{**{key: row[key] for key in ("fact_ids", "req_ids", "flags", "needs_metric", "metric_question", "polish") if key in row},
                                   "text_hash": _hash(row["text"])} for row in rows]
             item["hidden"] = False
     omitted = []
@@ -1457,7 +1524,7 @@ async def _run_resume_writer(
         else:
             meta.pop("summary", None)
     sync_flat_skills(output)
-    from app.services.fact_coverage import coverage_notice, ensure_fact_coverage
+    from app.services.fact_coverage import cite_entailed_facts, coverage_notice, ensure_fact_coverage
     withheld = {row["item_id"]: row.get("reason") or "按本版方案设为备用"
                 for row in match_plan["experience_plan"] if row["treatment"] == "backup" or row["target_bullets"] == 0}
     # User-confirmed counts remain binding; a model's default two bullets must
@@ -1465,10 +1532,49 @@ async def _run_resume_writer(
     fixed_count = phase == "write" or re.search(r"(?:[一二两三四五六\d]+|一)\s*条|合并.*一条", instruction)
     if fixed_count:
         withheld.update({item_id: "按已确认方案或指定条数保留重点，其余事实备用" for item_id in allowed})
+    coverage_caps = {row.item_id: target_caps[row.item_id] for row in plan.experience_plan
+                     if row.item_id in target_caps} if writer_diagnostic.get("status") != "model_fallback" else {}
+    indexed_output = {item["item_id"]: (section, item) for section in SECTIONS for item in output.get(section) or []}
+    await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
+    report = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
+    missing = []
+    for entry in report["facts"]:
+        fid, item_id = entry["fact_id"], entry["item_id"]
+        if entry["status"] != "omitted" or item_id not in allowed or item_id in withheld or scope == "bullet":
+            continue
+        pair = indexed_output.get(item_id)
+        if not pair or pair[1].get("hidden") or fid not in facts or not _body_fact(facts[fid]):
+            continue
+        section, item = pair
+        if len(item.get("polished_bullets" if section == "projects" else "bullets") or []) >= coverage_caps.get(item_id, float("inf")):
+            continue
+        text = resume_bullet(strip_absence(facts[fid]["text"]), name=item.get("name") or item.get("company") or "")
+        if text and not _bare_phase(text, item.get("name") or item.get("company") or ""):
+            missing.append({"id": fid, "item_id": item_id, "text": text, "fact_ids": [fid]})
+    restored = await _polish_rows(missing, facts, model, llm, role_family, force=True,
+                                  unavailable_ids=[row["id"] for row in missing]
+                                  if writer_diagnostic.get("status") == "model_fallback" else ()) if missing else []
     coverage = ensure_fact_coverage(output, meta, collected_info,
-                                    repair_ids=allowed if scope != "bullet" else (), withheld=withheld,
-                                    caps={row.item_id: target_caps[row.item_id] for row in plan.experience_plan
-                                          if row.item_id in target_caps} if writer_diagnostic.get("status") != "model_fallback" else {})
+                                    repair_ids=allowed if scope != "bullet" else (), withheld=withheld, caps=coverage_caps,
+                                    repairs={row["id"]: row for row in restored})
+    restored_count = coverage["restored"]
+    # Recheck duplicates after recovery; merging citations must not turn two
+    # independent responsibilities into a single claim.
+    for item_id in allowed:
+        if scope == "bullet" or item_id not in indexed_output:
+            continue
+        section, item = indexed_output[item_id]
+        field = "polished_bullets" if section == "projects" else "bullets"
+        rows = [{**record, "text": text, "item_id": item_id} for text, record in
+                zip(item.get(field) or [], meta.get("bullets", {}).get(item_id, []))]
+        rows = _without_near_duplicate_rows(rows, facts, bullet_style if section == "projects" else "plain")
+        item[field] = [row["text"] for row in rows]
+        meta.setdefault("bullets", {})[item_id] = [{**{key: value for key, value in row.items()
+                                                     if key not in {"id", "text", "item_id"}},
+                                                  "text_hash": _hash(row["text"])} for row in rows]
+    await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
+    coverage = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
+    coverage["restored"] = restored_count
     if notice := coverage_notice(coverage):
         changes.insert(0, notice)
     if coverage["restored"]:

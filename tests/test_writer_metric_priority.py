@@ -56,7 +56,7 @@ class MetricPriorityTest(unittest.TestCase):
         ])
         result = run(model)
         self.assertEqual(bullets_of(result), ["实现命令行解析模块", METRIC])
-        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "WriterDraft"])
+        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "WriterDraft", "RepairOutput"])
         self.assertIn("m1", model.calls[1][1][-1].content)  # 修复调用带缺失清单
 
     def test_still_missing_after_repair_replaces_least_informative_when_full(self):
@@ -83,23 +83,23 @@ class MetricPriorityTest(unittest.TestCase):
         self.assertEqual(bullets_of(result), ["实现命令行解析模块", "设计插件加载机制", METRIC])
         self.assertTrue(result["resume_meta"]["bullets"]["p1"][-1]["text_hash"])
 
-    def test_already_cited_metric_makes_no_extra_call(self):
+    def test_already_cited_metric_only_needs_source_echo_polish(self):
         model = FakeModel([first_pass("keep", [(METRIC, ["m1"]), ("实现命令行解析模块", ["a1"])])])
         result = run(model)
         self.assertEqual(bullets_of(result), [METRIC, "实现命令行解析模块"])
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(len(model.calls), 2)
 
     def test_brief_item_is_not_forced(self):
         model = FakeModel([first_pass("brief", [("实现命令行解析模块", ["a1"])])])
         result = run(model)
         self.assertNotIn(METRIC, bullets_of(result))
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(len(model.calls), 2)
 
     def test_non_metric_kind_is_not_forced(self):
         model = FakeModel([first_pass("keep", [("实现命令行解析模块", ["a1"])])])
         result = run(model, kind="result_qualitative")
         self.assertNotIn(METRIC, bullets_of(result))
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "RepairOutput", "RepairOutput"])
 
 
 if __name__ == "__main__":

@@ -145,7 +145,7 @@ class PlanValidationRegression(unittest.IsolatedAsyncioTestCase):
         written.update(summary='这个未采用的摘要不需要额外核验', summary_fact_ids=['f1'])
         model = PlanModel([('WriterDraft', written)])
         result = await run_resume_writer(source(), {}, model, previous_plan=selected, phase='write')
-        self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch'])
+        self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch', 'RepairOutput', 'SemanticBatch'])
         self.assertEqual({row['id'] for row in model.batches[0]}, {'b0', 'plan_positioning_0'})
         self.assertEqual(result['resume_data']['summary'], selected['positioning'])
 
@@ -153,7 +153,7 @@ class PlanValidationRegression(unittest.IsolatedAsyncioTestCase):
         selected = select_plan(card())
         model = PlanModel([('WriterDraft', writer_draft())], fail_ids=['plan_positioning_0'])
         result = await run_resume_writer(source(), {}, model, previous_plan=selected, phase='write')
-        self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch'])
+        self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch', 'RepairOutput'])
         self.assertEqual(result['resume_data']['summary'], '')
         self.assertEqual(result['confirmed_plan']['positioning'], '')
         self.assertNotIn('summary', result['resume_meta'])
@@ -246,7 +246,7 @@ class CandidateRoutingRegression(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result['version_id'])
         self.assertFalse(result['pending_plan'])
         self.assertTrue(result['confirmed_plan'])
-        self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch'])
+        self.assertEqual(model.calls, ['WriterDraft', 'SemanticBatch', 'RepairOutput'])
 
     async def test_explicit_decode_task_cannot_bypass_personal_data_guard(self):
         current = {**intake_state(), 'requested_task': 'decode_jd'}

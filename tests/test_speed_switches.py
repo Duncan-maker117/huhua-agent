@@ -227,7 +227,7 @@ class EditReusePlanTest(unittest.TestCase):
 
     def test_reuses_plan_from_meta_and_only_asks_for_writer_draft(self):
         model, result = self.go(True, current=deepcopy(self.CURRENT), meta={"match_plan": self.PREVIOUS})
-        self.assertEqual([name for name, _ in model.calls], ["WriterDraft"])
+        self.assertEqual([name for name, _ in model.calls], ["WriterDraft", "RepairOutput"])
         sent = json.dumps([m.content for m in model.calls[0][1]], ensure_ascii=False)
         self.assertIn('\\"match_plan\\"', sent)
         self.assertEqual(result["writer_diagnostic"]["status"], "model_completed")
@@ -236,28 +236,28 @@ class EditReusePlanTest(unittest.TestCase):
 
     def test_explicit_previous_plan_param(self):
         model, _ = self.go(True, current=deepcopy(self.CURRENT), previous=self.PREVIOUS)
-        self.assertEqual([name for name, _ in model.calls], ["WriterDraft"])
+        self.assertEqual([name for name, _ in model.calls], ["WriterDraft", "RepairOutput"])
 
     def test_off_keeps_one_pass(self):
         model, result = self.go(False, current=deepcopy(self.CURRENT), meta={"match_plan": self.PREVIOUS},
                                 first="OnePassOutput")
-        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput"])
+        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "RepairOutput"])
         self.assertNotIn("plan_reused", result["writer_diagnostic"])
 
     def test_without_previous_plan_falls_back_to_one_pass(self):
         for meta in ({}, {"match_plan": {}}):
             model, _ = self.go(True, current=deepcopy(self.CURRENT), meta=meta, first="OnePassOutput")
-            self.assertEqual([name for name, _ in model.calls], ["OnePassOutput"])
+            self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "RepairOutput"])
 
     def test_invalid_previous_plan_falls_back_to_one_pass(self):
         model, _ = self.go(True, current=deepcopy(self.CURRENT), meta={"match_plan": {"requirements": "bad"}},
                            first="OnePassOutput")
-        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput"])
+        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "RepairOutput"])
 
     def test_first_draft_without_body_always_one_pass(self):
         for current in (None, {"projects": [{"item_id": "p2", "polished_bullets": []}]}):
             model, _ = self.go(True, current=current, meta={"match_plan": self.PREVIOUS}, first="OnePassOutput")
-            self.assertEqual([name for name, _ in model.calls], ["OnePassOutput"])
+            self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "RepairOutput"])
 
     def test_two_pass_mode_unaffected(self):
         planner = FakeModel([("MatchPlan", self.PREVIOUS)])

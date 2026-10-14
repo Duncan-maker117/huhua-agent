@@ -410,7 +410,7 @@ class HandsOnLiveFindingsTests(unittest.IsolatedAsyncioTestCase):
         facts = {"f1": {"id": "f1", "item_id": "p1", "kind": "status_limit", "text": "课程原型"},
                  "f2": {"id": "f2", "item_id": "p1", "kind": "action", "text": "做了行程推荐原型；没有用户量"}}
         text, refs = _fallback_bullet("p1", ["f1", "f2"], facts)
-        self.assertEqual((text, refs), ("做了行程推荐原型", ["f2"]))
+        self.assertEqual((text, refs), ("完成行程推荐原型", ["f2"]))
         self.assertEqual(_fallback_bullet("p1", ["f1"], {"f1": facts["f1"]}), ("", []))
 
 

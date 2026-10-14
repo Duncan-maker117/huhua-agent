@@ -525,6 +525,10 @@ def _candidate_source_allowed(message: HumanMessage) -> bool:
     Unlabelled examples and recruiter material are also excluded from fallback.
     Semantic interpretation still needs the extractor and human confirmation.
     """
+    from app.services.candidate_material import personal_attachment
+    text = message.content if isinstance(message.content, str) else ""
+    if message.additional_kwargs.get("career_material_type") == 'jd' and personal_attachment(text):
+        return True
     if message.additional_kwargs.get("career_material_type") in {
         "review",
         "jd",
@@ -534,7 +538,7 @@ def _candidate_source_allowed(message: HumanMessage) -> bool:
     text = message.content if isinstance(message.content, str) else ""
     if _is_review_intent(text):
         return False
-    if _has_jd_text(text):
+    if _has_jd_text(text) and not personal_attachment(text):
         return False
     if _re.search(
         r"(?:^|\n)\s*(?:示例简历|简历范文|参考简历|参考材料|虚构简历|以下是范文|他人简历)[:：]?"
@@ -1009,6 +1013,15 @@ def _bind_followup_target(previous: dict, collected: dict, reply: str, *, focus_
 
 
 def _finish_followup_turn(state: dict, result: dict) -> dict:
+    if _no_more_questions(state):
+        result["messages"] = [message.model_copy(update={"content": _one_followup_question(
+            _re.sub(r"(?m)^.*(?:需要你补充|请你?补充|待你补充).*$", "", message.content), asked=True)})
+            if isinstance(message, AIMessage) and isinstance(message.content, str) else message
+            for message in result.get("messages") or []]
+        collected = copy.deepcopy(result.get("collected_info") or state.get("collected_info") or {})
+        collected.pop("followup_target", None)
+        result["collected_info"] = collected
+        return result
     if result.get("messages"):
         from app.services.resume_workspace import _reply_question
         asked = False
@@ -1082,6 +1095,9 @@ def _clean_unrecorded_notes(collected: dict, previous: dict, patch: dict) -> Non
     for note in collected.get("verification_notes") or []:
         if isinstance(note, str) and note.startswith("这句没有记下来："):
             clause = note.removeprefix("这句没有记下来：")
+            objective = (collected.get("basic_info") or {}).get("objective")
+            if objective and objective in clause and _re.search(r"想投|求职|应聘", clause):
+                continue
             if clause in old_clauses or any(
                 not lexical_fact_errors(clause, quote) and _clause_covered(normalize_text(clause), [quote])
                 for quote in quotes
@@ -1162,12 +1178,20 @@ def _latest_human_text(state: dict) -> str:
                  and isinstance(m.content, str)), "")
 
 
+def _no_more_questions(state: dict) -> bool:
+    return bool((state.get("collected_info") or {}).get("no_more_questions") or any(
+        _re.search(r"不要再追问|不要追问|不用问了|不要再问|别再问|(?<!不要)(?<!先不)直接生成", m.content)
+        for m in state.get("messages", []) if isinstance(m, HumanMessage) and isinstance(m.content, str)))
+
+
 async def _extract_info_from_message(
     message: str, current: dict, llm: ChatOpenAI,
 ) -> dict:
     """Apply a sparse, per-fact validated user message patch."""
     from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch, followup_item
     from app.services.resume_facts import normalize_fact_store
+    if _no_more_questions({"messages": [HumanMessage(content=message)]}):
+        current = {**current, "no_more_questions": True}
 
     normalized = normalize_fact_store(current)
     previous_reply = _previous_assistant.get()
@@ -1363,11 +1387,54 @@ def _has_personal_features(text: str) -> bool:
 
 def _jd_decode_allowed(text: str, state: dict) -> bool:
     """A triage guess or explicit task cannot replace a JD with personal data."""
+    from app.services.candidate_material import personal_attachment
+    if personal_attachment(text):
+        return False
     if _has_jd_text(text):
         return True
     if _has_personal_features(text):
         return False
     return not (state.get('jd_text') or has_job_description(state.get('jd_info')))
+
+
+async def _separate_candidate_turn(state: dict, llm) -> dict:
+    """Recover misclassified attachments and split clearly labelled mixed input."""
+    from app.services.candidate_material import personal_attachment, split_mixed_material
+    message = next((m for m in reversed(state.get('messages', [])) if isinstance(m, HumanMessage)), None)
+    if message is None or message.additional_kwargs.get('candidate_input_prepared'):
+        return {}
+    if message.additional_kwargs.get('career_material_type') in {'review', 'reference'}:
+        return {}
+    text = message.content
+    recovered = False
+    if _re.search(r'个人经历|个人材料|本人材料', text) and _re.search(r'不是.{0,8}(?:JD|招聘)', text, _re.I):
+        prior = next((m.content for m in reversed(state.get('messages', []))
+                      if isinstance(m, HumanMessage) and m is not message and personal_attachment(m.content)), '')
+        if not prior and personal_attachment(state.get('jd_text') or ''):
+            prior = state['jd_text']
+        if prior:
+            text = prior + '\n\n---\n\n' + text
+            recovered = True
+    candidate, jd = split_mixed_material(text)
+    if not jd and not recovered:
+        return {}
+    replacement = HumanMessage(content=candidate, id=message.id,
+                              additional_kwargs={**message.additional_kwargs, 'career_material_type': 'candidate',
+                                                 'candidate_input_prepared': True})
+    update = {'messages': [replacement if m is message else m for m in state['messages']],
+              'non_candidate_message_ids': [mid for mid in state.get('non_candidate_message_ids', []) if mid != message.id]}
+    if jd:
+        info, _ = await _run_decoder_and_build_reply(jd, llm)
+        update.update(jd_text=jd, jd_info=info or {},
+                      resume_strategy=build_resume_strategy(jd_info=info or {}, has_jd=bool(info)))
+    elif recovered and personal_attachment(state.get('jd_text') or ''):
+        update.update(jd_text='', jd_info={}, jd_skipped=True)
+    return update
+
+
+def _candidate_turn_result(prepared: dict, result: dict) -> dict:
+    message = next(m for m in reversed(prepared['messages']) if isinstance(m, HumanMessage))
+    return {**prepared, **result, 'messages': [message, *result.get('messages', [])]}
 
 
 def _stale_plan_confirmation(state: dict) -> dict | None:
@@ -1562,6 +1629,8 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段1：等待 JD / 跳过 JD / 轻量模式。由 Triage 决定走哪条分支。"""
+    if prepared := await _separate_candidate_turn(state, llm):
+        return _candidate_turn_result(prepared, await jd_input_node({**state, **prepared}, llm))
     messages = state["messages"]
     last_human = next(
         (m.content for m in reversed(messages) if isinstance(m, HumanMessage)), ""
@@ -1579,7 +1648,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     ):
         result = await collecting_node({**state, "stage": "COLLECTING"}, llm)
         if result.get("stage") == "BUILDING":
-            return {**result, **(await building_node({**state, **result}, llm))}
+            return {**result, **(await building_node({**state, **result, 'messages': [*state['messages'], *result.get('messages', [])]}, llm))}
         return {"stage": "COLLECTING", **result}
 
     if _looks_like_role_direction(last_human):
@@ -1624,7 +1693,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             llm,
         )
         if result.get("stage") == "BUILDING":
-            return {**result, **(await building_node({**state, **result}, llm))}
+            return {**result, **(await building_node({**state, **result, 'messages': [*state['messages'], *result.get('messages', [])]}, llm))}
         return {"stage": "COLLECTING", **result}
 
     # 分支 1：用户粘贴了 JD 原文 → 走解码
@@ -1636,7 +1705,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
                     {**state, "stage": "COLLECTING", "requested_task": "rewrite_experience"}, llm,
                 )
                 if result.get("stage") == "BUILDING":
-                    return {**result, **(await building_node({**state, **result}, llm))}
+                    return {**result, **(await building_node({**state, **result, 'messages': [*state['messages'], *result.get('messages', [])]}, llm))}
                 return {"stage": "COLLECTING", **result}
             return {
                 "messages": [AIMessage(content=reply)],
@@ -1710,6 +1779,8 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if prepared := await _separate_candidate_turn(state, llm):
+        return _candidate_turn_result(prepared, await collecting_node({**state, **prepared}, llm))
     if receipt := _stale_plan_confirmation(state):
         return receipt
     if _dialogue_requested(_latest_human_text(state)):
@@ -2213,6 +2284,8 @@ def _writer_reply(result: dict) -> str:
 
 
 def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
+    if _no_more_questions(state):
+        return "", state.get("asked_questions") or []
     from app.agents.interviewer import compose_interviewer_reply, education_question
     if (result.get("writer_diagnostic") or {}).get("status") == "model_fallback":
         note, asked = education_question({**state, **result})
@@ -2318,7 +2391,7 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         if (result.get('stage') == 'BUILDING' or
                 result.get('collected_info', state.get('collected_info')) != state.get('collected_info')):
             result.update(_clear_structure_plan({**state, **result}))
-            planned = await building_node({**state, **result}, llm)
+            planned = await building_node({**state, **result, 'messages': [*state['messages'], *result.get('messages', [])]}, llm)
             return {**result, **planned}
         result.update(pending_plan=card, plan_required=True, stage='BUILDING')
         return result
@@ -2369,6 +2442,8 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
 
 
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if prepared := await _separate_candidate_turn(state, llm):
+        return _candidate_turn_result(prepared, await evaluating_node({**state, **prepared}, llm))
     if receipt := _stale_plan_confirmation(state):
         return receipt
     latest = next((m.content for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), "")
@@ -2461,13 +2536,37 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             return {**updated, **(await building_node({**state, **updated}, llm))}
         return {'messages': [AIMessage(content='这段参考材料未作为本人事实写入，请说明要怎样修改当前稿。')]}
     collected = state.get('collected_info') or _empty_collected_info()
+    from app.services.fact_corrections import apply_literal_corrections, correction_pairs
+    pairs = correction_pairs(text)
+    if pairs:
+        corrected = apply_literal_corrections(collected, data, state.get('resume_meta') or {}, pairs)
+        if corrected.get('error'):
+            return {'messages': [AIMessage(content='更正未完成：' + corrected['error'])]}
+        from app.services.fact_coverage import ensure_fact_coverage
+        ensure_fact_coverage(corrected['resume_data'], corrected['resume_meta'], corrected['collected_info'])
+        from app.services.resume_versions import prepare_version
+        from app.agents.tailor_pipeline import constraints_for_turn
+        from app.services.resume_capacity import measure_rendered_pages
+        version = prepare_version(data, state.get('resume_meta') or {}, state.get('resume_versions') or [],
+                                  corrected['resume_data'], corrected['resume_meta'], label='更正事实')
+        measurement = await asyncio.to_thread(measure_rendered_pages, corrected['resume_data'], constraints_for_turn(state, text))
+        version['resume_meta']['page_check'] = measurement
+        changes = [f"{pair['old']} → {pair['new']}" for pair in pairs]
+        version['resume_meta']['change_summary'] = changes
+        version['resume_meta']['writer_diagnostic'] = {'status': 'not_called', 'reason': 'literal_correction'}
+        return {**version, 'collected_info': corrected['collected_info'], 'page_check': measurement,
+                'stage': 'EVALUATING', 'resume_draft': resume_to_text(version['resume_data']),
+                'change_summary': changes,
+                'messages': [AIMessage(content='已更新正文中的' + '、'.join(changes) + '，其他内容保持不变。')]}
+    from app.agents.turn_actions import wording_only
+    local_wording = wording_only(text)
     imported = parse_existing_resume(text)
     updated = collected
     route_task = None
     previous_assistant = _latest_previous_assistant(state.get('messages', []))
     if imported:
         updated = _merge_imported_candidate(collected, imported)
-    elif _generation_contains_facts(text, editing_existing=True):
+    elif not local_wording and _generation_contains_facts(text, editing_existing=True):
         extract_llm = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
         # The router model call never reads the extracted facts (only its post-processing
         # does), so it runs alongside extraction and is consumed by route_intents below.
@@ -2495,8 +2594,8 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                    if isinstance(m, HumanMessage) and isinstance(m.content, str) and m is not message
                    and m.id not in set(state.get('non_candidate_message_ids') or [])]
         updated, _recovered = recover_named_facts(text, updated, history, labels)
-    direction = _direction_profile_update(state, text, updated)
-    scope, targets = infer_edit_scope(data, text)
+    direction = {} if local_wording else _direction_profile_update(state, text, updated)
+    scope, targets = infer_edit_scope(data, text, updated)
     operation_results = []
     edit_constraints = state.get('session_constraints')
     before_edit = copy.deepcopy(data)
@@ -2524,6 +2623,16 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                 targets = executed['writer_requests'][0]['targets']
     if imported or updated != collected or direction:
         scope, targets = 'whole', []
+    if local_wording:
+        updated = collected
+        # Neither a model's field hallucination nor a whole-draft router plan
+        # can widen a literal experience selection.
+        data = before_edit
+        scope, targets = infer_edit_scope(before_edit, text, collected)
+        if scope == 'whole':
+            scope = 'item'
+            targets = [item['item_id'] for section in ('projects', 'work_experience', 'campus', 'open_source', 'awards')
+                       for item in before_edit.get(section) or [] if item.get('item_id') and not item.get('hidden')]
     if scope == 'item' and not targets:
         unanswered = [row for row in operation_results if row.get('status') in {'needs_confirmation', 'cannot'}]
         if unanswered:

@@ -126,9 +126,9 @@ class FidelityFollowupTests(unittest.IsolatedAsyncioTestCase):
         written = await run_resume_writer(source, {}, EchoWriter())
         groups = written['resume_data']['skill_groups']
         self.assertEqual(set(groups), {'设计工具', 'AI 工具', '办公软件', '其他'})
-        self.assertEqual(groups['办公软件'], ['会用Word', '会用Excel', '会用PPT'])
-        self.assertIn('会用Photoshop', groups['设计工具'])
-        self.assertIn('会用Illustrator', groups['设计工具'])
+        self.assertEqual(groups['办公软件'], ['Word', 'Excel', 'PPT'])
+        self.assertIn('Photoshop', groups['设计工具'])
+        self.assertIn('Illustrator', groups['设计工具'])
         self.assertIn('用过可画', groups['设计工具'])
         self.assertEqual(groups['AI 工具'], ['用过即梦', '用过WorkBuddy'])
         self.assertNotIn('精通', ' '.join(written['resume_data']['skills']))
@@ -146,7 +146,7 @@ class FidelityFollowupTests(unittest.IsolatedAsyncioTestCase):
             '设计工具': ['精通Photoshop', 'Figma'], '办公软件': ['精通Excel']}}})])
         written = await run_resume_writer(source, {}, model)
         flat = written['resume_data']['skills']
-        self.assertEqual(set(flat), {row['name'] for row in source['skills']})
+        self.assertEqual(set(flat), {row['name'].removeprefix('会用') for row in source['skills']})
         self.assertGreater(len(written['resume_data']['skill_groups']['其他']), 3)
 
     async def test_pipeline_reports_facts_omitted_by_final_compression(self):
@@ -169,7 +169,8 @@ class FidelityFollowupTests(unittest.IsolatedAsyncioTestCase):
             result = await run_tailor_pipeline({'collected_info': source, 'resume_data': {}, 'resume_meta': {}}, data, object())
         self.assertTrue(any(row['status'] == 'omitted' for row in result['resume_meta']['fact_coverage']['facts']))
         self.assertIn('备用', graph._writer_reply(result))
-        self.assertIn('办公室卫生管理', graph._writer_reply(result))
+        self.assertNotIn('办公室卫生管理', graph._writer_reply(result))
+        self.assertIn('可在右侧『核对』查看', graph._writer_reply(result))
 
 
 class FidelityDeterministicTests(unittest.TestCase):

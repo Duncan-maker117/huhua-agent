@@ -1,9 +1,9 @@
-"""Check the delivered text, not merely the IDs a writer chose to cite."""
+"""Coverage requires a live citation plus entailment, including subsumed facts."""
 import re
 from collections import Counter
 
 from app.schemas.facts import FACT_SECTIONS
-from app.services.candidate_language import resume_bullet
+from app.services.candidate_language import constraint_only, resume_bullet
 from app.services.fact_guard import duplicate_key, lexical_fact_errors, normalize_text, strip_absence
 from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_versions import text_hash
@@ -12,23 +12,87 @@ from app.services.resume_versions import text_hash
 def text_covered(text: str, bullets: list[str]) -> bool:
     from app.agents.fact_extractor import _clause_covered
     def normalized(value):
-        value = duplicate_key(value)
+        value = duplicate_key(resume_bullet(value))
+        value = re.sub(r"整理([^，,。；;]{1,18})并分类", r"分类整理\1", value)
+        value = value.replace("公众号文章", "文章")
+        value = re.sub(r"(?:完成)?(\d+)篇文章排版", r"排版\1篇文章", value)
+        value = re.sub(r"其中(\d+)篇的?初稿(?:是我写的|由本人撰写)", r"撰写\1篇初稿", value)
         return re.sub(r"(?<=[做用写查改])了", "", value)
     clauses = [normalized(part) for part in re.split(r"[，,。；;\n、]", text) if normalize_text(part)]
     quotes = [normalized(value) for value in bullets if value]
     # _clause_covered's reverse-substring rule is useful during extraction but
     # cannot prove a whole responsibility survived a shorter written fragment.
     return bool(clauses) and all(any(
-        _clause_covered(clause, [quote]) and not (quote in clause and quote != clause)
+        (_clause_covered(clause, [quote]) and not (quote in clause and quote != clause)
+         or _general_action_covered(clause, quote))
         and not lexical_fact_errors(clause, quote)
         for quote in quotes) for clause in clauses)
 
 
-def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=(), withheld=None, caps=None) -> dict:
+def _general_action_covered(general: str, specific: str) -> bool:
+    """Only broad action/object claims can disappear into a more specific claim.
+
+    Quantities, tools, purposes and extra actions in the general claim are not
+    discarded. Those require a separate citation/semantic entailment check.
+    """
+    patterns = (
+        (r"(?:协助)?(?:完成|制作)?公众号(?:文章)?排版", r"公众号|文章", r"排版"),
+        (r"(?:撰写|编写)(?:推文|公众号文章)(?:初稿)?", r"(?:推文|文章|初稿)", r"撰写|编写|写的"),
+        (r"拍摄(?:店里的?|店内的?)?短视频(?:素材)?", r"短视频", r"拍摄"),
+        (r"(?:协助(?:店长)?(?:制作)?|完成|制作)(?:促销)?海报", r"海报", r"制作|排版|完成|设计"),
+    )
+    return any(re.fullmatch(base, general) and re.search(obj, specific) and re.search(verb, specific)
+               and not re.search(r"(?:由|被)(?:店长|部长|同事|他人).{0,8}(?:" + verb + ")", specific)
+               for base, obj, verb in patterns)
+
+
+async def cite_entailed_facts(data: dict, meta: dict, collected: dict, llm, *, item_ids=()) -> None:
+    """Reverse-check what each cited bullet actually conveys, never trust overcitation."""
+    from app.services import fact_guard
+    from app.agents.fact_extractor import _bigrams
+    source = active_facts_for_writer(collected)
+    allowed, pairs, pending = set(item_ids), [], {}
+    for source_section in FACT_SECTIONS:
+        section = "work_experience" if source_section == "internship" else source_section
+        for original in source.get(source_section) or []:
+            item_id = original["item_id"]
+            if item_id not in allowed:
+                continue
+            item = next((row for row in data.get(section) or [] if row.get("item_id") == item_id), {})
+            body = item.get("polished_bullets" if section == "projects" else "bullets") or []
+            facts = {f["id"]: f for f in original.get("facts") or []}
+            for value, record in zip(body, meta.get("bullets", {}).get(item_id, [])):
+                if record.get("text_hash") != text_hash(value) or not record.get("fact_ids") or not set(record["fact_ids"]) <= facts.keys():
+                    continue
+                previous = set(record.get("coverage_fact_ids") or []) & facts.keys()
+                record["coverage_fact_ids"] = []
+                for fid, fact in facts.items():
+                    text = resume_bullet(strip_absence(fact["text"]))
+                    if fact.get("field") or not text or constraint_only(fact.get("source_quote") or fact["text"]):
+                        continue
+                    if fid in previous or text_covered(text, [value]):
+                        record["coverage_fact_ids"].append(fid)
+                    elif fid in record["fact_ids"] and not lexical_fact_errors(text, value):
+                        # Only uncertain near-paraphrases go to the semantic
+                        # channel. Unrelated overcited responsibilities stay missing.
+                        grams = _bigrams(normalize_text(text))
+                        if len(record["fact_ids"]) > 1 and len(grams & _bigrams(normalize_text(value))) / max(1, len(grams)) < .65:
+                            continue
+                        identifier = f"coverage{len(pairs)}"
+                        pairs.append({"id": identifier, "text": text, "source_quotes": [value]})
+                        pending[identifier] = (record, fid)
+    decisions = await fact_guard.verify_semantics(pairs, llm, run_name="coverage_entailment") if pairs else {}
+    for identifier, (record, fid) in pending.items():
+        if decisions.get(identifier, {}).get("verdict") == "pass":
+            record["coverage_fact_ids"].append(fid)
+
+
+def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=(), withheld=None, caps=None,
+                         repairs=None) -> dict:
     """Restore uncovered body facts, or record an explicit per-fact omission.
 
-    A caller may protect an explicit count/backup choice by supplying withheld
-    reasons. No LLM inference, cross-item matching, or new claims occur here.
+    Repairs must already have passed the writer/guard. An explicit count/backup
+    choice still wins. This audit never manufactures a raw-text fallback.
     """
     repair_ids, withheld, caps = set(repair_ids), withheld or {}, caps or {}
     prior_omissions = {row["fact_id"]: row["reason"] for row in (meta.get("fact_coverage") or {}).get("facts", [])
@@ -47,6 +111,8 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
             hidden = item is None or item.get("hidden") or (visible_sections is not None and section not in visible_sections)
             facts = original.get("facts") or []
             for fact in facts:
+                if constraint_only(fact.get("source_quote") or fact["text"]):
+                    continue
                 text = resume_bullet(strip_absence(fact["text"]), name=original.get("name") or original.get("company") or "",
                                      role=(item or {}).get("role") or (item or {}).get("title") or "")
                 fact_field = fact.get("field")
@@ -57,7 +123,21 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                 if section == "education" or fact_field:
                     covered = not hidden and text_covered(text or fact["text"], headers + displayed_body)
                 else:
-                    covered = not hidden and text_covered(text, displayed_body)
+                    records = meta.get("bullets", {}).get(item_id, [])
+                    own_ids = {row["id"] for row in facts}
+                    referenced_body = [value for value, record in zip(body, records)
+                                       if record.get("text_hash") == text_hash(value) and record.get("fact_ids")
+                                       and set(record["fact_ids"]) <= own_ids]
+                    cited_body = [value for value, record in zip(body, records)
+                                  if record.get("text_hash") == text_hash(value)
+                                  and fact["id"] in record.get("fact_ids", [])]
+                    entailed = any(record.get("text_hash") == text_hash(value)
+                                   and fact["id"] in record.get("coverage_fact_ids", [])
+                                   for value, record in zip(body, records))
+                    # Legacy drafts have no citations. A precise literal match
+                    # remains usable; new drafts carry validated coverage IDs.
+                    covered = not hidden and (entailed or text_covered(text, cited_body or referenced_body
+                                                                      or (displayed_body if not records else [])))
                 reason = ""
                 if not covered:
                     if hidden:
@@ -72,9 +152,12 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                         reason = withheld[item_id]
                     elif item_id in caps and len(body) >= caps[item_id]:
                         reason = "本版条数上限，未覆盖的职责保留为备用"
-                    elif not fact_field and section != "education" and item_id in repair_ids:
+                    elif (not fact_field and section != "education" and item_id in repair_ids
+                          and fact["id"] in (repairs or {})):
                         # A compound fact can cover several existing fragments.
                         # Keep the complete literal rewrite once, with all IDs.
+                        replacement = (repairs or {}).get(fact["id"], {})
+                        text = replacement.get("text", text)
                         records = meta.setdefault("bullets", {}).setdefault(item_id, [])
                         records.extend({} for _ in range(max(0, len(body) - len(records))))
                         subsumed = [i for i, value in enumerate(body) if text_covered(value, [text])]
@@ -82,7 +165,7 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                         body = [value for i, value in enumerate(body) if i not in subsumed]
                         records = [record for i, record in enumerate(records) if i not in subsumed]
                         body.append(text)
-                        records.append({"fact_ids": refs, "req_ids": [], "flags": [], "needs_metric": False,
+                        records.append({**replacement, "fact_ids": refs, "req_ids": [], "flags": [], "needs_metric": False,
                                         "metric_question": "", "text_hash": text_hash(text)})
                         item[field], meta["bullets"][item_id] = body, records
                         covered, restored = True, restored + 1
@@ -99,9 +182,5 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
 
 
 def coverage_notice(report: dict) -> str:
-    omitted = [row for row in report.get("facts", []) if row["status"] == "omitted"]
-    reasons = {}
-    for row in omitted:
-        reasons.setdefault(row["reason"], []).append(row.get("text") or row["fact_id"])
-    details = [reason + "（" + "；".join(dict.fromkeys(texts)) + "）" for reason, texts in reasons.items()]
-    return f"{len(omitted)} 条已确认事实保留为备用、不展示：{'；'.join(details)}。" if omitted else ""
+    omitted = [row for row in report.get("facts", []) if row["status"] == "omitted" and not constraint_only(row.get("text", ""))]
+    return f"另有 {len(omitted)} 条信息作为备用未放进这一版（可在右侧『核对』查看）。" if omitted else ""

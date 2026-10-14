@@ -27,6 +27,39 @@
 
 ## 当前状态
 
+2026-10-15 合成人物事实与输入回归修复（本地，未提交）：
+
+- 本批对应 `evaluation/persona-ux-2026-10-15/反馈.md` 第 1、2、3、5 项，直接使用 `fixtures.json` 和设计 TXT。`turn_actions` 分开形容词“更专业”和教育字段指令；抽取、路由共用专业校验。定向润色锁定经历，正常/失败 writer 路径均保留其他栏目、条目及目标经历标题字段。
+- 数字/明确引号片段更正走 `fact_corrections` 局部事务：先定位事实，经 `apply_fact_patch` 保留 superseded 审计和新引用，再同步全部相关 bullet、描述及有引用的摘要；更新引用、hash 和覆盖记录，校验新值出现/旧值消失后才能保存和回执。歧义、找不到正文、同句多个无法区分的同值均整轮保留原稿并说明失败；不调用 writer，不改其他措辞或数字。
+- 混合消息先拆出明确 JD 段落，同轮收集本人材料；个人附件优先导入，可从会话原附件纠正误分类。补“课程项目名称/时间”、逐行教育和学生组织标题，上传指令与文件正文分开；同名课程/学校合并，“在新城职业学院”清掉前缀，否定技能不展示。嵌套收集→构建保留用户原消息，并识别“直接生成”，避免开启方案确认后丢掉本轮直接成稿要求。
+- 新增 `tests/test_persona_regressions.py` 14 项：不完美抽取/分类/writer 桩、首稿完整性、专业字段正反例、精确更正、失败不报成功、相同数字隔离、限定保留、跨栏目不变和保存先于回执。在无实际配置/私有目录/原运行数据的源码副本 `/private/tmp/huhua-persona-safe-8ez_rwtm` 运行指定命令：**1537 项，1535 通过、2 项私有样例跳过、0 失败，92.807s**，日志 `/private/tmp/huhua-persona-final.log`。12 份本批 Python 文件 AST 通过、hash 与验证副本一致；差异检查通过；Ruff 无新增问题，仅 `resume_graph.py:188` 原有 E402。真实 LLM 未调用；隐含 JD 边界、不带旧值的自由措辞更正未在本批承诺通用识别。
+- 本批改动：`backend/app/agents/{turn_actions,fact_extractor,resume_graph,tailor_pipeline}.py`；`backend/app/services/{candidate_language,candidate_material,candidate_sections,education_fields,fact_corrections,skill_groups,structure_plan}.py`；新增测试；本交接。沿用上一批自动润色、归属与不追问规则。未改 `web/` 或 `backend/main.py`，未 commit/push/部署，未访问原工作区私有样例/运行结果/输出及实际凭证。其他工作在本轮期间改动了 `web/index.html` 和 `web/resume-workspace.js`，未覆盖，并将最新文件同步进测试副本。
+
+2026-10-15 成稿自动润色、覆盖与归属修复（本地完成，未提交）：
+
+- 根因核实：`208bd45` 的覆盖补回按字面判断并直接追加事实；`WrittenBullet.fact_ids` 已存在，但概括被具体表达覆盖时仍误补。现在用同经历有效引用、正文 hash、动作/对象归一及反向 `verify_semantics` 判断覆盖，过度引用 ID 不能掩盖独立职责遗漏。真正遗漏经单条 writer 改写与事实校验后补回，失败走确定性清洗及词法/数量/职责校验，补回后再去重；压缩稿继续审计覆盖。
+- 新增 `services/auto_polish_gate.py:needs_polish`：口述第一人称、口语、少于8字且无数量/对象的碎片、流水账开头、同经历重复、source_quote 原样。只改命中句，未命中好句保持原样。每条 `resume_meta.bullets[item_id][i].polish` 记录 `rewritten/reasons/method`，`coverage_fact_ids` 记录与正文 hash 绑定的覆盖证明。
+- 权限、非负责人、他人定选题/给文案及数据缺失保留为 `status_limit`，仅约束措辞，不输出为 bullet 或备用清单；裁掉限制的来源引文拒绝。先拒绝未知 ID，再按子句明确主体/最近工作或校园经历名称归属；「我还…」可跨句，换主体/换段停止接续，明确回协会仍归协会；占位命名更新原条目。
+- Canva/可画分别保留，PS→Photoshop，「会一点」→（基础），「会用Excel」→Excel，补齐剪映。备用只报数量并指向核对页，已识别 objective 不报漏记。本轮/此前「不要再追问、直接生成、不用问了」抑制名称及 interviewer 追问，偏好保留在会话状态。
+- 验证：新增 `test_auto_polish_gate.py` **10项**，含两段虚构输入、错归属抽取桩、部分引用/好句与口语句 writer 桩、真正遗漏、编造拒绝、语义失败、跨经历引用、停问持久化、两家公司就近归属。既有测试仅随清洗文案、摘要回执和局部润色调用更新预期，未放宽事实/作用域校验。
+- 全量在排除实际配置、私有目录和输出目录的源码副本 `/private/tmp/huhua-polish-safe-fi3_57vk` 执行指定命令：**1523项，1521通过、2项私有样例跳过、0失败，72.078s**；日志 `/private/tmp/huhua-polish-accepted.log`。开始基线1470项，期间其他任务新增测试已同步验证。20份改动 Python 文件 AST 与副本 SHA-256 一致、差异检查通过；Ruff 无新增，HEAD 原有 `resume_graph.py` E402 与 `test_tailor_pr5_gate.py` 的3项未使用符号保留。
+- 边界：仅桩模型，真实 LLM 改写效果及额外延迟未实测；归一规则范围有限，多义指代仍保守处理，项目归属沿用原校验。本任务未改 `web/`、`backend/main.py`，未读取实际凭证或访问 `cases-private/`、`runs-private/`、`data/output/`，未 commit/push/部署。
+
+本轮改动文件：
+- `backend/app/agents/`：`fact_extractor.py`、`resume_writer.py`、`resume_graph.py`、`tailor_pipeline.py`。
+- `backend/app/services/`：`auto_polish_gate.py`（新）、`candidate_language.py`、`candidate_skills.py`、`fact_coverage.py`、`fact_guard.py`、`skill_groups.py`。
+- `tests/`：`test_auto_polish_gate.py`（新）、`test_fidelity_followup.py`、`test_llm_compat.py`、`test_parallel_calls.py`、`test_replay_plan_intake_regressions.py`、`test_resume_writer.py`、`test_speed_switches.py`、`test_structure_plan.py`、`test_tailor_pr5_gate.py`、`test_writer_metric_priority.py`；交接 `mmr.md`。
+
+2026-10-15 官网主页本地完成（`overhaul/tailor`，未提交/推送/部署）：按 `docs/design/2026-10-15-home-page.md` 使用方案 A，新增独立 `web/home.{html,css,js}`。`/` 为官网，`/chat` 为原工作台；旧 `/?session=…` 以 302 保留原查询串跳到固定本站路径。返回聊天、档案来源/岗位、MCP 收件箱/草稿及浏览器脚本已迁移；`panel=profile/connect` 复用账号面板，登录/游客认领后接续指定视图。模板入口支持指定模板，所有官网图片有 WebP/PNG 兜底。透明线描插画为内置 imagegen 生成，PNG 74,026 字节。
+
+验证：不含真实配置、私有目录和输出目录的源码副本执行指定全量命令，**1470 项，1468 通过、2 项私有样例跳过、0 失败，51.894s**。41 份改动源码/资产哈希与通过测试的副本一致；官网合成浏览器检查通过、1440px/390px 截图已审阅，图片加载后复查模板裁切；最后一次额外浏览器重跑受沙箱 Chrome 启动限制。交付清单、文案边界、插画提示词和测试路径见 `docs/development/2026-10-15-home-page-verification.md`。下一步为人工审阅本地官网；没有部署授权。
+
+2026-10-15 五种岗位线上游客体验反馈（仅评测）：按 Banz 请求实际体验 `resume.yikuaibanz.cn`，以合成材料覆盖 Java 后端、新媒体运营、行政转 SaaS 客户成功、UI 设计实习 TXT 导入、电商客服普通口述。已走材料输入/补述、推荐方案、生成、润色、两次数字更正、模板切换、手动编辑、刷新恢复、游客 PDF 下载登录提示及 390×844 视口。
+
+线上观察：Java 完整输入首稿只有教育；设计附件内容进入岗位解读而本人经历为空，重贴正文后仍丢核心课程项目；运营咖啡店海报错挂协会；客服教育重复。Java 与无测试提示词的客服均把“更专业”误认成改教育专业，分别写入“请把实习经历润色得更”/“写得更”；170→190ms、培训6→4场请求完成后预览仍为旧值。润色存在删除限定、重复原句和牵连其他字段；未观察到运营粉丝增长或行政续费/CRM成果编造。模板切换、手动改专业、完成保存及刷新恢复通过；下载只验收到登录提示，未发验证码、未用真实账号、未取正式PDF/Word。
+
+反馈与原始输入/各轮可见内容/截图：`evaluation/persona-ux-2026-10-15/反馈.md`、`fixtures.json`、`design-material.txt`、capture日志/JSON、screenshots/。独立游客、实际线上流程，无API桩；不是用户研究或成功率统计。只新增评测产物和本交接，未改业务代码、未提交/推送/部署，不据线上现象推断本地修复是否已发布。优先建议：润色/字段修改意图区分→数字更正→混合输入/附件保留→经历归属去重→精准改稿→引导减负。
+
 2026-10-14 追问目标范围修复（基于 `overhaul/tailor` / `208bd45`，未提交）：
 
 - `fact_extractor.py` 原名称追问仅看上一轮问句，普通追问主要排除显式换题，课程隔离又只覆盖 campus/open_source。改为校验名称答案、逐条原文判别主体，课程/校园/个人练习先独立归属，拒绝模型的错误 section/ID；无法确定的答非所问内容留 raw_notes。原有歧义名称、失效目标、数字与语义校验保留。课程作业保留独立项目和状态；明确「公司里用 PS 做产品图」仍可归工作。

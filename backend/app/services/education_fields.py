@@ -18,6 +18,8 @@ def clean_education_value(field: str, value: str) -> str:
     value = value.strip()
     value = re.sub(r"^(?:我的|本人)?(?:" + _LABELS[field] + r")(?:为|是|于)?\s*[：:]?\s*", "", value)
     value = re.sub(r"^(?:为|是)\s*", "", value).strip(" 。；;")
+    if field == 'school':
+        value = re.sub(r'^在(?=.{2,}(?:大学|学院)$)', '', value)
     if field in {"start_date", "end_date"}:
         value = re.sub(r"(?:毕业|入学)$", "", value).strip()
         match = re.fullmatch(r"(\d{4})年(?:(\d{1,2})月)?", value)

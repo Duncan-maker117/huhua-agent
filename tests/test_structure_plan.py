@@ -127,7 +127,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn('EchoKit（修复跨语言记忆污染）', reply)
         self.assertNotIn('方案摘要', reply)
         self.assertNotIn('正文写到', reply)
-        self.assertEqual([name for name, _ in writer.calls], ['WriterDraft'])
+        self.assertEqual([name for name, _ in writer.calls], ['WriterDraft', 'RepairOutput'])
 
     async def test_alternative_and_natural_text_confirmation_merge_diffs(self):
         for command in ('用备选：问题发现型', '用第二个方案', '用备选1'):
@@ -188,7 +188,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
             with self.subTest(command=command):
                 model = FakeModel([('StructurePlan', card()), ('WriterDraft', writer_draft())])
                 result = await graph.building_node(state(command), model)
-                self.assertEqual([name for name, _ in model.calls], ['StructurePlan', 'WriterDraft'])
+                self.assertEqual([name for name, _ in model.calls], ['StructurePlan', 'WriterDraft', 'RepairOutput'])
                 self.assertTrue(result['confirmed_plan'])
                 self.assertEqual(result['messages'][0].content.count('**这版的思路**'), 1)
                 self.assertNotIn('方案摘要', result['messages'][0].content)
@@ -199,7 +199,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         with patch.object(get_settings(), 'LLM_WRITER_EDIT_REUSE_PLAN', False):
             model = FakeModel([('WriterDraft', writer_draft())])
             result = await graph.building_node(current, model)
-        self.assertEqual([name for name, _ in model.calls], ['WriterDraft'])
+        self.assertEqual([name for name, _ in model.calls], ['WriterDraft', 'RepairOutput'])
         self.assertTrue(result['writer_diagnostic']['plan_reused'])
         self.assertEqual(result['confirmed_plan']['section_order'], current['confirmed_plan']['section_order'])
         payload = json.loads(model.calls[0][1][-1].content)
@@ -246,7 +246,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
             result = await graph.building_node(state(), model)
         self.assertTrue(result['version_id'])
         self.assertNotIn('pending_plan', result)
-        self.assertEqual([name for name, _ in model.calls], ['OnePassOutput'])
+        self.assertEqual([name for name, _ in model.calls], ['OnePassOutput', 'RepairOutput'])
 
     async def test_legacy_visible_draft_without_confirmed_plan_does_not_show_card(self):
         current = state()
@@ -255,7 +255,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         model = FakeModel([('OnePassOutput', {'match_plan': {}, 'writer': writer_draft()})])
         result = await graph.building_node(current, model)
         self.assertNotIn('pending_plan', result)
-        self.assertEqual([name for name, _ in model.calls], ['OnePassOutput'])
+        self.assertEqual([name for name, _ in model.calls], ['OnePassOutput', 'RepairOutput'])
 
     async def test_plan_lexical_guard_removes_unsupported_claims_and_stale_refs(self):
         raw = card()
@@ -309,7 +309,7 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(second['confirmed_plan'])
         self.assertFalse(second['pending_plan'])
         self.assertTrue(second['version_id'])
-        self.assertEqual([name for name, _ in model.calls], ['StructurePlan', 'WriterDraft'])
+        self.assertEqual([name for name, _ in model.calls], ['StructurePlan', 'WriterDraft', 'RepairOutput'])
 
     async def test_stream_card_does_not_serialize_a_draft_and_confirm_reply_is_public(self):
         model = FakeModel([('StructurePlan', card()), ('WriterDraft', writer_draft())])

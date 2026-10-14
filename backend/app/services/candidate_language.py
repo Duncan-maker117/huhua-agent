@@ -22,6 +22,24 @@ def non_fact(text: str) -> bool:
     return bool(_NON_FACT.search(text))
 
 
+_WORDING_LIMIT = re.compile(
+    r"(?:没有|无|没|不具备).{0,8}(?:后台权限|数据|阅读量|播放量)|"
+    r"(?:没|未|没有).{0,6}统计|不知道.{0,8}(?:播放量|阅读量|数据)|"
+    r"(?:不是|并非|不担任).{0,8}(?:负责人|账号负责人)|"
+    r"(?:选题|文案).{0,4}由.{1,12}(?:定|决定|提供|给)|"
+    r"(?:店长|部长|主管|同事).{0,4}(?:给|提供)(?:的)?文案")
+
+
+def wording_constraint(text: str) -> bool:
+    """An ownership/data limit constrains prose; it is not a delivery."""
+    return bool(_WORDING_LIMIT.search(text or ""))
+
+
+def constraint_only(text: str) -> bool:
+    clauses = [part.strip() for part in re.split(r"[，,。；;\n]", text or "") if part.strip()]
+    return bool(clauses) and all(wording_constraint(part) for part in clauses)
+
+
 def placeholder_name(value: str) -> bool:
     return value in PLACEHOLDER_NAMES.values() or value in {"课程作业（待补名称）", "个人练习（待补名称）"}
 
@@ -40,7 +58,14 @@ def safe_objective(value: str) -> str:
 def safe_major(value: str) -> bool:
     value = str(value or "").strip()
     return bool(2 <= len(value) <= 30 and not re.search(
-        r"协会|社团|学生会|宣传部|担任|参与|时候|工作|我|读者|专业能力|^专业$|[，,。；;？?]", value))
+        r"协会|社团|学生会|宣传部|担任|参与|时候|工作|我|读者|专业能力|^专业$|"
+        r"请|把|润色|写得|写成|写为|更|一点|经历|简历|表达|措辞|竞争力|专业化|[，,。；;？?]", value))
+
+
+def discipline_name(value: str) -> bool:
+    """Unlabelled ‘X专业’ needs a recognizable discipline, not an adjective."""
+    return safe_major(value) and bool(re.search(
+        r"学|工程|技术|设计|管理|计算机|软件|电子|商务|营销|会计|金融|经济|语言|英语|中文|护理|艺术|传播|计科|信管", value))
 
 
 def safe_item_name(value: str) -> bool:
@@ -62,9 +87,9 @@ def literal_item_name(text: str, section: str) -> str:
     """Extract only explicit naming constructions or complete organization spans."""
     patterns = [r"(?:名称|名字|公司名|项目名|组织名)(?:是|为|叫做|叫|[：:])\s*[“「\"']?([^，,。；;\n”」\"']{1,36})",
                 r"[“「\"']([^”」\"'\n]{1,36})[”」\"']\s*(?:项目|活动)"]
-    patterns.insert(0, r"(?:项目|公司|组织|社团)(?:名称|名字)?(?:是|为|叫做|叫|名为)\s*[“「\"']?([^，,。；;\n”」\"']{1,36})")
-    suffix = (r"(?:公司|事务所|工作室)" if section in {"work_experience", "internship"} else
-              r"(?:协会|社团|学生会|志愿者队|部)" if section == "campus" else "")
+    patterns.insert(0, r"(?:项目|公司|咖啡店|组织|社团)(?:名称|名字)?(?:是|为|叫做|叫|名为)\s*[“「\"']?([^，,。；;\n”」\"']{1,36})")
+    suffix = (r"(?:公司|事务所|工作室|咖啡店)" if section in {"work_experience", "internship"} else
+              r"(?:协会|社团|学生会|志愿者队|部(?!长))" if section == "campus" else "")
     if suffix:
         # Consume verbs and their aspect particles before capturing the noun.
         patterns += [r"(?:在|加入|参加|参与|就职于|入职)(?:了|过)?\s*"
@@ -79,7 +104,7 @@ def literal_item_name(text: str, section: str) -> str:
     for pattern in patterns:
         for match in re.finditer(pattern, text):
             name = match[1].strip()
-            if safe_item_name(name):
+            if safe_item_name(name) and not re.fullmatch(r"(?:还在|在)?(?:一家|一个|某家|某个)?(?:咖啡店|公司)", name):
                 return name
     return ""
 
@@ -91,9 +116,11 @@ def resume_bullet(text: str, *, name: str = "", role: str = "") -> str:
     for index in range(0, len(pieces), 2):
         clause = pieces[index]
         clause = clause.strip(" -•\t")
-        if not clause or _NON_FACT.search(clause):
+        if not clause or _NON_FACT.search(clause) or constraint_only(clause):
             continue
         clause = re.sub(r"^(?:(?:大学|在校|上学|读书)(?:的)?(?:时候|时)|毕业后|当时|那时候|然后|但是|而且|目前|补充[:：])*", "", clause)
+        clause = re.sub(r"^大[一二三四](?=在)", "", clause)
+        clause = re.sub(r"^其中\s*(\d+)\s*篇的?初稿是我写的$", r"撰写\1篇初稿", clause)
         clause = re.sub(r"^(?:是)?(?:我(?!们)|本人)(?:还|也|又|就)?(?:主要)?", "", clause)
         clause = re.sub(r"^(?:工作内容(?:是|为)|主要(?:是|为))", "", clause).strip()
         clause = re.sub(r"^(独立完成)的$", r"\1", clause)
@@ -105,6 +132,15 @@ def resume_bullet(text: str, *, name: str = "", role: str = "") -> str:
                 continue
         if role and re.fullmatch(r"(?:在.{1,16}(?:中)?)?(?:担任|任)(?:了)?" + re.escape(role), clause):
             continue
+        clause = re.sub(r"^(?:也|还|又)", "", clause)
+        clause = re.sub(r"^帮忙做过?(?=公众号排版)", "协助", clause)
+        clause = re.sub(r"^帮(?:忙)?(?:(.{1,8}?)做|做)", lambda m: "协助" + (m[1] or "") + "制作", clause)
+        clause = re.sub(r"^(?:用|使用)(.{1,12}?)拍过", r"使用\1拍摄", clause)
+        clause = re.sub(r"^(拍)(?:过|了)?", "拍摄", clause) if not clause.startswith("拍摄") else clause
+        clause = re.sub(r"^写(?:过|了)?", "撰写", clause)
+        clause = re.sub(r"^做(?:过|了)?", "完成", clause)
+        clause = re.sub(r"(?<=[成写摄理作版计查用])过(?!程)", "", clause)
+        clause = re.sub(r"[过了]$", "", clause)
         if clause and clause not in clauses:
             clauses.append(clause)
             separators.append(pieces[index + 1] if index + 1 < len(pieces) else "")

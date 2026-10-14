@@ -87,7 +87,7 @@ def plan_action(text: str, card: dict | None = None) -> tuple[str, int]:
     cleaned = re.sub(r'\s+', '', text).rstrip('。！!')
     if re.search(r'重新定方案|重定方案|主线.{0,8}(?:换|改)|(?:换|改).{0,6}主线|定位.{0,8}(?:换|改)', cleaned):
         return 'replan', 0
-    if re.search(r'直接写|先出一版|不用确认|不必确认', cleaned):
+    if re.search(r'直接写|直接生成|直接成稿|先出一版|不用确认|不必确认', cleaned):
         return 'direct', 0
     if re.fullmatch(r'(?:请)?(?:按推荐写|就按这个|就按这个写|按这个写|用推荐(?:方案)?|确认推荐|按推荐方案写)', cleaned):
         return 'confirm', 0

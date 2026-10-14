@@ -358,7 +358,8 @@ class WriterSummaryParallelTest(unittest.IsolatedAsyncioTestCase):
                 [item("p2", "projects", [("分类整理用户反馈", ["f3"])])],
                 summary=summary_text, summary_fact_ids=list(summary_refs))},
             "SemanticBatch": semantic,
-        }, {"OnePassOutput": 0.0, "SemanticBatch": DELAY})
+        # Only guard latency is under test; source-echo polish has its own suite.
+        }, {"OnePassOutput": 0.0, "SemanticBatch": DELAY, "RepairOutput": 0.0})
         return src, role, model
 
     async def test_summary_guard_overlaps_bullet_guard_with_identical_result(self):

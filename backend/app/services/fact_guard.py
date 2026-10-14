@@ -255,6 +255,15 @@ def strip_absence(text: str) -> str:
 
 def contradicts_limit(text: str, source: str) -> bool:
     """True when the bullet asserts what a source fact explicitly denies."""
+    responsibility_limits = (
+        (r"(?:不是|并非).{0,8}负责人|没有.{0,4}后台权限", r"负责|运营账号|独立运营|账号运营"),
+        (r"选题.{0,4}由.{1,12}(?:定|决定)", r"策划|独立选题|制定选题"),
+        (r"(?:店长|部长|主管|同事).{0,4}(?:给|提供)(?:的)?文案|文案由.{1,12}(?:给|提供)", r"独立|撰写文案|创作文案"),
+        (r"没有.{0,8}(?:数据|阅读量)|不知道.{0,8}(?:播放量|阅读量)", r"(?:实现|带来|提升|推动).{0,8}(?:增长|阅读量|播放量)|增长"),
+    )
+    if any(re.search(denial, source or "") and re.search(claim, text or "") and not re.search(denial, text or "")
+           for denial, claim in responsibility_limits):
+        return True
     for denial, claim in _LIMIT_DENIAL:
         if denial.search(source or "") and claim.search(text or "") and not denial.search(text or ""):
             return True
@@ -558,6 +567,12 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         role_context = "\n".join(_source_quote(f) for f in index.values()
                                  if bullet.get("item_id") and f.get("item_id") == bullet["item_id"]
                                  and f.get("kind") in ("role", "team"))
+        from app.services.candidate_language import constraint_only
+        limits = [_source_quote(f) for f in index.values() if bullet.get("item_id")
+                  and f.get("item_id") == bullet["item_id"]
+                  and constraint_only(_source_quote(f))]
+        if contradicts_limit(bullet.get("text", ""), "\n".join(limits)):
+            errors.append("contradicted_item_limit")
         claim_errors = lexical_fact_errors(bullet.get("text", ""), source, role_context)
         if bullet.get('semantic_only'):
             # Plan positioning is a synthesis. Numbers/units still have a hard
@@ -579,10 +594,12 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         output.append(result)
         # Matching one fact cannot prove that the other cited facts' limits
         # survived the rewrite. Multi-fact claims always need semantic review.
+        from app.services.candidate_language import resume_bullet
         exact_single_source = len(cited) == 1 and normalize_text(bullet.get("text", "")) in {
-            normalize_text(sources[0]), normalize_text(strip_absence(sources[0]))}
+            normalize_text(sources[0]), normalize_text(strip_absence(sources[0])),
+            normalize_text(resume_bullet(strip_absence(sources[0])))}
         if not lexical_only and not errors and (not exact_single_source or bullet.get('semantic_only')):
-            semantic.append({"id": identifier, "text": bullet.get("text", ""), "source_quotes": sources,
+            semantic.append({"id": identifier, "text": bullet.get("text", ""), "source_quotes": list(dict.fromkeys([*sources, *limits])),
                              **({'claim_kind': 'positioning'} if bullet.get('claim_kind') == 'positioning' else {}),
                              "source_facts": [{"fact_id": f["id"],
                                                "kind": f.get("kind") if f.get("kind") in FACT_KINDS else "unknown",

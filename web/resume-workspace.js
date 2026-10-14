@@ -540,8 +540,16 @@
     if (Object.prototype.hasOwnProperty.call(value, 'web_sources')) acceptWebSources(value.web_sources, webSourceSession);
     if (typeof value.resume?.has_data === 'boolean') hasResume = value.resume.has_data;
     if (changed) { renderJd(); renderExperiences(); renderReview(); renderSuggestions(); renderGuidance(); }
-    if ((initial || options.focus) && !interactedDuringTurn && value.focus) openTab(value.focus_download ? 'export' : value.focus);
+    let focus = value.focus_download ? 'export' : value.focus;
+    // A reload before the first draft should show what was collected, not an empty page.
+    if (!hasResume && ['resume', 'export'].includes(focus) && list(value.experiences?.items).length) focus = 'experiences';
+    if ((initial || options.focus) && !interactedDuringTurn && focus) openTab(focus);
     if (!hasResume) status = plain(workspace.jd?.raw_text) ? '岗位与经历已同步' : '资料已同步';
+    const collected = list(value.experiences?.items).length, emptyTitle = $('canvas-empty-title'), emptyText = $('canvas-empty-text');
+    if (emptyTitle && emptyText && Object.prototype.hasOwnProperty.call(value, 'experiences')) {
+      emptyTitle.textContent = collected ? `已收集 ${collected} 段经历，还没生成简历` : '简历还是一张白纸';
+      emptyText.textContent = collected ? '资料都还在。选好方案，或在对话里说「生成草稿」，这里就会铺开 A4。' : '贴 JD 或聊项目，经历确认后这里会铺开 A4。';
+    }
     updateStatus();
   }
   function reset() {

@@ -27,6 +27,25 @@
 
 ## 当前状态
 
+2026-10-14 六项成稿保真修复（基于 `overhaul/tailor` / `8cf646c`，未提交）：
+
+- **事实覆盖**：原 `resume_writer.py` 的默认 2 条、按 fact_id 相同/子集去重、0.6 n-gram 去重及单事实回退，会丢掉不同职责；原补漏只针对量化事实。改为按实际文字覆盖判断重复，完整表述可合并较短同义表述并保留引用；新增 `services/fact_coverage.py` 对每条 active 事实记录 covered/omitted、原文与原因。缺少明确方案限制时确定性补回，明确方案/条数限制时保留备用并在回复逐项说明。`tailor_pipeline.py` 对最终压缩稿和失败保留稿再次审计，覆盖结果存入 resume_meta.fact_coverage；advisor 是只读检查，不是删改入口。
+- **课程归属**：`fact_extractor.py` 的追问、模型显式校园 ID 与同句归属原本都没有课程主体隔离。现在无协会信号的课程/作业转入独立 projects，名称取原文；同时覆盖错 ID、无 ID、片段事实及模型完全漏项，保留已有协会事实。
+- **教育字段**：原 field 直接保存模型 text，结构 schema/渲染不剥前后缀。新增 `education_fields.py`，抽取、旧事实规范化、canonical 读取、ResumeData 校验与共用渲染均幂等清洗学校/专业/学历/起止日期，原始 source_quote 保留。
+- **工作标题**：原共享默认标题固定为实习经历，internship 合并时没有类型。现在保留 employment_type，结合毕业后正式工作/全职信号判定；仅实习用实习经历，全职或混合用工作经历，其他自定义标题保留。
+- **技能**：原精确名称检查不认别名，writer 补录词表偏技术，其他类上限 3 项会截断明确技能。新增确定性工具声明与别名表；PS/设计同句的 AI 映射 Illustrator，单独 AI 不映射；Exce/pptl 纠正，保留会用/用过等原级别；设计工具/AI 工具/办公软件/其他分组，所有来源明确的技能不受展示数量上限截断。编造技能与升级熟练度仍拒绝，已收录技能声明不误报成丢失经历。
+- **登录样例 409**：`api/resume.py` 两边原本已有 ResumeData 校验，实际差异是前端生成 sections。双方同样忽略该派生字段比较，匹配后只渲染服务端样例；修改个人正文或任意无会话内容仍 409。
+
+验证：新增 `test_fidelity_followup.py` 12 项虚构同构回归及登录样例 1 项；桩模型覆盖漏行政、过度引用全部 ID、错挂协会、漏工具、虚构技能/熟练度等。按新的事实保留/分组规则调整 4 份旧断言。安全源码副本 `/private/tmp/huhua-fidelity-safe-3vjkphgz` 执行 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1447 项，1445 通过、2 项私有样例跳过、0 失败，103.015s**；日志 `/private/tmp/huhua-fidelity-final.log`。22 份 Python 源码 AST 与差异检查通过；Ruff 对比 HEAD 相同的 4 项既有问题、无新增。未调用真实 LLM，未读取实际凭证或访问实际 cases-private/、runs-private/、data/output/；未 commit/push/部署。
+
+本轮改动文件（新增以“新”标注）：
+- `backend/app/agents/`：fact_extractor.py、resume_graph.py、resume_writer.py、tailor_pipeline.py、turn_actions.py。
+- `backend/app/api/resume.py`；`backend/app/schemas/editor.py`。
+- `backend/app/services/`：candidate_language.py、candidate_skills.py（新）、canonical_resume.py、education_fields.py（新）、fact_coverage.py（新）、fact_guard.py、resume_facts.py、resume_sections.py、skill_groups.py。
+- `tests/`：test_fidelity_followup.py（新）、test_conversation_rebuild.py、test_resume_live_updates.py、test_resume_provenance.py、test_tailor_pr5_gate.py、test_writer_repair_context.py；交接 `mmr.md`。
+
+边界：本轮依据公开源码与自编虚构数据定位，没有读取真实 19 轮材料，不能判定原回放中究竟哪次模型输出先触发了丢失。词法覆盖对跨度较大的同义改写可能保守补回原文或列为备用；明确方案/篇幅约束下仍可能不展示全部事实，但必须逐项回执。真实模型润色与真实浏览器样例体验未实测，API/模板与离线桩验证已通过。
+
 2026-10-14 校园经历、名称与非技术用户成稿修复（未提交）：在 `overhaul/tailor` 保留上一轮追问归属与编辑器预览改动。新经历名称不在原文时仅降级名称，已校验事实保留；明确组织名称按原文提取，否则分栏待补。复用 followup_target 追问一次名称，后续无 item_id 的命名回答更新原条目；投递渲染只在名称处显示 `[待补]`，描述性占位不进入正文。
 
 根因与修复：`fact_extractor.py:349` 分离名称/事实准入；`resume_graph.py:406` 原宽泛项目名截取改为明确命名结构；`turn_actions.py:60` 关闭社团句教育解析及「读者」误命中；`candidate_language.py:25` 统一求职意向短岗位名约束，迷茫原话可存 metadata_context，明确逐字改意向逻辑保留；`resume_graph.py:1082` 修复「部分这轮」组合；`turn_actions.py:247` 无团队语义时不产生 pending_ownership；`resume_writer.py:33/82/1360` 增加校园和奖项正文改写，实习继续归并 work_experience，生成/兜底去第一人称与口语、去重、过滤自评/提问/计划，角色归标题，保留事实及语义核验。

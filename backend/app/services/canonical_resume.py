@@ -59,19 +59,20 @@ def canonical_has_content(data: dict | None) -> bool:
 
 
 def current_canonical(values: dict, stored: dict | None, serialize) -> dict:
+    from app.services.education_fields import clean_resume_education
     # The SQL row is the acknowledged committed version. A checkpoint may be
     # ahead after a crash between stores and must not masquerade as a saved edit.
     if stored is not None and isinstance(stored.get("resume_data"), dict):
-        return stored["resume_data"]
+        return clean_resume_education(stored["resume_data"])
     # A nonempty canonical object can intentionally contain no personal content.
     # Never revive removed fields from collected_info or an older session row.
     canonical = values.get("resume_data")
     if isinstance(canonical, dict) and canonical:
-        return canonical
+        return clean_resume_education(canonical)
     if values:
         rebuilt = serialize(values)
         if canonical_has_content(rebuilt):
-            return rebuilt
+            return clean_resume_education(rebuilt)
     return (stored or {}).get("resume_data") or {}
 
 

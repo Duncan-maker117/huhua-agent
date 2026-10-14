@@ -193,7 +193,11 @@ def _output_payload(request, data, *, session_id=None, removed_item_ids=(), comm
         if not SAMPLE_PATH.exists():
             raise HTTPException(409, "个人简历预览和导出需要当前会话，请从简历编辑页操作")
         sample = ResumeData.model_validate(json.loads(SAMPLE_PATH.read_text(encoding="utf-8"))).model_dump()
-        if payload != sample:
+        # Frontend normalization materializes section metadata. Never render the
+        # supplied metadata: a successful comparison returns the server sample.
+        def sample_content(value):
+            return {key: item for key, item in value.items() if key != "sections"}
+        if sample_content(payload) != sample_content(sample):
             raise HTTPException(409, "个人简历预览和导出需要当前会话，请从简历编辑页操作")
         return sample
     return protect_data(owner, payload, reject=True)

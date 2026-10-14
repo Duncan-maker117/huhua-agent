@@ -302,6 +302,23 @@ class ResumeProvenanceTests(unittest.IsolatedAsyncioTestCase):
             response = await self.a.post(f"/api/resume/{endpoint}/t001-jianyue", json=sample.json())
             self.assertEqual(response.status_code, 200)
 
+    async def test_authenticated_frontend_sample_shape_and_content_boundary(self):
+        sample = (await self.a.get('/api/resume/sample')).json()
+        frontend = ResumeData.model_validate(sample).model_dump()
+        from app.services.resume_sections import DEFAULT_SECTIONS
+        frontend['sections'] = [{'id': kind, 'kind': kind, 'title': title, 'content': ''}
+                                for kind, title in DEFAULT_SECTIONS]
+        for project in frontend['projects']:
+            project.setdefault('polished_bullets', [])
+        frontend.setdefault('skill_groups', {})
+        response = await self.a.post('/api/resume/render/t001-jianyue', json=frontend)
+        self.assertEqual(response.status_code, 200, response.text)
+        frontend['basic_info']['name'] = '修改过的样例'
+        response = await self.a.post('/api/resume/render/t001-jianyue', json=frontend)
+        self.assertEqual(response.status_code, 409)
+        response = await self.a.post('/api/resume/render/t001-jianyue', json={'skills': ['任意内容']})
+        self.assertEqual(response.status_code, 409)
+
     async def test_all_schema_projections_keep_id_without_exposing_it_in_resume_text(self):
         from app.services.resume_review import resume_to_text
         ids = [str(uuid.uuid4()) for _ in range(3)]

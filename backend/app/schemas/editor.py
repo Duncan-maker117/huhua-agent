@@ -39,6 +39,12 @@ class EducationItem(BaseModel):
     hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
     links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 
+    @field_validator("school", "major", "degree", "start_date", "end_date")
+    @classmethod
+    def clean_value(cls, value: str, info) -> str:
+        from app.services.education_fields import clean_education_value
+        return clean_education_value(info.field_name, value)
+
 
 class WorkItem(BaseModel):
     item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
@@ -47,6 +53,7 @@ class WorkItem(BaseModel):
     start_date: str = ""
     end_date: str = ""
     bullets: list[str] = []
+    employment_type: Literal["", "internship", "full_time"] = Field(default="", exclude_if=lambda value: not value)
     hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
     links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 

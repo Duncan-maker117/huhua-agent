@@ -476,7 +476,7 @@ class RepeatedFactTests(unittest.TestCase):
         kept = _without_repeated_fact_rows(rows)
         self.assertEqual([row["id"] for row in kept], ["b1", "b2"])
         same = _without_repeated_fact_rows(self.rows(("短句", ["f1"]), ("更长的一句表述", ["f1"])))
-        self.assertEqual([row["text"] for row in same], ["更长的一句表述"])
+        self.assertEqual([row["text"] for row in same], ["短句", "更长的一句表述"])  # 相同 ID 不证明语义重复
 
     def test_bullet_count_never_exceeds_distinct_fact_groups(self):
         from app.agents.resume_writer import _without_repeated_fact_rows

@@ -194,6 +194,8 @@ def _skill_affirmed(text: str, term: str) -> bool:
 
 
 def _skill_supported(term: str, facts: list[dict], user_skills=()) -> bool:
+    from app.services.candidate_skills import canonical_skill_text
+    term = canonical_skill_text(term)
     for row in [*facts, *user_skills]:
         if isinstance(row, dict):
             if row.get("status", "active") != "active":
@@ -201,7 +203,10 @@ def _skill_supported(term: str, facts: list[dict], user_skills=()) -> bool:
             evidence = row.get("source_quote") or row.get("text") or row.get("name", "")
         else:
             evidence = str(row)
-        if _skill_affirmed(evidence, term):
+        if _skill_affirmed(canonical_skill_text(evidence), term):
+            return True
+        from app.services.candidate_skills import declared_skills
+        if any(canonical_skill_text(row["name"]).casefold() == term.casefold() for row in declared_skills(evidence)):
             return True
     return False
 

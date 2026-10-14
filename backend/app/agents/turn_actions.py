@@ -16,7 +16,7 @@ from app.services.fact_guard import strip_absence
 from app.services.resume_facts import new_fact, normalize_fact_store
 
 
-_EDU_WORD = re.compile(r"大学|学院|专业|本科|硕士|博士|专科|大[一二三四]|研[一二三]|在读|学校")
+_EDU_WORD = re.compile(r"大学|学院|专业|本科|硕士|博士|专科|大[一二三四]|研[一二三]|在读|学校|毕业|入学")
 _NOT_SCHOOL = {"我在大学", "在大学", "这所大学", "本校大学"}
 _ROLE_QUESTION = re.compile(r"职责|分工|独立|团队|一个人|谁做")
 _ROLE_ANSWER = re.compile(r"一个人|都是我|独立|我负责|我写|我做|本人")
@@ -78,6 +78,13 @@ def parse_education_fields(message: str) -> dict[str, str]:
         school = school_hint
         if school:
             fields["school"] = school
+        labelled = re.search(r"专业(?:为|是|[：:])\s*([^，,。；;]{2,30})", clause)
+        if labelled:
+            fields["major"] = labelled[1]
+        for field, label in (("end_date", "毕业"), ("start_date", "入学")):
+            dated = re.search(label + r"(?:年份|时间|日期)?(?:为|是|于|[：:])?\s*(20\d{2})(?:年)?", clause)
+            if dated:
+                fields[field] = dated[1]
         major = re.search(r"([\u4e00-\u9fffA-Za-z0-9与和]{2,30})专业", clause)
         if major:
             fields["major"] = major.group(1)

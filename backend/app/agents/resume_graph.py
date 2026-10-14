@@ -251,7 +251,8 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         return {key: copy.deepcopy(item[key]) for key in ("item_id", "hidden", "links") if key in item}
 
     def _edu(e: dict) -> dict:
-        return {
+        from app.services.education_fields import clean_education_item
+        return clean_education_item({
             **_presentation(e),
             "school": e.get("school", ""),
             "degree": e.get("degree", ""),
@@ -259,9 +260,10 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             "start_date": e.get("start_date", "") or e.get("duration", ""),
             "end_date": e.get("end_date", ""),
             "highlights": e.get("highlights", "") or e.get("description", ""),
-        }
+        })
 
-    def _work(w: dict) -> dict:
+    def _work(w: dict, section: str = "work_experience") -> dict:
+        from app.services.resume_sections import employment_type
         desc = w.get("description", "")
         bullets = [cleaned for text in (w.get("bullets") or []) if (cleaned := _strip_absence(text))] or (
             [cleaned for line in desc.splitlines() if line.strip()
@@ -276,6 +278,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             "start_date": w.get("start_date", "") or w.get("duration", ""),
             "end_date": w.get("end_date", ""),
             "bullets": bullets,
+            "employment_type": employment_type(w, section),
         }
 
     def _proj_description(text: str) -> str:
@@ -294,7 +297,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
 
     projects = [_proj(_active_item(p)) for p in collected.get("projects", [])]
     work_experience = [_work(_active_item(w)) for w in collected.get("work_experience", [])] + [
-        _work(_active_item(i)) for i in collected.get("internship", [])
+        _work(_active_item(i), "internship") for i in collected.get("internship", [])
     ]
     education = [_edu(_active_item(e)) for e in collected.get("education", [])]
     open_source = []
@@ -2115,6 +2118,10 @@ def _writer_reply(result: dict) -> str:
         reply += "\n\n当前草稿包含：" + "、".join(counts) + "。"
     if result.get('changed') and result.get('change_summary'):
         reply += "\n\n本次修改：\n" + "\n".join('· ' + text for text in result['change_summary'])
+    from app.services.fact_coverage import coverage_notice
+    notice = coverage_notice((result.get('resume_meta') or {}).get('fact_coverage') or {})
+    if notice and notice not in reply:
+        reply += "\n\n" + notice
     page = result.get('page_check') or {}
     if page.get('status') == 'rendered':
         from app.services.resume_layout import resume_density

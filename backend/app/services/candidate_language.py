@@ -50,6 +50,10 @@ def campus_evidence(text: str) -> bool:
     return bool(_CAMPUS.search(text) and not re.search(r"开源|github|PR\s*#?\d|开发.{0,12}(?:系统|网站|小程序)", text, re.I))
 
 
+def coursework_evidence(text: str) -> bool:
+    return bool(re.search(r"作业|课程|课上|摄影课", text) and not _CAMPUS.search(text))
+
+
 def literal_item_name(text: str, section: str) -> str:
     """Extract only explicit naming constructions or complete organization spans."""
     patterns = [r"(?:名称|名字|公司名|项目名|组织名)(?:是|为|叫做|叫|[：:])\s*[“「\"']?([^，,。；;\n”」\"']{1,36})",
@@ -63,6 +67,10 @@ def literal_item_name(text: str, section: str) -> str:
                      r"([A-Za-z\u4e00-\u9fff0-9·]{2,28}?" + suffix + r")",
                      r"(?:^|[，,。；;\n])\s*([A-Za-z\u4e00-\u9fff0-9·]{2,28}?" + suffix + r")"]
     if section == "projects":
+        if coursework_evidence(text):
+            match = re.search(r"(?:作业|课程设计)(?:是|为|叫|[：:])\s*([^，,。；;\n]{2,30})", text)
+            if match and safe_item_name(match[1]):
+                return match[1]
         patterns += [r"(?:做过|做|在|参与|负责|开发)(?:了|过)?\s*([A-Za-z\u4e00-\u9fff0-9_-]{1,30})项目"]
     for pattern in patterns:
         for match in re.finditer(pattern, text):

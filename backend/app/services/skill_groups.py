@@ -10,11 +10,15 @@ import unicodedata
 from typing import Iterable, Mapping, Sequence
 from app.services.resume_field_hygiene import trim_name_punctuation
 
-CATEGORIES = ("产品方法", "AI 与 Agent", "开发", "工具", "内容运营")
+CATEGORIES = ("产品方法", "AI 与 Agent", "开发", "工具", "内容运营", "设计工具", "AI 工具", "办公软件")
 MAX_PER_GROUP = 8
 MAX_OTHER = 3
 
 _VOCABULARY: tuple[tuple[str, re.Pattern], ...] = (
+    ("其他", re.compile(r"摄影|拍摄")),
+    ("设计工具", re.compile(r"photoshop|illustrator|可画|canva", re.I)),
+    ("AI 工具", re.compile(r"即梦|workbuddy", re.I)),
+    ("办公软件", re.compile(r"word|excel|ppt|powerpoint", re.I)),
     ("工具", re.compile(r"^(?:claude\s*code|codex|cursor|chatgpt|gemini|figma|google\s*stitch|openclaw|notion|xmind|excel|"
                         r"copilot|axure|墨刀|飞书|jira|trae|windsurf|midjourney|stable\s*diffusion)$", re.I)),
     ("AI 与 Agent", re.compile(r"llm|rag|agent|mcp|prompt|skill|langgraph|langchain|function\s*calling|tool\s*use|embedding|"
@@ -25,13 +29,13 @@ _VOCABULARY: tuple[tuple[str, re.Pattern], ...] = (
     ("产品方法", re.compile(r"prd|竞品|用户调研|用户研究|需求|优先级|交互|原型|产品|数据分析|项目管理|调研|流程", re.I)),
 )
 _GROUP_ALIASES = {
-    "产品能力": "产品方法", "产品与设计": "产品方法", "数据分析": "产品方法", "产品工具": "工具", "设计工具": "工具",
-    "分析工具": "工具", "办公工具": "工具", "协作工具": "工具", "AI 工具": "工具", "AI工具": "工具",
+    "产品能力": "产品方法", "产品与设计": "产品方法", "数据分析": "产品方法", "产品工具": "工具",
+    "分析工具": "工具", "办公工具": "办公软件", "协作工具": "工具", "AI工具": "AI 工具",
     "AI与数据": "AI 与 Agent", "技术": "开发", "技术栈": "开发", "编程语言": "开发", "开发工具": "开发",
     "开发与工具": "开发", "前端": "开发", "后端": "开发", "数据库": "开发", "框架": "开发",
 }
 _SUFFIX = re.compile(r"(?:概念与应用场景|概念及应用|应用场景|开发经验|项目经验|辅助开发|生产级使用|熟练使用|经验|使用)$")
-_PREFIX = re.compile(r"^(?:熟练使用|熟悉|掌握|使用|用(?!户))\s*")
+_PREFIX = re.compile(r"^(?:使用(?!过)|用(?!户|过))\s*")
 _BRACKET = re.compile(r"[（(][^）)]*[）)]")
 
 
@@ -43,7 +47,8 @@ def split_skills(values: Iterable[str]) -> list[str]:
     """「类别：A / B、C 开发经验」→ ['A', 'B', 'C']; decorations such as （生产级使用） are dropped."""
     output: list[str] = []
     for raw in values:
-        text = trim_name_punctuation(unicodedata.normalize("NFKC", str(raw or "")))
+        from app.services.candidate_skills import canonical_skill_text
+        text = trim_name_punctuation(canonical_skill_text(unicodedata.normalize("NFKC", str(raw or ""))))
         if "：" in text or ":" in text:
             head, tail = re.split(r"[:：]", text, maxsplit=1)
             if len(head) <= 8 and tail.strip():
@@ -75,12 +80,16 @@ def _relevance(skill: str, terms: Sequence[str]) -> int:
 def normalize_skill_groups(groups: Mapping[str, Sequence[str]], extra: Iterable[str] = (),
                            jd_terms: Iterable[str] = ()) -> dict[str, list[str]]:
     """Fixed categories, deduped, JD-ordered, ≤8 per group and ≤3 in 其他."""
+    def identity(value):
+        return _key(re.sub(r"^(?:精通|熟练(?:使用)?|熟悉|掌握|会使用|会用|用过|使用过|了解|基础)", "", value))
+    extra = split_skills(extra)
+    protected = {identity(skill) for skill in extra}
     seen: dict[str, tuple[str, str]] = {}
     for name, values in groups.items():
         for skill in split_skills(values):
-            seen.setdefault(_key(skill), (skill, _category(skill, name)))
-    for skill in split_skills(extra):
-        seen.setdefault(_key(skill), (skill, _category(skill, "")))
+            seen.setdefault(identity(skill), (skill, _category(skill, name)))
+    for skill in extra:
+        seen[identity(skill)] = (skill, _category(skill, ""))
     terms = [_key(term) for term in jd_terms if isinstance(term, str)]
     grouped: dict[str, list[tuple[int, int, str]]] = {}
     for order, (skill, category) in enumerate(seen.values()):
@@ -90,7 +99,8 @@ def normalize_skill_groups(groups: Mapping[str, Sequence[str]], extra: Iterable[
         rows = sorted(grouped.get(category, []))
         limit = MAX_OTHER if category == "其他" else MAX_PER_GROUP
         if rows:
-            result[category] = [skill for _, _, skill in rows[:limit]]
+            result[category] = [skill for index, (_, _, skill) in enumerate(rows)
+                                if index < limit or identity(skill) in protected]
     return result
 
 

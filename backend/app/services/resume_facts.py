@@ -130,6 +130,12 @@ def normalize_fact_store(collected: dict | None) -> dict:
                 for fact in facts:
                     if fact.get("field") == "name":
                         fact["text"] = trim_name_punctuation(fact["text"])
+            if section == "education":
+                from app.services.education_fields import FIELDS, clean_education_value
+                for field in FIELDS & item.keys():
+                    item[field] = clean_education_value(field, item[field])
+                for fact in facts:
+                    fact["text"] = clean_education_value(fact.get("field"), fact["text"])
             # Legacy role facts created above need the same status check.
             item["facts"] = [normalized for fact in facts if (normalized := _normalized_fact(fact))]
             item["raw_notes"] = list(dict.fromkeys(note for note in item.get("raw_notes", [])
@@ -287,6 +293,6 @@ def active_facts_for_writer(collected: dict) -> dict:
                       if fact.get("status") == "active"]
             if not active:
                 continue
-            result[section].append({key: copy.deepcopy(item[key]) for key in ("item_id", "name", "company", "school", "hidden", "links") if key in item}
+            result[section].append({key: copy.deepcopy(item[key]) for key in ("item_id", "name", "company", "school", "hidden", "links", "employment_type") if key in item}
                                    | {"facts": active})
     return result

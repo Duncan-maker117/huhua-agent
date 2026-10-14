@@ -346,6 +346,8 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
             version = {**preserved, 'version_id': meta.get('version_id'), 'changed': False, 'diff': []}
         data = version['resume_data']
         meta = valid_bullet_metadata(data, version['resume_meta'])
+        from app.services.fact_coverage import ensure_fact_coverage
+        ensure_fact_coverage(data, meta, preserved['collected_info'])
         diagnostic = {**deepcopy(written['writer_diagnostic']),
                       'fallback_action': 'preserved_existing_draft',
                       'deterministic_updates_applied': bool(diff)}
@@ -470,6 +472,8 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                 break
         if not changed and not writer_used:
             break
+    from app.services.fact_coverage import coverage_notice, ensure_fact_coverage
+    coverage = ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     version = prepare_version(state.get('resume_data') or {}, state.get('resume_meta') or {},
                                state.get('resume_versions') or [], data, meta,
                                label='定制简历' if scope == 'whole' else '局部修改')
@@ -482,7 +486,9 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                                   compression_writer_diagnostics=compression_diagnostics,
                                   compression_retention_checks=retention_checks,
                                   guard_fallbacks=written.get('guard_fallbacks') or [])
-    changes = written.get('change_summary') or []
+    changes = [line for line in written.get('change_summary') or [] if '条已确认事实保留为备用' not in line]
+    if notice := coverage_notice(coverage):
+        changes.insert(0, notice)
     if not version['changed']:
         changes = []
     version['resume_meta']['change_summary'] = changes[:5]

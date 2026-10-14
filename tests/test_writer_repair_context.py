@@ -179,7 +179,7 @@ class WriterRepairContextTest(unittest.TestCase):
             with self.subTest(contract=contract[:20]):
                 self.assertIn("本人工作、团队分工和状态", contract)
                 self.assertIn("功能实现与实际验证是不同动作", contract)
-                self.assertIn("不要求无条件复制所有事实", contract)
+                self.assertIn("明确列为备用并说明原因", contract)
         self.assertIn("不把现象反推成因", writer._WRITE_CONTRACT)
         self.assertIn("不把现象反推成因", writer._ONE_PASS_CONTRACT)
         self.assertIn("不补原因、不升级频率、不添加用途", writer._REPAIR_CONTRACT)

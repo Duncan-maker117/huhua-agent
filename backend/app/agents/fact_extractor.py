@@ -12,7 +12,7 @@ import uuid
 
 from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.candidate_language import (
-    PLACEHOLDER_NAMES, campus_evidence, literal_item_name, placeholder_name,
+    PLACEHOLDER_NAMES, campus_evidence, coursework_evidence, literal_item_name, placeholder_name,
     safe_item_name, safe_major, safe_objective,
 )
 from app.services.llm_compat import label_run, without_thinking
@@ -229,6 +229,8 @@ def followup_item(collected: dict, *, evidence: str | None = None) -> dict | Non
 
 def _implicit_followup_allowed(evidence: str, outline: list[dict], target: dict) -> bool:
     from app.services.fact_guard import normalize_text
+    if target["section"] == "campus" and coursework_evidence(evidence):
+        return False
     if re.search(r"另外|(?:新(?:的)?(?:一(?:个|项|段))?|另(?:一(?:个|项|段|次)|的)?|别的|其他(?:的)?)\s*(?:项目|活动|经历|工作|实习|公司)", evidence):
         return False
     # An explicit newly named subject also stops an implicit carry-over.
@@ -315,7 +317,31 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             pending.append(fact)
         return fact
 
+    raw_items = []
     for raw_item in candidate.get("items", []) if isinstance(candidate.get("items"), list) else []:
+        if not isinstance(raw_item, dict):
+            continue
+        # Even an explicit model-supplied campus ID cannot override a different
+        # subject in the quote. Split mixed rows before any follow-up binding.
+        raw_facts = raw_item.get("facts")
+        raw_facts = [fact for fact in raw_facts if isinstance(fact, dict)] if isinstance(raw_facts, list) else []
+        course = [fact for fact in raw_facts if isinstance(fact, dict)
+                  and (coursework_evidence(str(fact.get("source_quote") or ""))
+                       or (coursework_evidence(evidence) and fact.get("source_quote")
+                           and fact["source_quote"] in evidence))]
+        owner = next((row for row in outline if row["item_id"] == raw_item.get("item_id")), {})
+        if course and (owner.get("section") == "campus" or raw_item.get("section") in {"campus", "open_source"}):
+            quotes = [fact["source_quote"] for fact in course]
+            raw_items.append({"section": "projects", "name": literal_item_name("\n".join(quotes), "projects")
+                              or (literal_item_name(evidence, "projects") if coursework_evidence(evidence) else ""),
+                              "facts": course, "raw_notes": quotes})
+            remaining = [fact for fact in raw_facts if fact not in course]
+            if remaining:
+                raw_items.append({**raw_item, "facts": remaining,
+                                  "raw_notes": [fact.get("source_quote", "") for fact in remaining]})
+        else:
+            raw_items.append(raw_item)
+    for raw_item in raw_items:
         if not isinstance(raw_item, dict) or raw_item.get("section") not in FACT_SECTIONS:
             continue
         item_id = raw_item.get("item_id")
@@ -361,6 +387,9 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             if fact := validated(raw):
                 if raw.get("field") in FACT_FIELDS[section]:
                     fact["field"] = raw["field"]
+                if section == "education":
+                    from app.services.education_fields import clean_education_value
+                    fact["text"] = clean_education_value(fact.get("field"), fact["text"])
                 if fact.get("field") == "major" and not safe_major(fact["text"]):
                     continue
                 if fact.get("field") == FACT_LABELS[section] and section != "awards" and not safe_item_name(fact["text"]):
@@ -418,12 +447,19 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                     and isinstance(link.get("url"), str) and link["url"] in evidence
                     and isinstance(link.get("text"), str) and link["text"].lower() in evidence.lower()]
     skills = candidate.get("skills")
+    from app.services.candidate_skills import canonical_skill_text, declared_skills
     if isinstance(skills, list):
         for value in skills:
             name = value if isinstance(value, str) else value.get("name") if isinstance(value, dict) else ""
             quote = value.get("source_quote", name) if isinstance(value, dict) else name
-            if name and quote and normalize_text(quote) in normalize_text(evidence) and normalize_text(name) in normalize_text(quote) and _skill_affirmed(evidence, name) and not lexical_fact_errors(name, quote):
+            normalized_name = canonical_skill_text(name)
+            normalized_quote = canonical_skill_text(quote)
+            if name and quote and normalize_text(quote) in normalize_text(evidence) and normalize_text(normalized_name) in normalize_text(normalized_quote) and _skill_affirmed(canonical_skill_text(evidence), normalized_name) and not lexical_fact_errors(normalized_name, normalized_quote):
+                name = normalized_name
                 result["skills"].append({"name": name, "source_quote": quote, "source": "chat", "turn_id": turn_id})
+    for skill in declared_skills(evidence):
+        if not any(row["name"] == skill["name"] for row in result["skills"]):
+            result["skills"].append({**skill, "source": "chat", "turn_id": turn_id})
     if semantic_pairs:
         try:
             checker = semantic_check or (lambda pairs: verify_semantics(pairs, llm, run_name="extract_verify"))
@@ -499,6 +535,20 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 fact = new_fact(value, kind="context", quote=value, turn_id=turn_id)
                 fact["field"] = field
                 owner["facts"].append(fact)
+    # A clearly named course assignment remains its own subject even if the
+    # extractor omitted the entire row while following up on an association.
+    course_name = literal_item_name(evidence, "projects") if coursework_evidence(evidence) else ""
+    if (course_name and not _PLAN_OR_NEGATED.search(evidence)
+            and not any(row["section"] == "projects" and any(course_name in f["source_quote"] for f in row["facts"])
+                        for row in result["items"])):
+        prior = next((row for row in outline if row["section"] == "projects" and row["name"] == course_name), None)
+        owner = next((row for row in result["items"] if row["section"] == "projects" and row["name"] == course_name), None)
+        if owner is None:
+            owner = {"section": "projects", "item_id": prior["item_id"] if prior else str(uuid.uuid4()),
+                     "name": course_name, "facts": [], "raw_notes": []}
+            result["items"].append(owner)
+        owner["facts"].append(new_fact(evidence, quote=evidence, turn_id=turn_id))
+        owner["raw_notes"].append(evidence)
     _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text,
                            followup_target=None if ambiguous_owner else target)
     # A literal answer to the one naming question updates the existing identity,
@@ -529,6 +579,11 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
     """未被任何已接受事实覆盖的动作/结果子句：用子句原文作保守事实重试，仍不行则记入 uncovered。"""
     quotes = [fact["source_quote"] for item in result["items"] for fact in item["facts"]]
     quotes += [entry["replacement"]["source_quote"] for entry in result["corrections"]]
+    # Literal skill declarations already have a destination. Do not report
+    # them as lost experience actions; concrete deliveries still need an owner.
+    quotes += [skill["source_quote"] for skill in result["skills"]
+               if re.match(r"^(?:我)?(?:会(?:使用|用)?|熟悉|掌握|了解|用过|使用过|做过(?:日常摄影|产品拍摄))", skill["source_quote"])
+               and not re.search(r"\d|完成|制作了|设计了|负责|交付|上线", skill["source_quote"])]
     for clause in uncovered_action_clauses(evidence, quotes):
         owner = _owner_item(result["items"], clause, evidence, normalize_text, followup_target=followup_target)
         errors = lexical_fact_errors(clause, clause) if owner is not None else ["no_owner_item"]

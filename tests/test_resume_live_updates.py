@@ -146,7 +146,9 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("千万", "".join(extracted_sources))
         self.assertNotIn("千万", result["resume_draft"])
         self.assertTrue(result["candidate_history_reconciled"])
-        self.assertLess(len(result["messages"][0].content), 160)
+        from app.services.fact_coverage import coverage_notice
+        notice = coverage_notice(result['resume_meta'].get('fact_coverage') or {})
+        self.assertLess(len(result["messages"][0].content.replace(notice, '').strip()), 160)
 
     async def test_legacy_recovery_excludes_review_reference_and_jd_sources(self):
         state = _init_state()

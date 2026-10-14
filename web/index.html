@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/account-profile.css?v=20261014-mcp2"/>
-<script src="/static/account-profile.js?v=20261014-ui1"></script>
+<script src="/static/account-profile.js?v=20261015-home1"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -61,9 +61,9 @@
 
   <header class="app-header flex justify-between items-center px-8 w-full h-14 sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-[#e9e5f0] font-medium">
     <div class="flex items-center gap-8">
-      <span class="app-brand text-lg font-bold tracking-wide text-primary">胡话简历</span>
+      <a href="/chat" class="app-brand text-lg font-bold tracking-wide text-primary">胡话简历</a>
       <nav class="hidden md:flex gap-6 items-center">
-        <a class="app-nav-link is-current" href="#" aria-current="page">对话</a>
+        <a class="app-nav-link is-current" href="/chat" aria-current="page">对话</a>
         <a class="app-nav-link" href="/resume">模板</a>
       </nav>
     </div>
@@ -1121,7 +1121,14 @@ document.getElementById('btn-toggle-canvas')?.addEventListener('click', () => {
   window.HuhuaWorkspace?.setMobileOpen(true);
 });
 
+const entryPanel = new URLSearchParams(location.search).get('panel');
+if (entryPanel === 'profile' || entryPanel === 'connect') {
+  document.addEventListener('DOMContentLoaded', () => {
+    window.HuhuaAccount?.open(entryPanel === 'connect' ? '登录后可生成令牌，连接你的 AI 助手。' : '', entryPanel);
+  });
+}
+
 </script>
-<script src="/static/conversation-history.js?v=20261014-tpl1"></script>
+<script src="/static/conversation-history.js?v=20261015-home1"></script>
 </body>
 </html>

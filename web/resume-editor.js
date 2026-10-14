@@ -967,6 +967,8 @@
 
   const templatePreferenceKey = () => 'huhua_resume_template:' + (state.session || 'sample');
   function restoreTemplate() {
+    const requested = state.templates.find(template => template.id === query.get('template'));
+    if (requested) return requested;
     let selected;
     try { selected = localStorage.getItem(templatePreferenceKey()); } catch (_) { /* Presentation preference is optional. */ }
     return state.templates.find(template => template.id === selected) || state.templates[0];
@@ -1163,7 +1165,7 @@
         window.HuhuaAccount?.rememberSession(state.session);
         const query = new URLSearchParams(location.search); query.set(query.has('session_id') ? 'session_id' : 'session', state.session);
         history.replaceState({}, '', location.pathname + '?' + query.toString());
-        $('back-to-chat').href = '/?session=' + encodeURIComponent(state.session);
+        $('back-to-chat').href = '/chat?session=' + encodeURIComponent(state.session);
         const response = await fetch('/api/resume/current?session_id=' + encodeURIComponent(state.session));
         if (!response.ok) throw new Error(await responseError(response, '新对话已建立，草稿读取失败，请刷新后重试。'));
         const current = await response.json();
@@ -1235,7 +1237,7 @@
       let session = query.get('session_id') || query.get('session');
       if (!session) session = window.HuhuaAccount?.rememberedSession();
       state.session = session;
-      $('back-to-chat').href = session ? `/?session=${encodeURIComponent(session)}` : '/';
+      $('back-to-chat').href = session ? `/chat?session=${encodeURIComponent(session)}` : '/chat';
       const templateResponse = await fetch('/api/resume/templates');
       if (!templateResponse.ok) throw new Error('模板加载失败');
       state.templates = (await templateResponse.json()).templates;
@@ -1253,7 +1255,7 @@
         } else {
           // An expired or unrelated session must never prevent public template browsing.
           state.session = null; state.canSave = false; state.sessionInvalid = true;
-          $('back-to-chat').href = '/';
+          $('back-to-chat').href = '/chat';
         }
       }
       $('tpl-count').textContent = `(${state.templates.length})`;

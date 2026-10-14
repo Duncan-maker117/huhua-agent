@@ -15,6 +15,7 @@ async (page) => {
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
   await page.unroute('**/api/**'); await page.unroute('**/static/**');
+  await page.route(base + '/chat**', route => route.fulfill({path: 'web/index.html'}));
   await page.route('**/static/**', route => route.continue({url:route.request().url().replace('/static/', '/')}));
   await page.route('https://fonts.googleapis.com/**', route => route.fulfill({contentType:'text/css', body:''}));
   await page.route('**/api/**', async route => {
@@ -64,7 +65,7 @@ async (page) => {
   await page.locator('#btn-export').click(); await page.getByLabel('登录邮箱',{exact:true}).waitFor();
   check((await page.locator('#profile-content').textContent()).includes('导出'), '点击模板导出才提示登录');
   await page.locator('#btn-close-profile').click();
-  await page.goto(base + '/');
+  await page.goto(base + '/chat');
   await page.waitForFunction(() => !document.getElementById('btn-send').disabled);
   check(created === 1, '初访自动创建单个临时会话');
   check(!requests.some(r => r.path === '/api/chat/conversations' && r.method === 'GET' && !r.authenticated), '游客不会请求长期历史目录');

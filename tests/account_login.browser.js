@@ -33,7 +33,7 @@ async (page) => {
     if (path === '/api/chat/conversations') return route.fulfill({json:{conversations:[]}});
     return route.fulfill({json:{}});
   });
-  const open = async () => { await page.goto('http://127.0.0.1:8896/'); await page.locator('#btn-account-profile').click(); };
+  const open = async () => { await page.goto('http://127.0.0.1:8896/chat'); await page.locator('#btn-account-profile').click(); };
   const status = () => page.locator('.profile-status');
   await page.setViewportSize({width:1440,height:960}); await open();
   await page.getByText('当前服务尚未启用账号登录，请等待服务更新后重试。',{exact:true}).waitFor();

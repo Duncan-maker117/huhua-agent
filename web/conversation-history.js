@@ -132,6 +132,7 @@
     autoResize();
     renderMessages();
     const url = new URL(location.href);
+    url.pathname = '/chat';
     url.searchParams.set('session', SESSION_ID);
     history.replaceState(null, '', url.pathname + url.search + url.hash);
     for (const link of resumeLinks) link.href = `/resume?session=${encodeURIComponent(SESSION_ID)}`;
@@ -270,7 +271,7 @@
         resetCanvas();
         renderMessages();
         $('conversation-title').textContent = '对话已删除';
-        history.replaceState(null, '', location.pathname);
+        history.replaceState(null, '', '/chat');
         setBusy(false);
         if (conversations[0]) await openConversation(conversations[0].session_id, {close: false});
         else await createConversation();

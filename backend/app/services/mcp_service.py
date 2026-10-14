@@ -200,7 +200,7 @@ class MCPService:
         with self.factory() as db:
             result = profile.propose_to_inbox(db, principal.account.id, principal.token_id, candidates)
             db.commit()
-        return {**result, 'confirmation_url': self.base_url() + '/?profile=inbox'}
+        return {**result, 'confirmation_url': self.base_url() + '/chat?profile=inbox'}
 
     def resume_get(self, principal, conversation_id=None, *, redact=True):
         with self.factory() as db:
@@ -325,5 +325,5 @@ class MCPService:
             raise
         return {'saved': True, 'conversation_id': session_id, 'version_id': version['version_id'],
                 'revision': result['revision'], 'source': 'mcp', 'fact_check': checked,
-                'conversation_url': self.base_url() + '/?session=' + session_id,
+                'conversation_url': self.base_url() + '/chat?session=' + session_id,
                 'contacts_filled_by_server': True}

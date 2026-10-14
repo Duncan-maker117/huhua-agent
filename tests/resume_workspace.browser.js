@@ -62,7 +62,7 @@ async (page) => {
   });
   await page.setViewportSize({width:1440,height:960});
   await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
-  await page.goto('http://127.0.0.1:8765/?session=workspace-fixture', {waitUntil:'domcontentloaded'});
+  await page.goto('http://127.0.0.1:8765/chat?session=workspace-fixture', {waitUntil:'domcontentloaded'});
   await page.waitForFunction(() => !document.getElementById('btn-send').disabled);
   await page.waitForFunction(() => document.getElementById('workspace-panel-jd').textContent.includes('AI 产品实习生'));
   check('jd-without-resume', await page.locator('#workspace-panel-jd').isVisible(), '尚无简历时，JD 解析直接展示在工作区');

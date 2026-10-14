@@ -99,7 +99,7 @@ async (page) => {
 
   await page.setViewportSize({width: 1440, height: 960});
   await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
-  await page.goto(baseUrl + '/');
+  await page.goto(baseUrl + '/chat');
   await ready();
   check(page.url().split('session=')[1] === 'history-a', '迁移旧浏览器活动会话并写入 URL');
   check(await page.locator('.bubble-ai strong').textContent() === 'A 已有简历', '从数据库恢复原始 Markdown');
@@ -137,7 +137,7 @@ async (page) => {
   await page.reload();
   await ready();
   check(page.url().split('session=')[1] === 'history-a' && (await page.locator('#messages').textContent()).includes('A 已有简历'), '刷新从服务器恢复指定聊天');
-  await page.goto(baseUrl + '/?session=history-b');
+  await page.goto(baseUrl + '/chat?session=history-b');
   await ready();
   check((await page.locator('#messages').textContent()).includes('B 的回复'), '编辑页返回的 URL 会话优先于本地活动 ID');
 

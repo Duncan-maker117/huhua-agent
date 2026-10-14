@@ -20,7 +20,7 @@ async (page) => {
   };
   let sessionA,sessionB, factId, itemId, beforeDelete, audit;
   try{
-    await page.setViewportSize({width:1440,height:960});await page.goto(base+'/');
+    await page.setViewportSize({width:1440,height:960});await page.goto(base+'/chat');
     check('anonymous-private-blocked',(await request('/api/profile')).status===401);
     stage='login-a';await login('nora@huhua-fixture.invalid');sessionA=await page.evaluate(()=>new URLSearchParams(location.search).get('session'));
     check('account-cookie-http-only',(await page.context().cookies()).some(c=>c.name==='huhua_account'&&c.httpOnly&&c.sameSite==='Lax'));
@@ -44,7 +44,7 @@ async (page) => {
     await page.reload();await page.locator('[data-input-path="/basic_info/name"]').waitFor();check('real-editor-refresh',await page.locator('[data-input-path="/basic_info/name"]').inputValue()==='HUHUA_LIVE_EDIT');
     const renamed=(await request('/api/resume/current?session_id='+encodeURIComponent(sessionA))).body.data.projects[0];
     check('rename-preserves-item-id',renamed.item_id===itemId&&renamed.name==='改名后的文档项目');
-    stage='real-suggestion';await page.goto(base+'/?session='+encodeURIComponent(sessionA));await page.waitForFunction(()=>document.getElementById('workspace-status').textContent.includes('简历已更新'));
+    stage='real-suggestion';await page.goto(base+'/chat?session='+encodeURIComponent(sessionA));await page.waitForFunction(()=>document.getElementById('workspace-status').textContent.includes('简历已更新'));
     await page.getByRole('button',{name:/核对并采用措辞|核对一处表达修改/}).first().click();
     await page.locator('.suggestion-form select').selectOption('本地合并虚构验收');await page.getByLabel('拟采用的建议句',{exact:true}).fill('本地合并虚构验收。');
     await page.getByRole('button',{name:'核对依据与改动',exact:true}).click();await page.getByRole('button',{name:'采用这句',exact:true}).waitFor();

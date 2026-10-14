@@ -33,7 +33,7 @@ async (page) => {
     else await route.fulfill({status:503,json:{detail:'模拟接口'}});
   });
   await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
-  await page.goto('http://127.0.0.1:8765/', {waitUntil:'domcontentloaded'});
+  await page.goto('http://127.0.0.1:8765/chat', {waitUntil:'domcontentloaded'});
   await page.waitForFunction(() => window.HuhuaMarkdown && window.marked && window.DOMPurify);
   await page.waitForFunction(() => !document.getElementById('btn-send').disabled);
   await page.evaluate(() => {

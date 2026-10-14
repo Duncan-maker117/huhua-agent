@@ -112,7 +112,7 @@ async (page) => {
   await page.goto('http://127.0.0.1:8893/resume');await field('/basic_info/name').waitFor();
   check('legacy-sample-remains-editable',await field('/basic_info/name').isEnabled());await field('/basic_info/name').fill('兼容模式样例修改');
   await page.waitForFunction(()=>document.getElementById('render-status').textContent==='已实时更新');check('legacy-sample-preview-keeps-edits',renders().at(-1).body.basic_info.name==='兼容模式样例修改');
-  requireAccount=true;await page.goto('http://127.0.0.1:8893/?session='+fixture);
+  requireAccount=true;await page.goto('http://127.0.0.1:8893/chat?session='+fixture);
   await page.waitForFunction(()=>!document.getElementById('btn-export-docx').disabled);
   check('chat-preview-has-session',queryValue(renders().at(-1).url,'session_id')===fixture);
   const chatDownload=page.waitForEvent('download');await page.locator('#btn-export-docx').click();await chatDownload;

@@ -1,0 +1,110 @@
+"""Public landing page, local redirects and synthetic frontend interactions."""
+from html.parser import HTMLParser
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import unittest
+from unittest.mock import patch
+from urllib.parse import urlsplit
+
+import httpx
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'backend'))
+from app.config import Settings  # noqa: E402
+
+# Import without reading local credentials or starting application workers.
+with patch('app.config.get_settings', return_value=Settings(
+        _env_file=None, DATABASE_URL='sqlite:///:memory:', ENABLE_RAG=False,
+        LLM_API_KEY='', REQUIRE_ACCOUNT=False, ALLOW_INSECURE_LOCAL_STORAGE=True)):
+    from main import app  # noqa: E402
+
+
+class ResourceParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.resources = []
+        self.links = {}
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag in {'script', 'img', 'source', 'iframe'}:
+            for name in ('src', 'srcset'):
+                if name in attrs:
+                    self.resources.extend(part.strip().split()[0] for part in attrs[name].split(','))
+        if tag == 'link' and 'href' in attrs:
+            self.resources.append(attrs['href'])
+        if tag == 'a' and 'id' in attrs:
+            self.links[attrs['id']] = attrs.get('href')
+
+
+class HomePageTests(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                       base_url='http://testserver', follow_redirects=False)
+        self.addAsyncCleanup(self.client.aclose)
+
+    async def test_root_serves_home(self):
+        response = await self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, (ROOT / 'web/home.html').read_text())
+        self.assertIn('把聊过的经历，</span><span>写成一页真实的简历。', response.text)
+        self.assertEqual(response.headers['cache-control'], 'no-cache')
+
+    async def test_chat_serves_workbench(self):
+        response = await self.client.get('/chat')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, (ROOT / 'web/index.html').read_text())
+        self.assertIn('id="chat-pane"', response.text)
+
+    async def test_legacy_session_redirect_preserves_raw_query(self):
+        for query in ('session=x', 'session=', 'session=a%2Fb&panel=profile&x=a+b&x=%26'):
+            with self.subTest(query=query):
+                response = await self.client.get('/?' + query)
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(response.headers['location'], '/chat?' + query)
+
+    async def test_redirect_cannot_leave_this_site(self):
+        for path in ('//evil.com', '//evil.com/?session=x', '/%2F%2Fevil.com?session=x',
+                     '/?session=//evil.com&next=https://evil.com', '/?session=%0d%0aLocation:%20//evil.com'):
+            with self.subTest(path=path):
+                response = await self.client.get('http://testserver' + path)
+                target = urlsplit(response.headers.get('location', ''))
+                self.assertIn(target.netloc, ('', 'testserver'))
+                if response.is_redirect:
+                    self.assertEqual(target.path, '/chat')
+
+    async def test_home_resources_are_local_versioned_and_available(self):
+        parser = ResourceParser()
+        parser.feed((ROOT / 'web/home.html').read_text())
+        self.assertGreater(len(parser.resources), 20)
+        for resource in parser.resources:
+            with self.subTest(resource=resource):
+                parsed = urlsplit(resource)
+                self.assertFalse(parsed.scheme or parsed.netloc)
+                self.assertTrue(parsed.path.startswith('/static/'))
+                self.assertEqual(parsed.query, 'v=20261015-home1')
+                self.assertTrue((ROOT / 'web' / parsed.path.removeprefix('/static/')).is_file())
+        self.assertNotIn('tailwind', (ROOT / 'web/home.html').read_text())
+        response = await self.client.get('/static/home.css?v=20261015-home1')
+        self.assertEqual(response.status_code, 200)
+
+    async def test_resume_returns_to_chat(self):
+        parser = ResourceParser()
+        parser.feed((await self.client.get('/resume')).text)
+        self.assertEqual(parser.links['back-to-chat'], '/chat')
+
+
+class HomeDomTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
+    def test_home_copy_navigation_and_menu(self):
+        result = subprocess.run(['node', str(Path(__file__).with_name('home.dom.js'))],
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
+    def test_chat_entry_panels_and_login_continuation(self):
+        result = subprocess.run(['node', str(Path(__file__).with_name('home_entry.dom.js'))],
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)

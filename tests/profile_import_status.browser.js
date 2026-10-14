@@ -12,7 +12,7 @@ async (page) => {
     if(path==='/api/chat/conversations')return route.fulfill({json:{conversations:[]}});
     return route.fulfill({status:404,json:{detail:'unused fixture'}});
   });
-  await page.goto(page.url().split('/').slice(0,3).join('/')+'/');await page.locator('#btn-account-profile').click();
+  await page.goto(page.url().split('/').slice(0,3).join('/')+'/chat');await page.locator('#btn-account-profile').click();
   await page.locator('[aria-label="旧对话导入状态"]').waitFor();
   check('import-counts-visible',(await page.locator('[aria-label="旧对话导入状态"]').textContent()).includes('2 待导入 · 1 处理中 · 1 失败 · 3 已完成'));
   check('errors-not-exposed',!(await page.locator('#profile-content').textContent()).includes('PRIVATE_EXCEPTION_TOKEN')&&!(await page.locator('#profile-content').textContent()).includes('INTERNAL_ARCHIVE_ERROR'));

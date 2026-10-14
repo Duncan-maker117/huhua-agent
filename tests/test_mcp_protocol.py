@@ -208,7 +208,7 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
         async with self.client() as client:
             result = await self.call(client, 'huhua_facts_propose', {'candidates': [CANDIDATE]})
             inbox_id = result['items'][0]['id']
-            self.assertIn('profile=inbox', result['confirmation_url'])
+            self.assertEqual(result['confirmation_url'], 'http://testserver/chat?profile=inbox')
             self.assertEqual((await self.call(client, 'huhua_profile_get'))['facts'], [])
             with self.factory() as db:
                 self.assertIsNone(db.scalar(select(ProfileSource)))
@@ -449,6 +449,7 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
             saved = await self.call(client, 'huhua_resume_save', {'resume': data})
             self.assertTrue(saved['contacts_filled_by_server'])
             session = saved['conversation_id']
+            self.assertEqual(saved['conversation_url'], 'http://testserver/chat?session=' + session)
             current = await self.call(client, 'huhua_resume_get', {'conversation_id': session})
             for result in (saved, current):
                 for value in ('13800001234', 'synthetic@example.test', '13999998888', 'fake@example.test'):

@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 import os
 from pathlib import Path
 
@@ -300,6 +300,14 @@ if os.path.exists(WEB_DIR):
     app.mount("/static", GZipMiddleware(CachedStaticFiles(directory=WEB_DIR), minimum_size=1024), name="static")
 
     @app.get("/")
+    async def home(request: Request):
+        if "session" in request.query_params:
+            # Preserve old bookmarks verbatim, always under a fixed local path.
+            query = request.scope.get("query_string", b"").decode("latin-1")
+            return RedirectResponse("/chat?" + query, status_code=302, headers={"Cache-Control": "no-cache"})
+        return FileResponse(os.path.join(WEB_DIR, "home.html"), headers={"Cache-Control": "no-cache"})
+
+    @app.get("/chat")
     async def index():
         return FileResponse(os.path.join(WEB_DIR, "index.html"), headers={"Cache-Control": "no-cache"})
 

@@ -12,7 +12,7 @@ async (page) => {
   const workspace = () => ({jd: {}, experiences: {items: []}, resume: {has_data: current.has_data, version: current.revision}, review: {items: []}, focus: 'resume'});
   await page.route(origin + '/**', async route => {
     const request = route.request(), rawUrl = request.url(), path = '/' + rawUrl.split('/').slice(3).join('/').split('?')[0];
-    if (path === '/') return route.fulfill({path: 'web/index.html'});
+    if (path === '/chat') return route.fulfill({path: 'web/index.html'});
     if (path === '/resume') return route.fulfill({path: 'web/resume.html'});
     if (/^\/static\/[\w.-]+$/.test(path)) return route.fulfill({path: 'web/' + path.slice(8)});
     if (/^\/static\/vendor\/[\w.-]+$/.test(path)) return route.fulfill({path: 'web/' + path.slice(8)});
@@ -51,7 +51,7 @@ async (page) => {
     return route.fulfill({status: 404, json: {detail: 'Unused fixture route'}});
   });
   await page.setViewportSize({width: 1440, height: 960});
-  await page.goto(origin + '/?session=' + session);
+  await page.goto(origin + '/chat?session=' + session);
   await page.waitForFunction(() => !document.getElementById('btn-send').disabled);
   await page.locator('#workspace-tab-resume').click();
   check(await page.locator('#workspace-tab-export').count() === 0, 'four tabs; export tab removed');
@@ -137,7 +137,7 @@ async (page) => {
   await page.locator('#btn-close-workspace').click();
   await page.locator('#input').fill('');
   await page.locator('#btn-new-chat').click();
-  await page.waitForURL('**/?session=embedded-b');
+  await page.waitForURL('**/chat?session=embedded-b');
   await page.waitForFunction(() => document.getElementById('resume-editor-frame')?.src.includes('embedded-b'));
   check(!page.frames().includes(frame), 'session switch destroys old iframe and preloads new one');
   await page.goto(origin + '/resume?session=embedded-b');

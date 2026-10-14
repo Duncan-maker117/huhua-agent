@@ -20,7 +20,7 @@ async (page) => {
   };
   let sessionA,sessionB, factId, revision, beforeDelete, audit;
   try{
-    await page.setViewportSize({width:1440,height:960});await page.goto(base+'/');
+    await page.setViewportSize({width:1440,height:960});await page.goto(base+'/chat');
     check('anonymous-private-blocked',(await request('/api/profile')).status===401);
     stage='login-a';await login('nora@huhua-fixture.invalid');sessionA=await page.evaluate(()=>new URLSearchParams(location.search).get('session'));
     check('account-cookie-http-only',(await page.context().cookies()).some(c=>c.name==='huhua_account'&&c.httpOnly&&c.sameSite==='Lax'));

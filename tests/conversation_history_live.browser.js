@@ -16,7 +16,7 @@ async (page) => {
   try {
     if (!initial.conversations.length) await page.evaluate(() => localStorage.clear());
     await page.setViewportSize({width: 1440, height: 960});
-    await page.goto(origin);
+    await page.goto(origin + '/chat');
     await page.waitForFunction(() => document.getElementById('btn-send')?.disabled === false);
     const a = await page.evaluate(() => new URL(location.href).searchParams.get('session'));
     check(Boolean(a), '首页创建数据库会话并保留URL');
@@ -27,7 +27,7 @@ async (page) => {
     await input('/basic_info/email').fill('history-a@example.test');
     await saved();
     check((await current(a)).data.basic_info.name === '历史测试候选人A', '真实数据库保存A草稿');
-    check(await page.locator('#back-to-chat').getAttribute('href') === `/?session=${a}`, '编辑页返回原聊天链接');
+    check(await page.locator('#back-to-chat').getAttribute('href') === `/chat?session=${a}`, '编辑页返回原聊天链接');
     await page.locator('#back-to-chat').click();
     await page.waitForFunction(() => document.getElementById('btn-send')?.disabled === false);
     await page.locator('#btn-new-chat').click();

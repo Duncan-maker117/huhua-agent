@@ -4,7 +4,7 @@ async (page) => {
   const checks = [];
   const check = (ok, label) => { checks.push({label, passed: Boolean(ok)}); if (!ok) throw new Error(label); };
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto(origin + '/');
+  await page.goto(origin + '/chat');
   const email = 'export-' + Date.now() + '@huhua-fixture.invalid';
   check((await page.request.post(origin + '/api/account/login/start', {data: {email}})).ok(), 'fixture login starts');
   const {code} = await (await page.request.get(origin + '/__test__/otp?email=' + encodeURIComponent(email))).json();

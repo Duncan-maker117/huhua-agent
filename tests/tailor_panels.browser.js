@@ -52,7 +52,7 @@ async (page) => {
     return route.fulfill({status: 503, json: {detail: '模拟接口'}});
   });
   await page.setViewportSize({width: 1440, height: 900});
-  await page.goto('http://127.0.0.1:8765/?session=' + session, {waitUntil: 'domcontentloaded'});
+  await page.goto('http://127.0.0.1:8765/chat?session=' + session, {waitUntil: 'domcontentloaded'});
   await page.evaluate(session => { try { localStorage.removeItem('huhua_closed_questions:' + session); } catch (_) {} }, session);
   await page.reload({waitUntil: 'domcontentloaded'});
   await page.waitForFunction(() => window.HuhuaWorkspace && !document.getElementById('btn-send').disabled);

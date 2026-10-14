@@ -24,7 +24,7 @@ async (page) => {
   page.on('request', request => browserRequests.push({url:request.url(), method:request.method()}));
   try {
     await page.setViewportSize({width:1440, height:1000});
-    await page.goto(base + '/');
+    await page.goto(base + '/chat');
     await page.waitForFunction(() => document.getElementById('btn-send')?.disabled === false);
     sessionId = await page.evaluate(() => new URL(location.href).searchParams.get('session'));
     const initial = await read('/api/resume/current?session_id=' + sessionId);

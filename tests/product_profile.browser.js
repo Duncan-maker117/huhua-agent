@@ -40,7 +40,7 @@ async (page) => {
   });
   await page.addInitScript(() => { if (window !== window.top) return; localStorage.setItem('huhua_messages','敏感旧消息'); localStorage.setItem('huhua_chat_backup:old','敏感旧备份'); sessionStorage.setItem('huhua_editor_draft:old','旧简历'); });
   await page.setViewportSize({width:1440,height:960});
-  await page.goto('http://127.0.0.1:8893/?session=profile-fixture');
+  await page.goto('http://127.0.0.1:8893/chat?session=profile-fixture');
   await page.waitForFunction(() => !document.getElementById('btn-send').disabled);
   check('private-cache-cleared', await page.evaluate(() => !localStorage.getItem('huhua_messages') && !localStorage.getItem('huhua_chat_backup:old') && !sessionStorage.getItem('huhua_editor_draft:old')));
   await page.locator('#btn-account-profile').click();

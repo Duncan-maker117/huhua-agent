@@ -1,0 +1,71 @@
+// Synthetic public page fixture; no server, user store or model is contacted.
+// playwright-cli -s=huhua-home run-code --filename=tests/home.browser.js
+async (page) => {
+  const origin = 'https://huhua.fixture';
+  const errors = [], requests = [], checks = [];
+  let authenticated = false;
+  const check = (value, label) => { if (!value) throw new Error(label); checks.push(label); };
+  page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/*', async route => {
+    const url = route.request().url(); requests.push(url);
+    if (!url.startsWith(origin + '/')) throw new Error('External resource: ' + url);
+    const path = url.slice(origin.length).split('?')[0];
+    if (path === '/') return route.fulfill({path: 'web/home.html'});
+    if (path.startsWith('/static/')) return route.fulfill({path: 'web/' + path.slice(8)});
+    if (path === '/api/account/me') return route.fulfill({json: {authenticated}});
+    return route.fulfill({status: 404, body: ''});
+  });
+  await page.addInitScript(() => {
+    window.copiedCommand = '';
+    Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: async value => { window.copiedCommand = value; }}});
+  });
+  const loadPictures = async () => {
+    for (const img of await page.locator('img').all()) {
+      await img.scrollIntoViewIfNeeded();
+      await img.evaluate(node => node.decode());
+    }
+    await page.locator('.template-strip').evaluate(node => { node.scrollLeft = 0; });
+    await page.evaluate(() => scrollTo({top: 0, behavior: 'instant'}));
+  };
+  await page.setViewportSize({width: 1440, height: 1000});
+  await page.goto(origin);
+  await page.locator('#nav-account').filter({hasText: '登录'}).waitFor();
+  await page.evaluate(() => Promise.all([...document.images].filter(img => img.loading !== 'lazy').map(img => img.decode())));
+  check(await page.locator('h1').innerText() === '把聊过的经历，\n写成一页真实的简历。', '方案 A 标题');
+  await loadPictures();
+  await page.screenshot({path: '/private/tmp/huhua-home-desktop-hero.png'});
+  await page.screenshot({path: '/private/tmp/huhua-home-desktop.png', fullPage: true});
+  await page.locator('#copy-command').click();
+  check(await page.locator('#copy-command').innerText() === '已复制', '复制反馈');
+  check(await page.evaluate(() => copiedCommand.includes('https://huhua.fixture/mcp')), '命令使用当前站点');
+  await page.locator('#privacy summary').click();
+  check(await page.locator('#privacy').evaluate(node => node.open), 'FAQ 可展开');
+  await page.setViewportSize({width: 390, height: 844});
+  await page.goto(origin);
+  await loadPictures();
+  await page.screenshot({path: '/private/tmp/huhua-home-mobile-hero.png'});
+  await page.screenshot({path: '/private/tmp/huhua-home-mobile.png', fullPage: true});
+  check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), '390px 无页面横向溢出');
+  await page.locator('#menu-toggle').click();
+  check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'true', '移动导航展开');
+  await page.keyboard.press('Escape');
+  check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'false', 'Escape 关闭菜单');
+  const crops = await page.locator('.template-image').evaluateAll(nodes => nodes.map(node => ({
+    ratio: node.clientWidth / node.clientHeight,
+    fit: getComputedStyle(node.querySelector('img')).objectFit,
+    position: getComputedStyle(node.querySelector('img')).objectPosition,
+  })));
+  check(crops.length === 7 && crops.every(crop => crop.ratio > 1.10 && crop.fit === 'cover' && crop.position.includes('0%')), '7 张模板裁掉底部提示条');
+  authenticated = true;
+  await page.setViewportSize({width: 1440, height: 1000});
+  await page.goto(origin);
+  await page.locator('#nav-account').filter({hasText: '我的档案'}).waitFor();
+  check(await page.locator('#nav-workspace-label').innerText() === '进入工作台', '登录态导航');
+  check(await page.locator('#nav-account').getAttribute('href') === '/chat?panel=profile', '档案链接');
+  await page.emulateMedia({reducedMotion: 'reduce'});
+  check(await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior) === 'auto', '减少动态效果偏好');
+  check(errors.length === 0, '无浏览器脚本异常');
+  check(requests.every(url => url.startsWith(origin)), '页面无外部资源请求');
+  console.log(JSON.stringify({checks, errors}));
+  return {checks, errors};
+}

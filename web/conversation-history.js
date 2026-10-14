@@ -84,7 +84,7 @@
   }
   function resetCanvas() {
     canvasReadRequest++;
-    canvasPaintRequest++;
+    resetCanvasPreview();
     canvasState.data = null;
     canvasState.hasData = false;
     canvasState.stage = 'JD_INPUT';
@@ -95,7 +95,6 @@
     $('verification-panel').classList.add('hidden');
     $('canvas-empty').classList.remove('hidden');
     $('canvas-sheet-wrap').classList.add('hidden');
-    $('live-sheet').srcdoc = '';
     window.HuhuaResumeActions?.reset();
     window.HuhuaWorkspace?.reset();
     renderStageRail();

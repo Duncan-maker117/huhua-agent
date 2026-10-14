@@ -16,7 +16,7 @@ function fixture(page, {idle = true, embedded = false} = {}) {
       this.classList = {toggle() {}, add() {}, remove() {}, contains: () => false};
       this.contentWindow = {postMessage: (data, origin) => posts.push({data, origin})};
     }
-    set id(value) { this._id = value; ids.set(value, this); } get id() { return this._id; }
+    set id(value) { if (ids.get(this._id) === this) ids.delete(this._id); this._id = value; ids.set(value, this); } get id() { return this._id; }
     get childElementCount() { return this.children.length; }
     append(...nodes) { for (const n of nodes) { n.parentElement = this; this.children.push(n); } }
     insertBefore(node) { this.append(node); }
@@ -47,7 +47,10 @@ function fixture(page, {idle = true, embedded = false} = {}) {
     localStorage: {getItem() {}}, getComputedStyle: () => ({paddingLeft: '0', paddingRight: '0'}),
     fetch: async () => { throw new Error('unexpected fetch'); }};
   return {context, window, document, ids, main, posts, timers,
-    run(name, transform = x => x) { vm.runInNewContext(transform(fs.readFileSync(root + '/web/' + name, 'utf8')), context); },
+    run(name, transform = x => x) {
+      if (name === 'resume-editor.js' && !window.HuhuaTemplatePreview) vm.runInNewContext(fs.readFileSync(root + '/web/template-preview.js', 'utf8'), context);
+      vm.runInNewContext(transform(fs.readFileSync(root + '/web/' + name, 'utf8')), context);
+    },
     fire(type, event) { for (const fn of events[type] || []) fn(event); },
     async advance(delay) { for (const [id, timer] of [...timers]) if (timer.delay === delay) { timers.delete(id); await timer.fn(); } await tick(); },
   };

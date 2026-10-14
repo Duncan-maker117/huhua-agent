@@ -4,7 +4,7 @@
   const $ = (id) => document.getElementById(id);
   const main = $('resume-main');
   const editor = $('form-editor');
-  const frame = $('preview-frame');
+  let frame = $('preview-frame');
   const previewScroll = $('preview-scroll');
   const previewPage = $('preview-page');
   const status = $('render-status');
@@ -23,7 +23,7 @@
   const state = {
     data: null, templates: [], template: null, revision: 0,
     request: 0, controller: null, timer: null, ready: false,
-    frameRevision: -1, structureRevision: 0, height: 1123, previewHover: null,
+    frameRevision: -1, frameTemplate: null, structureRevision: 0, height: 1123, previewHover: null,
     editorHover: null, focused: null, exportBusy: false, exportObjectUrl: null, exportFormat: null,
     draggedSection: null, undoSection: null,
     session: null, mode: null, serverRevision: null, canSave: false,
@@ -31,6 +31,25 @@
     conflict: false, recovery: null, backupAvailable: true,
     sessionInvalid: false, requireAccount: true, sampleSource: null, creatingDraft: false, createdDraftSession: null,
   };
+  const previewLoader = window.HuhuaTemplatePreview.createLoader({
+    templates: () => state.templates.map(template => template.id), current: () => state.template?.id,
+    canPrefetch: () => Boolean(state.data && state.ready && !state.timer && !window.HuhuaAccount?.claimPending()),
+    async fetchHtml(template, signal) {
+      const response = await fetch(resumeRequestUrl(`/api/resume/render/${encodeURIComponent(template)}`, {interactive:true, pending:true}), {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(requestData()), signal,
+      });
+      if (!response.ok) throw new Error(await responseError(response, '预览更新失败，请稍后重试'));
+      return response.text();
+    },
+  });
+  const previewBuffer = window.HuhuaTemplatePreview.createBuffer(frame, $('preview-frame-back'), (next, height) => {
+    frame = next; state.height = height;
+    scalePreview();
+  });
+  function invalidatePreview() {
+    previewLoader.invalidate(); previewBuffer.cancelSwitch();
+    state.controller = null; state.request++;
+  }
   const query = new URLSearchParams(location.search);
   const embedded = query.get('embedded') === '1';
   let editorLoaded = false, pendingChatRevision = null, chatRefresh = null, currentRead = 0;
@@ -214,7 +233,7 @@
           if (result.data?.layout && JSON.stringify(state.data.layout) === JSON.stringify(snapshot.layout)) {
             const layoutChanged = JSON.stringify(state.data.layout) !== JSON.stringify(result.data.layout);
             state.data.layout = structuredClone(result.data.layout);
-            if (layoutChanged && state.revision === version) renderPreview();
+            if (layoutChanged && state.revision === version) { invalidatePreview(); renderPreview(); }
           }
           state.serverRevision = result.revision;
           state.savedVersion = version;
@@ -261,7 +280,7 @@
     event.preventDefault();
     if (await flushSave()) location.href = $('back-to-chat').href;
   });
-  window.addEventListener('huhua-account-reset', () => { clearExportFile(); $('export-result').hidden = true; state.mode = null; state.data = null; state.recovery = null; state.createdDraftSession = null; pendingRemovedItems.clear(); trackedItemIds.clear(); clearTimeout(state.saveTimer); });
+  window.addEventListener('huhua-account-reset', () => { invalidatePreview(); previewBuffer.reset(); state.ready = false; clearExportFile(); $('export-result').hidden = true; state.mode = null; state.data = null; state.recovery = null; state.createdDraftSession = null; pendingRemovedItems.clear(); trackedItemIds.clear(); clearTimeout(state.saveTimer); });
   window.addEventListener('beforeunload', (event) => {
     if (state.mode !== 'personal' || state.savedVersion === state.revision) return;
     keepBackup();
@@ -330,7 +349,7 @@
     if (sampleReadOnly()) return;
     trackItemChanges();
     state.revision += 1;
-    state.controller?.abort();
+    invalidatePreview();
     setStatus('正在更新');
     if (path) {
       pendingValues.set(path, {revision: state.revision, value});
@@ -873,7 +892,7 @@
         }
       }
       highlightPreview();
-      if (state.frameRevision === state.revision) setStatus('已实时更新');
+      if (state.frameRevision === state.revision && state.frameTemplate === state.template?.id) setStatus('已实时更新');
     } else if (message.type === 'resume-preview-escape') {
       escapeEditor();
     } else if (message.type === 'resume-field-hover') {
@@ -894,8 +913,10 @@
     const scale = Math.min(1, Math.max(.1, width / 794));
     previewPage.style.width = `${794 * scale}px`;
     previewPage.style.height = `${state.height * scale}px`;
-    frame.style.height = `${state.height}px`;
-    frame.style.transform = `scale(${scale})`;
+    for (const pane of previewBuffer.frames) {
+      pane.style.height = `${state.height}px`;
+      pane.style.transform = `scale(${scale})`;
+    }
   }
   new ResizeObserver(scalePreview).observe(previewScroll);
   window.addEventListener('resize', scalePreview);
@@ -913,26 +934,27 @@
     if (window.HuhuaAccount?.claimPending()) return;
     if (!state.template || !state.data) return;
     clearTimeout(state.timer);
-    state.controller?.abort();
-    const controller = new AbortController();
-    state.controller = controller;
+    state.timer = null;
+    previewBuffer.cancel();
     const revision = state.revision;
     const template = state.template.id;
     const request = ++state.request;
+    const isCurrent = () => revision === state.revision && request === state.request && template === state.template?.id;
     setStatus('正在更新');
     try {
-      const response = await fetch(resumeRequestUrl(`/api/resume/render/${encodeURIComponent(template)}`, {interactive:true, pending:true}), {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(requestData()), signal: controller.signal,
+      const entry = previewLoader.get(template, revision, true);
+      state.controller = entry.controller;
+      const html = await entry.promise;
+      if (!isCurrent()) return;
+      const shown = await previewBuffer.show(html, isCurrent, () => {
+        state.ready = true;
+        state.previewHover = null;
+        state.frameRevision = revision;
+        state.frameTemplate = template;
+        highlightControls(); highlightPreview();
+        setStatus('已实时更新');
       });
-      if (!response.ok) throw new Error(await responseError(response, '预览更新失败，请稍后重试'));
-      const html = await response.text();
-      if (revision !== state.revision || request !== state.request || template !== state.template.id) return;
-      state.ready = false;
-      state.previewHover = null;
-      highlightControls();
-      state.frameRevision = revision;
-      frame.srcdoc = html;
+      if (shown && isCurrent()) previewLoader.schedule(revision);
     } catch (error) {
       if (error.name === 'AbortError' || revision !== state.revision || request !== state.request) return;
       setStatus('更新失败，继续编辑可重试', true);
@@ -947,6 +969,7 @@
     return state.templates.find(template => template.id === selected) || state.templates[0];
   }
   function selectTemplate(template) {
+    previewBuffer.markSwitch();
     state.template = template;
     // Store presentation identifiers only, never resume text or account tokens.
     try { localStorage.setItem(templatePreferenceKey(), template.id); } catch (_) { /* Editing still works without browser storage. */ }
@@ -1087,6 +1110,9 @@
     state.sampleSource = mode === 'sample' ? structuredClone(data) : null;
     pendingRemovedItems.clear(); trackedItemIds = itemIds(state.data);
     state.revision += 1;
+    invalidatePreview();
+    state.ready = false;
+    state.structureRevision = state.revision;
     state.savedVersion = state.revision;
     state.saveFailed = false;
     state.conflict = false;
@@ -1146,12 +1172,13 @@
       if (state.template) selectTemplate(state.template);
       $('draft-recovery').hidden = true;
       // This explicit user action creates a saved draft; template preview does not.
-      state.revision += 1; queueSave();
+      state.revision += 1; invalidatePreview(); renderPreview(); queueSave();
     } catch (error) { setStatus(error.message, true); }
     finally { state.creatingDraft = false; if (trigger) trigger.disabled = !state.canSave && !state.requireAccount; }
   }
 
   function showStartChoice() {
+    invalidatePreview(); previewBuffer.reset(); state.ready = false;
     state.data = null;
     state.mode = null;
     $('data-source').textContent = '尚无个人简历';
@@ -1185,6 +1212,7 @@
       activateData(recovery.data, 'personal');
       for (const id of recovery.removed_item_ids || []) if (!trackedItemIds.has(id)) pendingRemovedItems.set(id, ++removalSequence);
       state.revision += 1;
+      invalidatePreview(); renderPreview();
       queueSave();
       notice.hidden = true;
     }));
@@ -1228,6 +1256,7 @@
       $('tpl-count').textContent = `(${state.templates.length})`;
       for (const template of state.templates) {
         const item = button('', 'tpl-item', () => selectTemplate(template));
+        previewLoader.bind(item, template.id, () => state.revision);
         item.dataset.templateId = template.id;
         item.append(element('span', 'tpl-name', template.name), element('span', 'tpl-style', template.style || ''));
         if (template.fits_one_page === false) item.append(element('span', 'tpl-style tpl-two-page', '适合两页'));
@@ -1252,10 +1281,11 @@
     }
   }
   window.addEventListener('huhua-account-claim-pending', () => {
-    clearTimeout(state.saveTimer); clearTimeout(state.timer); state.controller?.abort();
+    clearTimeout(state.saveTimer); clearTimeout(state.timer); invalidatePreview();
     setSaveStatus('登录已成功，当前体验待保存；请重试保留当前对话。', true);
   });
   window.addEventListener('huhua-account-changed', event => {
+    invalidatePreview();
     notifyParent({type: 'resume-account-changed'});
     if (event.detail?.session_id && (!state.data || state.mode === 'sample')) {
       state.session = event.detail.session_id; window.HuhuaEditor.refreshCurrent().catch(error => setStatus(error.message, true));

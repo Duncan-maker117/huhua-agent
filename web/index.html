@@ -45,7 +45,8 @@
   .stage-chip { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; color: var(--hh-text-3); background: rgba(255,255,255,.55); }
   .stage-chip.active { color: #fff; background: var(--hh-primary); }
   .stage-chip.done { color: var(--hh-primary-strong); background: #e6deff; }
-  #live-sheet { width: 210mm; min-height: 297mm; transform-origin: top center; background: #fff; }
+  #sheet-size { position: relative; }
+  #live-sheet, #live-sheet-back { position: absolute; top: 0; left: 0; width: 210mm; min-height: 297mm; transform-origin: top center; background: #fff; }
   .tpl-chip { font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--hh-line-strong); color: var(--hh-text-2); background: #fff; cursor: pointer; transition: border-color .15s, color .15s, background-color .15s; }
   .tpl-chip:hover { border-color: var(--hh-primary-line); color: var(--hh-primary-strong); }
   .tpl-chip.active { border-color: var(--hh-primary); color: var(--hh-primary-strong); background: var(--hh-primary-soft); font-weight: 600; }
@@ -253,7 +254,7 @@
       <p class="text-on-surface-variant text-sm mt-2 leading-relaxed">贴 JD 或聊项目，经历确认后这里会铺开 A4。</p>
     </div>
     <div id="canvas-sheet-wrap" class="hidden h-full overflow-auto rounded-2xl bg-[#d8d2e4] p-4">
-      <div id="sheet-size"><iframe id="live-sheet" title="当前简历预览" class="block bg-white" sandbox=""></iframe></div>
+      <div id="sheet-size"><iframe id="live-sheet" title="当前简历预览" class="block bg-white" sandbox="allow-scripts"></iframe><iframe id="live-sheet-back" title="当前简历预览" class="block bg-white" sandbox="allow-scripts" aria-hidden="true" tabindex="-1" inert style="visibility:hidden"></iframe></div>
     </div>
   </div>
   </section>
@@ -284,6 +285,7 @@
 <script src="/static/change-card.js?v=20261014-ui1"></script>
 <script src="/static/resume-workspace.js?v=20261012-embedded"></script>
 <script src="/static/resume-actions.js?v=20261014-ui1"></script>
+<script src="/static/template-preview.js?v=20261014-tpl1"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -598,6 +600,8 @@ const canvasState = {
   templateId: 't001-jianyue',
   versionId: undefined,
   highlight: null,
+  revision: 0,
+  serverRevision: null,
 };
 
 function applyMeta(meta) {
@@ -637,7 +641,9 @@ async function loadTemplates() {
       `<button class="tpl-chip ${t.id === canvasState.templateId ? 'active' : ''}" data-id="${t.id}"${t.fits_one_page === false ? ' title="适合两页"' : ''}>${t.name}${t.fits_one_page === false ? ' · 适合两页' : ''}</button>`
     ).join('');
     rail.querySelectorAll('.tpl-chip').forEach(btn => {
+      canvasLoader.bind(btn, btn.dataset.id, () => canvasState.revision);
       btn.addEventListener('click', () => {
+        canvasBuffer.markSwitch();
         canvasState.templateId = btn.dataset.id;
         try { localStorage.setItem('huhua_resume_template:' + (SESSION_ID || 'sample'), canvasState.templateId); } catch (_) { /* Optional presentation preference. */ }
         rail.querySelectorAll('.tpl-chip').forEach(b => b.classList.toggle('active', b === btn));
@@ -657,9 +663,11 @@ function scaleSheet() {
   const avail = wrap.clientWidth - 32;
   const pageWidth = 794; // 210mm at 96dpi-ish
   const scale = Math.max(0.1, Math.min(1, avail / pageWidth));
-  iframe.style.transformOrigin = 'top left';
-  iframe.style.transform = `scale(${scale})`;
-  iframe.style.height = `${297 * 3.78}px`;
+  for (const pane of canvasBuffer.frames) {
+    pane.style.transformOrigin = 'top left';
+    pane.style.transform = `scale(${scale})`;
+    pane.style.height = `${297 * 3.78}px`;
+  }
   size.style.width = `${pageWidth * scale}px`;
   size.style.height = `${297 * 3.78 * scale}px`;
 }
@@ -686,35 +694,53 @@ function highlightBullet(value) {
 }
 
 let canvasPaintRequest = 0;
-let canvasPaintController = null;
 let canvasReadRequest = 0;
+let canvasSnapshot = null;
+const canvasLoader = window.HuhuaTemplatePreview.createLoader({
+  templates: () => canvasState.templates.map(template => template.id), current: () => canvasState.templateId,
+  canPrefetch: () => Boolean(canvasState.data && !window.HuhuaAccount?.claimPending()),
+  async fetchHtml(template, signal) {
+    const response = await fetch(`/api/resume/render/${encodeURIComponent(template)}?session_id=${encodeURIComponent(SESSION_ID)}`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(canvasState.data), signal,
+    });
+    if (!response.ok) throw new Error('预览更新失败');
+    return response.text();
+  },
+});
+const canvasBuffer = window.HuhuaTemplatePreview.createBuffer(document.getElementById('live-sheet'), document.getElementById('live-sheet-back'), () => {
+  document.getElementById('canvas-empty').classList.add('hidden');
+  document.getElementById('canvas-sheet-wrap').classList.remove('hidden');
+  scaleSheet();
+});
+function resetCanvasPreview() {
+  canvasPaintRequest++; canvasState.revision++; canvasState.serverRevision = null; canvasSnapshot = null;
+  canvasLoader.invalidate(); canvasBuffer.reset();
+}
+window.addEventListener('huhua-account-reset', () => { canvasState.data = null; resetCanvasPreview(); });
+window.addEventListener('huhua-account-claim-pending', () => {
+  canvasPaintRequest++; canvasLoader.invalidate(); canvasBuffer.cancelSwitch();
+});
 async function paintSheet(data) {
+  if (window.HuhuaAccount?.claimPending()) return false;
   restoreCanvasTemplate();
+  const snapshot = JSON.stringify([SESSION_ID, canvasState.serverRevision, data]);
+  if (snapshot !== canvasSnapshot) {
+    canvasSnapshot = snapshot; canvasState.revision++;
+    canvasLoader.invalidate();
+  }
+  canvasState.data = data;
   const request = ++canvasPaintRequest;
-  canvasPaintController?.abort();
-  const controller = new AbortController();
-  canvasPaintController = controller;
+  canvasBuffer.cancel();
   const session = SESSION_ID;
   const template = canvasState.templateId;
-  const emptyEl = document.getElementById('canvas-empty');
-  const wrap = document.getElementById('canvas-sheet-wrap');
-  const iframe = document.getElementById('live-sheet');
-  if (!iframe || !wrap) return;
+  const revision = canvasState.revision;
+  const isCurrent = () => request === canvasPaintRequest && session === SESSION_ID && template === canvasState.templateId && revision === canvasState.revision;
   try {
-    const res = await fetch(`/api/resume/render/${template}?session_id=${encodeURIComponent(session)}`,  {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-      signal: controller.signal,
-    });
-    if (!res.ok) { if (request === canvasPaintRequest) window.HuhuaWorkspace?.canvasError(); return false; }
-    const html = await res.text();
-    if (request !== canvasPaintRequest || session !== SESSION_ID || template !== canvasState.templateId) return false;
-    iframe.srcdoc = applyHighlight(html);
-    emptyEl.classList.add('hidden');
-    wrap.classList.remove('hidden');
-    requestAnimationFrame(scaleSheet);
-    return true;
+    const html = await canvasLoader.get(template, revision, true).promise;
+    if (!isCurrent()) return false;
+    const shown = await canvasBuffer.show(applyHighlight(html), isCurrent);
+    if (shown && isCurrent()) canvasLoader.schedule(revision);
+    return shown;
   } catch (e) { if (e.name !== 'AbortError' && request === canvasPaintRequest && session === SESSION_ID) window.HuhuaWorkspace?.canvasError(); return false; }
 }
 
@@ -734,6 +760,7 @@ async function refreshCanvas() {
     if (body.workspace) window.HuhuaWorkspace?.update(body.workspace);
     renderStageRail();
     if (body.has_data && body.data) {
+      canvasState.serverRevision = body.revision;
       canvasState.hasData = true;
       canvasState.data = body.data;
       const painted = await paintSheet(body.data);
@@ -741,7 +768,7 @@ async function refreshCanvas() {
       if (!painted) return false;
       if (painted) window.HuhuaWorkspace?.canvasResult(body);
     } else {
-      canvasPaintRequest++;
+      resetCanvasPreview();
       canvasState.hasData = false;
       canvasState.data = null;
       document.getElementById('canvas-empty')?.classList.remove('hidden');
@@ -1095,6 +1122,6 @@ document.getElementById('btn-toggle-canvas')?.addEventListener('click', () => {
 });
 
 </script>
-<script src="/static/conversation-history.js?v=20261012-embedded"></script>
+<script src="/static/conversation-history.js?v=20261014-tpl1"></script>
 </body>
 </html>

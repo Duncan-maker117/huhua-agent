@@ -26,6 +26,13 @@ def constraints_for_turn(state: dict, message: str) -> dict:
     profile = (state.get('jd_info') or {}).get('role_profile') or {}
     instruction = turn_instruction(message)
     overrides = {}
+    from app.services.candidate_language import non_fact
+    rules = [clause.strip() for clause in re.split(r'[。；;\n]', instruction)
+             if non_fact(clause.strip()) and re.search(r'润色|生成|保留|不要|不能|不写成|突出', clause)]
+    if rules:
+        overrides['writing_rules'] = list(dict.fromkeys([*(state.get('session_constraints') or {}).get('writing_rules', []), *rules]))[-30:]
+    if re.search(r'保留[^。；;\n]{0,30}(?:限定|限制|参与程度|分工|测试环境)', instruction):
+        overrides['preserve_explicit_limits'] = True
     pages = re.findall(r'([一二两12])\s*页', instruction)
     if pages:
         overrides['page_limit'] = {'一': 1, '1': 1, '二': 2, '两': 2, '2': 2}[pages[-1]]
@@ -503,7 +510,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                 if action.get('op') == 'cap_bullets':
                     data, meta, limit_fallbacks = preserve_item_limits(
                         data, meta, state.get('collected_info') or {}, item_ids=[action['item_id']],
-                        reason='compression_preserved_status_limit')
+                        reason='compression_preserved_status_limit', constraints=constraints)
                     written.setdefault('guard_fallbacks', []).extend(limit_fallbacks)
             if data != before:
                 changed = True

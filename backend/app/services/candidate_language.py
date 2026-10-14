@@ -15,11 +15,30 @@ PLACEHOLDER_NAMES = {
 _CAMPUS = re.compile(r"协会|社团|学生会|学生组织|班委|志愿|宣传部|校园经历|校园活动")
 _PROSE_NAME = re.compile(r"^(?:我|本人|负责|运用|使用|对接|完成|参与|做过|做了|整理了|处理了)|^\d+(?:家|人|张)|[，,。；;？！?!\n]|时候|这些|那些|添加了|处理了|公司名字|工作内容|主要为|希望|不知道|我(?:们|的|在|做|参与)|(?:^|的)工作(?:在|$)")
 _NON_FACT = re.compile(r"[？?]|(?:我|个人|自己)(?:认为|觉得|感觉|希望|想知道|想问|打算|计划)|"
-                       r"^(?:计划|打算|希望|准备|以后|将来)|不知道|哪些岗位|什么方向|能力尚浅|希望.{0,12}(?:工作|职业)|可以接单|有自信|有信心")
+                       r"^(?:计划|打算|希望|准备|以后|将来)|不知道|哪些岗位|什么方向|能力尚浅|希望.{0,12}(?:工作|职业)|可以接单|有自信|有信心|"
+                       r"^(?:请|帮我|给我|不要|不能|不写成|保留|突出)|(?:把|将).{0,30}(?:润色|写成|改写)|材料.{0,3}给全|直接生成|"
+                       r"^(?:这是|以下.*是)?虚构测试|^(?:我叫|姓名[:：]?)")
+
+
+def literal_employment(text: str) -> tuple[str, str]:
+    """Only a named organization followed by an explicit position, never a place."""
+    for match in re.finditer(r"在\s*([A-Za-z\u4e00-\u9fff0-9·]{2,12}?)\s*(?:做|当|任)\s*"
+                             r"([^，,。；;\n]{2,24})", text):
+        company, title = match[1], match[2].strip()
+        if (safe_item_name(company) and not re.search(r'大学$|学校$', company)
+                and not re.match(r"大学|学校|家|校内|校外|一家|某|一个|做|当|任|学习|工作|参与|负责|使用|进行|这里|那里", company)
+                and re.search(r"实习生|助理|工程师|开发|客服|行政|运营|设计师|专员|经理|顾问|文员|会计|销售", title)):
+            return company, title
+    return "", ""
 
 
 def non_fact(text: str) -> bool:
     return bool(_NON_FACT.search(text))
+
+
+def personal_header(text: str) -> bool:
+    return bool(re.search(r'^(?:我叫|姓名|邮箱|电话|手机|学校[:：]|专业[:：]|学历[:：])|'
+                          r'(?:大学|学院).{0,24}(?:本科|大专|专科|硕士|博士)', text.strip()))
 
 
 _WORDING_LIMIT = re.compile(
@@ -85,6 +104,8 @@ def coursework_evidence(text: str) -> bool:
 
 def literal_item_name(text: str, section: str) -> str:
     """Extract only explicit naming constructions or complete organization spans."""
+    if section in {"work_experience", "internship"} and (employment := literal_employment(text))[0]:
+        return employment[0]
     patterns = [r"(?:名称|名字|公司名|项目名|组织名)(?:是|为|叫做|叫|[：:])\s*[“「\"']?([^，,。；;\n”」\"']{1,36})",
                 r"[“「\"']([^”」\"'\n]{1,36})[”」\"']\s*(?:项目|活动)"]
     patterns.insert(0, r"(?:项目|公司|咖啡店|组织|社团)(?:名称|名字)?(?:是|为|叫做|叫|名为)\s*[“「\"']?([^，,。；;\n”」\"']{1,36})")
@@ -96,14 +117,18 @@ def literal_item_name(text: str, section: str) -> str:
                      r"([A-Za-z\u4e00-\u9fff0-9·]{2,28}?" + suffix + r")",
                      r"(?:^|[，,。；;\n])\s*([A-Za-z\u4e00-\u9fff0-9·]{2,28}?" + suffix + r")"]
     if section == "projects":
+        patterns += [r'课程项目(?:名称)?[:：]\s*([^，,。；;\n]{2,30})',
+                     r'(?:绘制|提交)了([^，,。；;\n]{2,24}原型)(?:界面|链接)']
         if coursework_evidence(text):
             match = re.search(r"(?:作业|课程设计)(?:是|为|叫|[：:])\s*([^，,。；;\n]{2,30})", text)
             if match and safe_item_name(match[1]):
                 return match[1]
-        patterns += [r"(?:做过|做|在|参与|负责|开发)(?:了|过)?\s*([A-Za-z\u4e00-\u9fff0-9_-]{1,30})项目"]
+        patterns += [r"(?:做过|做|在|参与|负责|开发)(?:了|过)?\s*([A-Za-z\u4e00-\u9fff0-9_-]{1,30})\s*项目"]
     for pattern in patterns:
         for match in re.finditer(pattern, text):
             name = match[1].strip()
+            if section == 'projects' and name in {'新', '另一个', '另外一个', '其他', '别的'}:
+                continue
             if safe_item_name(name) and not re.fullmatch(r"(?:还在|在)?(?:一家|一个|某家|某个)?(?:咖啡店|公司)", name):
                 return name
     return ""

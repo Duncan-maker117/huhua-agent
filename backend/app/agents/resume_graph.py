@@ -49,6 +49,18 @@ logger = logging.getLogger(__name__)
 
 STAGES = ["JD_INPUT", "COLLECTING", "BUILDING", "EVALUATING", "EXPORT"]
 _previous_assistant = __import__("contextvars").ContextVar("tailor_previous_assistant", default="")
+_intake_saver = __import__("contextvars").ContextVar("tailor_intake_saver", default=None)
+
+
+async def _persist_intake(state: dict, collected: dict) -> dict:
+    """Commit validated facts before any fallible public reply or writer call."""
+    from app.agents.tailor_pipeline import constraints_for_turn
+    update = {"collected_info": collected,
+              "session_constraints": constraints_for_turn(state, _latest_human_text(state))}
+    if (saver := _intake_saver.get()) and (collected != state.get('collected_info')
+            or update['session_constraints'].get('writing_rules') != (state.get('session_constraints') or {}).get('writing_rules')):
+        await saver({**state, **update})
+    return update
 
 
 _EXPERIENCE_ACTIONS = (
@@ -503,7 +515,14 @@ def _harvest_projects_from_messages(messages: list) -> list[dict]:
             mention.group(0),
         ):
             continue
-        name = _guess_project_name(snippet) or "对话中描述的经历"
+        name = _guess_project_name(snippet)
+        if not name:
+            continue  # Unresolved ownership stays in source messages, never a catch-all project.
+        from app.services.candidate_language import non_fact, personal_header
+        parts = [part.strip() for part in _re.split(r"[，,。；;\n]", snippet) if part.strip()]
+        kept = [part for part in parts if not non_fact(part) and not personal_header(part)]
+        if kept != parts:
+            snippet = "，".join(kept)
         if name in projects:
             if snippet not in projects[name]["description"]:
                 projects[name]["description"] += "\n" + snippet
@@ -709,10 +728,12 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     text = message.content.strip()
     if not text or looks_like_existing_resume(text):
         return collected
-    from app.services.candidate_language import non_fact
+    original_text = text
+    from app.services.candidate_language import non_fact, personal_header
     from app.services.candidate_skills import skill_declaration
     clauses = _re.split(r"[，,。；;\n]", text)
-    kept = [clause for clause in clauses if clause.strip() and not non_fact(clause) and not skill_declaration(clause)]
+    kept = [clause for clause in clauses if clause.strip() and not non_fact(clause.strip())
+            and not personal_header(clause) and not skill_declaration(clause)]
     if not kept:
         return collected
     if len(kept) != len([clause for clause in clauses if clause.strip()]):
@@ -726,7 +747,7 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
     previous_ids = {fact.get("id") for section in ("projects", "work_experience", "internship", "campus", "open_source")
                     for item in previous.get(section, []) for fact in item.get("facts", [])}
     if any(fact.get("id") not in previous_ids and fact.get("source") == "chat"
-           and fact.get("source_quote") and fact["source_quote"] in text
+           and fact.get("source_quote") and fact["source_quote"] in original_text
            for section in ("projects", "work_experience", "internship", "campus", "open_source")
            for item in collected.get(section, []) for fact in item.get("facts", [])):
         return collected
@@ -772,6 +793,12 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
         matches = [note_owner]
     fallback = _harvest_projects_from_messages([message])
     if not fallback and not (len(matches) == 1 and action):
+        if action:
+            result = copy.deepcopy(collected)
+            if text not in result.setdefault('raw_notes', []):
+                result['raw_notes'].append(text)
+            result['unrecorded'] = {'source': _hash_text(message.content), 'clauses': [text]}
+            return result
         return collected
     result = normalize_fact_store(collected)
     if len(matches) == 1:
@@ -1615,10 +1642,11 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             extract_llm = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
             updated = await _extract_with_previous_assistant(
                 text, collected, extract_llm, _latest_previous_assistant(state.get("messages") or []))
+    intake = await _persist_intake(state, updated) if updated != collected else {}
     from app.agents.wording_advice import wording_advice
     advisor = _make_non_streaming_llm(llm, temperature=0) if isinstance(llm, ChatOpenAI) else llm
     reply = await wording_advice({**state, "collected_info": updated}, text, advisor)
-    result = {"messages": [AIMessage(content=reply + unrecorded_notice(updated, text))],
+    result = {**intake, "messages": [AIMessage(content=reply + unrecorded_notice(updated, text))],
               "stage": state.get("stage", "JD_INPUT")}
     if updated != collected:
         result["collected_info"] = updated
@@ -1643,8 +1671,10 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         return await dialogue_node(state, llm)
 
     source_message = next(m for m in reversed(messages) if isinstance(m, HumanMessage))
+    statements = _re.sub(r'(?:^|[。，,；;\n])\s*(?:我)?(?:想|希望|打算)[^。，,；;\n]*', '', last_human)
     if _candidate_source_allowed(source_message) and (
         parse_existing_resume(last_human) or _explicit_generate_requested(last_human)
+        or (_generation_contains_facts(statements) and not _has_jd_text(last_human))
     ):
         result = await collecting_node({**state, "stage": "COLLECTING"}, llm)
         if result.get("stage") == "BUILDING":
@@ -1867,7 +1897,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     if imported:
         collected = _merge_imported_candidate(collected, imported)
         update = {
-            "collected_info": collected,
+            **await _persist_intake(state, collected),
             "resume_strategy": state.get("resume_strategy")
             or build_resume_strategy(
                 jd_info=state.get("jd_info") or None,
@@ -1918,6 +1948,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             if collected == previous_collected:
                 collected = _keep_unextracted_experience(collected, previous_collected, source_message)
         saved_resume = state.get("resume_data") or {}
+        intake = await _persist_intake(state, collected)
         if (
             _has_minimum_info(collected)
             or collected.get("education")
@@ -1925,7 +1956,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             or saved_resume.get("projects")
             or saved_resume.get("work_experience")
         ):
-            return {"collected_info": collected, "stage": "BUILDING"}
+            return {**intake, "stage": "BUILDING"}
         return {
             "messages": [
                 AIMessage(
@@ -2004,7 +2035,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         has_jd=has_job_description(state.get("jd_info")),
     )
     base_update: dict[str, Any] = {
-        "collected_info": collected,
+        **(await _persist_intake(state, collected) if decision.action != TriageAction.DECODE_JD else {"collected_info": collected}),
         "resume_strategy": resume_strategy,
         "dig_attempts": new_dig_attempts,
         "user_asked_for_suggestion": user_asked,
@@ -2014,6 +2045,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
 
     from app.agents.interviewer import first_draft_ready
     from app.agents.tailor_pipeline import _has_visible_experience_body
+    state = {**state, **base_update}  # Public guidance sees this turn's committed facts.
     ready_state = {**state, **base_update}
     # Implicit first draft only. A later fact keeps the live resume update;
     # "出一版/生成" still takes the explicit generate path above.
@@ -2055,7 +2087,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                     collected, previous_collected,
                     HumanMessage(content=snippet, additional_kwargs=source_message.additional_kwargs),
                 )
-        base_update["collected_info"] = collected
+        base_update.update(await _persist_intake(state, collected))
         live_update = _live_resume_update(state, collected)
         base_update.update(live_update)
         reply_state = {**state, **base_update, "resume_updated": bool(live_update)}
@@ -2256,8 +2288,8 @@ def _writer_reply(result: dict) -> str:
         reply += "\n\n" + notice
     page = result.get('page_check') or {}
     if page.get('status') == 'rendered':
-        from app.services.resume_layout import resume_density
-        reply += f"\n\n当前排版为 {resume_density(data)} 档，所选模板实际为 {page['pages']} 页。"
+        if page.get('within_page_limit') is False:
+            reply += "\n\n"
         if page.get('within_page_limit') is False and preserved_existing:
             reply += f"当前稿仍超过 {page['page_limit']} 页要求，本轮尚未完成压缩。"
         if page.get('within_page_limit') is False:
@@ -2537,7 +2569,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         return {'messages': [AIMessage(content='这段参考材料未作为本人事实写入，请说明要怎样修改当前稿。')]}
     collected = state.get('collected_info') or _empty_collected_info()
     from app.services.fact_corrections import apply_literal_corrections, correction_pairs
-    pairs = correction_pairs(text)
+    pairs = correction_pairs(text, collected)
     if pairs:
         corrected = apply_literal_corrections(collected, data, state.get('resume_meta') or {}, pairs)
         if corrected.get('error'):
@@ -2595,6 +2627,8 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                    and m.id not in set(state.get('non_candidate_message_ids') or [])]
         updated, _recovered = recover_named_facts(text, updated, history, labels)
     direction = {} if local_wording else _direction_profile_update(state, text, updated)
+    intake = await _persist_intake(state, updated)
+    state = {**state, **intake}
     scope, targets = infer_edit_scope(data, text, updated)
     operation_results = []
     edit_constraints = state.get('session_constraints')
@@ -2748,7 +2782,10 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
     if latest is None or not _candidate_source_allowed(latest):
         return False
     instruction = turn_instruction(latest.content)
-    edit_words = r'改|调|优化|突出|精简|换|删除|删掉|压缩|去掉|移除|撤销|撤回|回到上一版|恢复上一版'
+    from app.services.fact_corrections import correction_pairs
+    if correction_pairs(instruction, state.get('collected_info') or {}):
+        return True
+    edit_words = r'改|更正|润色|调|优化|突出|精简|换|删除|删掉|压缩|去掉|移除|撤销|撤回|回到上一版|恢复上一版'
     for clause in _re.split(r'[。；;\n]', instruction):
         if not _re.search(edit_words, clause):
             continue
@@ -3037,11 +3074,52 @@ async def stream_agent(
     completed_reply_ids: set[str] = set()
     pending_replies: list[str] = []
     turn_replies: list[AIMessage] = []
+    saved_intake = {}
+
+    async def save_intake(values):
+        nonlocal saved_intake
+        from app.services.session_store import save_candidate_intake
+        from app.services.profile_bridge import archive_event_for_message
+        update = {key: copy.deepcopy(values.get(key) or {}) for key in ('collected_info', 'session_constraints')}
+        if update == {key: saved_intake.get(key) for key in update}:
+            return
+        # Keep the existing document/version until writing succeeds. This is a
+        # fact commit, not a success receipt for an unfinished draft.
+        stage = values.get('stage') or 'COLLECTING'
+        if stage in {'JD_INPUT', 'BUILDING'}:
+            stage = 'COLLECTING'
+        save_task = asyncio.create_task(asyncio.to_thread(save_candidate_intake,
+            session_id=session_id, stage=stage,
+            archive_event=archive_event_for_message(lc_msg, values),
+            **update))
+        try:
+            committed = await asyncio.shield(save_task)
+        except asyncio.CancelledError:
+            await save_task
+            saved_intake = {**update, 'stage': stage}
+            raise
+        saved_intake = committed if isinstance(committed, dict) else {**update, 'stage': stage}
+
     graph_stream = graph.astream(
         input_state, config=config, stream_mode=["custom", "updates"]
     )
+
+    async def durable_events():
+        # anext/aclose may be driven by different request tasks. Never leave a
+        # ContextVar token open across a yield to the SSE consumer.
+        while True:
+            token = _intake_saver.set(save_intake)
+            try:
+                event = await anext(graph_stream)
+            except StopAsyncIteration:
+                return
+            finally:
+                _intake_saver.reset(token)
+            yield event
+
+    graph_completed = False
     try:
-        async for event in graph_stream:
+        async for event in durable_events():
             # Real multimode graphs emit (mode, payload). Keep update-only
             # adapters compatible without ever opting into raw model tokens.
             if isinstance(event, tuple) and len(event) == 2:
@@ -3082,6 +3160,7 @@ async def stream_agent(
                             completed_reply_ids.add(message.id)
                         if message.content and message.id not in streamed_reply_ids:
                             pending_replies.append(message.content)
+        graph_completed = True
     except Exception as e:
         turn_error = to_turn_error(e)
         logger.error("agent stream error code=%s error_type=%s status_code=%s",
@@ -3091,15 +3170,18 @@ async def stream_agent(
         # Original exception text may carry provider details; keep only the code.
         raise turn_error from None
     finally:
-        # Closing a request cancels the graph and its upstream model iterator;
-        # do not turn client cancellation into a new error bubble or save an
-        # unfinished assistant response as a completed reply.
         close = getattr(graph_stream, "aclose", None)
         if callable(close):
             try:
                 await close()
             except Exception as exc:
                 logger.warning("Graph stream cleanup failed: %s", type(exc).__name__)
+        # A failed node has no LangGraph update. Restore its committed intake so
+        # the next turn cannot overwrite SQL with the pre-extraction checkpoint.
+        if not graph_completed and saved_intake and callable(getattr(graph, 'aupdate_state', None)):
+            snapshot = await graph.aget_state(config)
+            if not snapshot or (snapshot.values or {}).get('collected_info') != saved_intake['collected_info']:
+                await graph.aupdate_state(config, saved_intake)
 
     # Keep deterministic success receipts private until the canonical save commits.
     # Public model guidance can stream, but must not claim persistence beforehand.
@@ -3181,7 +3263,7 @@ async def stream_agent(
                     "change_summary": summary,
                     "writer_diagnostic": canonical_meta.get("writer_diagnostic") or {}})
                 if data_changed:
-                    corrected += "\n\n正文在保存时经过事实校验调整；上述页数对应实际保存稿，不代表原改写稿已成功压缩。"
+                    corrected += "\n\n正文在保存时经过事实校验调整，请核对右侧已保存内容。"
                 pending_replies = [corrected if text == reply.content else text for text in pending_replies]
                 if reply.id:
                     corrected_messages.append(AIMessage(id=reply.id, content=corrected,

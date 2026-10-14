@@ -296,6 +296,7 @@ class CandidateRoutingRegression(unittest.IsolatedAsyncioTestCase):
                 patch.object(graph, '_extract_info_from_message', AsyncMock(side_effect=extract_personal)), \
                 patch.object(graph, '_run_decoder_and_build_reply', AsyncMock()) as decoder, \
                 patch.object(graph, 'get_graph', return_value=compiled), \
+                patch("app.services.session_store.save_candidate_intake"), \
                 patch('app.services.session_store.save_resume_session') as save:
             chunks = [chunk async for chunk in graph.stream_agent([{'content': PERSONAL}],
                       'fictional-supplement-checkpoint', model)]
@@ -317,6 +318,7 @@ class CandidateRoutingRegression(unittest.IsolatedAsyncioTestCase):
                 action=TriageAction.DECODE_JD, reason='fake'))), \
                 patch.object(graph, '_run_decoder_and_build_reply', AsyncMock()) as decoder, \
                 patch.object(graph, 'get_graph', return_value=compiled), \
+                patch("app.services.session_store.save_candidate_intake"), \
                 patch('app.services.session_store.save_resume_session') as save:
             chunks = [chunk async for chunk in graph.stream_agent([{'content': PERSONAL}],
                       'fictional-explicit-decode', model, task='decode_jd')]

@@ -44,6 +44,29 @@ class PersonaChecksTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             checks.evaluate_persona("unknown", [])
 
+    def test_initial_plan_card_uses_only_its_own_confirmed_draft(self):
+        for persona in ('service', 'design', 'ops'):
+            turns = golden_turns(persona)
+            confirmed = deepcopy(turns[0])
+            confirmed.update(action='initial_confirm', trigger_action='initial', kind='confirmation', input='按推荐写')
+            turns[0].update(resume_data={}, reply='先确认方案。')
+            turns.insert(1, confirmed)
+            results = checks.evaluate_persona(persona, turns)
+            self.assertTrue(all(row['status'] == 'pass' for row in results), [r for r in results if r['status'] == 'fail'])
+            # Later polish/paste cannot rescue a missing confirmation draft.
+            confirmed['resume_data'] = {}
+            self.assert_failure(persona, turns, 'common.first_draft')
+
+    def test_confirmation_cannot_hide_a_lost_direct_draft_or_later_regression(self):
+        turns = golden_turns('service')
+        confirmed = deepcopy(turns[0])
+        confirmed.update(action='initial_confirm', trigger_action='initial', kind='confirmation', input='按推荐写')
+        turns[0].update(input='材料已给全，请直接生成简历', resume_data={})
+        turns.insert(1, confirmed)
+        self.assert_failure('service', turns, 'common.direct_first_draft')
+        turns[-1]['resume_data']['education'] = []
+        self.assert_failure('service', turns, 'single_education', 'school_clean')
+
     def test_old_tech_major_and_uncorrected_170_are_rejected(self):
         turns = golden_turns("tech")
         polish = captured("tech-capture-014735.json", 1)

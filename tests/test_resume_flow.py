@@ -308,9 +308,9 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
             {"kind": "action", "text": "整理用户访谈", "source_quote": "整理用户访谈"}]}]}
         result = await self._wrap_with_extraction(message, snippet, patch)
         projects = result["collected_info"]["projects"]
-        self.assertEqual(len(projects), 2)
+        self.assertEqual(len(projects), 1)
         self.assertEqual(projects[0]["facts"][0]["text"], "整理用户访谈")
-        self.assertEqual(projects[1]["facts"][0]["source_quote"], snippet)
+        self.assertIn(snippet, result["collected_info"]["raw_notes"])
 
     async def test_wrap_keeps_raw_fallback_after_extraction_failure_or_rejection(self):
         current = _empty_collected_info()
@@ -322,10 +322,10 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
             with self.subTest(extracted=type(extracted).__name__):
                 result = await self._wrap_with_extraction(snippet, snippet, extracted, current=current)
                 projects = result["collected_info"]["projects"]
-                self.assertEqual(len(projects), 2)
                 self.assertEqual(projects[0]["description"], current["projects"][0]["description"])
-                self.assertEqual(projects[1]["facts"][0]["source_quote"], snippet)
-                self.assertNotIn("主导", str(projects[1]["facts"]))
+                self.assertNotIn('对话中描述的经历', str(projects))
+                self.assertNotIn('主导', str(projects))
+                self.assertTrue(snippet in str(result['collected_info']))
 
     async def test_wrap_uses_existing_chinese_name_for_new_raw_facts(self):
         current = _empty_collected_info()

@@ -187,6 +187,7 @@ class DecodeFallbackTests(unittest.IsolatedAsyncioTestCase):
             patch.object(rg, "_run_decoder_and_build_reply", AsyncMock(return_value=({}, "这段材料还没有解析出岗位。"))),
             patch.object(rg, "stream_public_reply", AsyncMock(return_value=AIMessage(content="已整理本人资料。"))),
             patch("app.agents.interviewer.first_draft_ready", return_value=False),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session") as save,
         ):
             chunks = [chunk async for chunk in rg.stream_agent([{"content": PERSONAL}], thread, model)]

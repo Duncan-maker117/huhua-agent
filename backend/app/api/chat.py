@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from langchain_openai import ChatOpenAI
 from pydantic import ValidationError
 
+
 from app.agents.resume_graph import _serialize_to_resume_data, get_graph, stream_agent
 from app.config import get_settings
 from app.schemas.chat import ChatRequest, ReadJobURL, ReadPublicURL, SearchJobContext
@@ -49,6 +50,40 @@ from app.tools.docx_template_filler import TEMPLATE_DIR, list_templates
 from app.tools.resume_data_docx import resume_data_to_docx
 
 logger = logging.getLogger(__name__)
+_active_streams: set[asyncio.Task] = set()
+
+
+async def _complete_on_disconnect(source):
+    """The producer owns the session lock through commit, even after SSE closes."""
+    queue = asyncio.Queue()
+    disconnected = False
+    end = object()
+
+    async def produce():
+        try:
+            async for event in source:
+                if not disconnected:
+                    queue.put_nowait(event)
+        except Exception as error:
+            if not disconnected:
+                queue.put_nowait(error)
+        finally:
+            queue.put_nowait(end)
+
+    task = asyncio.create_task(produce())
+    _active_streams.add(task)
+    task.add_done_callback(_active_streams.discard)
+    try:
+        while (event := await queue.get()) is not end:
+            if isinstance(event, Exception):
+                raise event
+            yield event
+    finally:
+        disconnected = True
+        while not queue.empty():
+            queue.get_nowait()
+
+
 router = APIRouter()
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 UPLOAD_CHUNK_BYTES = 64 * 1024
@@ -333,7 +368,7 @@ async def chat_stream(request: Request):
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(
-        generate(),
+        _complete_on_disconnect(generate()),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no", **(
             {"Set-Cookie": cookie_response.headers["set-cookie"]} if "set-cookie" in cookie_response.headers else {}

@@ -40,7 +40,7 @@ class EditorSourceCoverageTest(unittest.IsolatedAsyncioTestCase):
         draft = resume_to_text(data)
         for statement in ("实现页面拆分", "收集到2条反馈"):
             self.assertIn(statement, draft)
-        self.assertNotIn("尚未上线", draft)  # 限制事实只禁止相反断言，不印进正文
+        self.assertIn("尚未上线", draft)  # 与演示反馈成果同源的限定随成果保留
         for unsupported in ("百万用户", "准备上线", "Kubernetes"):
             self.assertNotIn(unsupported, draft)
         self.assertEqual(result["resume_meta"]["bullets"]["p1"][0]["fact_ids"], ["f1"])

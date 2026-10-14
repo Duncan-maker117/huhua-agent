@@ -42,7 +42,7 @@ class WriterGraphTest(unittest.TestCase):
         })
         self.assertIn('保留上一版仍有效的正文', reply)
         self.assertIn('尚未完成压缩', reply)
-        self.assertIn('实际为 2 页', reply)
+        self.assertIn('第 2 页', reply)
         self.assertNotIn('事实原文', reply)
         self.assertNotIn('压缩后仍超页', reply)
 

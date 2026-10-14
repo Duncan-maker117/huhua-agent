@@ -216,6 +216,7 @@ class P1DialogueTests(unittest.IsolatedAsyncioTestCase):
                 graph = rg.build_graph(FakeModel())
                 with patch.object(rg, "get_graph", return_value=graph), \
                      patch.object(rg, "_serialize_to_resume_data", side_effect=AssertionError("read-only turn")), \
+                     patch("app.services.session_store.save_candidate_intake"), \
                      patch("app.services.session_store.save_resume_session") as save:
                     chunks = [chunk async for chunk in rg.stream_agent([{"content": text}], "synthetic-stream", FakeModel())]
                 self.assertTrue("".join(chunks))

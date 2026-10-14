@@ -124,6 +124,7 @@ class JdInputCandidateIntakeTests(unittest.IsolatedAsyncioTestCase):
         with (
             make, triage_patch as triage, extract, public,
             patch("app.agents.resume_graph.get_graph", return_value=graph),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session", side_effect=save),
         ):
             async for chunk in stream_agent([{"content": SOURCE}], "synthetic-jd-intake", object()):
@@ -147,6 +148,7 @@ class JdInputCandidateIntakeTests(unittest.IsolatedAsyncioTestCase):
         with (
             make, triage, extract, public,
             patch("app.agents.resume_graph.get_graph", return_value=graph),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session", side_effect=RuntimeError("synthetic storage failure")),
         ):
             with self.assertRaises(RuntimeError):

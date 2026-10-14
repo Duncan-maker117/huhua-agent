@@ -164,6 +164,9 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
             [evidence({}, field, "没有该轮证据")])
 
     initial, polish, correction = last("initial"), last("polish"), last("correction")
+    # A plan card is not a delivered draft. Judge each fixture at its own
+    # confirmation boundary, never borrowing a later recovery/paste/polish.
+    document_turns = [last(t['action']) for t in turns if t.get('kind', 'fixture') == 'fixture']
     polish_index = next((i for i, t in enumerate(turns) if t.get("action") == "polish"), -1)
     before = turns[polish_index - 1] if polish_index > 0 else {"resume_data": {}}
     data = lambda t: t.get("resume_data") or {}
@@ -314,9 +317,9 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
             [evidence(initial, "reply", reply)])
         scope_check(("basic_info", "education", "projects", "campus", "skills", "skill_groups"))
     elif persona == "service":
-        check_rows("single_education", "教育全程只有一条", turns, lambda t: len(data(t).get("education") or []) == 1,
+        check_rows("single_education", "每次交付稿（含本轮方案确认）教育只有一条", document_turns, lambda t: len(data(t).get("education") or []) == 1,
                    view=lambda t: data(t).get("education"))
-        check_rows("school_clean", "学校为新城职业学院，无「在」前缀", turns,
+        check_rows("school_clean", "学校为新城职业学院，无「在」前缀", document_turns,
                    lambda t: bool(data(t).get("education")) and all(row.get("school") == "新城职业学院" for row in data(t)["education"]),
                    view=lambda t: data(t).get("education"))
         identity_check()
@@ -325,9 +328,9 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
             [evidence(t, "education", data(t).get("education")) for t in (before, polish)])
         text_check("no_instruction_major", "教育字段没有「写得更」", [polish], r"写得更", absent=True,
                    view=lambda t: "\n".join(strings(data(t).get("education"))))
-        text_check("approval_limit", "正文保留退款由主管审批", turns, r"退款[^。；\n]{0,25}主管[^。；\n]{0,10}审批|主管[^。；\n]{0,10}审批[^。；\n]{0,10}退款")
-        text_check("complaint_limit", "正文保留复杂投诉转交主管", turns, r"复杂投诉[^。；\n]{0,20}(?:转交|转给|上报)[^。；\n]{0,10}主管")
-        text_check("volume_800", "正文保留每月800次咨询", turns, r"800\s*次[^。；\n]{0,8}咨询")
+        text_check("approval_limit", "正文保留退款由主管审批", document_turns, r"退款[^。；\n]{0,25}主管[^。；\n]{0,10}审批|主管[^。；\n]{0,10}审批[^。；\n]{0,10}退款")
+        text_check("complaint_limit", "正文保留复杂投诉转交主管", document_turns, r"复杂投诉[^。；\n]{0,20}(?:转交|转给|上报)[^。；\n]{0,10}主管")
+        text_check("volume_800", "正文保留每月800次咨询", document_turns, r"800\s*次[^。；\n]{0,8}咨询")
         scope_check(("basic_info", "education", "projects", "campus", "skills", "skill_groups"))
     else:
         check_rows("initial_project", "附件首版项目栏含借物App课程项目及12页面/18组件", [initial],
@@ -348,9 +351,9 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
             [evidence(initial, "candidate", candidate), evidence(initial, "workspace.jd", jd)])
         text_check("no_negative_skills", "技能不含没有前端/不会等否定项", turns,
                    r"没有|不会|未(?:做|学|掌握)|无.{0,4}(?:经验|能力)", absent=True, view=lambda t: skills_text(data(t)))
-        check_rows("single_course_project", "借物课程项目一个条目，分工不拆成项目", turns,
+        check_rows("single_course_project", "借物课程项目一个条目，分工不拆成项目", document_turns,
                    lambda t: len(data(t).get("projects") or []) == 1 and bool(re.search(r"借物\s*App", item_text(data(t)["projects"][0]), re.I)))
-        text_check("concept_limit", "保留课程概念/未上线限定，不声称增长或转化验证", turns,
+        text_check("concept_limit", "保留课程概念/未上线限定，不声称增长或转化验证", document_turns,
                    r"课程|概念|未上线|没有上线")
         check_rows("no_invented_design_results", "无上线/增长/转化验证成果", turns,
                    lambda t: not affirmative_claim(body(t), r"(?:已|成功|正式).{0,3}上线|(?:用户增长|转化率).{0,10}(?:提升|提高|\d+%)|验证.{0,5}转化"),

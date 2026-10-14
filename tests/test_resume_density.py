@@ -226,8 +226,8 @@ class DensityEditTests(unittest.IsolatedAsyncioTestCase):
             with patch('app.agents.tailor_pipeline.run_resume_writer', AsyncMock(side_effect=AssertionError('writer called'))):
                 updated = await graph.evaluating_node(state, model)
             self.assertEqual(updated['resume_data']['layout'], {'density': expected, 'density_source': 'user'})
-            self.assertIn(f'当前排版为 {expected} 档', updated['messages'][-1].content)
-            self.assertIn('实际为 1 页', updated['messages'][-1].content)
+            self.assertNotIn('当前排版', updated['messages'][-1].content)
+            self.assertNotIn('实际为 1 页', updated['messages'][-1].content)
             self.assertEqual(model.calls, 0)
             self.assertEqual(updated['resume_data']['projects'], data['projects'])
             self.assertTrue(updated['changed'])

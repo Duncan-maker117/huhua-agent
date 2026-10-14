@@ -1,4 +1,5 @@
 """Synthetic persona feedback regressions; no provider or real user data."""
+import asyncio
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -34,6 +35,12 @@ PAGES = {'within_page_limit': True, 'page_count': 1}
 def fixture_patch(persona):
     text = FIXTURES[persona]['initial']
     education = parse_education_fields(text)
+    if persona == 'ops':
+        return {'basic_info': {'name': '陈夏'}, 'items': [
+            {'section': 'education', 'name': '江城学院', 'facts': [raw(v, kind='context', field=k) for k, v in education.items()]},
+            {'section': 'campus', 'name': '校园读书协会', 'facts': [raw('大三在校园读书协会帮忙做过公众号排版'), raw('也写过推文')]},
+            {'section': 'work_experience', 'name': '', 'facts': [raw('还在一家咖啡店做过两个月兼职'), raw('拍过店里的短视频'), raw('也帮店长做海报')]}],
+            'skills': ['剪映', 'Canva', 'Excel', 'PS']}
     if persona == 'tech':
         work = text[text.index('2025.07'):text.index('课程项目叫')]
         project = text[text.index('课程项目叫'):text.index('会用 Java')]
@@ -324,6 +331,191 @@ class PersonaRegressions(unittest.IsolatedAsyncioTestCase):
         result = await graph.building_node({**graph._init_state(), 'collected_info': facts,
             'messages': [HumanMessage(content=FIXTURES['service']['initial'])]}, EchoWriter())
         self.assertEqual([row['school'] for row in result['resume_data']['education']], ['新城职业学院'])
+
+
+class PersonaRemainingRegressions(unittest.IsolatedAsyncioTestCase):
+    setUp = PersonaRegressions.setUp
+
+    async def test_initial_direction_and_experience_are_extracted_together(self):
+        for persona in ('ops', 'service', 'career', 'tech'):
+            model = PersonaModel(persona)
+            state = {**graph._init_state(), 'messages': [HumanMessage(content=FIXTURES[persona]['initial'])]}
+            decision = TriageDecision(action=TriageAction.READY_TO_BUILD, reason='synthetic', jd_keywords=[FIXTURES[persona]['role']])
+            with patch.object(graph, 'run_triage', AsyncMock(return_value=decision)), patch.object(graph, '_make_non_streaming_llm', side_effect=lambda model, **kw: model):
+                result = await graph.jd_input_node(state, model)
+            self.assertTrue(model.inputs, persona)
+            self.assertIn('我叫' if persona != 'tech' else '姓名林泽', model.inputs[0])
+            self.assertTrue(result['collected_info']['work_experience'] or result['collected_info']['internship'], persona)
+            self.assertTrue(result.get('resume_data'), persona)
+            self.assertNotIn('可以一次把所有经历', str(result['messages']))
+
+    async def test_facts_commit_before_reply_exception_and_survive_next_turn(self):
+        model = PersonaModel('ops')
+        compiled = graph.build_graph(model)
+        saved = []
+        def save(**values):
+            saved.append(deepcopy(values))
+        async def fail_reply(*args, **kwargs):
+            self.assertTrue(saved)
+            self.assertTrue(saved[-1]['collected_info']['campus'])
+            raise RuntimeError('synthetic reply failure')
+        with patch.object(graph, 'get_graph', return_value=compiled), patch.object(graph, '_make_non_streaming_llm', side_effect=lambda model, **kw: model), patch.object(graph, 'run_triage', AsyncMock(return_value=TriageDecision(action=TriageAction.ASK_EXPERIENCE, reason='synthetic'))), patch('app.agents.interviewer.first_draft_ready', return_value=False), patch.object(graph, '_collection_reply', side_effect=fail_reply), patch('app.services.session_store.save_candidate_intake', side_effect=save):
+            with self.assertRaises(Exception):
+                _ = [chunk async for chunk in graph.stream_agent([{'content': FIXTURES['ops']['initial']}], 'persona-error', model)]
+        snapshot = await compiled.aget_state({'configurable': {'thread_id': 'persona-error'}})
+        self.assertEqual(snapshot.values['collected_info'], saved[-1]['collected_info'])
+        self.assertTrue(snapshot.values['collected_info']['campus'])
+
+    async def test_failed_reply_intake_can_be_loaded_from_sql(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.pool import StaticPool
+        from app.database import Base
+        from app.services import session_store
+        engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
+        Base.metadata.create_all(engine)
+        model = PersonaModel('ops')
+        compiled = graph.build_graph(model)
+        try:
+            with patch.object(session_store, 'SessionLocal', sessionmaker(bind=engine)), patch.object(graph, 'get_graph', return_value=compiled), patch.object(graph, '_make_non_streaming_llm', side_effect=lambda model, **kw: model), patch.object(graph, 'run_triage', AsyncMock(return_value=TriageDecision(action=TriageAction.ASK_EXPERIENCE, reason='synthetic'))), patch('app.agents.interviewer.first_draft_ready', return_value=False), patch.object(graph, '_collection_reply', AsyncMock(side_effect=RuntimeError('synthetic reply failure'))):
+                with self.assertRaises(Exception):
+                    _ = [chunk async for chunk in graph.stream_agent([{'content': FIXTURES['ops']['initial']}], 'persona-sql', model)]
+                stored = session_store.load_resume_session('persona-sql')
+                self.assertTrue(stored['collected_info']['campus'])
+                self.assertEqual(stored['collected_info']['basic_info']['name'], '陈夏')
+                self.assertEqual(stored['resume_data'], {})
+                snapshot = await compiled.aget_state({'configurable': {'thread_id': 'persona-sql'}})
+                self.assertEqual(snapshot.values['collected_info'], stored['collected_info'])
+        finally:
+            engine.dispose()
+
+    async def test_client_disconnect_continues_extraction_and_holds_session_lock(self):
+        from app.api.chat import _complete_on_disconnect
+        from app.services.session_store import session_lock
+        entered, release, done = asyncio.Event(), asyncio.Event(), asyncio.Event()
+        saved = []
+        model = PersonaModel('ops')
+        compiled = graph.build_graph(model)
+        original = model.ainvoke
+        async def delayed(messages):
+            if 'existing' in json.loads(messages[-1].content):
+                entered.set()
+                await release.wait()
+            return await original(messages)
+        model.ainvoke = delayed
+        async def source():
+            async with session_lock('persona-disconnect'):
+                yield 'started'
+                async for chunk in graph.stream_agent([{'content': FIXTURES['ops']['initial']}], 'persona-disconnect', model):
+                    yield chunk
+                done.set()
+        with patch.object(graph, 'get_graph', return_value=compiled), patch.object(graph, '_make_non_streaming_llm', side_effect=lambda model, **kw: model), patch.object(graph, 'run_triage', AsyncMock(return_value=TriageDecision(action=TriageAction.READY_TO_BUILD, reason='synthetic'))), patch('app.services.session_store.save_candidate_intake', side_effect=lambda **kw: saved.append(deepcopy(kw))), patch('app.services.session_store.save_resume_session', side_effect=lambda **kw: saved.append(deepcopy(kw))):
+            stream = _complete_on_disconnect(source())
+            self.assertEqual(await anext(stream), 'started')
+            await asyncio.wait_for(entered.wait(), 2)
+            await stream.aclose()
+            self.assertTrue(session_lock('persona-disconnect').locked())
+            release.set()
+            await asyncio.wait_for(done.wait(), 5)
+        self.assertTrue(saved[-1]['collected_info']['campus'])
+        self.assertTrue(saved[-1]['resume_data'])
+        self.assertFalse(session_lock('persona-disconnect').locked())
+
+    async def test_career_whole_message_and_instructions_never_become_a_project(self):
+        text = FIXTURES['career']['initial']
+        patch_data = {'items': [{'section': 'projects', 'name': '对话中描述的经历', 'facts': [raw(text)]}]}
+        result = await extract_facts_patch(text, {}, ExtractorStub(patch_data))
+        body = '\n'.join(f['text'] for item in result['items'] if item['section'] != 'education' for f in item['facts'])
+        for unwanted in ('周宁', '南川大学', '请先做', '不要把行政', '不能增加'):
+            self.assertNotIn(unwanted, body)
+        self.assertNotIn('对话中描述的经历', str(result['items']))
+        for text in (FIXTURES['career']['initial'], FIXTURES['career']['polish']):
+            self.assertFalse(graph._harvest_projects_from_messages([HumanMessage(content=text)]))
+        from app.agents.tailor_pipeline import constraints_for_turn
+        self.assertIn('不能增加', str(constraints_for_turn({}, FIXTURES['career']['polish'])['writing_rules']))
+
+    def test_unsuffixed_company_and_position_and_negative_places(self):
+        from app.services.candidate_language import literal_employment, literal_item_name
+        for company, title in (('云舟科技', '后端开发实习生'), ('启明商贸', '全职行政助理')):
+            for verb in ('做', '当', '任'):
+                self.assertEqual(literal_employment(f'在{company}{verb}{title}'), (company, title))
+                self.assertEqual(literal_item_name(f'在{company}{verb}{title}', 'work_experience'), company)
+        for place in ('大学', '学校', '家', '某大学', '一家', '学习中心', '负责系统'):
+            self.assertEqual(literal_item_name(f'在{place}做后端开发实习生', 'internship'), '')
+
+    async def test_extractor_recovers_employment_header_from_unnamed_model_item(self):
+        for persona, company, title in (('tech', '云舟科技', '后端开发实习生'), ('career', '启明商贸', '全职行政助理')):
+            source = FIXTURES[persona]['initial']
+            section = 'internship' if persona == 'tech' else 'work_experience'
+            clause = re.search(r'在' + company + r'[^，。；]+', source)[0]
+            result = await extract_facts_patch(source, {}, ExtractorStub({'items': [
+                {'section': section, 'name': '', 'facts': [raw(clause)]}]}))
+            employment = next(item for item in result['items'] if item['section'] == section)
+            self.assertEqual(employment['name'], company)
+            self.assertTrue(any(f.get('field') == 'title' and f['text'] == title for f in employment['facts']))
+
+    async def test_all_numbers_survive_overcitation_and_one_bullet_budget(self):
+        from app.agents.resume_writer import run_resume_writer
+        from test_resume_writer import FakeModel, ROLE, draft, item, plan, fact
+        texts = ['编写12条接口测试用例', '整理8份接口文档', '修复4个接口错误']
+        source = {'projects': [{'item_id': 'p1', 'name': '接口工具',
+                  'facts': [fact('n' + str(i), text, kind='action') for i, text in enumerate(texts)]}]}
+        model = FakeModel([('OnePassOutput', {'match_plan': {**plan({'p1': 'keep'}), 'experience_plan': [
+            {'item_id': 'p1', 'treatment': 'keep', 'target_bullets': 1}]},
+            'writer': draft([item('p1', 'projects', [('编写接口测试用例', ['n0', 'n1', 'n2'])])])})])
+        result = await run_resume_writer(source, ROLE, model, instruction='只写一条')
+        bullets = result['resume_data']['projects'][0]['polished_bullets']
+        self.assertEqual(len(bullets), 1)
+        for text in texts:
+            self.assertIn(text, bullets[0])
+
+    async def test_required_limits_and_numeric_action_survive_a_writer_that_omits_them(self):
+        from app.agents.resume_writer import run_resume_writer
+        from app.agents.tailor_pipeline import constraints_for_turn
+        facts = await facts_for('tech')
+        class OmittingWriter(EchoWriter):
+            async def ainvoke(self, messages):
+                response = await super().ainvoke(messages)
+                for item in response['writer']['items']:
+                    item['bullets'] = [b for b in item['bullets'] if '12 条' not in b['text'] and '登录' not in b['text']]
+                    for bullet in item['bullets']:
+                        bullet['text'] = bullet['text'].replace('，没做线上压测', '').replace('，没有真实用户', '')
+                return response
+        result = await run_resume_writer(facts, {}, OmittingWriter(), constraints=constraints_for_turn({}, FIXTURES['tech']['initial']))
+        data = result['resume_data']
+        work = ' '.join(b for i in data['work_experience'] for b in i['bullets'])
+        project = ' '.join(b for i in data['projects'] for b in i['polished_bullets'])
+        for word in ('12', '接口测试', '测试环境', '线上压测', '导师指导'):
+            self.assertIn(word, work)
+        for word in ('登录', '同学', '没有真实用户', '演示'):
+            self.assertIn(word, project)
+        self.assertTrue(any('170' in b and '线上压测' in b for i in data['work_experience'] for b in i['bullets']))
+
+    async def test_career_correction_routes_from_legacy_collecting_without_writer(self):
+        for message in (FIXTURES['career']['correction'], '内部培训次数改成 4 场，通讯录仍是120人'):
+            state = correction_state('career')
+            state.update(stage='COLLECTING', messages=[HumanMessage(content=message)])
+            with patch.object(graph, '_write_resume_update', AsyncMock(side_effect=AssertionError('no writer'))), patch.object(graph, '_extract_info_from_message', AsyncMock(side_effect=AssertionError('no extraction'))):
+                result = await graph.collecting_node(state, object())
+            body = str(result['resume_data']['work_experience'])
+            self.assertIn('4 场', body)
+            self.assertNotIn('6 场', body)
+            self.assertIn('120', body)
+            self.assertIn('已更新正文', result['messages'][0].content)
+
+    def test_public_receipt_only_explains_overflow(self):
+        data = correction_state('tech')['resume_data']
+        for pages in (1, 2):
+            reply = graph._writer_reply({'resume_data': data, 'changed': True, 'page_check': {
+                'status': 'rendered', 'pages': pages, 'page_limit': 1, 'within_page_limit': pages == 1}})
+            self.assertNotIn('当前排版', reply)
+            self.assertNotIn('档', reply)
+            if pages == 1:
+                self.assertNotIn('页', reply)
+            else:
+                self.assertIn('第 2 页', reply)
+                self.assertIn('压缩', reply)
+
 
 
 if __name__ == '__main__':

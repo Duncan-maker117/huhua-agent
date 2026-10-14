@@ -59,7 +59,7 @@ class MetricPriorityTest(unittest.TestCase):
         self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "WriterDraft", "RepairOutput"])
         self.assertIn("m1", model.calls[1][1][-1].content)  # 修复调用带缺失清单
 
-    def test_still_missing_after_repair_replaces_least_informative_when_full(self):
+    def test_still_missing_after_repair_prioritizes_numbers_at_capacity(self):
         model = FakeModel([
             first_pass("keep", [("实现命令行解析模块", ["a1"]), ("编写自动化测试覆盖主要流程和边界情况", ["a2"])]),
             ("WriterDraft", draft([item("p1", "projects", [
@@ -68,11 +68,11 @@ class MetricPriorityTest(unittest.TestCase):
         result = run(model)
         bullets = bullets_of(result)
         self.assertEqual(len(bullets), 2)  # keep 上限 2
-        self.assertEqual(bullets[-1], METRIC)
+        self.assertIn(METRIC, ' '.join(bullets))
         self.assertIn("编写自动化测试覆盖主要流程和边界情况", bullets)  # 更长（信息量更大）的保留
         self.assertNotIn("实现命令行解析模块", bullets)
         meta = result["resume_meta"]["bullets"]["p1"]
-        self.assertEqual(meta[-1]["fact_ids"], ["m1"])
+        self.assertEqual(meta[-1]['fact_ids'], ['m1'])
 
     def test_appends_when_under_limit_and_repair_call_fails(self):
         model = FakeModel([
@@ -95,11 +95,11 @@ class MetricPriorityTest(unittest.TestCase):
         self.assertNotIn(METRIC, bullets_of(result))
         self.assertEqual(len(model.calls), 2)
 
-    def test_non_metric_kind_is_not_forced(self):
+    def test_number_in_non_metric_kind_is_still_prioritized(self):
         model = FakeModel([first_pass("keep", [("实现命令行解析模块", ["a1"])])])
         result = run(model, kind="result_qualitative")
-        self.assertNotIn(METRIC, bullets_of(result))
-        self.assertEqual([name for name, _ in model.calls], ["OnePassOutput", "RepairOutput", "RepairOutput"])
+        self.assertIn(METRIC, bullets_of(result))
+        self.assertIn('WriterDraft', [name for name, _ in model.calls])
 
 
 if __name__ == "__main__":

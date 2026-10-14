@@ -59,6 +59,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
         graph = build_graph(model)
         with (
             patch("app.agents.resume_graph.get_graph", return_value=graph),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session") as save,
         ):
             stream = stream_agent(
@@ -102,6 +103,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
                 "app.agents.resume_graph._extract_info_from_message",
                 AsyncMock(return_value=_init_state()["collected_info"]),
             ),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session") as save,
         ):
             stream = stream_agent(
@@ -166,6 +168,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
 
         with (
             patch("app.agents.resume_graph.get_graph", return_value=Graph()),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session"),
         ):
             chunks = [
@@ -181,6 +184,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
         graph = build_graph(model)
         with (
             patch("app.agents.resume_graph.get_graph", return_value=graph),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session") as save,
         ):
             stream = stream_agent(
@@ -205,6 +209,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
         graph = build_graph(model)
         with (
             patch("app.agents.resume_graph.get_graph", return_value=graph),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session") as save,
         ):
             stream = stream_agent(
@@ -280,6 +285,7 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
                 "app.agents.resume_graph._write_resume_update",
                 side_effect=build,
             ),
+            patch("app.services.session_store.save_candidate_intake"),
             patch("app.services.session_store.save_resume_session") as save,
         ):
             stream = stream_agent([{"content": "生成简历"}], "safe-draft", model)

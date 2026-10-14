@@ -53,7 +53,8 @@ class CommittedResumeReceiptTests(unittest.IsolatedAsyncioTestCase):
                      patch('app.services.resume_capacity.measure_rendered_pages', side_effect=measure):
                     chunks = [chunk async for chunk in stream_agent([{'content': '修改简历'}], sid, object())]
                 reply = ''.join(chunks)
-                self.assertIn('实际为 1 页', reply)
+                self.assertNotIn('实际为 1 页', reply)
+                self.assertNotIn('当前排版', reply)
                 self.assertNotIn('实际为 2 页', reply)
                 self.assertNotIn('未保存', reply)
                 self.assertIn('事实校验', reply)

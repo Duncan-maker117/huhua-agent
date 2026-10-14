@@ -142,12 +142,13 @@ def strip_stage_phrases(text: str) -> str:
 
 def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
                          item_ids: Sequence[str], bullet_indices: Mapping[str, set[int]] | None = None,
-                         reason: str = "contradicted_status_limit") -> tuple[dict, dict, list[dict]]:
-    """Keep limits as prohibitions. Do not paste absence or plan sentences into bullets.
+                         reason: str = "contradicted_status_limit", constraints: Mapping | None = None) -> tuple[dict, dict, list[dict]]:
+    """Keep ordinary limits as prohibitions; integrate required qualifications.
 
     A stage word is written once on the role line when neither the title nor a
     bullet already states it. A bullet that asserts the denied outcome is
-    recorded; the missing sentence is not appended.
+    recorded. Explicitly requested limits and limits on quantities stay with
+    their action bullet when the caller supplies the session constraints.
     """
     result, metadata = deepcopy(data), deepcopy(meta)
     source = active_facts_for_writer(collected_info)
@@ -196,4 +197,47 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
                 if contradicts_limit(text, quotes):
                     fallbacks.append({"item_id": identifier, "bullet_index": index, "reason": reason,
                                       "fact_ids": [fact["id"] for fact in facts if fact.get("id")][:4]})
+            if constraints is not None:
+                _integrate_required_limits(item, field, metadata, facts, constraints, authorized)
     return result, metadata, fallbacks
+
+
+def _integrate_required_limits(item, field, metadata, facts, constraints, authorized):
+    """Restore source-backed qualifications inside the relevant action bullet."""
+    from app.services.resume_versions import text_hash
+    explicit = constraints.get('preserve_explicit_limits', False)
+    bullets = item.get(field) or []
+    records = metadata.setdefault('bullets', {}).setdefault(item['item_id'], [])
+    records.extend({} for _ in range(max(0, len(bullets) - len(records))))
+    extra = re.compile(r'测试环境|导师.{0,6}指导|(?:同学|同事).{0,12}(?:写|负责)|'
+                       r'(?:登录|模块).{0,12}(?:同学|同事)|只给.{0,10}演示|'
+                       r'退款.{0,12}主管.{0,6}审批|复杂投诉.{0,12}主管')
+    for fact in facts:
+        source = _source_quote(fact)
+        for clause in [c.strip() for c in _CLAUSE_BREAK.split(source) if c.strip()]:
+            if not (_STATUS_LIMIT.search(clause) or extra.search(clause)):
+                continue
+            # A limit on the same quantitative claim must survive even without
+            # an explicit retention instruction. Other limits constrain wording.
+            numeric = bool(re.search(r'\d+\s*(?:ms|条|场|次|人|个|%|％)', source, re.I))
+            if not explicit and not numeric:
+                continue
+            candidates = [i for i in range(len(bullets)) if authorized is None or i in authorized]
+            if not candidates:
+                continue
+            def relevance(index):
+                text = bullets[index]
+                grams = {source[i:i + 2] for i in range(len(source) - 1)}
+                overlap = sum(part in text for part in grams if re.search(r'[\w\u4e00-\u9fff]', part))
+                if re.search(r'压测|测试环境', clause) and re.search(r'测试|索引|耗时|ms', text, re.I):
+                    overlap += 20
+                return overlap + (10 if fact['id'] in records[index].get('fact_ids', []) else 0)
+            target = max(candidates, key=relevance)
+            if _already_visible(clause, [bullets[target]]):
+                continue
+            # Keep source words intact; no model is asked to reconstruct a limit.
+            bullets[target] = bullets[target].rstrip('。；;，, ') + '，' + clause.rstrip('。；;，, ')
+            record = records[target]
+            record['fact_ids'] = list(dict.fromkeys([*record.get('fact_ids', []), fact['id']]))
+            record['text_hash'] = text_hash(bullets[target])
+            record.pop('coverage_fact_ids', None)

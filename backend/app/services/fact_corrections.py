@@ -13,7 +13,7 @@ _FORWARD = re.compile(r"(?P<old>" + _NUMBER + r")\s*(?:改成|改为|改|更正�
 _QUOTED = re.compile(r"[“「\"](?P<old>[^”」\"\n]+)[”」\"]\s*(?:改成|改为|替换为)\s*[“「\"](?P<new>[^”」\"\n]+)[”」\"]")
 
 
-def correction_pairs(message: str) -> list[dict]:
+def correction_pairs(message: str, collected: dict | None = None) -> list[dict]:
     pairs = []
     for pattern in (_REVERSE, _FORWARD, _QUOTED):
         for match in pattern.finditer(message or ""):
@@ -24,6 +24,20 @@ def correction_pairs(message: str) -> list[dict]:
                 continue
             pairs.append({'old': match['old'], 'new': match['new'], 'quote': match[0],
                           'context': message[start:match.start()]})
+    if not pairs and collected is not None:
+        for match in re.finditer(r'([^。；;\n]{2,40}?)(?:改成|改为|更正为)\s*(' + _NUMBER + r')', message or '', re.I):
+            context, new = match[1], match[2]
+            if re.search(r'不要|别把|不能|如果|假设', context):
+                continue
+            terms = {context[i:i + 2] for i in range(len(context) - 1)
+                     if re.fullmatch(r'[\u4e00-\u9fff]{2}', context[i:i + 2])}
+            unit = re.sub(r'^[\d.]+\s*', '', new)
+            old_values = {value.group() for section in FACT_SECTIONS for item in (collected or {}).get(section, [])
+                          for fact in item.get('facts', []) if fact.get('status', 'active') == 'active'
+                          and any(term in fact.get('text', '') for term in terms)
+                          for value in re.finditer(r'\d+(?:\.\d+)?\s*' + re.escape(unit), fact.get('text', ''), re.I)}
+            pairs.append({'old': old_values.pop() if len(old_values) == 1 else '', 'new': new,
+                          'quote': match[0], 'context': context})
     return pairs
 
 
@@ -53,6 +67,8 @@ def apply_literal_corrections(collected: dict, data: dict, meta: dict, pairs: li
     draft, metadata = deepcopy(data), deepcopy(meta)
     references = metadata.setdefault('bullets', {})
     for pair in pairs:
+        if not pair['old']:
+            return {'error': '未能唯一定位更正前的数值，当前正文未更改。'}
         old_pattern, new_pattern = _pattern(pair['old']), _pattern(pair['new'])
         owners = [(section, item) for section in FACT_SECTIONS for item in facts.get(section, [])
                   if any(f.get('status', 'active') == 'active' and old_pattern.search(f.get('text', ''))

@@ -13,7 +13,7 @@ import uuid
 from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.candidate_language import (
     PLACEHOLDER_NAMES, campus_evidence, coursework_evidence, literal_item_name, placeholder_name,
-    non_fact, safe_item_name, safe_major, safe_objective,
+    non_fact, safe_item_name, safe_major, safe_objective, literal_employment, personal_header,
     constraint_only, wording_constraint,
 )
 from app.services.candidate_skills import canonical_skill_text, declared_skills, skill_declaration
@@ -498,11 +498,15 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             quote = str(fact.get("source_quote") or "")
             parts = [part.strip() for part in re.split(r"[，,。；;\n]", quote) if part.strip()]
             scopes = {_subject_hint(part) for part in parts} - {("", "")}
-            split = len(parts) > 1 and (len(scopes) > 1 or any(non_fact(p) or skill_declaration(p) or wording_constraint(p) for p in parts))
+            split = len(parts) > 1 and (len(scopes) > 1 or any(non_fact(p) or skill_declaration(p) or wording_constraint(p)
+                                       or (raw_item.get('section') != 'education' and personal_header(p)) for p in parts))
             fragments = [{"text": part, "source_quote": part, "kind": fact.get("kind", "action")}
                          for part in parts] if split else [fact]
             for fragment in fragments:
                 quote = str(fragment.get("source_quote") or "")
+                if raw_item.get('section') != 'education' and personal_header(quote):
+                    result.setdefault('metadata_context', []).append(quote)
+                    continue
                 if (non_fact(quote) or non_fact(str(fragment.get("text") or ""))) and not constraint_only(quote):
                     if quote and quote in evidence:
                         result.setdefault("metadata_context", []).append(quote)
@@ -580,6 +584,9 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                                   and str(f["source_quote"]) in evidence)
         if not item_id and section in {"projects", "open_source", "campus"} and campus_evidence(item_evidence):
             section = "campus"
+        employment = literal_employment(item_evidence)
+        if not item_id and employment[0]:
+            section = 'internship' if '实习' in employment[1] else 'work_experience'
         from app.services.resume_field_hygiene import trim_name_punctuation
         label = trim_name_punctuation(raw_item.get("name") or "")
         if section == 'education':
@@ -616,9 +623,16 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                     fact["kind"] = "status_limit"
                     fact.pop("field", None)
                 facts.append(fact)
+        if section in {'work_experience', 'internship'} and employment[0] == label and not any(f.get('field') == 'title' for f in facts):
+            role = new_fact(employment[1], kind='role', quote=employment[1], turn_id=turn_id)
+            role['field'] = 'title'
+            facts.append(role)
         raw_notes = raw_item.get("raw_notes") if isinstance(raw_item.get("raw_notes"), list) else []
         notes = [note for note in raw_notes
                  if isinstance(note, str) and note.strip() and normalize_text(note) in normalize_text(evidence)]
+        if section != 'education':
+            notes = [note for note in notes if not any(non_fact(part.strip()) or personal_header(part)
+                     for part in re.split(r'[，,。；;\n]', note) if part.strip())]
         if not facts and not notes:
             continue
         result["items"].append({"section": section, "item_id": item_id or str(uuid.uuid4()),

@@ -147,6 +147,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         chunks = []
         with (
             patch('app.agents.resume_graph.get_graph', return_value=Graph()),
+            patch("app.services.session_store.save_candidate_intake"),
             patch('app.services.session_store.save_resume_session', side_effect=RuntimeError('storage unavailable')),
         ):
             with self.assertRaises(RuntimeError):
@@ -161,6 +162,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
             patch('app.agents.resume_graph.get_graph', return_value=graph),
             patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
             patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
+            patch("app.services.session_store.save_candidate_intake"),
             patch('app.services.session_store.save_resume_session', side_effect=RuntimeError('storage unavailable')),
         ):
             with self.assertRaises(RuntimeError):
@@ -180,6 +182,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
                 return SimpleNamespace(values={'resume_data': {'projects': [{'name': 'ResumeLab'}]}})
         with (
             patch('app.agents.resume_graph.get_graph', return_value=Graph()),
+            patch("app.services.session_store.save_candidate_intake"),
             patch('app.services.session_store.save_resume_session', side_effect=lambda **kw: events.append('saved')),
         ):
             async for chunk in stream_agent([{'content': '请生成简历'}], 'save-success', object()):

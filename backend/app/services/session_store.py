@@ -250,6 +250,34 @@ def save_resume_session(
         db.close()
 
 
+def save_candidate_intake(session_id: str, collected_info: dict, session_constraints: dict,
+                          stage: str, archive_event: dict | None = None) -> dict:
+    """Commit source facts without publishing or remeasuring an unfinished draft."""
+    with SessionLocal() as db:
+        row = db.get(ResumeSession, session_id)
+        if row is not None and (row.stage == DELETED_STAGE or _is_expired(row)):
+            raise SessionStorageUnavailable('Session is no longer active')
+        if row is None:
+            row = ResumeSession(session_id=session_id, resume_data={}, resume_draft='')
+            db.add(row)
+        previous = row.resume_state or {}
+        from app.models.models import Conversation
+        conversation = db.get(Conversation, session_id)
+        owner = conversation.owner_hash if conversation else ''
+        from app.services.profile_bridge import protect_data
+        row.resume_state = protect_data(owner, make_resume_state(
+            collected_info, previous.get('resume_meta'), previous.get('resume_versions'),
+            session_constraints, previous_state=previous), db=db)
+        row.stage = stage
+        row.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        if archive_event and owner.startswith('account:'):
+            from app.services.profile_service import enqueue_archive_event
+            enqueue_archive_event(db, account_id=owner.split(':', 1)[1], session_id=session_id, **archive_event)
+        committed = copy.deepcopy({key: row.resume_state.get(key) or {} for key in ('collected_info', 'session_constraints')})
+        db.commit()
+        return {**committed, 'stage': stage}
+
+
 def load_resume_session(session_id: str) -> dict | None:
     if not session_id:
         return None

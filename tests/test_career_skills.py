@@ -272,8 +272,10 @@ class CareerSkillTest(unittest.IsolatedAsyncioTestCase):
                     result = await skill_task_node(state, llm)
                 projects = result["collected_info"]["projects"]
                 self.assertEqual(len(projects), 1)
-                self.assertEqual(projects[0]["description"], material)
-                self.assertEqual(projects[0]["raw_description"], material)
+                self.assertIn('校园活动报名原型', projects[0]['description'])
+                self.assertIn('还没有上线', projects[0]['description'])
+                self.assertNotIn('请包装', projects[0]['description'])
+                self.assertNotIn('请包装', projects[0]['raw_description'])
                 serialized = _serialize_to_resume_data({**state, **result})
                 # 事实母版保留原话；展示文本不印「还没有上线」这类缺失型表述
                 shown = serialized["projects"][0]["description"]

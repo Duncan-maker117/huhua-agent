@@ -101,18 +101,24 @@ violations.guard 是 JSON 诊断资料，semantic 中的失败维度和 unsuppor
 保留数量原单位与对象，不把「次」解释为调用/请求。无法安全修复就不返回该条，系统会回退为原事实文本。严格输出 RepairOutput。"""
 
 
+def _numeric_fact(fact: dict) -> bool:
+    return _body_fact(fact) and bool(re.search(r'\d+(?:\.\d+)?\s*(?:条|场|次|篇|张|份|个|人|页|ms|毫秒|%|％)', fact.get('text', ''), re.I))
+
+
 def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
                           treatment: Mapping[str, str], caps: Mapping[str, int]) -> dict[str, list[str]]:
-    """lead/keep 条目里没有被前 cap 条 bullet 引用的 result_metric 事实。"""
+    """Quantified facts need visible text as well as citations, regardless of kind."""
     missing: dict[str, list[str]] = {}
     for item_id, written in writers.items():
         if treatment.get(item_id) not in {"lead", "keep"} or caps.get(item_id, 0) <= 0 or item_id not in items:
             continue
-        cited = {fid for bullet in written.bullets[:caps[item_id]] for fid in bullet.fact_ids}
+        from app.services.fact_coverage import text_covered
         wanted = [fact["id"] for fact in items[item_id][1].get("facts") or []
-                  if fact.get("id") and fact.get("kind") == "result_metric" and _body_fact(fact)
+                  if fact.get("id") and (fact.get("kind") == "result_metric" or _numeric_fact(fact)) and _body_fact(fact)
                   and str(fact.get("text") or "").strip()]
-        lost = [fid for fid in wanted if fid not in cited]
+        lookup = {fact['id']: fact for fact in items[item_id][1].get('facts') or []}
+        lost = [fid for fid in wanted if not text_covered(strip_absence(lookup[fid]['text']),
+                [bullet.text for bullet in written.bullets[:caps[item_id]] if fid in bullet.fact_ids])]
         if lost:
             missing[item_id] = lost
     return missing
@@ -125,16 +131,23 @@ def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple
     for item_id, fact_ids in missing.items():
         written, cap = writers[item_id], caps[item_id]
         by_id = {fact["id"]: fact for fact in items[item_id][1].get("facts") or [] if fact.get("id")}
-        protected = set(fact_ids)
         bullets = list(written.bullets[:cap])
         for fid in fact_ids:
             text = strip_absence(by_id[fid].get("text") or "").strip()
             if not text:
                 continue
-            while len(bullets) >= cap:
-                removable = [b for b in bullets if not protected.intersection(b.fact_ids)] or bullets[:-1] or bullets
-                bullets.remove(min(removable, key=lambda b: han_length(b.text)))
-            bullets.append(WrittenBullet(text=text, fact_ids=[fid]))
+            if len(bullets) >= cap:
+                removable = [b for b in bullets if not any(_numeric_fact(by_id.get(ref, {})) for ref in b.fact_ids)]
+                if removable:
+                    bullets.remove(min(removable, key=lambda b: han_length(b.text)))
+                    bullets.append(WrittenBullet(text=text, fact_ids=[fid]))
+                else:
+                    # A count budget must not evict another quantitative fact.
+                    target = min(bullets, key=lambda b: han_length(b.text))
+                    target.text = target.text.rstrip('。；;，, ') + '；' + text
+                    target.fact_ids = list(dict.fromkeys([*target.fact_ids, fid]))
+            else:
+                bullets.append(WrittenBullet(text=text, fact_ids=[fid]))
         written.bullets = bullets
 
 
@@ -675,7 +688,7 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
 
 def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict,
                      name: str = "") -> tuple[str, list[str]]:
-    """One fact only: the most informative own fact. Never join fragments with 「；」."""
+    """Prefer one substantive fact; retain all cited quantities when space forced a merge."""
     own = [fid for fid in dict.fromkeys(cited) if fid in facts and facts[fid]["item_id"] == item_id
            and _body_fact(facts[fid])]
     if not own:
@@ -683,6 +696,9 @@ def _fallback_bullet(item_id: str, cited: Sequence[str], facts: dict,
     best, best_id = "", ""
     if any(_is_substantive(facts[fid]) for fid in own):
         own = [fid for fid in own if _is_substantive(facts[fid])]
+    numeric = [fid for fid in own if _numeric_fact(facts[fid])]
+    if len(numeric) > 1:
+        return '；'.join(resume_bullet(strip_absence(facts[fid]['text']), name=name).rstrip('。；;') for fid in numeric), numeric
     for fid in own:
         cleaned = resume_bullet(strip_absence(facts[fid].get("text") or ""), name=name)
         if cleaned and not _bare_phase(cleaned, name) and len(cleaned) > len(best):
@@ -1529,7 +1545,8 @@ async def _run_resume_writer(
                 for row in match_plan["experience_plan"] if row["treatment"] == "backup" or row["target_bullets"] == 0}
     # User-confirmed counts remain binding; a model's default two bullets must
     # not silently discard the rest of an experience.
-    fixed_count = phase == "write" or re.search(r"(?:[一二两三四五六\d]+|一)\s*条|合并.*一条", instruction)
+    fixed_count = phase == "write" or re.search(
+        r"(?:最多|只(?:写|留|保留)|写成|合并成|压(?:缩)?成|控制在|不超过)\s*[一二两三四五六\d]+\s*条|合并.*一条", instruction)
     if fixed_count:
         withheld.update({item_id: "按已确认方案或指定条数保留重点，其余事实备用" for item_id in allowed})
     coverage_caps = {row.item_id: target_caps[row.item_id] for row in plan.experience_plan
@@ -1572,6 +1589,9 @@ async def _run_resume_writer(
         meta.setdefault("bullets", {})[item_id] = [{**{key: value for key, value in row.items()
                                                      if key not in {"id", "text", "item_id"}},
                                                   "text_hash": _hash(row["text"])} for row in rows]
+    output, meta, _ = preserve_item_limits(output, meta, collected_info, item_ids=allowed,
+                                         bullet_indices=bullet_targets if scope == 'bullet' else None,
+                                         constraints=effective_constraints)
     await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
     coverage = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
     coverage["restored"] = restored_count

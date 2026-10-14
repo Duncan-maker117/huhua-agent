@@ -90,10 +90,8 @@ class FollowupFactOwnershipTest(unittest.TestCase):
                 collected = note_patch(previous, text)
                 result = graph._keep_unextracted_experience(collected, previous, HumanMessage(content=text))
                 self.assertEqual(result["projects"][0], collected["projects"][0])
-                self.assertTrue(any(
-                    fact["source_quote"] == text
-                    for item in result["projects"][1:] for fact in item.get("facts", [])
-                ))
+                self.assertEqual(len(result["projects"]), 1)
+                self.assertIn(text, result["raw_notes"])
 
     def test_explicit_new_name_cannot_use_note_wrongly_attached_to_old_item(self):
         previous = store()
@@ -121,13 +119,15 @@ class FollowupFactOwnershipTest(unittest.TestCase):
         previous = store()
         result = graph._keep_unextracted_experience(copy.deepcopy(previous), previous, HumanMessage(content=FOLLOWUP))
         self.assertEqual(result["projects"][0], previous["projects"][0])
-        self.assertEqual(result["projects"][1]["name"], "对话中描述的经历")
+        self.assertEqual(len(result["projects"]), 1)
+        self.assertIn(FOLLOWUP, result["raw_notes"])
 
     def test_unchanged_old_note_does_not_imply_current_ownership(self):
         previous = note_patch(store())
         result = graph._keep_unextracted_experience(copy.deepcopy(previous), previous, HumanMessage(content=FOLLOWUP))
         self.assertEqual(result["projects"][0], previous["projects"][0])
-        self.assertEqual(len(result["projects"]), 2)
+        self.assertEqual(len(result["projects"]), 1)
+        self.assertIn(FOLLOWUP, result["raw_notes"])
 
     def test_same_new_note_on_two_items_does_not_merge_into_either(self):
         previous = store()
@@ -136,7 +136,8 @@ class FollowupFactOwnershipTest(unittest.TestCase):
         collected["projects"][1]["raw_notes"].append(FOLLOWUP)
         result = graph._keep_unextracted_experience(collected, previous, HumanMessage(content=FOLLOWUP))
         self.assertEqual(result["projects"][:2], collected["projects"])
-        self.assertEqual(len(result["projects"]), 3)
+        self.assertEqual(len(result["projects"]), 2)
+        self.assertIn(FOLLOWUP, result["raw_notes"])
 
     def test_same_new_note_on_existing_and_new_item_is_ambiguous(self):
         previous = store()
@@ -235,7 +236,7 @@ class FallbackProjectNameTest(unittest.TestCase):
                 self.assertEqual(graph._guess_project_name(f"这不是我做{particle}。"), "")
         projects = graph._harvest_projects_from_messages([
             HumanMessage(content="我整理访谈笔记，主持是同学做的。")])
-        self.assertEqual(projects[0]["name"], "对话中描述的经历")
+        self.assertEqual(projects, [])
 
     def test_legitimate_single_character_and_letter_project_names_remain(self):
         for name in ("A", "海"):

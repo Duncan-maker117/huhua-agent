@@ -170,6 +170,10 @@ def save_resume_session(
     *, collected_info: dict | None = None, resume_meta: dict | None = None,
     resume_versions: list | None = None, session_constraints: dict | None = None,
 ) -> dict | None:
+    from app.services.chat_turns import current_turn
+    turn = current_turn.get()
+    if turn:
+        turn.check()
     if not session_id or (not resume_data_has_content(resume_data) and not stage):
         return
 
@@ -240,7 +244,10 @@ def save_resume_session(
             "session_constraints": state.get("session_constraints") or {},
             "has_authoritative_state": bool(state.get("authoritative")),
         })
-        db.commit()
+        if turn:
+            turn.commit(db)
+        else:
+            db.commit()
         return committed
     except Exception:
         db.rollback()
@@ -253,6 +260,10 @@ def save_resume_session(
 def save_candidate_intake(session_id: str, collected_info: dict, session_constraints: dict,
                           stage: str, archive_event: dict | None = None) -> dict:
     """Commit source facts without publishing or remeasuring an unfinished draft."""
+    from app.services.chat_turns import current_turn
+    turn = current_turn.get()
+    if turn:
+        turn.check()
     with SessionLocal() as db:
         row = db.get(ResumeSession, session_id)
         if row is not None and (row.stage == DELETED_STAGE or _is_expired(row)):
@@ -274,7 +285,10 @@ def save_candidate_intake(session_id: str, collected_info: dict, session_constra
             from app.services.profile_service import enqueue_archive_event
             enqueue_archive_event(db, account_id=owner.split(':', 1)[1], session_id=session_id, **archive_event)
         committed = copy.deepcopy({key: row.resume_state.get(key) or {} for key in ('collected_info', 'session_constraints')})
-        db.commit()
+        if turn:
+            turn.commit(db, final=False)
+        else:
+            db.commit()
         return {**committed, 'stage': stage}
 
 

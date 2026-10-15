@@ -53,7 +53,7 @@ class WorkItem(BaseModel):
     start_date: str = ""
     end_date: str = ""
     bullets: list[str] = []
-    employment_type: Literal["", "internship", "full_time"] = Field(default="", exclude_if=lambda value: not value)
+    employment_type: Literal["", "internship", "full_time", "part_time"] = Field(default="", exclude_if=lambda value: not value)
     hidden: bool = Field(default=False, exclude_if=lambda value: value is False)
     links: list[ItemLink] = Field(default_factory=list, exclude_if=lambda value: not value)
 

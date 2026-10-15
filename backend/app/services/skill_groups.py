@@ -53,7 +53,8 @@ def split_skills(values: Iterable[str]) -> list[str]:
             head, tail = re.split(r"[:：]", text, maxsplit=1)
             if len(head) <= 8 and tail.strip():
                 text = tail
-        text = _BRACKET.sub(lambda m: "（基础）" if m[0] in {"(基础)", "（基础）"} else "", text)
+        text = _BRACKET.sub(lambda m: '（' + m[0][1:-1] + '）'
+                            if m[0][1:-1] in {'了解', '熟悉', '基础', '会一点', '会点', '掌握', '熟练', '精通'} else '', text)
         text = re.sub(r"^(?:会一点|会点|基础)(.+)$", r"\1（基础）", text)
         for part in re.split(r"[/、,，;；·|]|\s+及\s+|\s+和\s+", text):
             if re.search(r"不会|没有|未(?:使用|掌握|学)|没用|不熟悉|不具备|不了解|无.{0,12}经验", part):
@@ -83,8 +84,7 @@ def _relevance(skill: str, terms: Sequence[str]) -> int:
 def normalize_skill_groups(groups: Mapping[str, Sequence[str]], extra: Iterable[str] = (),
                            jd_terms: Iterable[str] = ()) -> dict[str, list[str]]:
     """Fixed categories, deduped, JD-ordered, ≤8 per group and ≤3 in 其他."""
-    def identity(value):
-        return _key(re.sub(r"^(?:精通|熟练(?:使用)?|熟悉|掌握|会使用|会用|用过|使用过|了解|基础)", "", value).replace("（基础）", ""))
+    from app.services.candidate_skills import skill_identity as identity
     extra = split_skills(extra)
     protected = {identity(skill) for skill in extra}
     seen: dict[str, tuple[str, str]] = {}

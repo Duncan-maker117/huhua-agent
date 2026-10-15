@@ -34,6 +34,8 @@ def employment_type(item: dict, section: str) -> str:
     text = " ".join([str(item.get("title") or item.get("role") or ""),
                      *(str(fact.get("source_quote") or fact.get("text") or "")
                        for fact in item.get("facts") or [] if fact.get("status", "active") == "active")])
+    if re.search(r"(?<!不)(?<!非)(?<!不是)兼职", text):
+        return "part_time"
     if re.search(r"全职|正式工作|毕业.{0,8}(?:工作|采购|行政)", text):
         return "full_time"
     return item.get("employment_type") or ("internship" if section == "internship" or "实习" in text else "full_time")

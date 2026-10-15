@@ -289,7 +289,7 @@
     const tail = saved.trim();
     return tail.length >= 20 && streamed.trim().endsWith(tail);
   }
-  async function afterTurn() {
+  async function afterTurn({cancelled = false} = {}) {
     const id = SESSION_ID;
     const expected = messages.at(-1)?.content;
     try {
@@ -301,6 +301,8 @@
       $('conversation-title').title = activeTitle;
       const last = body.messages?.at(-1);
       if (last?.role === 'assistant' && savedReplyMatches(last.content, expected)) { unsavedChatSessions.delete(id); setStatus(window.HuhuaAccount?.guest() ? window.HuhuaAccount.guestNotice() : '已保存，可从历史对话继续。'); }
+      // 主动中断：本轮按设计不保存回复，不提示恢复稿。
+      else if (cancelled) { unsavedChatSessions.delete(id); setStatus(window.HuhuaAccount?.guest() ? window.HuhuaAccount.guestNotice() : '已中断，本轮未修改简历。'); }
       else setStatus('本轮回复可能未完整保存，未保存内容仅留在本页，关闭或刷新前请下载恢复稿。', true, afterTurn);
     } catch (error) {
       if (id === SESSION_ID) setStatus('暂时无法确认保存，未保存内容仅留在本页，关闭或刷新前请下载恢复稿。' + error.message, true, afterTurn);

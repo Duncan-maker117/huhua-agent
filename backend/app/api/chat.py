@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+import uuid
 
 from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -48,27 +49,52 @@ from app.services.session_store import (
 from app.tools.docx_exporter import resume_to_docx
 from app.tools.docx_template_filler import TEMPLATE_DIR, list_templates
 from app.tools.resume_data_docx import resume_data_to_docx
+from app.services.chat_turns import ChatTurn, active_turns, current_turn
 
 logger = logging.getLogger(__name__)
+
 _active_streams: set[asyncio.Task] = set()
 
 
-async def _complete_on_disconnect(source):
+async def _complete_on_disconnect(source, turn: ChatTurn | None = None):
     """The producer owns the session lock through commit, even after SSE closes."""
     queue = asyncio.Queue()
     disconnected = False
     end = object()
 
     async def produce():
+        token = current_turn.set(turn)
         try:
+            if turn:
+                turn.task = asyncio.current_task()
+                turn.check()
             async for event in source:
                 if not disconnected:
                     queue.put_nowait(event)
+        except asyncio.CancelledError:
+            if turn and turn.cancelled and not disconnected:
+                queue.put_nowait('data: {"type":"cancelled","message":"已中断，本轮未修改简历"}\n\n')
+                queue.put_nowait('data: [DONE]\n\n')
+            elif not turn or not turn.cancelled:
+                raise
         except Exception as error:
+            if turn and turn.cancelled:
+                turn.cleanup_failed = True
             if not disconnected:
                 queue.put_nowait(error)
         finally:
-            queue.put_nowait(end)
+            try:
+                await source.aclose()
+            except Exception:
+                if turn:
+                    turn.cleanup_failed = True
+                raise
+            finally:
+                if turn:
+                    active_turns.pop((turn.session_id, turn.turn_id), None)
+                    turn.done.set()
+                current_turn.reset(token)
+                queue.put_nowait(end)
 
     task = asyncio.create_task(produce())
     _active_streams.add(task)
@@ -286,6 +312,11 @@ async def chat_stream(request: Request):
     messages = [m.model_dump() for m in req.messages]
     session_id = req.session_id or create_conversation(owner)["session_id"]
     reserve_turn(owner)
+    turn_id = req.turn_id or uuid.uuid4().hex
+    if (session_id, turn_id) in active_turns:
+        raise HTTPException(409, '本轮请求正在处理')
+    turn = ChatTurn(session_id, turn_id, owner)
+    active_turns[(session_id, turn_id)] = turn
 
     async def generate():
         async with session_lock(session_id):
@@ -368,12 +399,29 @@ async def chat_stream(request: Request):
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(
-        _complete_on_disconnect(generate()),
+        _complete_on_disconnect(generate(), turn),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no", **(
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no", "X-Chat-Turn-Id": turn_id, **(
             {"Set-Cookie": cookie_response.headers["set-cookie"]} if "set-cookie" in cookie_response.headers else {}
         )},
     )
+
+
+@router.post('/session/{session_id}/cancel')
+async def cancel_chat(session_id: str, request: Request, turn_id: str = Query(min_length=1, max_length=128)):
+    owner = authorize_session(request, session_id)
+    turn = active_turns.get((session_id, turn_id))
+    if turn is None:
+        return {'cancelled': False, 'status': 'finished'}
+    if turn.owner != owner:
+        raise HTTPException(404, '对话不存在或无权访问')
+    if not turn.cancel():
+        return {'cancelled': False, 'status': 'committed'}
+    # A positive receipt means upstream is closed and the checkpoint repaired.
+    await turn.done.wait()
+    if turn.cleanup_failed:
+        raise HTTPException(503, '中断后的会话恢复未完成，请刷新核对当前稿')
+    return {'cancelled': True, 'message': '已中断，本轮未修改简历'}
 
 
 @router.delete("/session/{session_id}")

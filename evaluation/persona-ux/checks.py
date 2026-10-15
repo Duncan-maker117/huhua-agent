@@ -313,7 +313,7 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
         reply = public(initial) + "\n" + public(polish)
         add("transition_evidence_gaps", "转岗解释区分已有迁移能力与缺少的岗位证据",
             bool(re.search(r"沟通|记录|协调|文档|迁移", reply)) and
-            bool(re.search(r"(?:缺|补充|尚无|暂无|没有|待)[^。\n]{0,50}(?:客户成功|CRM|续费|客户培训|产品)|(?:客户成功|CRM|续费|客户培训|产品)[^。\n]{0,40}(?:缺|补充|尚无|暂无|没有|待)", reply, re.I)),
+            bool(re.search(r"(?:缺|补充|尚无|暂无|没有|没用过|无|待)[^。\n]{0,50}(?:客户成功|CRM|续费|客户培训|产品)|(?:客户成功|CRM|续费|客户培训|产品)[^。\n]{0,40}(?:缺|补充|尚无|暂无|没有|待)", reply, re.I)),
             [evidence(initial, "reply", reply)])
         scope_check(("basic_info", "education", "projects", "campus", "skills", "skill_groups"))
     elif persona == "service":

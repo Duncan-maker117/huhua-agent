@@ -2206,7 +2206,7 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
     enabled = get_settings().LLM_PLAN_CONFIRM
     if not enabled:
         working['confirmed_plan'] = {}
-    elif not confirmed and (state.get('plan_required') or state.get('pending_plan')
+    elif not confirmed and not (scope != 'whole' and _has_visible_experience_body(current)) and (state.get('plan_required') or state.get('pending_plan')
                            or not _has_visible_experience_body(current)):
         from app.agents.resume_writer import run_resume_writer
         card = state.get('pending_plan') or {}
@@ -3016,6 +3016,67 @@ async def stream_agent(
     messages: list[dict], session_id: str, llm: ChatOpenAI, task: str = "auto",
     web_sources: list[dict] | None = None,
 ):
+    """Repair cancelled checkpoints and bind final writeback to literal edit scope."""
+    from app.services.chat_turns import current_turn
+    from app.agents.tailor_pipeline import rewrite_selection, preserve_wording_scope
+    turn = current_turn.get()
+    instruction = messages[-1]['content'] if messages else ''
+    graph = get_graph(llm)
+    config = {'configurable': {'thread_id': session_id}}
+    before = {}
+    targets = None
+    if (turn or _re.search(r'润色|改写|写得|专业一点|专业化|专业的?表达', instruction)) and callable(getattr(graph, 'aget_state', None)):
+        snapshot = await graph.aget_state(config)
+        before = copy.deepcopy((snapshot.values if snapshot else {}) or {})
+        targets = rewrite_selection(before.get('resume_data') or {}, instruction, before.get('collected_info'))
+    # The pipeline has its own boundary; this also covers alternate graph routes.
+    def protect_final(values):
+        if targets is None:
+            return values
+        data = preserve_wording_scope(before.get('resume_data') or {}, values.get('resume_data') or {}, targets)
+        if data == values.get('resume_data'):
+            return values
+        from app.services.resume_versions import prepare_version
+        version = prepare_version(before['resume_data'], before.get('resume_meta') or {},
+                                  before.get('resume_versions') or [], data, values.get('resume_meta') or {}, label='局部修改')
+        for item_id, records in (before.get('resume_meta') or {}).get('bullets', {}).items():
+            if item_id not in targets:
+                version['resume_meta'].setdefault('bullets', {})[item_id] = copy.deepcopy(records)
+        return {**values, **version, 'resume_draft': resume_to_text(data)}
+
+    source = _stream_agent_impl(messages, session_id, llm, task, web_sources, protect_final=protect_final)
+    try:
+        async for chunk in source:
+            if turn:
+                turn.check()
+            yield chunk
+    finally:
+        await source.aclose()
+        if turn and turn.cancelled:
+            # SQL intake may have committed; retain it, but discard draft/checkpoint
+            # changes from this turn so the next message cannot resurrect them.
+            from app.services.session_store import load_resume_session
+            stored = await asyncio.to_thread(load_resume_session, session_id)
+            defaults = _init_state()
+            repair = {key: copy.deepcopy(before.get(key, default)) for key, default in defaults.items()
+                      if key != 'messages'}
+            for key in ('resume_data', 'resume_draft', 'resume_meta', 'resume_versions', 'collected_info', 'session_constraints', 'stage'):
+                if stored and key in stored:
+                    repair[key] = copy.deepcopy(stored[key])
+            snapshot = await graph.aget_state(config)
+            old_ids = {m.id for m in before.get('messages', [])}
+            repair['messages'] = [AIMessage(id=m.id, content='已中断，本轮未修改简历',
+                                            additional_kwargs={'interrupted': True})
+                                  for m in ((snapshot.values if snapshot else {}) or {}).get('messages', [])
+                                  if isinstance(m, AIMessage) and m.id not in old_ids]
+            repair['requested_task'] = 'auto'
+            await graph.aupdate_state(config, repair)
+
+
+async def _stream_agent_impl(
+    messages: list[dict], session_id: str, llm: ChatOpenAI, task: str = "auto",
+    web_sources: list[dict] | None = None, *, protect_final=lambda values: values,
+):
     """Stream only public graph-node replies, never internal model tokens."""
     graph = get_graph(llm)
     config = {"configurable": {"thread_id": session_id}}
@@ -3195,21 +3256,22 @@ async def stream_agent(
             )
             from app.services.profile_bridge import archive_event_for_message
 
-            resume_data = state.values.get("resume_data") or {}
-            if not resume_data and not state.values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
-                resume_data = _serialize_to_resume_data(state.values)
+            values = protect_final(state.values)
+            resume_data = values.get("resume_data") or {}
+            if not resume_data and not values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
+                resume_data = _serialize_to_resume_data(values)
             # The saver creates/closes its own DB session. Page layout and its
             # transaction stay on one worker thread, away from the event loop.
             save_task = asyncio.create_task(asyncio.to_thread(save_resume_session,
                 session_id=session_id,
                 resume_data=resume_data,
-                resume_draft=state.values.get("resume_draft", ""),
-                stage=state.values.get("stage", ""),
-                archive_event=archive_event_for_message(lc_msg, state.values),
-                collected_info=state.values.get("collected_info") or {},
-                resume_meta=state.values.get("resume_meta") or {},
-                resume_versions=state.values.get("resume_versions") or [],
-                session_constraints=state.values.get("session_constraints") or {},
+                resume_draft=values.get("resume_draft", ""),
+                stage=values.get("stage", ""),
+                archive_event=archive_event_for_message(lc_msg, values),
+                collected_info=values.get("collected_info") or {},
+                resume_meta=values.get("resume_meta") or {},
+                resume_versions=values.get("resume_versions") or [],
+                session_constraints=values.get("session_constraints") or {},
             ))
             try:
                 committed = await asyncio.shield(save_task)

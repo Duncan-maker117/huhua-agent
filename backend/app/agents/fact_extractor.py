@@ -679,17 +679,20 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                     and isinstance(link.get("url"), str) and link["url"] in evidence
                     and isinstance(link.get("text"), str) and link["text"].lower() in evidence.lower()]
     skills = candidate.get("skills")
+    from app.services.candidate_skills import sourced_skill_name, skill_identity
+    from app.services.fact_guard import _skill_affirmed as affirmed_skill
     if isinstance(skills, list):
         for value in skills:
             name = value if isinstance(value, str) else value.get("name") if isinstance(value, dict) else ""
             quote = value.get("source_quote", name) if isinstance(value, dict) else name
             normalized_name = canonical_skill_text(name)
             normalized_quote = canonical_skill_text(quote)
-            if name and quote and normalize_text(quote) in normalize_text(evidence) and normalize_text(normalized_name) in normalize_text(normalized_quote) and _skill_affirmed(canonical_skill_text(evidence), normalized_name) and not lexical_fact_errors(normalized_name, normalized_quote):
-                name = normalized_name
+            if name and quote and normalize_text(quote) in normalize_text(evidence) and normalize_text(normalized_name) in normalize_text(normalized_quote) and affirmed_skill(canonical_skill_text(evidence), normalized_name) and not lexical_fact_errors(normalized_name, normalized_quote):
+                name = sourced_skill_name(normalized_name, evidence)
                 result["skills"].append({"name": name, "source_quote": quote, "source": "chat", "turn_id": turn_id})
     for skill in declared_skills(evidence):
-        if not any(row["name"] == skill["name"] for row in result["skills"]):
+        skill['name'] = sourced_skill_name(skill['name'], evidence)
+        if not any(skill_identity(row["name"]) == skill_identity(skill["name"]) for row in result["skills"]):
             result["skills"].append({**skill, "source": "chat", "turn_id": turn_id})
     if semantic_pairs:
         try:
@@ -809,6 +812,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         else:
             merged[item["item_id"]] = item
     result["items"] = list(merged.values())
+    from app.services.experience_dates import recover_experience_dates
+    recover_experience_dates(result, evidence, outline, turn_id)
     for item in result["items"]:
         course_quote = next((f["source_quote"] for f in item["facts"] if coursework_evidence(f["source_quote"])
                              and not re.search(r"(?:不是|并非|不属于|没|未).{0,8}(?:作业|课程)", f["source_quote"])), "")
@@ -937,11 +942,15 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
         elif isinstance(value, str) and value.strip():
             basic[key] = value.strip()
     skills = result.setdefault("skills", [])
+    from app.services.candidate_skills import skill_identity
     for skill in patch.get("skills") or []:
-        if isinstance(skill, dict) and skill.get("name") and not any(
-            isinstance(old, dict) and old.get("name", "").casefold() == skill["name"].casefold() for old in skills
-        ):
-            skills.append(copy.deepcopy(skill))
+        if isinstance(skill, dict) and skill.get("name"):
+            old = next((old for old in skills if isinstance(old, dict)
+                        and skill_identity(old.get('name', '')) == skill_identity(skill['name'])), None)
+            if old is None:
+                skills.append(copy.deepcopy(skill))
+            elif re.search(r'了解|熟悉|基础|会一点|会点', skill['name']):
+                old.update(copy.deepcopy(skill))
     by_id = {item.get("item_id"): item for section in FACT_SECTIONS
              for item in result.get(section, []) if isinstance(item, dict)}
     for entry in patch.get("items") or []:

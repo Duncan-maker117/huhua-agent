@@ -286,6 +286,7 @@
 <script src="/static/resume-workspace.js?v=20261015-ws3"></script>
 <script src="/static/resume-actions.js?v=20261014-ui1"></script>
 <script src="/static/template-preview.js?v=20261014-tpl1"></script>
+<script src="/static/chat-cancel.js?v=20261015-batch8"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -367,6 +368,7 @@ function appendBubble(role, content, interrupted = false) {
 
 // 当前进行中的流式请求控制器（null 表示空闲，可点击发送；否则点击按钮就是中断）
 let currentController = null;
+let currentTurn = null;
 let selectedTask = 'auto';
 const sendBtnIcon = document.getElementById('btn-send-icon');
 let waitingTimer = null;
@@ -465,6 +467,12 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     });
   };
   currentController = new AbortController();
+  let acceptTurn;
+  const submittedTurn = {
+    id: crypto.randomUUID(), session: submittedSession, controller: currentController,
+    accepted: new Promise(resolve => { acceptTurn = resolve; }), cancelled: false,
+  };
+  currentTurn = submittedTurn;
   window.HuhuaWorkspace?.setStreaming(true);
   window.HuhuaWebResearch?.setStreaming(true);
   const submittedTask = quickReply ? 'auto' : selectedTask;
@@ -485,9 +493,10 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     const res = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}) }),
+      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}) }),
       signal: currentController.signal
     });
+    acceptTurn(res.ok);
     if (!res.ok) {
       let detail = `请求失败 (${res.status})`;
       try { const value = (await res.json()).detail; detail = typeof value === 'string' ? value : value?.message || detail; } catch {}
@@ -510,6 +519,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
       if (data === '[DONE]') { receivedDone = true; return; }
       let parsed;
       try { parsed = JSON.parse(data); } catch { return; }
+      if (parsed.type === 'cancelled') { submittedTurn.cancelled = true; return; }
       if (parsed.type === 'meta') {
         if (parsed.workspace) lastWorkspaceMeta = parsed.workspace;
         // Only a turn that saved a new version gets a card; later meta repeats the same version id.
@@ -545,6 +555,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     completed = !streamFailed;
     if (completed) window.HuhuaWorkspace?.commitWebSources(lastWorkspaceMeta, submittedSession);
   } catch (e) {
+    acceptTurn(false);
     if (e.name === 'AbortError') {
       interrupted = true;
       buffer = buffer ? buffer + '\n\n[已中断]' : '[已中断]';
@@ -554,6 +565,12 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     }
   }
 
+  if (submittedTurn.cancelPromise) await submittedTurn.cancelPromise.catch(() => {});
+  if (submittedTurn.cancelled) {
+    interrupted = true;
+    completed = false;
+    buffer = '已中断，本轮未修改简历';
+  }
   if (renderFrame !== null) cancelAnimationFrame(renderFrame);
   renderAssistant(aiEl, buffer, interrupted);
   aiEl.classList.remove('streaming');
@@ -569,6 +586,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   messages.push({ role: 'assistant', content: buffer, ...(interrupted ? { interrupted: true } : {}) });
   saveMessages();
   currentController = null;
+  currentTurn = null;
   window.HuhuaWorkspace?.setStreaming(false);
   window.HuhuaWebResearch?.setStreaming(false);
   clearInterval(waitingTimer);
@@ -588,7 +606,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   // 对话推进后刷新右侧画布 + 预览按钮
   maybeShowGenerateLink();
   refreshCanvas();
-  window.HuhuaHistory?.afterTurn();
+  window.HuhuaHistory?.afterTurn({cancelled: submittedTurn.cancelled});
   return completed;
 }
 
@@ -821,10 +839,14 @@ function autoResize() {
   inputEl.style.height = Math.min(inputEl.scrollHeight, 160) + 'px';
 }
 
-sendBtn.addEventListener('click', () => {
+sendBtn.addEventListener('click', async () => {
   if (currentController) {
-    // 流式中：中断
-    currentController.abort();
+    const turn = currentTurn;
+    try {
+      await window.HuhuaChatCancel.cancelTurn(turn);
+    } catch (error) {
+      if (currentTurn === turn) document.getElementById('request-status').textContent = error.message;
+    }
     return;
   }
   send();

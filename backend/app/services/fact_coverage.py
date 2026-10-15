@@ -9,6 +9,41 @@ from app.services.resume_facts import active_facts_for_writer
 from app.services.resume_versions import text_hash
 
 
+def numeric_actions_subsumed(text: str, covering: str) -> bool:
+    """A deliberately narrow rule for reordered article-layout/draft counts.
+
+    Bind each number to its action/object; shared numbers alone prove nothing.
+    Unknown wording/limits must also survive in the more complete sentence.
+    """
+    def signature(value):
+        value = normalize_text(value)
+        claims = set()
+        patterns = (
+            ('排版', r'(?:完成)?(\d+)篇(?:公众号文章|公众号推文|推文|文章)排版'),
+            ('排版', r'排版(?:过)?(?:公众号文章|公众号推文|推文|文章)?(\d+)篇(?:公众号文章|公众号推文|推文|文章)?'),
+            ('撰写初稿', r'其中(\d+)篇(?:的)?初稿(?:是我写的|由本人撰写)'),
+            ('撰写初稿', r'(?:撰写|编写)(?:推文|文章)?初稿(\d+)篇'),
+            ('撰写初稿', r'(?:撰写|编写)(\d+)篇(?:推文|文章)?初稿'),
+        )
+        for action, pattern in patterns:
+            def consume(match):
+                claims.add((action, match[1]))
+                return ''
+            value = re.sub(pattern, consume, value)
+        value = re.sub(r'参与公众号排版|[，,。；;、\s]', '', value)
+        return claims, value
+    if not extract_numeric_set(text) or extract_numeric_set(text) != extract_numeric_set(covering):
+        return False
+    claims, extra = signature(text)
+    other, kept = signature(covering)
+    return len(claims) >= 2 and claims == other and (not extra or extra in kept)
+
+
+def extract_numeric_set(text):
+    from app.services.fact_guard import extract_numbers
+    return extract_numbers(text)
+
+
 def text_covered(text: str, bullets: list[str]) -> bool:
     from app.agents.fact_extractor import _clause_covered
     def normalized(value):

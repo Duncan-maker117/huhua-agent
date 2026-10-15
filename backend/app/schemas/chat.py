@@ -36,6 +36,7 @@ class SearchJobContext(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[Message]
     session_id: str | None = None
+    turn_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r'^[A-Za-z0-9_-]+$')
     task: Literal["auto", "decode_jd", "rewrite_experience", "review_resume"] = "auto"
     # Only the server can populate research sources. Clients select one bounded
     # operation; they cannot submit fabricated tool results or model prompts.

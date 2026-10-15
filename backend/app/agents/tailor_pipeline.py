@@ -78,10 +78,18 @@ def infer_edit_scope(data: dict, instruction: str, collected: dict | None = None
         role = re.search(r'([\u4e00-\u9fffA-Za-z]{2,12})经历', instruction)
         if role and not matches:
             label = re.sub(r'^.*(?:把|将)', '', role[1])
-            matches.extend(item['item_id'] for section in ('work_experience', 'internship')
+            label = re.sub(r'^(?:请|帮我|请帮我)?(?:润色|改写|优化)(?:一下)?', '', label)
+            sources = {row.get('item_id'): row for section in ('work_experience', 'internship')
+                       for row in (collected or {}).get(section) or []}
+            choices = [item['item_id'] for section in ('work_experience', 'internship')
                            for item in data.get(section) or [] if item.get('item_id') and not item.get('hidden')
-                           and label in str(item.get('title') or item.get('role') or ''))
-        if not matches and re.search(r'实习经历|课程项目|客服经历|行政经历', instruction):
+                           and (label in str(item.get('title') or item.get('role') or '')
+                                or label in str(item.get('company') or '')
+                                or any(label in f.get('source_quote', '') for f in sources.get(item['item_id'], {}).get('facts', [])
+                                       if f.get('status', 'active') == 'active'))]
+            if len(choices) == 1:
+                matches.extend(choices)
+        if not matches and (role or re.search(r'实习经历|课程项目|客服经历|行政经历', instruction)):
             return 'item', []
     ordinal = re.search(r'第([一二三四五六七八九十1-9])(?:个|段)?(项目|经历|实习|工作)', instruction)
     if ordinal:
@@ -108,6 +116,14 @@ def preserve_wording_scope(before: dict, after: dict, targets) -> dict:
                     if field in new:
                         item[field] = deepcopy(new[field])
     return result
+
+
+def rewrite_selection(data: dict, instruction: str, collected: dict | None = None) -> list[str] | None:
+    """None is a whole-document request; [] is a named but unresolved target."""
+    if not data or not re.search(r'润色|改写|写得|专业一点|专业化|专业的?表达', instruction):
+        return None
+    scope, targets = infer_edit_scope(data, instruction, collected)
+    return targets if scope == 'item' else None
 
 
 def _has_visible_experience_body(data: dict) -> bool:
@@ -358,6 +374,12 @@ async def apply_deterministic_update(state: dict, base_data: dict, instruction: 
 async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_llm=None,
                               instruction: str = '', mode: str = 'one_pass',
                               scope: str = 'whole', targets=()) -> dict:
+    from app.agents.turn_actions import wording_only
+    # Re-resolve the literal request here as well: a model router cannot widen it.
+    selected = rewrite_selection(state.get('resume_data') or {}, instruction, state.get('collected_info'))
+    if selected is not None:
+        scope, targets = 'item', selected
+    protected_rewrite = scope == 'item' and (selected is not None or wording_only(instruction))
     constraints = constraints_for_turn(state, instruction)
     profile = deepcopy((state.get('jd_info') or {}).get('role_profile') or {})
     profile['target_role'] = ((state.get('jd_info') or {}).get('role_direction')
@@ -379,8 +401,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         from app.services.resume_versions import document_diff
         preserved = _preserve_supported_body(state, base_data)
         data, meta = preserved['resume_data'], preserved['resume_meta']
-        from app.agents.turn_actions import wording_only
-        if scope == 'item' and wording_only(instruction):
+        if protected_rewrite:
             data = preserve_wording_scope(state['resume_data'], data, targets)
         measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
         diff = document_diff(state['resume_data'], data)
@@ -521,8 +542,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         if not changed and not writer_used:
             break
     from app.services.fact_coverage import coverage_notice, ensure_fact_coverage
-    from app.agents.turn_actions import wording_only
-    if scope == 'item' and wording_only(instruction):
+    if protected_rewrite:
         scoped = preserve_wording_scope(state.get('resume_data') or base_data, data, targets)
         if scoped != data:
             data = scoped

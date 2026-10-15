@@ -478,10 +478,22 @@ def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (
 def _without_near_duplicate_rows(rows: list[dict], facts: dict | None = None, style: str = 'plain') -> list[dict]:
     """Merge only covered claims; a more complete later wording keeps its detail."""
     kept = []
-    from app.services.fact_coverage import text_covered
+    from app.services.fact_coverage import text_covered, numeric_actions_subsumed
 
     def compatible(left, right):
         return style != 'labeled' or row_label(left, facts or {}) == row_label(right, facts or {})
+
+    def covered(left, right):
+        a, b = left.get('text', ''), right.get('text', '')
+        # Equal claim sets prefer the fuller wording, irrespective of row order.
+        numeric = numeric_actions_subsumed(a, b)
+        if numeric:
+            return not numeric_actions_subsumed(b, a) or len(b) >= len(a)
+        from app.services.fact_guard import extract_numbers, normalize_text
+        if len(extract_numbers(a) | extract_numbers(b)) >= 2:
+            # N-gram similarity cannot distinguish swapped counts/actors.
+            return normalize_text(a) == normalize_text(b)
+        return text_covered(a, [b])
 
     def merged(primary, others):
         result = dict(primary)
@@ -493,12 +505,12 @@ def _without_near_duplicate_rows(rows: list[dict], facts: dict | None = None, st
 
     for row in rows:
         covering = next((index for index, previous in enumerate(kept) if compatible(row, previous)
-                         and text_covered(row.get("text", ""), [previous.get("text", "")])), None)
+                         and covered(row, previous)), None)
         if covering is not None:
             kept[covering] = merged(kept[covering], [row])
             continue
         subsumed = [previous for previous in kept if compatible(row, previous)
-                    and text_covered(previous.get("text", ""), [row.get("text", "")])]
+                    and covered(previous, row)]
         if subsumed:
             row = merged(row, subsumed)
             kept = [previous for previous in kept if previous not in subsumed]

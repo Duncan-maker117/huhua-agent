@@ -21,7 +21,14 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-15 MCP 接入 + 模板加速 + 非技术用户回放修复（最新）
+## 2026-10-15 官网主页 + 五人物回放修复（最新）
+
+- 镜像 `huhua-agent:20261015-1`（sha256:3f8b48e8…），基于 `20261014-1`，代码 `965c9dd`（3d22a81 官网 `/` 与工作台迁 `/chat`、旧 `?session=` 302 到 `/chat`；44f2c58 刷新后默认停在挖经历；03a5c70/a66dd60 第五至七批：自动润色闸门、更正执行校验、「更专业」不改专业字段、附件与 JD 分流、首轮即抽取落库、断连服务端跑完、去杂项兜底条目）。五人物回放 71 项断言由 25 → 66 通过。
+- 无新依赖、无 schema 变更。演练：线上库副本启动正常，计数不变，3 个账号 get_profile 正常。
+- 包 `huhua-deploy-20261015-1.tar.gz`（f81ea512…）。容器测试 1550 项全过（skip 34）；首次运行因测试包漏带 `evaluation/persona-ux-2026-10-15/*-capture-*.json` 报 6 个 FileNotFoundError，补包后全量重跑通过。备份 `/opt/huhua-backups/pre-20261015-1/`；回滚拷回 `deploy/compose.env.pre-20261015-1` 后 up。
+- 线上验收：`/`（官网）、`/chat`、`/resume` 200，`/?session=x` 302 到 `/chat?session=x`，官网全部静态资源 200，`/mcp` 无令牌 401，日志无异常；官网 1440 与工作台 390 截图正常，控制台无错误。
+
+## 2026-10-15 MCP 接入 + 模板加速 + 非技术用户回放修复（历史）
 
 - 镜像 `huhua-agent:20261014-1`（sha256:8f5ea925…），基于 `20261013-2`，代码 `3206d2b`（5d9d003 MCP M1+M2 与重复表单修复、691a488 模板切换缓存+预取+双缓冲、8cf646c/208bd45/3206d2b 三批回放修复）。
 - 新依赖 `mcp==2.3.0`：本机按 linux x86_64/cp312 下载 wheel（`huhua-wheels-20261014-1.tar.gz`），镜像内 `pip install --no-index` 离线安装，`pip check` 无冲突，pydantic 2.13.5 / starlette 1.7.0 保持不变。

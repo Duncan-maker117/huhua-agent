@@ -250,7 +250,7 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
         def posters_owned(t):
             items = [(section, row) for section in EXPERIENCES for row in visible_items(data(t), section)]
             cafe = [row for _section, row in items if "小巷咖啡" in item_text(row)]
-            return len(cafe) == 1 and bool(re.search(r"4\s*张[^\n。；]*海报", item_text(cafe[0]))) and all(
+            return len(cafe) == 1 and bool(re.search(r"4\s*张[^\n。；]*海报|海报[^\n。；]*4\s*张", item_text(cafe[0]))) and all(
                 "海报" not in item_text(row) for _section, row in items if row is not cafe[0])
         check_rows("posters_ownership", "4张促销海报和店长海报职责只在小巷咖啡条目", rows, posters_owned,
                    view=lambda t: body(t))

@@ -48,7 +48,8 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
 (async () => {
   f.run('account-profile.js'); await tick(); await f.window.HuhuaAccount.open(); await tick();
   assert.equal(classes('profile-confirm-badge')[0].textContent, '3');
-  await buttons('连接 AI 助手')[0].click();
+  assert.equal(buttons('连接 AI 助手').length, 0);
+  await f.window.HuhuaAccount.open('', 'connect');
   assert.equal(classes('profile-connections').length, 1);
   assert.ok(all().some(n => n.textContent === '最近调用'));
   assert.ok(all().some(n => n.textContent.includes('huhua_profile_get')));
@@ -71,12 +72,15 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
   await buttons('复制 Codex 配置')[0].click(); assert.ok(copied[2].startsWith('[mcp_servers.huhua]'));
   await f.ids.get('btn-close-profile').click();
   assert.equal(f.ids.get('profile-content').children.length, 0, 'closing erases the only displayed copy');
-  await f.window.HuhuaAccount.open(); await buttons('连接 AI 助手')[0].click();
+  await f.window.HuhuaAccount.open('', 'connect');
   assert.equal(classes('profile-token-once').length, 0);
   assert.ok(!all().some(n => (n.textContent || '').includes(oneTimeToken) || n.value === oneTimeToken));
   await buttons('吊销令牌')[0].click(); await tick();
   assert.ok(all().some(n => n.textContent === '已吊销'));
   assert.equal(buttons('吊销令牌').length, 0);
+  await f.window.HuhuaAccount.open();
+  assert.equal(f.ids.get('profile-heading').textContent, '个人档案');
+  assert.equal(classes('profile-connections').length, 0);
   await buttons('信息确认')[0].click();
   assert.ok(all().some(n => n.textContent === '来自 AI 助手的建议'));
   assert.equal(classes('profile-inbox-item').length, 3);
@@ -96,7 +100,7 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
   assert.equal(classes('profile-inbox-item').length, 0);
   tokens = [{id:'missing',name:'缺失时间',scopes:[]}, {id:'invalid',name:'无效时间',scopes:[],expires_at:'invalid'}];
   await buttons('刷新档案')[0].click(); await tick();
-  await buttons('连接 AI 助手')[0].click();
+  await f.window.HuhuaAccount.open('', 'connect');
   assert.equal(all().filter(n => n.textContent === '有效期至 未知').length, 2);
   assert.equal(all().filter(n => n.textContent === '最后使用：尚未使用').length, 2);
   console.log('MCP account panel DOM checks passed');

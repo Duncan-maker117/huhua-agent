@@ -13,7 +13,7 @@
   }
   clearPrivateCache();
   let account = {authenticated: false, require_account: true, login_available: false};
-  let profile = null, overlay, content, status, opener, busy = false, loadVersion = 0;
+  let profile = null, overlay, content, status, opener, returnFocus, busy = false, loadVersion = 0;
   let profileView = 'facts', entryPanel = '';
   let inbox = {items: [], pending_count: 0}, connections = {tokens: [], recent_calls: []};
   let loginTimer, syncLoginControls = () => {};
@@ -65,7 +65,7 @@
   function syncAccountPresentation() {
     if (opener) opener.textContent = account.authenticated ? '我的档案' : '登录账号';
     const heading = document.getElementById('profile-heading');
-    if (heading) heading.textContent = account.authenticated ? '个人档案' : '登录账号';
+    if (heading) heading.textContent = profileView === 'connections' ? '连接 AI 助手' : account.authenticated ? '个人档案' : '登录账号';
     const retentionNotice = document.getElementById('data-retention-notice');
     if (retentionNotice) {
       const retention = account.authenticated && !pendingClaim
@@ -112,12 +112,13 @@
     if (!form) return false;
     form.querySelector('input,textarea,select')?.focus(); return true;
   }
-  function close() { if (pendingClaim) { say('当前对话尚待关联，请点击重试；内容仍保留。', true); return; } overlay.hidden = true; if (account.authenticated) content.replaceChildren(); clearInterval(loginTimer); opener?.setAttribute('aria-expanded', 'false'); opener?.focus(); }
-  async function open(reason = '', panel = '') {
+  function close() { if (pendingClaim) { say('当前对话尚待关联，请点击重试；内容仍保留。', true); return; } overlay.hidden = true; if (account.authenticated) content.replaceChildren(); clearInterval(loginTimer); (returnFocus || opener)?.setAttribute('aria-expanded', 'false'); (returnFocus || opener)?.focus(); }
+  async function open(reason = '', panel = '', trigger = opener) {
     entryPanel = panel === 'connect' || panel === 'profile' ? panel : '';
     profileView = entryPanel === 'connect' ? 'connections' : new URLSearchParams(location.search).get('profile') === 'inbox' ? 'confirmations' : 'facts';
-    loginReason = typeof reason === 'string' ? reason : ''; 
-    overlay.hidden = false; opener?.setAttribute('aria-expanded', 'true'); document.getElementById('btn-close-profile').focus();
+    loginReason = panel === 'connect' ? '登录后可生成 MCP 令牌，连接你的 AI 助手。' : typeof reason === 'string' ? reason : '';
+    returnFocus = trigger; syncAccountPresentation();
+    overlay.hidden = false; returnFocus?.setAttribute('aria-expanded', 'true'); document.getElementById('btn-close-profile').focus();
     say('正在连接账号服务…');
     await ready;
     if (pendingClaim) renderClaim(); else if (account.authenticated) await loadProfile(); else renderLogin();
@@ -427,19 +428,20 @@
     content.append(section);
   }
   function renderProfile() {
-    clearInterval(loginTimer); syncLoginControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile) return;
-    const identity = node('div', undefined, 'profile-identity'); identity.append(node('strong', account.account?.email || '已登录'), node('p', '本人唯一主档案 · ' + profile.revision + ' 次修订', 'profile-muted'));
+    clearInterval(loginTimer); syncLoginControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile && profileView !== 'connections') return;
+    const identity = node('div', undefined, 'profile-identity'); identity.append(node('strong', account.account?.email || '已登录'));
+    if (profileView !== 'connections') identity.append(node('p', '本人唯一主档案 · ' + profile.revision + ' 次修订', 'profile-muted'));
     identity.append(button('退出登录', () => { if (busy) return; if (!confirm('退出登录将清除本页未保存内容。请先确认聊天与简历已保存。')) return; mutate(async () => { await request('/api/account/logout', {}, 'POST'); clearPrivateCache(true); window.dispatchEvent(new Event('huhua-account-reset')); location.href = '/chat'; }, '已退出', false); })); content.append(identity);
+    if (profileView === 'connections') { renderConnections(); return; }
     const actions = node('div', undefined, 'profile-actions');
     const confirmation = button('信息确认', () => { profileView = profileView === 'confirmations' ? 'facts' : 'confirmations'; renderProfile(); });
     confirmation.classList.add('profile-confirm-button'); confirmation.setAttribute('aria-expanded', String(profileView === 'confirmations'));
     const pendingCount = (profile.conflicts || []).length + (inbox.pending_count || 0);
     if (pendingCount) { const badge = node('span', String(pendingCount), 'profile-confirm-badge'); badge.setAttribute('aria-label', pendingCount + ' 条待确认'); confirmation.append(badge); }
-    actions.append(confirmation, button('连接 AI 助手', () => { profileView = 'connections'; renderProfile(); }), button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
+    actions.append(confirmation, button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
       const note = node('div', undefined, 'profile-notice'); note.append(node('p', '把此浏览器凭证下可认领的旧对话关联到当前账号，并整理其中明确的本人信息。只导入你自己的资料。'));
       note.append(button('确认导入本人旧对话', () => mutate(() => request('/api/account/claim-browser', {}, 'POST'), '已认领可导入的旧对话，整理状态见下方。')), button('取消', renderProfile)); actions.replaceChildren(note);
     })); content.append(actions);
-    if (profileView === 'connections') { renderConnections(); return; }
     const imports = profile.import_status || {};
     if (imports.pending || imports.running || imports.failed || imports.completed) {
       const notice = node('section', undefined, 'profile-notice'); notice.setAttribute('aria-label', '旧对话导入状态');
@@ -490,8 +492,20 @@
     content.append(node('p', '档案属于当前账号。这里的“用户提供”不表示已经独立核实；AI 建议和 JD 不作为本人事实。', 'profile-muted'));
   }
   async function loadProfile() {
-    const version = ++loadVersion; say('正在读取个人档案…');
-    try { const [value, suggestions, tokens] = await Promise.all([request('/api/profile'), request('/api/account/mcp/inbox'), request('/api/account/mcp/tokens')]); if (version !== loadVersion) return; profile = value; inbox = suggestions; connections = tokens; renderProfile(); say('已读取最新档案。'); }
+    const version = ++loadVersion, connecting = profileView === 'connections';
+    say(connecting ? '正在读取 AI 助手连接…' : '正在读取个人档案…');
+    try {
+      if (connecting) {
+        const tokens = await request('/api/account/mcp/tokens');
+        if (version !== loadVersion) return;
+        connections = tokens;
+      } else {
+        const [value, suggestions] = await Promise.all([request('/api/profile'), request('/api/account/mcp/inbox')]);
+        if (version !== loadVersion) return;
+        profile = value; inbox = suggestions;
+      }
+      renderProfile(); say(connecting ? '已读取 AI 助手连接。' : '已读取最新档案。');
+    }
     catch (error) { if (version === loadVersion) { if (error.status === 401) { account.authenticated = false; profile = null; renderLogin(); } say(error.message, true); } }
   }
   function mount() {
@@ -501,7 +515,12 @@
     const drawer = node('aside'); drawer.id = 'profile-drawer'; drawer.setAttribute('role', 'dialog'); drawer.setAttribute('aria-modal', 'true'); drawer.setAttribute('aria-labelledby', 'profile-heading');
     const head = node('header'); const title = node('h1', '登录账号'); title.id = 'profile-heading'; const dismiss = button('关闭', close); dismiss.id = 'btn-close-profile'; head.append(title, dismiss);
     status = node('p', '', 'profile-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); content = node('div'); content.id = 'profile-content'; drawer.append(head, status, content); overlay.append(backdrop, drawer); document.body.append(overlay);
-    opener.setAttribute('aria-controls', 'profile-drawer'); opener.addEventListener('click', open);
+    opener.setAttribute('aria-controls', 'profile-drawer'); opener.addEventListener('click', () => open());
+    for (const id of ['btn-ai-assistant', 'btn-ai-assistant-mobile']) {
+      const entry = document.getElementById(id);
+      entry?.setAttribute('aria-controls', 'profile-drawer');
+      entry?.addEventListener('click', event => { event.preventDefault(); return open('', 'connect', entry); });
+    }
     document.addEventListener('keydown', event => {
       if (overlay.hidden) return;
       if (event.key === 'Escape') { close(); return; }

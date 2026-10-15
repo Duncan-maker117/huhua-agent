@@ -7,7 +7,7 @@ const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 const entry = html.match(/const entryPanel = [\s\S]*?(?=<\/script>)/)[0];
 const descendants = element => [element, ...element.children.flatMap(descendants)];
 
-async function checkPanel(panel, authenticated, claim = false) {
+async function checkPanel(panel, authenticated, claim = false, trigger = '') {
   const f = fixture('index.html'), handlers = {}, calls = [];
   f.context.location = {origin: 'https://huhua.test', href: 'https://huhua.test/chat?panel=' + panel, search: '?panel=' + panel};
   f.context.clearInterval = () => {}; f.context.setInterval = () => 1;
@@ -39,13 +39,15 @@ async function checkPanel(panel, authenticated, claim = false) {
     return {ok: true, json: async () => body};
   };
   f.run('account-profile.js');
-  vm.runInNewContext(entry, f.context);
+  if (!trigger) vm.runInNewContext(entry, f.context);
   for (const fn of handlers.DOMContentLoaded) fn();
   await tick(); await tick();
+  if (trigger) await f.ids.get(trigger).click();
   assert.equal(f.ids.get('profile-overlay').hidden, false);
   const all = () => descendants(f.ids.get('profile-content'));
   if (!authenticated) {
-    assert.equal(f.ids.get('profile-heading').textContent, '登录账号');
+    assert.equal(f.ids.get('profile-heading').textContent, panel === 'connect' ? '连接 AI 助手' : '登录账号');
+    if (panel === 'connect') assert.ok(all().some(n => n.textContent.includes('登录后可生成 MCP 令牌')));
     if (claim) f.window.HuhuaAccount.rememberSession('guest-fixture');
     const fields = all().filter(n => n.tagName === 'INPUT');
     fields[0].value = 'synthetic@example.test';
@@ -61,10 +63,26 @@ async function checkPanel(panel, authenticated, claim = false) {
     }
   }
   assert.equal(f.ids.get('profile-overlay').hidden, false, 'requested view remains open after login');
-  if (panel === 'connect') assert.ok(all().some(n => n.className === 'profile-connections'));
+  if (panel === 'connect') {
+    assert.equal(f.ids.get('profile-heading').textContent, '连接 AI 助手');
+    assert.ok(all().some(n => n.className === 'profile-connections'));
+    assert.ok(!all().some(n => n.className === 'profile-actions'));
+    assert.ok(!all().some(n => n.textContent.includes('次修订')));
+    assert.ok(!calls.includes('/api/profile'));
+    assert.ok(!calls.includes('/api/account/mcp/inbox'));
+    if (trigger) {
+      await f.ids.get('btn-close-profile').click();
+      assert.equal(f.document.activeElement, f.ids.get(trigger));
+      assert.equal(f.ids.get(trigger).attributes['aria-expanded'], 'false');
+    }
+  }
   else assert.ok(all().some(n => n.textContent === '已有信息'));
 }
 (async () => {
+  for (const trigger of ['btn-ai-assistant', 'btn-ai-assistant-mobile']) {
+    await checkPanel('connect', true, false, trigger);
+    await checkPanel('connect', false, false, trigger);
+  }
   await checkPanel('profile', true);
   await checkPanel('profile', false);
   await checkPanel('connect', true);

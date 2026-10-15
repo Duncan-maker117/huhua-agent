@@ -260,7 +260,7 @@ def _subject_hint(text: str) -> tuple[str, str]:
     """Explicit subjects outrank the extractor's section and follow-up ID."""
     if coursework_evidence(text):
         return "projects", "course"
-    if re.search(r"周末|日常(?!用品|工作|行政|管理)|练手|自己玩|个人练习|自己练习", text):
+    if re.search(r"周末|练手|自己玩|个人练习|自己练习", text):
         return "projects", "personal"
     if campus_evidence(text):
         return "campus", ""
@@ -275,6 +275,9 @@ def _subject_hint(text: str) -> tuple[str, str]:
 
 
 def _clause_subject(quote: str, evidence: str) -> tuple[str, str, str]:
+    from app.services.experience_subjects import subject_span
+    if span := subject_span(quote, evidence):
+        return span['section'], '', evidence[span['start']:span['end']]
     section, kind = _subject_hint(quote)
     context = quote
     if not section and quote and quote in evidence:
@@ -341,6 +344,11 @@ def _nearest_named_owner(quote: str, evidence: str, items: list[dict]) -> dict |
     """Resolve adjacent named experiences before falling back to section hints."""
     if not quote or quote not in evidence:
         return None
+    from app.services.experience_subjects import subject_span
+    if span := subject_span(quote, evidence):
+        matches = {item['item_id']: item for item in items
+                   if item['section'] == span['section'] and item['name'] == span['name']}
+        return next(iter(matches.values())) if len(matches) == 1 else None
     new_subject = r"另外|另一个|新的?(?:项目|工作|经历)|其他(?:的)?(?:项目|工作|经历)"
     if re.search(new_subject, quote):
         return None
@@ -479,6 +487,23 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
 
     raw_items = []
     subject_items = copy.deepcopy(outline)
+    # Establish literal line/list identities before routing any model facts.
+    # Otherwise a same-turn named internship is invisible to later duties.
+    from app.services.experience_subjects import explicit_subject_spans
+    subject_spans = explicit_subject_spans(evidence)
+    for span in subject_spans:
+        owner = next((row for row in subject_items if row['section'] == span['section']
+                      and row['name'] == span['name']), None)
+        if owner is None:
+            owner = {'section': span['section'], 'item_id': str(uuid.uuid4()),
+                     'name': span['name'], 'facts': [], 'raw_notes': []}
+            subject_items.append(owner)
+        known_items.add(owner['item_id'])
+        facts = []
+        for field, value in {FACT_LABELS[span['section']]: span['name'], **span['fields']}.items():
+            facts.append({**new_fact(value, kind='role' if field in {'title', 'role'} else 'context',
+                                     quote=value, turn_id=turn_id), 'field': field})
+        result['items'].append({**owner, 'facts': facts, 'raw_notes': []})
     for raw_index, raw_item in enumerate(candidate.get("items", []) if isinstance(candidate.get("items"), list) else []):
         if not isinstance(raw_item, dict):
             continue
@@ -606,6 +631,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                         fact["field"], fact["text"] = FACT_LABELS[section], named
                 if raw.get("field") in FACT_FIELDS[section] and not constraint_only(fact["source_quote"]):
                     fact["field"] = raw["field"]
+                # A concrete responsibility is body evidence, even if the
+                # extractor calls it a role. Header fields bypass body repair.
+                if (section == 'projects' and fact.get('field') == 'role'
+                        and re.match(r'^(?:我|本人)?(?:主要|仅|只)?负责(?!人)', fact['text'])):
+                    fact.pop('field')
+                    fact['kind'] = 'action'
                 if section == "education":
                     from app.services.education_fields import clean_education_value
                     fact["text"] = clean_education_value(fact.get("field"), fact["text"])
@@ -732,10 +763,11 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             quote = row["raw_notes"][0]
             # An explicitly labelled row supplies the section and repository title,
             # even when a model incorrectly called it a project named 「自己」.
-            owner = next((item for item in result["items"] if id(item) not in claimed_rows and any(
+            owner = next((item for item in result["items"] if id(item) not in claimed_rows and (
+                (item['section'] == section and item['name'] == row['name']) or any(
                 fact.get("field") in {None, "pr"} and fact.get("source_quote")
                 and normalize_text(fact["source_quote"]) in normalize_text(quote)
-                for fact in item["facts"])), None)
+                for fact in item["facts"]))), None)
             if owner is None:
                 owner = {"section": section, "item_id": row["item_id"], "name": row["name"],
                          "facts": [], "raw_notes": []}
@@ -795,7 +827,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             named.discard('')
             if len(named) == 1:
                 item['name'] = name = named.pop()
-        if item['section'] not in {'projects', 'education'} or placeholder_name(name):
+        scoped = any(span['section'] == item['section'] and span['name'] == name for span in subject_spans)
+        if (item['section'] not in {'projects', 'education'} and not scoped) or placeholder_name(name):
             continue
         key = (item['section'], normalize_text(name))
         prior = next((row for row in outline if row['section'] == item['section'] and normalize_text(row['name']) == key[1]), None)
@@ -814,7 +847,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
     result["items"] = list(merged.values())
     from app.services.experience_dates import recover_experience_dates
     recover_experience_dates(result, evidence, outline, turn_id)
+    from app.services.fact_corrections import recover_experience_merges
+    recover_experience_merges(result, evidence, outline, turn_id)
+    from app.services.experience_subjects import company_description_fact
     for item in result["items"]:
+        if item['section'] in {'work_experience', 'internship'}:
+            item['facts'] = [fact for fact in item['facts'] if not company_description_fact(fact, evidence)]
         course_quote = next((f["source_quote"] for f in item["facts"] if coursework_evidence(f["source_quote"])
                              and not re.search(r"(?:不是|并非|不属于|没|未).{0,8}(?:作业|课程)", f["source_quote"])), "")
         if item["section"] == "projects" and course_quote and not any(f["kind"] == "status_limit" for f in item["facts"]):
@@ -855,8 +893,11 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
             clauses.append(clause)
     for clause in clauses:
         section = _clause_subject(clause, evidence)[0]
-        owner = (_subject_owner(clause, evidence, [*result["items"], *(outline or [])], followup_target)
-                 if section in {"projects", "campus"} or (section == "work_experience" and re.search(r"咖啡店|店长|公司里", evidence)) else None)
+        owners = [*result['items'], *(outline or [])]
+        owner = _nearest_named_owner(clause, evidence, owners)
+        if owner is None and (section in {'projects', 'campus'} or (
+                section == 'work_experience' and re.search(r'咖啡店|店长|公司里', evidence))):
+            owner = _subject_owner(clause, evidence, owners, followup_target)
         if owner is not None:
             # Existing outlines are read-only; a patch must contain new facts only.
             owner = next((item for item in result["items"] if item["item_id"] == owner["item_id"]),
@@ -980,7 +1021,8 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
             old["status"] = "superseded"
             replacement = copy.deepcopy(entry["replacement"])
             replacement["replaces"] = old["id"]
-            item["facts"].append(replacement)
+            if not any(fact['id'] == replacement['id'] for fact in item['facts']):
+                item["facts"].append(replacement)
             quote = replacement.get("source_quote")
             if quote and quote not in item.setdefault("raw_notes", []):
                 item["raw_notes"].append(quote)
@@ -990,4 +1032,19 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
             for fact in item["facts"]:
                 if fact.get("id") == entry.get("fact_id"):
                     fact["status"] = "deleted"
+    from app.services.fact_corrections import apply_experience_merges
+    apply_experience_merges(result, patch.get('merges') or [])
+    # Workspace cards read item dates, while the writer reads field facts.
+    # Derive both from the final active facts, including corrections and merges.
+    touched = {entry.get('item_id') for key in ('items', 'corrections', 'removals') for entry in patch.get(key) or []}
+    touched.update(merge['target_item_id'] for merge in patch.get('merges') or [])
+    for section in FACT_SECTIONS:
+        for item in result.get(section, []):
+            if item.get('item_id') not in touched:
+                continue
+            for field in ('start_date', 'end_date'):
+                dated = [fact for fact in item.get('facts', []) if fact.get('field') == field]
+                if dated:
+                    active = [fact['text'] for fact in dated if fact.get('status', 'active') == 'active']
+                    item[field] = active[-1] if active else ''
     return normalize_fact_store(result)

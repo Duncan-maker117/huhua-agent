@@ -1,10 +1,134 @@
 """Literal corrections are small fact/draft transactions, never writer prompts."""
 from copy import deepcopy
 import re
+import uuid
 
 from app.schemas.facts import FACT_SECTIONS
 from app.services.resume_facts import new_fact, normalize_fact_store
 from app.services.resume_versions import text_hash
+
+
+def recover_experience_merges(patch: dict, evidence: str, outline: list[dict], turn_id: str) -> None:
+    """Bind an explicit same-experience correction to uniquely matching topics.
+
+    Model-proposed merge IDs are never trusted. Each source must be a placeholder
+    (or a literal anonymous employer), with current facts matching a named topic.
+    """
+    from app.services.candidate_language import non_fact, placeholder_name, safe_item_name
+
+    for sentence in re.split(r'[。；;\n]', evidence):
+        if re.search(r'不是同一|并非同一|不同|不要|别把|不能|如果|假设|[？?]', sentence):
+            continue
+        same = re.search(r'([^，,。；;]+?)(?:都?是|均属于|都属于|属于)这?(?:同一段|同一个)'
+                         r'(?:(?:实习|工作)(?:经历)?|经历|(?=[，,]|$))', sentence)
+        same = same or re.search(r'([^，,。；;]+?)(?:不是|并非)(?:个人练习|个人项目|项目)(?:[，,]|$)', sentence)
+        if not same:
+            continue
+        company = re.search(r'(实习公司|公司)(?:名称)?(?:叫|是|为|[：:])\s*([^，,。；;（(]+)', sentence)
+        if not company or not safe_item_name(company[2].strip()):
+            continue
+        name = company[2].strip()
+        section = 'internship' if '实习' in company[1] or '实习' in same[0] else 'work_experience'
+        topics = [part.strip() for part in re.split(r'和|与|及|、', same[1]) if part.strip()]
+        if len(topics) < 2:
+            continue
+        sources = []
+        ambiguous = False
+        for topic in topics:
+            grams = {topic[i:i + 2] for i in range(len(topic) - 1)} - {'经历', '工作', '实习'}
+            matches = []
+            for row in outline:
+                if row['section'] not in {'projects', 'work_experience', 'internship'}:
+                    continue
+                if not (placeholder_name(row['name']) or row['name'] == name or
+                        re.fullmatch(r'(?:一家|某|本地).*(?:品牌|公司|门店)', row['name'])):
+                    continue
+                text = ' '.join(f['text'] for f in row['facts'] if not f.get('field') and not non_fact(f['text']))
+                if topic in text or len({gram for gram in grams if gram in text}) >= 2:
+                    matches.append(row)
+            if len(matches) != 1:
+                ambiguous = True
+                break
+            if matches[0] not in sources:
+                sources.append(matches[0])
+        if ambiguous or not sources:
+            continue
+        existing = {row['item_id']: row for row in [*outline, *patch['items']]
+                    if row['section'] == section and re.split(r'[（(]', row['name'], maxsplit=1)[0].strip() == name}
+        if len(existing) > 1:
+            continue
+        target = next(iter(existing.values()), None)
+        target_id = target['item_id'] if target else str(uuid.uuid4())
+        entry = next((row for row in patch['items'] if row['item_id'] == target_id), None)
+        if entry is None:
+            entry = {'section': section, 'item_id': target_id, 'name': name, 'facts': [], 'raw_notes': []}
+            patch['items'].append(entry)
+        entry['name'] = name
+        fields = {'company': name}
+        role = re.search(r'岗位(?:是|为|[：:])\s*([^，,。；;]+)', sentence)
+        if role:
+            fields['title'] = role[1].strip()
+        for field, value in fields.items():
+            entry['facts'].append({**new_fact(value, kind='role' if field == 'title' else 'context',
+                                             quote=value, turn_id=turn_id), 'field': field})
+        patch.setdefault('merges', []).append({
+            'target_item_id': target_id, 'section': section, 'name': name,
+            'source_item_ids': [row['item_id'] for row in sources if row['item_id'] != target_id],
+            'source_quote': sentence, 'turn_id': turn_id,
+        })
+
+
+def apply_experience_merges(store: dict, merges: list[dict]) -> None:
+    """Move original fact IDs/sources and remove the obsolete item identities."""
+    from app.schemas.facts import FACT_LABELS
+    from app.services.candidate_language import non_fact, placeholder_name
+    from app.services.experience_subjects import company_description_fact
+
+    for merge in merges:
+        section = merge['section']
+        target = next((row for row in store.get(section, [])
+                       if row['item_id'] == merge['target_item_id']), None)
+        if target is None:
+            continue
+        confirmed_fields = {f['field']: f['text'] for f in target.get('facts', [])
+                            if f.get('field') and f.get('status', 'active') == 'active'}
+        source_ids = set(merge['source_item_ids'])
+        for source_section in FACT_SECTIONS:
+            for source in store.get(source_section, [])[:]:
+                if source['item_id'] not in source_ids:
+                    continue
+                known = {fact['id'] for fact in target['facts']}
+                target['facts'].extend(deepcopy(fact) for fact in source.get('facts', []) if fact['id'] not in known)
+                for key in ('raw_notes', 'links'):
+                    values = target.setdefault(key, [])
+                    values.extend(deepcopy(value) for value in source.get(key, []) if value not in values)
+                audit = {
+                    'item_id': source['item_id'], 'section': source_section,
+                    'name': source.get(FACT_LABELS[source_section], ''),
+                    'source_quote': merge['source_quote'], 'turn_id': merge['turn_id'],
+                }
+                if audit not in target.setdefault('merged_from', []):
+                    target['merged_from'].append(audit)
+                store[source_section].remove(source)
+        target[FACT_LABELS[section]] = merge['name']
+        # Imported placeholder labels and old classification instructions are
+        # audit history, not active resume claims after a merge.
+        for fact in target['facts']:
+            if fact.get('status', 'active') != 'active':
+                continue
+            if (non_fact(fact['text']) or non_fact(fact.get('source_quote', ''))
+                    or company_description_fact(fact, merge['source_quote'])
+                    or company_description_fact(fact, fact.get('source_quote', ''))):
+                fact['status'] = 'deleted'
+            elif fact.get('field') in confirmed_fields and fact['text'] != confirmed_fields[fact['field']]:
+                fact['status'] = 'superseded'
+            elif fact.get('field') == 'name' or (fact.get('field') == 'company' and fact['text'] != merge['name']):
+                fact['status'] = 'superseded'
+            elif placeholder_name(fact['text']):
+                fact['status'] = 'superseded'
+        target['raw_notes'] = [note for note in target.get('raw_notes', []) if not non_fact(note)]
+        if (store.get('followup_target') or {}).get('item_id') in source_ids:
+            store.pop('followup_target', None)
 
 
 _NUMBER = r"\d+(?:\.\d+)?\s*(?:ms|毫秒|秒|场|条|人|次|个|篇|张|页|%|％)"

@@ -21,6 +21,7 @@ async (page) => {
   });
   const loadPictures = async () => {
     for (const img of await page.locator('img').all()) {
+      if (!await img.isVisible()) continue;
       await img.scrollIntoViewIfNeeded();
       await img.evaluate(node => node.decode());
     }
@@ -32,6 +33,18 @@ async (page) => {
   await page.locator('#nav-account').filter({hasText: '登录'}).waitFor();
   await page.evaluate(() => Promise.all([...document.images].filter(img => img.loading !== 'lazy').map(img => img.decode())));
   check(await page.locator('h1').innerText() === '把聊过的经历，\n写成一页真实的简历。', '方案 A 标题');
+  check(await page.locator('#nav-mcp').isVisible(), '桌面 MCP 入口可见');
+  check(await page.locator('#nav-mcp').getAttribute('href') === '/chat?panel=connect', 'MCP 入口链接');
+  check(await page.locator('#preview-panel-chat').isVisible(), '默认对话展示');
+  await page.locator('#preview-tab-editor').click();
+  check(await page.locator('#preview-panel-editor').isVisible(), '点击编辑标签切换图片');
+  check((await page.locator('#preview-caption').innerText()).startsWith('从聊过的经历'), '编辑说明');
+  await page.keyboard.press('ArrowRight');
+  check(await page.locator('#preview-tab-chat').getAttribute('aria-selected') === 'true', '向右循环切换');
+  check(await page.locator('#preview-tab-chat').evaluate(n => n === document.activeElement), '键盘切换焦点');
+  await page.keyboard.press('ArrowLeft');
+  check(await page.locator('#preview-panel-editor').isVisible(), '向左循环切换');
+  await page.locator('#preview-tab-chat').click();
   await loadPictures();
   await page.screenshot({path: '/private/tmp/huhua-home-desktop-hero.png'});
   await page.screenshot({path: '/private/tmp/huhua-home-desktop.png', fullPage: true});
@@ -48,6 +61,7 @@ async (page) => {
   check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), '390px 无页面横向溢出');
   await page.locator('#menu-toggle').click();
   check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'true', '移动导航展开');
+  check(await page.locator('#nav-mcp-mobile').isVisible(), '移动端 MCP 入口可达');
   await page.keyboard.press('Escape');
   check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'false', 'Escape 关闭菜单');
   const crops = await page.locator('.template-image').evaluateAll(nodes => nodes.map(node => ({

@@ -9,15 +9,15 @@
   <meta property="og:locale" content="zh_CN">
   <meta property="og:title" content="胡话简历 — 把聊过的经历，写成一页真实的简历">
   <meta property="og:description" content="对话挖经历、按岗位改写、逐条核对出处。不编数字，不替你升级职责。在网页或 AI 助手里，把真实经历写成简历。">
-  <meta property="og:image" content="https://resume.yikuaibanz.cn/static/home/editor-1440.png?v=20261015-home1">
+  <meta property="og:image" content="https://resume.yikuaibanz.cn/static/home/editor-1440.png?v=20261016-ui1">
   <meta property="og:image:width" content="1440">
   <meta property="og:image:height" content="900">
   <meta property="og:image:alt" content="胡话简历编辑器，展示虚构样例、模板选择和一页简历预览">
-  <link rel="icon" href="/static/icons/favicon.ico?v=20261015-home1" sizes="32x32">
-  <link rel="icon" href="/static/icons/favicon.svg?v=20261015-home1" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?v=20261015-home1">
-  <link rel="stylesheet" href="/static/home.css?v=20261015-home1">
-  <script src="/static/home.js?v=20261015-home1" defer></script>
+  <link rel="icon" href="/static/icons/favicon.ico?v=20261016-ui1" sizes="32x32">
+  <link rel="icon" href="/static/icons/favicon.svg?v=20261016-ui1" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?v=20261016-ui1">
+  <link rel="stylesheet" href="/static/home.css?v=20261016-ui1">
+  <script src="/static/home.js?v=20261016-ui1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到正文</a>
@@ -29,10 +29,12 @@
         <a href="#mcp">AI 助手接入</a>
         <a href="#templates">模板</a>
         <a href="#faq">常见问题</a>
-        <a id="nav-account-mobile" class="mobile-account" href="/chat?panel=profile">登录</a>
+        <a id="nav-mcp-mobile" class="mobile-account" href="/chat?panel=connect">获取 MCP 密钥</a>
+        <a id="nav-account-mobile" class="mobile-account" href="/chat?panel=profile">登录/注册</a>
       </nav>
       <div class="nav-actions">
-        <a id="nav-account" class="nav-account" href="/chat?panel=profile">登录</a>
+        <a id="nav-mcp" class="nav-account nav-mcp" href="/chat?panel=connect">获取 MCP 密钥</a>
+        <a id="nav-account" class="nav-account" href="/chat?panel=profile">登录/注册</a>
         <a id="nav-workspace" class="button button-small" href="/chat"><span id="nav-workspace-label" class="desktop-label">开始写简历</span><span id="nav-mobile-label" class="mobile-label">开始</span></a>
         <button id="menu-toggle" class="menu-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="打开导航菜单"><span aria-hidden="true"></span><span aria-hidden="true"></span></button>
       </div>
@@ -53,16 +55,28 @@
           <p class="hero-note">免费使用 · 不用注册也能先试 · 支持 PDF / Word 导出</p>
         </div>
         <picture class="hero-illustration">
-          <source srcset="/static/home/hero-illustration.webp?v=20261015-home1" type="image/webp">
-          <img src="/static/home/hero-illustration.png?v=20261015-home1" width="600" height="582" loading="lazy" alt="一只手把对话气泡折成一页简历的线描插画">
+          <source srcset="/static/home/hero-illustration.webp?v=20261016-ui1" type="image/webp">
+          <img src="/static/home/hero-illustration.png?v=20261016-ui1" width="600" height="582" loading="lazy" alt="一只手把对话气泡折成一页简历的线描插画">
         </picture>
       </div>
       <figure class="product-preview">
-        <picture>
-          <source srcset="/static/home/editor-1440.webp?v=20261015-home1" type="image/webp">
-          <img src="/static/home/editor-1440.png?v=20261015-home1" width="1440" height="900" fetchpriority="high" alt="胡话简历编辑器：左侧选择模板，中间预览简历，右侧编辑经历；内容为虚构样例">
-        </picture>
-        <figcaption>从聊过的经历，到可以逐条核对的一页简历。图中内容为虚构样例。</figcaption>
+        <div class="preview-tabs" role="tablist" aria-label="工作台预览">
+          <button id="preview-tab-chat" type="button" role="tab" aria-selected="true" aria-controls="preview-panel-chat" tabindex="0">对话写简历</button>
+          <button id="preview-tab-editor" type="button" role="tab" aria-selected="false" aria-controls="preview-panel-editor" tabindex="-1">精细编辑</button>
+        </div>
+        <div id="preview-panel-chat" role="tabpanel" aria-labelledby="preview-tab-chat" tabindex="0">
+          <picture>
+            <source srcset="/static/home/chat-1440.webp?v=20261016-ui1" type="image/webp">
+            <img src="/static/home/chat-1440.png?v=20261016-ui1" width="1440" height="900" fetchpriority="high" alt="胡话简历对话工作台：左侧对话追问经历，右侧实时生成 A4 简历；内容为虚构样例">
+          </picture>
+        </div>
+        <div id="preview-panel-editor" role="tabpanel" aria-labelledby="preview-tab-editor" tabindex="0" hidden>
+          <picture>
+            <source srcset="/static/home/editor-1440.webp?v=20261016-ui1" type="image/webp">
+            <img src="/static/home/editor-1440.png?v=20261016-ui1" width="1440" height="900" loading="lazy" alt="胡话简历编辑器：左侧选择模板，中间预览简历，右侧编辑经历；内容为虚构样例">
+          </picture>
+        </div>
+        <figcaption id="preview-caption" aria-live="polite">聊几句经历，右侧实时长出一页简历。图中内容为虚构样例。</figcaption>
       </figure>
     </section>
 
@@ -123,13 +137,13 @@
     <section id="templates" class="section container" aria-labelledby="templates-title">
       <div class="section-heading heading-row"><div><h2 id="templates-title">选一个适合你的版式。</h2><p>7 款模板，同一份经历。点开预览，再慢慢调整。</p></div><a class="text-link" href="/resume">查看模板 <span aria-hidden="true">↗</span></a></div>
       <ul class="template-strip" aria-label="简历模板">
-        <li><a href="/resume?template=t001-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t001-jianyue.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t001-jianyue.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="简约单栏模板，灰色栏目标题和标准单栏布局"></picture><span>简约单栏</span></a></li>
-        <li><a href="/resume?template=t002-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t002-jianyue.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t002-jianyue.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="深蓝横幅模板，深色页头的商务单栏布局"></picture><span>深蓝横幅</span></a></li>
-        <li><a href="/resume?template=t003-shenlan"><picture class="template-image"><source srcset="/static/home/tpl-t003-shenlan.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t003-shenlan.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="深蓝细线模板，以细线区分经历栏目"></picture><span>深蓝细线</span></a></li>
-        <li><a href="/resume?template=t004-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t004-jianyue.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t004-jianyue.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="灰条夹页模板，页顶和页底有深色装饰条"></picture><span>灰条夹页</span></a></li>
-        <li><a href="/resume?template=t1000"><picture class="template-image"><source srcset="/static/home/tpl-t1000.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t1000.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="浅蓝斜切模板，浅蓝色斜切栏目标题"></picture><span>浅蓝斜切</span></a></li>
-        <li><a href="/resume?template=t1001"><picture class="template-image"><source srcset="/static/home/tpl-t1001.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t1001.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="浅蓝色块模板，浅蓝色标题区分经历"></picture><span>浅蓝色块</span></a></li>
-        <li><a href="/resume?template=t1002-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t1002-jianyue.webp?v=20261015-home1" type="image/webp"><img src="/static/home/tpl-t1002-jianyue.png?v=20261015-home1" width="788" height="777" loading="lazy" alt="淡青平行模板，平行四边形栏目装饰"></picture><span>淡青平行</span></a></li>
+        <li><a href="/resume?template=t001-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t001-jianyue.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t001-jianyue.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="简约单栏模板，灰色栏目标题和标准单栏布局"></picture><span>简约单栏</span></a></li>
+        <li><a href="/resume?template=t002-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t002-jianyue.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t002-jianyue.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="深蓝横幅模板，深色页头的商务单栏布局"></picture><span>深蓝横幅</span></a></li>
+        <li><a href="/resume?template=t003-shenlan"><picture class="template-image"><source srcset="/static/home/tpl-t003-shenlan.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t003-shenlan.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="深蓝细线模板，以细线区分经历栏目"></picture><span>深蓝细线</span></a></li>
+        <li><a href="/resume?template=t004-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t004-jianyue.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t004-jianyue.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="灰条夹页模板，页顶和页底有深色装饰条"></picture><span>灰条夹页</span></a></li>
+        <li><a href="/resume?template=t1000"><picture class="template-image"><source srcset="/static/home/tpl-t1000.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t1000.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="浅蓝斜切模板，浅蓝色斜切栏目标题"></picture><span>浅蓝斜切</span></a></li>
+        <li><a href="/resume?template=t1001"><picture class="template-image"><source srcset="/static/home/tpl-t1001.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t1001.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="浅蓝色块模板，浅蓝色标题区分经历"></picture><span>浅蓝色块</span></a></li>
+        <li><a href="/resume?template=t1002-jianyue"><picture class="template-image"><source srcset="/static/home/tpl-t1002-jianyue.webp?v=20261016-ui1" type="image/webp"><img src="/static/home/tpl-t1002-jianyue.png?v=20261016-ui1" width="788" height="777" loading="lazy" alt="淡青平行模板，平行四边形栏目装饰"></picture><span>淡青平行</span></a></li>
       </ul>
       <p class="example-note">模板中的姓名与经历均为虚构样例。</p>
     </section>

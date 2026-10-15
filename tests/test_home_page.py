@@ -84,11 +84,33 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
                 parsed = urlsplit(resource)
                 self.assertFalse(parsed.scheme or parsed.netloc)
                 self.assertTrue(parsed.path.startswith('/static/'))
-                self.assertEqual(parsed.query, 'v=20261015-home1')
+                self.assertEqual(parsed.query, 'v=20261016-ui1')
                 self.assertTrue((ROOT / 'web' / parsed.path.removeprefix('/static/')).is_file())
         self.assertNotIn('tailwind', (ROOT / 'web/home.html').read_text())
-        response = await self.client.get('/static/home.css?v=20261015-home1')
+        response = await self.client.get('/static/home.css?v=20261016-ui1')
         self.assertEqual(response.status_code, 200)
+
+    async def test_home_three_entries_and_preview_tabs(self):
+        text = (await self.client.get('/')).text
+        parser = ResourceParser()
+        parser.feed(text)
+        for key in ('nav-mcp', 'nav-mcp-mobile'):
+            self.assertEqual(parser.links[key], '/chat?panel=connect')
+        self.assertEqual(parser.links['nav-account'], '/chat?panel=profile')
+        self.assertEqual(parser.links['nav-workspace'], '/chat')
+        self.assertIn('>登录/注册</a>', text)
+        self.assertIn('role="tablist"', text)
+        self.assertEqual(text.count('role="tab"'), 2)
+        self.assertEqual(text.count('role="tabpanel"'), 2)
+        for name in ('chat', 'editor'):
+            self.assertIn(f'aria-controls="preview-panel-{name}"', text)
+            self.assertIn(f'aria-labelledby="preview-tab-{name}"', text)
+        self.assertIn('aria-selected="true" aria-controls="preview-panel-chat"', text)
+        self.assertIn('tabindex="0" hidden>', text)
+        for extension in ('webp', 'png'):
+            response = await self.client.get('/static/home/chat-1440.' + extension)
+            self.assertEqual(response.status_code, 200)
+        self.assertIn('聊几句经历，右侧实时长出一页简历。图中内容为虚构样例。', text)
 
     async def test_resume_returns_to_chat(self):
         parser = ResourceParser()

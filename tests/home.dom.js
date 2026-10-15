@@ -7,7 +7,8 @@ async function checkNavigation(authenticated, failed = false) {
   f.context.location.hash = '#privacy';
   f.document.addEventListener = (type, fn) => { events[type] = fn; };
   for (const element of f.ids.values()) element.getAttribute = name => element.attributes[name];
-  $('nav-account').textContent = '登录';
+  $('nav-account').textContent = '登录/注册';
+  $('nav-account-mobile').textContent = '登录/注册';
   $('nav-workspace-label').textContent = '开始写简历';
   let menuOpen = false;
   $('site-nav').classList.toggle = (_, open) => { menuOpen = open; };
@@ -20,9 +21,33 @@ async function checkNavigation(authenticated, failed = false) {
   };
   f.context.navigator = {clipboard: {writeText: async value => copied.push(value)}};
   f.run('home.js'); await tick();
-  assert.equal($('nav-account').textContent, authenticated && !failed ? '我的档案' : '登录');
+  assert.equal($('nav-account').textContent, authenticated && !failed ? '我的档案' : '登录/注册');
   assert.equal($('nav-workspace-label').textContent, authenticated && !failed ? '进入工作台' : '开始写简历');
   assert.equal($('privacy').open, true);
+  assert.equal($('nav-account-mobile').textContent, authenticated && !failed ? '我的档案' : '登录/注册');
+  const chat = $('preview-tab-chat'), editor = $('preview-tab-editor');
+  const checkPreview = (name, caption) => {
+    for (const key of ['chat', 'editor']) {
+      assert.equal($('preview-tab-' + key).getAttribute('aria-selected'), String(key === name));
+      assert.equal($('preview-tab-' + key).tabIndex, key === name ? 0 : -1);
+      assert.equal($('preview-panel-' + key).hidden, key !== name);
+    }
+    assert.ok($('preview-caption').textContent.startsWith(caption));
+  };
+  checkPreview('chat', '聊几句经历');
+  await editor.click(); checkPreview('editor', '从聊过的经历');
+  const key = (tab, value) => {
+    let prevented = false;
+    tab.handlers.keydown[0]({key: value, preventDefault() { prevented = true; }});
+    assert.equal(prevented, true);
+  };
+  key(editor, 'ArrowRight'); checkPreview('chat', '聊几句经历');
+  assert.equal(f.document.activeElement, chat);
+  key(chat, 'ArrowLeft'); checkPreview('editor', '从聊过的经历');
+  assert.equal(f.document.activeElement, editor);
+  key(editor, 'Home'); checkPreview('chat', '聊几句经历');
+  key(chat, 'End'); checkPreview('editor', '从聊过的经历');
+  await chat.click(); checkPreview('chat', '聊几句经历');
   await $('copy-command').click();
   assert.equal(copied[0], 'claude mcp add --transport http huhua https://preview.example.test/mcp --header "Authorization: Bearer <你的令牌>"');
   assert.equal($('copy-command').textContent, '已复制');

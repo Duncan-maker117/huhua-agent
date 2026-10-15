@@ -19,6 +19,17 @@ class MCPPanelTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         for page in ('index.html', 'resume.html'):
             text = (root / 'web' / page).read_text()
-            for asset, version in (('account-profile.js', '20261015-home1'),
+            for asset, version in (('account-profile.js', '20261016-ui1' if page == 'index.html' else '20261015-home1'),
                                    ('account-profile.css', '20261014-mcp2')):
                 self.assertIn(asset + '?v=' + version, text)
+
+    def test_workbench_connect_entries_are_separate_from_profile_actions(self):
+        root = Path(__file__).resolve().parents[1]
+        html = (root / 'web/index.html').read_text()
+        js = (root / 'web/account-profile.js').read_text()
+        self.assertIn('id="btn-ai-assistant" class="app-nav-link" href="/chat?panel=connect"', html)
+        self.assertIn('id="btn-ai-assistant-mobile"', html)
+        self.assertIn('>AI 助手</', html)
+        actions = js.split('function renderProfile()', 1)[1].split("const actions = node('div', undefined, 'profile-actions');", 1)[1].split('content.append(actions);', 1)[0]
+        self.assertNotIn('连接 AI 助手', actions)
+        self.assertIn("button('补充一条信息'", actions)

@@ -118,10 +118,21 @@ def parse_education_fields(message: str) -> dict[str, str]:
         if grade:
             fields["grade"] = grade.group(0)
     school = fields.get("school") or ""
-    if fields:
-        dates = re.search(r"(20\d{2}[./年-]\d{1,2}月?)\s*[—–~～至-]\s*(20\d{2}[./年-]\d{1,2}月?|至今)", education_text)
-        if dates:
+    # A school somewhere in a message does not own its first date range.
+    # Only an education paragraph/sentence can supply education dates.
+    from app.services.experience_subjects import subject_span
+    for sentence in re.split(r'[。；;\n]', education_text):
+        dates = re.search(r"(20\d{2}[./年-]\d{1,2}月?)\s*[—–~～至-]\s*(20\d{2}[./年-]\d{1,2}月?|至今)", sentence)
+        if not dates:
+            continue
+        scope = subject_span(dates[0], message)
+        if scope and scope['section'] != 'education':
+            continue
+        if ((section and not re.search(r'实习|工作|项目|校园|技能', sentence))
+                or (re.search(r'教育|入学|毕业|就读|大学|学院', sentence)
+                    and not re.search(r'实习|公司|项目', sentence))):
             fields.update(start_date=dates[1], end_date=dates[2])
+    if fields:
         scholarship = re.search(r"[^，,。；;\n]*(?:奖学金)[^，,。；;\n]*", education_text)
         if scholarship:
             fields["highlights"] = scholarship[0].strip()

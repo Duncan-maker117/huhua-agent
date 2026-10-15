@@ -27,6 +27,13 @@
 
 ## 当前状态
 
+2026-10-15 首页与 MCP 入口调整（资源版本 `20261016-ui1`，仅本地，未提交/部署）：
+
+- 工作台桌面/移动端增加「AI 助手」，复用账号抽屉和登录接续；连接视图仅请求令牌接口，显示连接标题、账号与令牌/最近调用，个人档案移除连接按钮。保留已有品牌返回首页改动。
+- 首页右上增加「获取 MCP 密钥」，账号文案为「登录/注册」或「我的档案」；窄屏菜单保留入口。产品展示默认「对话写简历」，支持「精细编辑」、ARIA 标签及左右键切换；无 JS 默认对话图可见。
+- `web/home/chat-1440.png` / `.webp` 当前复制自编辑器图，仅作占位，待 Banz 覆盖为 1440×900 对话截图。`home.html` 全部资源及本次修改的工作台脚本使用新版本号。
+- 指定全量命令 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1588/1588 通过，57.937s**，日志 `/private/tmp/huhua-ui1-tests-final.log`。相关 DOM 回归覆盖入口、登录/游客接续、连接与档案隔离、令牌操作和标签键盘行为；首页合成浏览器 22 项通过，含 390px 无横向溢出，已检查桌面/移动截图。工作台额外浏览器检查因本机 Chrome 启动 EPERM 未完成；未声称真实账号/邮件/MCP 客户端联调。JS 语法与 diff 检查通过，未改后端或 `evaluation/`。
+
 2026-10-15 第九批人物修复（基于 `75716f4`，仅本地，未提交/部署）：
 
 - 结构化附件/粘贴块在确定性导入层按行解析职务和日期、按句拆事实，保留每条原文/文件来源和重复附件冲突；共用第八批年月范围解析。校园协会已填字段不再显示缺失；保留“按部长文案制作 6 张海报”的实际动作，独立否定事实阻止升级为活动策划。
@@ -307,3 +314,27 @@
 - `evaluation/product-profile-live-model-2026-10-04/`：真实模型连接失败的保留证据。
 - `research/skills-memory-2026-10-02/`：先前 Skill 与记忆方案研究，不代表候选框架都已接入。
 - `docs/development/2026-10-04-mmr-history.md`：压缩交接前的历史验收记录，保留旧决策与批次边界。
+
+## 2026-10-15 第十批：同段经历拆分与合并更正（本地，未 commit/部署）
+
+- 根因：`日常更新` 被 personal 启发式误判，句号切断主体续接且同轮命名条目未预载；教育解析从整段取首个日期；原更正协议只支持单条事实，缺少条目合并，归属元陈述未过滤。
+- 修复：有明确名称的结构化行/编号经历先建立主体范围，职责和日期沿用该主体；B 首轮使用原文“本地连锁烘焙品牌”，不造个人练习/工作占位。教育日期局部取值，明确教育时间更正替代旧事实。公司 + 同段/非个人项目声明 + 唯一事实主题匹配生成合并补丁，迁移事实 ID/来源/链接、删除占位条目并保存 `merged_from`；同段归属元陈述不作为 active 经历事实。否定或歧义不合并，不误伤个人练习、行政工作及非负责人限定。
+- 文件：`agents/fact_extractor.py`、`agents/turn_actions.py`；`services/candidate_language.py`、`experience_dates.py`、`fact_corrections.py`、新增 `experience_subjects.py`；新增 `tests/test_batch10_regressions.py`（15 项）。根因、逐文件改动和测试说明见 `evaluation/persona-ux/batch10-fix-notes.md`。
+- 验证：指定命令 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 在当前仓库运行，最终 **1603/1603 通过，0 失败、0 跳过，53.440s**；日志 `/private/tmp/huhua-batch10-verified.log`。新增测试覆盖 A/B、错归属/倒序抽取、连续两轮、历史合并、日期归属、元陈述过滤、歧义/否定与工作区投影；Ruff（7 份本批 Python 文件）和 diff 检查通过。
+- 边界：未改 `evaluation/` 的 checks.py、fixtures 或检查口径；未调用真实模型、未复跑 8833 的 deepseek-flash，也未 commit、部署。其他任务的 `web/comparison*` 改动保留。后续真实模型回放属于尚未验证部分。
+
+## 2026-10-15 第十批补充 10b：经历日期字段与公司描述（本地，未 commit/部署）
+
+- 根因：日期已进入带 field 的事实，但补丁没有写入经历条目的 start_date/end_date，右侧只读条目字段而继续报缺失；独立日期及公司括号描述没有从普通事实排除，第二轮合并也会带入描述。同句连续编号还可能被整句多日期/非事实判定跳过。
+- 修复：按明确主体范围恢复日期，保留原自由文本回填；补丁、更正/删除和合并后仅对本轮涉及条目同步有效日期字段。清除独立日期和纯公司描述要点，历史合并的描述保留审计但退出 active；带日期的动作和括号内职责不误删。
+- 文件：`agents/fact_extractor.py`、`services/experience_dates.py`、`services/experience_subjects.py`、`services/fact_corrections.py`；`tests/test_batch10_regressions.py` 新增 6 项，涵盖 A/B 条目字段、工作区缺口、投影/桩 writer、合并、连续编号及日期更正/删除。详细说明追加在 `evaluation/persona-ux/batch10-fix-notes.md` 的「10b」一节。
+- 验证：第十批定向 **21/21**；指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1609/1609 通过，0 失败、0 跳过，50.890s**，日志 `/private/tmp/huhua-10b-full.log`。Ruff（5 份 Python 文件）、diff 检查通过；第八批日期回填与第十批教育日期归属回归保持通过。
+- 边界：保留第十批及其他未提交改动，checks.py、fixtures、已有 web/comparison* 等保护文件哈希未变；未 commit、未部署。本次仅离线桩模型验证，未复跑 8833 的真实 deepseek-flash 对话。
+
+## 2026-10-15 第十批补充 10c：tech 首稿职责与日期残片（本地，未 commit/部署）
+
+- 根因：失败快照中接口职责从工作区正文变为 role；抽取器接受 `field=role` 后，writer 的正文事实筛选和补漏跳过它。复合「日期，3 人组队」早在第九批已存在，10b 的整串日期/端点过滤未覆盖这种形式，数字覆盖会把整句补进正文。以相同抽取/writer 桩对照 HEAD `e19c18c` 第九批后端和第十批 + 10b，两者在 role 误标下均丢接口、普通 action 下均保留；不能将回放时序差异归因于最近主体、公司描述过滤或日期分段的某处改动。详细证据与排除过程见 `evaluation/persona-ux/batch10-fix-notes.md`「10c」。
+- 修复仅两处：`fact_extractor.py` 将项目中误标为 role 的「负责……」职责归回正文 action，真正职务保持 role；`experience_dates.py` 只移走复合事实中与已恢复字段一致的独立日期子句，保留团队规模、课程语义和原始引文，带日期的实际动作不误删。
+- `tests/test_batch10_regressions.py` 新增 4 项桩回归，修复前复现失败；完整 tech 原文经抽取→事实应用→初稿投影→writer 后包含商品发布/搜索接口、Spring Boot/MySQL、团队及登录/实验室演示限制，正文与 description 无日期残片。覆盖 action/role 两种抽取输出及只写背景的 writer，原 A/B 与 10b 断言保持通过。
+- 验证：定向 **25/25，0.222s**；指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1613/1613 通过，0 失败、0 跳过，60.913s**，日志 `/private/tmp/huhua-10c-full.log`。3 份 Python 文件 Ruff、diff 检查通过；107 份 checks/fixtures/历史回放/既有网页保护文件哈希未变。前后源码固定输出对照日志 `/private/tmp/huhua-10c-causality.log`。
+- 边界：保留第十批 + 10b 和其他未提交改动；未启动/调用 8833、未调用真实 LLM、未 commit/部署。真实 tech 回放通过率未重测，下一步若授权真实回放，再验证 `tech.initial_project`；本轮交付为离线桩与全量测试通过。

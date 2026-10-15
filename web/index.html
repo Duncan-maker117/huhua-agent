@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/account-profile.css?v=20261014-mcp2"/>
-<script src="/static/account-profile.js?v=20261015-home1"></script>
+<script src="/static/account-profile.js?v=20261016-ui1"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -50,6 +50,13 @@
   .tpl-chip { font-size: 12px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--hh-line-strong); color: var(--hh-text-2); background: #fff; cursor: pointer; transition: border-color .15s, color .15s, background-color .15s; }
   .tpl-chip:hover { border-color: var(--hh-primary-line); color: var(--hh-primary-strong); }
   .tpl-chip.active { border-color: var(--hh-primary); color: var(--hh-primary-strong); background: var(--hh-primary-soft); font-weight: 600; }
+  .mobile-ai-entry { display: none; }
+  @media (max-width: 767px) {
+    #chat-pane > .app-header { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 8px; }
+    #chat-pane > .app-header > div:last-child { width: 100%; justify-content: flex-end; gap: 6px; }
+    #chat-pane > .app-header .mobile-ai-entry { display: inline-flex; }
+    #chat-pane > .app-header .account-entry { padding-inline: 8px; font-size: 12px; }
+  }
 </style>
 <link rel="stylesheet" href="/static/resume-workspace.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/change-card.css?v=20261013-ui"/>
@@ -61,13 +68,15 @@
 
   <header class="app-header flex justify-between items-center px-8 w-full h-14 sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-[#e9e5f0] font-medium">
     <div class="flex items-center gap-8">
-      <a href="/chat" class="app-brand text-lg font-bold tracking-wide text-primary">胡话简历</a>
+      <a href="/" class="app-brand text-lg font-bold tracking-wide text-primary" aria-label="胡话简历首页">胡话简历</a>
       <nav class="hidden md:flex gap-6 items-center">
         <a class="app-nav-link is-current" href="/chat" aria-current="page">对话</a>
         <a class="app-nav-link" href="/resume">模板</a>
+        <a id="btn-ai-assistant" class="app-nav-link" href="/chat?panel=connect" aria-expanded="false">AI 助手</a>
       </nav>
     </div>
     <div class="flex items-center gap-2">
+      <button id="btn-ai-assistant-mobile" type="button" class="account-entry mobile-ai-entry" aria-expanded="false">AI 助手</button>
       <button id="btn-account-profile" type="button" class="account-entry" aria-expanded="false">个人档案</button>
       <button id="btn-history" type="button" class="header-button" aria-controls="conversation-drawer" aria-expanded="false">历史对话</button>
       <button id="btn-new-chat" type="button" class="header-button">新对话</button>
@@ -1146,7 +1155,7 @@ document.getElementById('btn-toggle-canvas')?.addEventListener('click', () => {
 const entryPanel = new URLSearchParams(location.search).get('panel');
 if (entryPanel === 'profile' || entryPanel === 'connect') {
   document.addEventListener('DOMContentLoaded', () => {
-    window.HuhuaAccount?.open(entryPanel === 'connect' ? '登录后可生成令牌，连接你的 AI 助手。' : '', entryPanel);
+    window.HuhuaAccount?.open(entryPanel === 'connect' ? '登录后可生成 MCP 令牌，连接你的 AI 助手。' : '', entryPanel);
   });
 }
 

@@ -98,13 +98,14 @@ async function inline(kind) {
 }
 async function mcp() {
   const {f, calls, content, hold} = await panel();
-  await buttons(content, '连接 AI 助手')[0].click();
+  await f.window.HuhuaAccount.open('', 'connect');
   let wait = hold(), form = content.querySelector('form');
   const generating = submit(form); await tick(); await submit(form); await submit(form);
   assert.equal(calls.filter(c => c.url.endsWith('/tokens') && c.options.method === 'POST').length, 1);
   assert.equal(buttons(form, '生成令牌')[0].disabled, true);
   wait.resolve(response({detail:'合成失败'},false,503)); await generating;
   assert.equal(buttons(form, '生成令牌')[0].disabled, false);
+  await f.window.HuhuaAccount.open();
   await buttons(content, '信息确认')[0].click();
   wait = hold(); const accept = buttons(content, '确认')[0];
   const accepting = accept.click(); await accept.click(); await accept.click();

@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const {fixture, tick} = require('./resume_embedded.dom.js');
+const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../web/home.html'), 'utf8');
 
 async function checkNavigation(authenticated, failed = false) {
   const f = fixture('home.html'), $ = id => f.ids.get(id), copied = [], events = {};
@@ -7,6 +8,11 @@ async function checkNavigation(authenticated, failed = false) {
   f.context.location.hash = '#privacy';
   f.document.addEventListener = (type, fn) => { events[type] = fn; };
   for (const element of f.ids.values()) element.getAttribute = name => element.attributes[name];
+  const examples = ['tailor', 'project', 'check'].map(key => {
+    const text = html.match(new RegExp('<p id="mcp-task-' + key + '"[^>]*>(.*?)</p>'))[1].replaceAll('&lt;', '<').replaceAll('&gt;', '>');
+    $('mcp-task-' + key).textContent = text;
+    return {key, text};
+  });
   $('nav-account').textContent = '登录/注册';
   $('nav-account-mobile').textContent = '登录/注册';
   $('nav-workspace-label').textContent = '开始写简历';
@@ -53,7 +59,24 @@ async function checkNavigation(authenticated, failed = false) {
   assert.equal($('copy-command').textContent, '已复制');
   assert.ok($('copy-status').textContent.includes('已复制'));
   await f.advance(4000); assert.equal($('copy-command').textContent, '复制');
+  for (const {key, text} of examples) {
+    await $('copy-task-' + key).click();
+    assert.equal(copied.at(-1), text);
+    assert.equal($('copy-task-' + key).textContent, '已复制');
+    assert.ok($('copy-task-' + key + '-status').textContent.includes('已复制'));
+    assert.equal($('copy-task-' + key).disabled, false);
+  }
+  await f.advance(4000);
+  for (const {key} of examples) {
+    assert.equal($('copy-task-' + key).textContent, '复制');
+    assert.equal($('copy-task-' + key + '-status').textContent, '');
+  }
   f.context.navigator.clipboard.writeText = async () => { throw new Error('denied'); };
+  for (const {key} of examples) {
+    await $('copy-task-' + key).click();
+    assert.ok($('copy-task-' + key + '-status').textContent.includes('手动复制'));
+    assert.equal($('copy-task-' + key).disabled, false);
+  }
   await $('copy-command').click();
   assert.ok($('copy-status').textContent.includes('手动复制'));
   assert.equal($('copy-command').disabled, false);

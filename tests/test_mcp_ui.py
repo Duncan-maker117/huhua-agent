@@ -19,8 +19,8 @@ class MCPPanelTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         for page in ('index.html', 'resume.html'):
             text = (root / 'web' / page).read_text()
-            for asset, version in (('account-profile.js', '20261016-ui1' if page == 'index.html' else '20261015-home1'),
-                                   ('account-profile.css', '20261014-mcp2')):
+            for asset, version in (('account-profile.js', '20261016-ui2' if page == 'index.html' else '20261015-home1'),
+                                   ('account-profile.css', '20261016-ui2' if page == 'index.html' else '20261014-mcp2')):
                 self.assertIn(asset + '?v=' + version, text)
 
     def test_workbench_connect_entries_are_separate_from_profile_actions(self):

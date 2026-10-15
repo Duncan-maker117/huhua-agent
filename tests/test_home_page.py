@@ -84,11 +84,31 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
                 parsed = urlsplit(resource)
                 self.assertFalse(parsed.scheme or parsed.netloc)
                 self.assertTrue(parsed.path.startswith('/static/'))
-                self.assertEqual(parsed.query, 'v=20261016-ui1')
+                self.assertEqual(parsed.query, 'v=20261016-ui2')
                 self.assertTrue((ROOT / 'web' / parsed.path.removeprefix('/static/')).is_file())
         self.assertNotIn('tailwind', (ROOT / 'web/home.html').read_text())
-        response = await self.client.get('/static/home.css?v=20261016-ui1')
+        response = await self.client.get('/static/home.css?v=20261016-ui2')
         self.assertEqual(response.status_code, 200)
+
+    async def test_mcp_three_steps_and_copyable_tasks(self):
+        html = (await self.client.get('/')).text
+        card = html.split('<article id="mcp"', 1)[1].split('</section>', 1)[0]
+        steps = card.split('<ol class="mcp-steps"', 1)[1].split('</ol>', 1)[0]
+        self.assertEqual(steps.count('<li>'), 3)
+        for label in ('登录后生成令牌', '复制接入命令', '在助手里直接说任务'):
+            self.assertIn(label, steps)
+        self.assertIn('href="/chat?panel=connect"', steps)
+        self.assertIn('id="mcp-command"', steps)
+        self.assertIn('接入后可以这样用', card)
+        for key, title in (('tailor', '按 JD 改简历'), ('project', '把项目记进档案'), ('check', '检查简历依据')):
+            self.assertIn(f'<h5>{title}</h5>', card)
+            self.assertIn(f'id="mcp-task-{key}"', card)
+            self.assertIn(f'id="copy-task-{key}" type="button"', card)
+            self.assertIn(f'id="copy-task-{key}-status" class="copy-status" role="status" aria-live="polite"', card)
+        for note in ('只用已确认档案事实，逐条带出处，先测页数再导出。',
+                     '我的档案 → 信息确认', '逐条对照档案事实，标出没有出处的句子。',
+                     '/mcp__huhua__tailor_resume_for_jd', '/mcp__huhua__log_project_to_profile'):
+            self.assertIn(note, card)
 
     async def test_home_three_entries_and_preview_tabs(self):
         text = (await self.client.get('/')).text

@@ -338,3 +338,9 @@
 - `tests/test_batch10_regressions.py` 新增 4 项桩回归，修复前复现失败；完整 tech 原文经抽取→事实应用→初稿投影→writer 后包含商品发布/搜索接口、Spring Boot/MySQL、团队及登录/实验室演示限制，正文与 description 无日期残片。覆盖 action/role 两种抽取输出及只写背景的 writer，原 A/B 与 10b 断言保持通过。
 - 验证：定向 **25/25，0.222s**；指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1613/1613 通过，0 失败、0 跳过，60.913s**，日志 `/private/tmp/huhua-10c-full.log`。3 份 Python 文件 Ruff、diff 检查通过；107 份 checks/fixtures/历史回放/既有网页保护文件哈希未变。前后源码固定输出对照日志 `/private/tmp/huhua-10c-causality.log`。
 - 边界：保留第十批 + 10b 和其他未提交改动；未启动/调用 8833、未调用真实 LLM、未 commit/部署。真实 tech 回放通过率未重测，下一步若授权真实回放，再验证 `tech.initial_project`；本轮交付为离线桩与全量测试通过。
+
+## 2026-10-15 MCP 接入任务示例 UI2（本地，未 commit/部署）
+
+- 首页 #mcp 增加三步接入及「按 JD 改简历 / 把项目记进档案 / 检查简历依据」三项可复制示例，保留命令卡、隐私说明及复制反馈；工作台 AI 助手面板在令牌表单上方展示相同任务，连接入口登录页列任务名，令牌仅显示一次面板补两个 Claude Code prompt。档案视图不加任务内容。home.html 资源与 index.html 的 account-profile.js/.css 版本更新为 `20261016-ui2`。
+- 指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1614/1614 通过，0 失败/跳过，113.907s**，日志 `/private/tmp/huhua-ui2-full-tests.log`。首页/面板 DOM 覆盖任务复制成功/失败、aria-live、登录任务名和档案隔离；JS 语法及 diff 检查通过。已补 390px 页面/卡片溢出浏览器断言，但本次 Chrome CLI 启动与备用静态服务器监听均遭本机权限拒绝，未完成浏览器尺寸/截图验收。
+- 仅修改 `web/home.html`、`web/home.css`、`web/home.js`、`web/account-profile.js`、`web/account-profile.css`、`web/index.html`，以及 `tests/test_home_page.py`、`tests/test_mcp_ui.py`、`tests/home.dom.js`、`tests/mcp_profile.dom.js`、`tests/home.browser.js` 和本记录。首页 MCP/资源版本以外内容与操作前逐字一致。未写入 comparison.* 或 cross-tool 目录；期间观察到其他会话更新 comparison.html 和 methodology.md，原样保留。未改后端、未启动或调用 8833、未 commit。

@@ -51,6 +51,14 @@ async (page) => {
   await page.locator('#copy-command').click();
   check(await page.locator('#copy-command').innerText() === '已复制', '复制反馈');
   check(await page.evaluate(() => copiedCommand.includes('https://huhua.fixture/mcp')), '命令使用当前站点');
+  check(await page.locator('.mcp-steps > li').count() === 3, 'MCP 三步接入');
+  check(await page.locator('.mcp-task').count() === 3, 'MCP 三个任务');
+  for (const task of ['tailor', 'project', 'check']) {
+    const example = await page.locator('#mcp-task-' + task).innerText();
+    await page.locator('#copy-task-' + task).click();
+    check(await page.evaluate(() => copiedCommand) === example, task + ' 示例复制内容');
+    check(await page.locator('#copy-task-' + task).innerText() === '已复制', task + ' 示例复制反馈');
+  }
   await page.locator('#privacy summary').click();
   check(await page.locator('#privacy').evaluate(node => node.open), 'FAQ 可展开');
   await page.setViewportSize({width: 390, height: 844});
@@ -59,6 +67,8 @@ async (page) => {
   await page.screenshot({path: '/private/tmp/huhua-home-mobile-hero.png'});
   await page.screenshot({path: '/private/tmp/huhua-home-mobile.png', fullPage: true});
   check(await page.evaluate(() => document.documentElement.scrollWidth === innerWidth), '390px 无页面横向溢出');
+  check(await page.locator('#mcp').evaluate(node => node.scrollWidth <= node.clientWidth), '390px MCP 卡片无横向溢出');
+  await page.locator('#mcp').screenshot({path: '/private/tmp/huhua-ui2-mcp-mobile.png'});
   await page.locator('#menu-toggle').click();
   check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'true', '移动导航展开');
   check(await page.locator('#nav-mcp-mobile').isVisible(), '移动端 MCP 入口可达');

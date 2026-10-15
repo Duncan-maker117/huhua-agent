@@ -4,20 +4,27 @@
   const copy = document.getElementById('copy-command');
   const status = document.getElementById('copy-status');
   command.textContent = `claude mcp add --transport http huhua ${location.origin}/mcp --header "Authorization: Bearer <你的令牌>"`;
-  let feedbackTimer;
-  copy.addEventListener('click', async () => {
-    clearTimeout(feedbackTimer);
-    copy.disabled = true;
-    try {
-      await navigator.clipboard.writeText(command.textContent);
-      copy.textContent = '已复制';
-      status.textContent = '已复制，请将 <你的令牌> 替换为自己的令牌。';
-      feedbackTimer = setTimeout(() => { copy.textContent = '复制'; status.textContent = ''; }, 4000);
-    } catch (_) {
-      copy.textContent = '复制';
-      status.textContent = '复制未完成，请选中上方命令手动复制。';
-    } finally { copy.disabled = false; }
-  });
+  function bindCopy(copy, source, status, success, failure) {
+    let feedbackTimer;
+    copy.addEventListener('click', async () => {
+      clearTimeout(feedbackTimer);
+      copy.disabled = true;
+      try {
+        await navigator.clipboard.writeText(source.textContent);
+        copy.textContent = '已复制';
+        status.textContent = success;
+        feedbackTimer = setTimeout(() => { copy.textContent = '复制'; status.textContent = ''; }, 4000);
+      } catch (_) {
+        copy.textContent = '复制';
+        status.textContent = failure;
+      } finally { copy.disabled = false; }
+    });
+  }
+  bindCopy(copy, command, status, '已复制，请将 <你的令牌> 替换为自己的令牌。', '复制未完成，请选中上方命令手动复制。');
+  for (const task of ['tailor', 'project', 'check']) {
+    bindCopy(document.getElementById('copy-task-' + task), document.getElementById('mcp-task-' + task),
+      document.getElementById('copy-task-' + task + '-status'), '已复制，可粘贴到你的 AI 助手里。', '复制未完成，请选中示例话术手动复制。');
+  }
 
   const menu = document.getElementById('site-nav');
   const toggle = document.getElementById('menu-toggle');

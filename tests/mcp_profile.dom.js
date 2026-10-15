@@ -15,6 +15,11 @@ f.context.navigator = {clipboard: {writeText: async value => copied.push(value)}
 const oneTimeToken = 'hh_pat_synthetic-dom-token-only';
 let inbox = [1,2,3].map(id => ({id:'i'+id,category:'project',subject:'合成项目',field:'description',value:'候选'+id,evidence:'git log 合成依据'}));
 let tokens = [];
+let authenticated = true;
+const taskTitles = ['按 JD 改简历', '把项目记进档案', '检查简历依据'];
+const taskExamples = ['用胡话简历里我的档案，按这份 JD 改一版简历，并导出 PDF：<粘贴 JD>',
+  '读一下这个仓库，把我负责的部分整理成建议，提交到胡话简历档案',
+  '检查这份简历里哪些说法在我的胡话简历档案里找不到依据'];
 const expiry = '2027-01-11T17:39:53.218359Z';
 const lastUsed = '2026-10-14T17:39:53.218359Z';
 const localTime = value => {
@@ -24,7 +29,7 @@ const localTime = value => {
 f.context.fetch = async (url, options = {}) => {
   calls.push({url, options});
   let body = {};
-  if (url === '/api/account/me') body = {authenticated:true,login_available:true,account:{email:'fixture@example.test'}};
+  if (url === '/api/account/me') body = {authenticated,login_available:true,account:{email:'fixture@example.test'}};
   if (url === '/api/profile') body = {revision:1,facts:[],conflicts:[]};
   if (url === '/api/account/mcp/inbox') body = {items:inbox,pending_count:inbox.length};
   if (url === '/api/account/mcp/tokens') {
@@ -49,8 +54,22 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
   f.run('account-profile.js'); await tick(); await f.window.HuhuaAccount.open(); await tick();
   assert.equal(classes('profile-confirm-badge')[0].textContent, '3');
   assert.equal(buttons('连接 AI 助手').length, 0);
+  assert.ok(!all().some(n => taskTitles.includes(n.textContent)));
   await f.window.HuhuaAccount.open('', 'connect');
   assert.equal(classes('profile-connections').length, 1);
+  assert.equal(classes('profile-mcp-task').length, 3);
+  assert.deepEqual(classes('profile-mcp-task-example').map(n => n.textContent), taskExamples);
+  assert.equal(classes('profile-connections')[0].children.findIndex(n => n.className === 'profile-mcp-tasks') < classes('profile-connections')[0].children.findIndex(n => n.tagName === 'FORM'), true);
+  for (const title of taskTitles) assert.ok(all().some(n => n.tagName === 'H4' && n.textContent === title));
+  const status = descendants(f.document.body).find(n => n.className === 'profile-status');
+  assert.equal(status.attributes['aria-live'], 'polite');
+  for (const copy of buttons('复制')) await copy.click();
+  assert.deepEqual(copied, taskExamples);
+  assert.equal(status.textContent, '已复制。');
+  f.context.navigator.clipboard.writeText = async () => { throw new Error('denied'); };
+  await buttons('复制')[0].click(); assert.ok(status.textContent.includes('手动复制'));
+  f.context.navigator.clipboard.writeText = async value => copied.push(value);
+  copied.length = 0;
   assert.ok(all().some(n => n.textContent === '最近调用'));
   assert.ok(all().some(n => n.textContent.includes('huhua_profile_get')));
   assert.ok(all().some(n => n.tagName === 'LI' && n.textContent.startsWith(localTime(lastUsed) + ' · ')));
@@ -61,6 +80,11 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
   assert.equal(JSON.parse(created.options.body).expires_days, 90);
   assert.ok(!JSON.parse(created.options.body).scopes.includes('profile:contacts'));
   assert.equal(classes('profile-token-once').length, 1);
+  const once = descendants(classes('profile-token-once')[0]);
+  assert.ok(once.some(n => n.textContent.includes('接好后试试上面的任务')));
+  for (const prompt of ['tailor_resume_for_jd', 'log_project_to_profile']) {
+    assert.ok(once.some(n => n.tagName === 'CODE' && n.textContent === '/mcp__huhua__' + prompt));
+  }
   assert.ok(all().some(n => n.textContent === '有效期至 ' + localTime(expiry)));
   assert.ok(all().some(n => n.textContent === '最后使用：' + localTime(lastUsed)));
   assert.ok(!all().some(n => n.textContent.includes(expiry) || n.textContent.includes(lastUsed)));
@@ -81,6 +105,8 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
   await f.window.HuhuaAccount.open();
   assert.equal(f.ids.get('profile-heading').textContent, '个人档案');
   assert.equal(classes('profile-connections').length, 0);
+  assert.ok(!all().some(n => taskTitles.includes(n.textContent)));
+  assert.equal(classes('profile-mcp-tasks').length, 0);
   await buttons('信息确认')[0].click();
   assert.ok(all().some(n => n.textContent === '来自 AI 助手的建议'));
   assert.equal(classes('profile-inbox-item').length, 3);
@@ -103,5 +129,13 @@ const submit = async form => { for (const fn of form.handlers.submit || []) awai
   await f.window.HuhuaAccount.open('', 'connect');
   assert.equal(all().filter(n => n.textContent === '有效期至 未知').length, 2);
   assert.equal(all().filter(n => n.textContent === '最后使用：尚未使用').length, 2);
+  authenticated = false;
+  await f.window.HuhuaAccount.refreshAccount();
+  await f.window.HuhuaAccount.open('', 'connect');
+  for (const title of taskTitles) assert.ok(all().some(n => n.tagName === 'LI' && n.textContent === title));
+  assert.equal(classes('profile-mcp-task').length, 0, 'login only shows task names');
+  assert.ok(all().some(n => n.tagName === 'FORM'), 'login form remains available');
+  await f.window.HuhuaAccount.open('', 'profile');
+  assert.ok(!all().some(n => taskTitles.includes(n.textContent)), 'profile login has no MCP tasks');
   console.log('MCP account panel DOM checks passed');
 })().catch(error => {console.error(error); process.exitCode = 1;});

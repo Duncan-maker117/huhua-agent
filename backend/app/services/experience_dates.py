@@ -12,6 +12,17 @@ MONTH_RANGE = re.compile(
 )
 
 
+def parse_month_range(text: str) -> tuple[str, str] | None:
+    """One literal, chronological range; never infer a rollover year."""
+    matches = list(MONTH_RANGE.finditer(text))
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    start = f"{match['year']}.{int(match['month']):02d}"
+    end = f"{match['end_year'] or match['year']}.{int(match['end_month']):02d}"
+    return (start, end) if end >= start else None
+
+
 def recover_experience_dates(patch: dict, evidence: str, outline: list[dict], turn_id: str) -> None:
     from app.agents.fact_extractor import _subject_owner
     owners = {row['item_id']: row for row in outline}
@@ -34,10 +45,10 @@ def recover_experience_dates(patch: dict, evidence: str, outline: list[dict], tu
                 owner = candidate
         if not owner or owner['section'] not in {'projects', 'campus', 'work_experience', 'internship', 'education', 'open_source'}:
             continue
-        start = f"{match['year']}.{int(match['month']):02d}"
-        end = f"{match['end_year'] or match['year']}.{int(match['end_month']):02d}"
-        if end < start:
-            continue  # Do not guess a year rollover from a two-month fragment.
+        dates = parse_month_range(sentence)
+        if not dates:
+            continue
+        start, end = dates
         entry = next((row for row in patch['items'] if row['item_id'] == owner['item_id']), None)
         if entry is None:
             entry = {key: owner[key] for key in ('section', 'item_id', 'name')}

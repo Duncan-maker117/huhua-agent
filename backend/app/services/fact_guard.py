@@ -257,6 +257,7 @@ def contradicts_limit(text: str, source: str) -> bool:
     """True when the bullet asserts what a source fact explicitly denies."""
     responsibility_limits = (
         (r"(?:不是|并非).{0,8}负责人|没有.{0,4}后台权限", r"负责|运营账号|独立运营|账号运营"),
+        (r"(?:没有|未|不)(?:负责|参与|主导)(?:活动)?策划", r"(?:负责|主导|承担|统筹)(?:活动)?策划|策划(?:了|过)?活动"),
         (r"选题.{0,4}由.{1,12}(?:定|决定)", r"策划|独立选题|制定选题"),
         (r"(?:店长|部长|主管|同事).{0,4}(?:给|提供)(?:的)?文案|文案由.{1,12}(?:给|提供)", r"独立|撰写文案|创作文案"),
         (r"没有.{0,8}(?:数据|阅读量)|不知道.{0,8}(?:播放量|阅读量)", r"(?:实现|带来|提升|推动).{0,8}(?:增长|阅读量|播放量)|增长"),
@@ -325,15 +326,17 @@ def expansion_errors(text: str, source: str) -> list[str]:
 def _quantity_units(text: str) -> set[tuple[str, str]]:
     number = r"\d+(?:\.\d+)?|[零〇一二两三四五六七八九十百千万]+"
     values = set()
-    for match in re.finditer(rf"({number})\s*(?:个\s*)?(人|次|个|条|调用|请求)", normalize_text(text)):
+    # Whitespace may separate a date/identifier from a quantity on the next
+    # line. Removing it first invents evidence such as 2025.063 人.
+    normalized = unicodedata.normalize('NFKC', text or '').casefold()
+    for match in re.finditer(rf"({number})\s*(?:个\s*)?(人|次|个|条|调用|请求)", normalized):
         raw, unit = match[1], match[2]
         value = _decimal(raw) if raw[0].isdigit() else str(_chinese_number(raw))
         if unit == "次":
-            normalized = normalize_text(text)
-            suffix = re.match(r"调用|请求", normalized[match.end():])
-            prefix = re.search(r"(调用|请求)(?:了|共|累计)?$", normalized[:match.start()])
+            suffix = re.match(r"\s*(调用|请求)", normalized[match.end():])
+            prefix = re.search(r"(调用|请求)(?:了|共|累计)?\s*$", normalized[:match.start()])
             if suffix or prefix:
-                unit += (suffix[0] if suffix else prefix[1])
+                unit += (suffix[1] if suffix else prefix[1])
         if unit in {"调用", "请求"}:
             unit = "次" + unit
         values.add((value, unit))

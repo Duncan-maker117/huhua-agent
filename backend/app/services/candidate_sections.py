@@ -3,14 +3,18 @@
 import re
 import uuid
 
-from app.services.candidate_language import literal_item_name, safe_objective
+from app.services.candidate_language import constraint_only, literal_item_name, safe_item_name, safe_objective
+from app.services.experience_dates import parse_month_range
 from app.services.resume_facts import new_fact
 from app.services.resume_field_hygiene import trim_name_punctuation
 
 
-SECTION_LABELS = {"校园经历": "campus", "社团经历": "campus", "校园活动": "campus", "开源贡献": "open_source", "开源经历": "open_source",
+SECTION_LABELS = {"学生组织": "campus", "校园经历": "campus", "社团经历": "campus", "校园活动": "campus", "开源贡献": "open_source", "开源经历": "open_source",
                   "竞赛荣誉": "awards", "竞赛和荣誉": "awards", "竞赛与荣誉": "awards"}
-_OTHER_SECTION = re.compile(r"^(?:基本信息|教育背景|教育经历|教育|课程项目|项目经历|工作经历|实习经历|"
+_COMPANY_LABELS = {"公司": "work_experience", "公司名称": "work_experience", "实习公司": "internship"}
+ROLE_FIELD = re.compile(r"^(?:职务|角色|岗位)[：:][ \t]*(.+)$")
+DATE_FIELD = re.compile(r"^(?:时间|课程项目时间|项目时间|工作时间|实习时间)[：:][ \t]*(.+)$")
+_OTHER_SECTION = re.compile(r"^(?:基本信息|教育背景|教育经历|教育|课程项目|项目名称|项目经历|工作经历|实习经历|"
                             r"技能|专业技能|产品与技术能力|技能与工具|证书|自我评价|个人总结)\s*[：:]?")
 _PR = re.compile(r"\bPR\s*#?\s*\d+|https?://github\.com/[^\s)）]+/pull/\d+", re.I)
 _URL = re.compile(r"https?://[^\s,，;；)）]+", re.I)
@@ -72,7 +76,7 @@ def contribution_fields(line: str) -> dict:
     return fields
 
 
-def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") -> dict:
+def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "", source_name: str = "") -> dict:
     """Every explicit list row survives even if a model only extracted its first row.
 
     Only labelled candidate sections are parsed. Callers exclude JD/reference
@@ -91,7 +95,35 @@ def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") 
         if not quote or re.search(r"待确认|待核实|待补|假设|虚构", quote):
             return
         plain = _MARKDOWN_LINK.sub(lambda m: m[1], quote).replace("**", "")
-        if section == "campus":
+        body = None
+        field_quotes = {}
+        lines = plain.splitlines()
+        structured = (len(lines) > 1 and safe_item_name(lines[0])
+                      and not re.search(r'[｜|，,；;：:]', lines[0]))
+        if section in {"campus", "work_experience", "internship"} and structured:
+            # Field blocks are records, not a single action. Keep sentence
+            # boundaries and source spans before making atomic evidence.
+            name = lines[0].strip()
+            fields = {"name": name}
+            if section != "campus":
+                fields["company"] = name
+            body = []
+            for line in lines[1:]:
+                if role := ROLE_FIELD.fullmatch(line):
+                    fields["role"] = role[1]
+                    field_quotes["role"] = line
+                elif date := DATE_FIELD.fullmatch(line):
+                    if dates := parse_month_range(date[1]):
+                        for field, value in zip(("start_date", "end_date"), dates):
+                            fields[field] = value
+                            field_quotes[field] = line
+                    else:
+                        body.append(line)  # An invalid range stays reviewable.
+                else:
+                    body.extend(part.strip().rstrip('；;') for part in re.findall(r"[^。；;\n]+[。；;]?", line) if part.strip())
+        elif section in {"work_experience", "internship"}:
+            return  # A one-line company mention is still conversational intake.
+        elif section == "campus":
             name = literal_item_name(plain, "campus")
             if not name:
                 return
@@ -117,23 +149,30 @@ def parse_labelled_items(text: str, *, source: str = "chat", turn_id: str = "") 
                 fields["date"] = date[0]
         item = {"item_id": str(uuid.uuid4()), **fields, "facts": [], "raw_notes": [quote]}
         for field, value in fields.items():
-            if value and value in plain:
-                fact = new_fact(value, kind="context", quote=value, source=source, turn_id=turn_id)
+            if value and (value in plain or field in field_quotes):
+                fact = new_fact(value, kind="role" if field == "role" else "context",
+                                quote=field_quotes.get(field, value), source=source, turn_id=turn_id, source_name=source_name)
                 fact["field"] = field
                 item["facts"].append(fact)
-        # The complete original entry preserves personal contribution and result.
-        item["facts"].append(new_fact(plain, kind="action" if section in {"campus", "open_source"} else "result_qualitative",
-                                      quote=quote, source=source, turn_id=turn_id))
+        # Structured bodies are atomic; unstructured contribution rows retain
+        # their existing literal fallback and the complete raw note.
+        for clause in body if body is not None else [plain]:
+            kind = "action" if section != "awards" else "result_qualitative"
+            if body is not None and (constraint_only(clause) or re.search(r'没有|尚未|未上线|并非|计划', clause)):
+                kind = "status_limit"
+            item["facts"].append(new_fact(clause, kind=kind, quote=clause if body is not None else quote,
+                                          source=source, turn_id=turn_id, source_name=source_name))
         if links := literal_links(quote):
             item["links"] = links
-        rows[section].append(item)
+        rows.setdefault(section, []).append(item)
 
     for raw in text.splitlines():
         line = re.sub(r"^\s*#{1,6}\s*", "", raw).strip().replace("**", "")
-        label = re.match(r"^(" + "|".join(SECTION_LABELS) + r")(?:\s*[：:]\s*(.*)|\s*)$", line)
+        labels = {**SECTION_LABELS, **_COMPANY_LABELS}
+        label = re.match(r"^(" + "|".join(labels) + r")(?:[ \t]*[：:][ \t]*(.*)|[ \t]*)$", line)
         if label:
             flush()
-            section = SECTION_LABELS[label[1]]
+            section = labels[label[1]]
             line = label[2] or ""
         elif _OTHER_SECTION.match(line):
             flush()

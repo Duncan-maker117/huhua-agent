@@ -56,7 +56,20 @@ def wording_constraint(text: str) -> bool:
 
 def constraint_only(text: str) -> bool:
     clauses = [part.strip() for part in re.split(r"[，,。；;\n]", text or "") if part.strip()]
-    return bool(clauses) and all(wording_constraint(part) for part in clauses)
+
+    def only_limit(clause):
+        if (re.match(r'^(?:我|本人)?(?:没有|未|不曾|不)(?:负责|参与|主导)', clause)
+                and not re.search(r'但|却|而', clause)):
+            return True
+        limit = _WORDING_LIMIT.search(clause)
+        if not limit:
+            return False
+        # “按部长给的文案制作过 6 张海报” contains an actual delivery
+        # after the ownership limit. Removing that clause would lose the count.
+        return not re.match(r'(?:(?:用|使用)[^，,。；;没有未不]{1,60}?)?(?:制作|绘制|排版|设计|完成|发布)',
+                            clause[limit.end():].lstrip())
+
+    return bool(clauses) and all(only_limit(part) for part in clauses)
 
 
 def placeholder_name(value: str) -> bool:

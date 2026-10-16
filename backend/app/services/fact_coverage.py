@@ -78,6 +78,7 @@ def text_covered(text: str, bullets: list[str]) -> bool:
     def normalized(value):
         value = duplicate_key(resume_bullet(value))
         value = re.sub(r'^负责(?!人)', '', value)
+        value = value.replace('对答案做人工判定', '答案人工判定')
         value = value.replace('由基础版本的', '由').replace('从基础版本的', '从')
         value = re.sub(r"整理([^，,。；;]{1,18})并分类", r"分类整理\1", value)
         value = value.replace("公众号文章", "文章")
@@ -87,7 +88,7 @@ def text_covered(text: str, bullets: list[str]) -> bool:
         # Keep the object and every number; shared quantities alone are not proof.
         value = re.sub(r'(?:由|从)(\d+)(?:个|道)?(?:提高到|提升至|提升到|提高至)(\d+)(?:个|道)?',
                        r'从\1提高到\2', value)
-        return re.sub(r"(?<=[做用写查改])了", "", value)
+        return re.sub(r"[，,。；;]|(?<=[做用写查改])了", "", value)
     clauses = [normalized(part) for part in re.split(r"[，,。；;\n、]", text) if normalize_text(part)]
     quotes = [normalized(value) for value in bullets if value]
     if '基础版本' in text and not any('基础版本' in value for value in bullets):
@@ -213,7 +214,7 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                                    for value, record in zip(body, records))
                     # Legacy drafts have no citations. A precise literal match
                     # remains usable; new drafts carry validated coverage IDs.
-                    covered = not hidden and (entailed or text_covered(text, cited_body or referenced_body
+                    covered = not hidden and (entailed or text_covered(text, referenced_body or cited_body
                                                                       or (displayed_body if not records else [])))
                 reason = ""
                 # resume_bullet removes header echoes. Test the original

@@ -12,6 +12,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
+from writer_double import SourceWriter  # noqa: E402
 from app.agents.resume_graph import (
     _candidate_source_allowed, _init_state, _serialize_to_resume_data,
     build_graph, research_job_node, route_by_stage, skill_task_node, stream_agent,
@@ -150,7 +151,7 @@ class ResearchGraphTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_read_url_decode_preserves_source_provenance_and_never_archives_as_self(self):
         state = current_state()
-        graph = build_graph(object())
+        graph = build_graph(SourceWriter())
         config = {"configurable": {"thread_id": "research-decode"}}
         await graph.aupdate_state(config, state, as_node="building")
         material = "岗位职责：我主导支付项目，要求 Python。"
@@ -158,7 +159,7 @@ class ResearchGraphTest(unittest.IsolatedAsyncioTestCase):
              patch("app.agents.resume_graph._run_decoder_and_build_reply", AsyncMock(return_value=({"required_skills": ["Python"]}, "岗位要求 Python。"))), \
              patch("app.services.session_store.save_resume_session") as save:
             parts = [part async for part in stream_agent(
-                [{"content": material}], "research-decode", object(), task="decode_jd",
+                [{"content": material}], "research-decode", SourceWriter(), task="decode_jd",
                 web_sources=[source(kind="job_page", content=material)],
             )]
         self.assertTrue(parts)

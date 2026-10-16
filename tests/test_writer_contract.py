@@ -20,6 +20,7 @@ DEPENDENCY_ROOT = ROOT if (ROOT / "backend/app/schemas/writer.py").exists() else
 sys.path.insert(0, str(DEPENDENCY_ROOT / "backend"))
 
 from app.schemas.writer import OnePassOutput  # noqa: E402
+from app.services.error_codes import ChatTurnError  # noqa: E402
 
 SPEC = importlib.util.spec_from_file_location("resume_writer_schema_retry", ROOT / "backend/app/agents/resume_writer.py")
 assert SPEC and SPEC.loader
@@ -104,23 +105,20 @@ class WriterContractTest(unittest.TestCase):
         with self.assertRaises(ValidationError):
             asyncio.run(_call(model, OnePassOutput, {}, _ONE_PASS_CONTRACT, "other"))
         model = FakeModel({"match_plan": PLAN}, {"match_plan": PLAN})
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
-        self.assertEqual(result["writer_diagnostic"], {
-            "status": "model_fallback", "mode": "one_pass",
-            "schema_retry_count": 1,
-            "stage": "one_pass", "error_type": "ValidationError",
-            "validation_error_count": 1,
-            "validation_errors": [{"loc": ["writer"], "type": "missing"}]})
-        self.assertIn(PRINTED, result["resume_data"]["projects"][0]["polished_bullets"])
+        with self.assertRaises(ChatTurnError) as caught:
+            asyncio.run(run_resume_writer(SOURCE, {}, model))
+        self.assertEqual(caught.exception.code, 'E-MODEL-UPSTREAM')
+        self.assertEqual(caught.exception.error_type, 'ValidationError')
+        self.assertEqual(len(model.calls), 2)
 
-    def test_validation_paths_never_expose_unexpected_keys_or_values(self):
+    def test_secondary_validation_paths_never_expose_unexpected_keys_or_values(self):
         invalid = {"match_plan": PLAN, "writer": {"items": [{
             "item_id": "synthetic-paper", "section": "projects", "bullets": [{
                 "fact_ids": ["synthetic-fact-1"], "PRIVATE_KEY_SECRET": "PRIVATE_VALUE_SECRET"}]}]}}
         model = FakeModel(invalid, invalid)
         with mock.patch.object(writer, "get_settings",
                         return_value=SimpleNamespace(LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS=False)):
-            result = asyncio.run(run_resume_writer(SOURCE, {}, model))
+            result = asyncio.run(run_resume_writer(SOURCE, {}, model, primary_call=False))
         diagnostic = result["writer_diagnostic"]
         self.assertEqual(diagnostic["status"], "model_fallback")
         self.assertEqual(diagnostic["error_type"], "ValidationError")
@@ -136,24 +134,24 @@ class WriterContractTest(unittest.TestCase):
         self.assertNotIn("PRIVATE_KEY_SECRET", str(model.calls[1][1]))
         self.assertNotIn("PRIVATE_VALUE_SECRET", str(model.calls[1][1]))
 
-    def test_provider_error_message_cannot_enter_diagnostic(self):
-        model = FakeModel(RuntimeError("SECRET_PROVIDER_TEXT and original prompt"))
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
-        diagnostic = result["writer_diagnostic"]
-        self.assertEqual(diagnostic["status"], "model_fallback")
-        self.assertEqual(diagnostic["error_type"], "RuntimeError")
-        self.assertEqual(diagnostic["schema_retry_count"], 0)
-        self.assertEqual(len(model.calls), 1)
-        self.assertNotIn("SECRET_PROVIDER_TEXT", json.dumps(diagnostic))
-        self.assertNotIn("original prompt", json.dumps(diagnostic))
+    def test_provider_error_message_cannot_enter_public_error(self):
+        model = FakeModel(*[RuntimeError("SECRET_PROVIDER_TEXT and original prompt")] * 2)
+        with self.assertRaises(ChatTurnError) as caught:
+            asyncio.run(run_resume_writer(SOURCE, {}, model))
+        self.assertEqual(caught.exception.code, 'E-MODEL-UPSTREAM')
+        self.assertEqual(caught.exception.error_type, 'RuntimeError')
+        self.assertEqual(len(model.calls), 2)
+        self.assertNotIn('SECRET_PROVIDER_TEXT', str(caught.exception))
+        self.assertNotIn('original prompt', str(caught.exception))
 
-    def test_value_error_does_not_trigger_schema_retry(self):
-        model = FakeModel(ValueError("SECRET_INVALID_PROVIDER_RESPONSE"))
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
-        self.assertEqual(len(model.calls), 1)
-        self.assertEqual(result["writer_diagnostic"]["error_type"], "ValueError")
-        self.assertEqual(result["writer_diagnostic"]["schema_retry_count"], 0)
-        self.assertNotIn("SECRET", json.dumps(result["writer_diagnostic"]))
+    def test_value_error_retries_without_schema_feedback(self):
+        model = FakeModel(*[ValueError("SECRET_INVALID_PROVIDER_RESPONSE")] * 2)
+        with self.assertRaises(ChatTurnError) as caught:
+            asyncio.run(run_resume_writer(SOURCE, {}, model))
+        self.assertEqual(len(model.calls), 2)
+        self.assertEqual(caught.exception.error_type, 'ValueError')
+        self.assertEqual(model.calls[0][1], model.calls[1][1])
+        self.assertNotIn('SECRET', str(caught.exception))
 
     def test_actual_langchain_parser_non_object_args_get_one_safe_retry(self):
         for kind in ("args_list", "json_string"):
@@ -169,27 +167,24 @@ class WriterContractTest(unittest.TestCase):
                 self.assertNotIn("PRIVATE_STRING_ARGS", model.calls[1][-1].content)
                 self.assertNotIn("PRIVATE_STRING_ARGS", json.dumps(diagnostic))
 
-    def test_spoofed_parser_message_from_provider_value_error_is_not_retryable(self):
-        model = FakeModel(ValueError("Tool arguments must be specified as a dict, received: PRIVATE_ARGS"))
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
-        diagnostic = result["writer_diagnostic"]
-        self.assertEqual(len(model.calls), 1)
-        self.assertEqual(diagnostic["schema_retry_count"], 0)
-        self.assertEqual(diagnostic["error_type"], "ValueError")
-        self.assertNotIn("error_code", diagnostic)
-        self.assertNotIn("PRIVATE_ARGS", json.dumps(diagnostic))
-
-    def test_second_parser_shape_error_falls_back_with_fixed_code(self):
-        model = ParserThenValidModel("json_string", always_bad=True)
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
-        diagnostic = result["writer_diagnostic"]
+    def test_spoofed_parser_message_is_not_schema_feedback(self):
+        model = FakeModel(*[ValueError("Tool arguments must be specified as a dict, received: PRIVATE_ARGS")] * 2)
+        with self.assertRaises(ChatTurnError) as caught:
+            asyncio.run(run_resume_writer(SOURCE, {}, model))
         self.assertEqual(len(model.calls), 2)
-        self.assertEqual(diagnostic["status"], "model_fallback")
-        self.assertEqual(diagnostic["schema_retry_count"], 1)
-        self.assertEqual(diagnostic["error_type"], "ValueError")
-        self.assertEqual(diagnostic["error_code"], "tool_arguments_not_object")
-        self.assertEqual(diagnostic["schema_failure_reason_code"], "tool_arguments_not_object")
-        self.assertNotIn("PRIVATE_STRING_ARGS", json.dumps(diagnostic))
+        self.assertEqual(caught.exception.error_type, 'ValueError')
+        self.assertEqual(model.calls[0][1], model.calls[1][1])
+        self.assertNotIn('PRIVATE_ARGS', str(caught.exception))
+
+    def test_second_parser_shape_error_is_retryable_turn_error(self):
+        model = ParserThenValidModel("json_string", always_bad=True)
+        with self.assertRaises(ChatTurnError) as caught:
+            asyncio.run(run_resume_writer(SOURCE, {}, model))
+        self.assertEqual(len(model.calls), 2)
+        self.assertEqual(caught.exception.code, 'E-MODEL-UPSTREAM')
+        self.assertEqual(caught.exception.error_type, 'ValueError')
+        self.assertIn('"reason_code": "tool_arguments_not_object"', model.calls[1][-1].content)
+        self.assertNotIn('PRIVATE_STRING_ARGS', str(caught.exception))
 
     def test_missing_output_object_retries_once_with_fixed_reason(self):
         model = FakeModel(None, {"match_plan": PLAN, "writer": DRAFT})
@@ -212,16 +207,19 @@ class WriterContractTest(unittest.TestCase):
         self.assertNotIn("PRIVATE_VALUE", json.dumps(diagnostic))
         self.assertNotIn("PRIVATE_VALUE", str(model.calls[1][1]))
 
-    def test_second_bad_shape_keeps_safe_fallback_code(self):
-        model = FakeModel(None, None)
-        result = asyncio.run(run_resume_writer(SOURCE, {}, model))
-        diagnostic = result["writer_diagnostic"]
-        self.assertEqual(diagnostic["status"], "model_fallback")
-        self.assertEqual(diagnostic["schema_retry_count"], 1)
-        self.assertEqual(diagnostic["error_type"], "WriterOutputShapeError")
-        self.assertEqual(diagnostic["error_code"], "object_missing")
-        self.assertEqual(diagnostic["schema_failure_reason_code"], "object_missing")
-        self.assertEqual(len(model.calls), 2)
+    def test_second_empty_or_non_object_output_is_retryable_error(self):
+        from copy import deepcopy
+        for value in (None, ["non-object response"], AIMessage(content='')):
+            with self.subTest(value=value):
+                model = FakeModel(value, value)
+                previous = {'projects': [{'item_id': 'synthetic-paper', 'polished_bullets': ['用户保存的旧稿']}]}
+                before = deepcopy(previous)
+                with self.assertRaises(ChatTurnError) as caught:
+                    asyncio.run(run_resume_writer(SOURCE, {}, model, current_data=previous))
+                self.assertEqual(caught.exception.code, 'E-MODEL-UPSTREAM')
+                self.assertIn('重试', str(caught.exception))
+                self.assertEqual(len(model.calls), 2)
+                self.assertEqual(previous, before)
 
     def test_schema_valid_empty_writer_is_still_an_observable_fallback(self):
         result = asyncio.run(run_resume_writer(SOURCE, {}, FakeModel({
@@ -232,17 +230,17 @@ class WriterContractTest(unittest.TestCase):
             "stage": "write", "error_type": "EmptyWriterDraft"})
         self.assertEqual(result["resume_data"]["projects"][0]["polished_bullets"], [PRINTED])
 
-    def test_two_pass_reports_plan_or_write_failure_stage(self):
-        for planner, writer, stage in (
-            (FakeModel(RuntimeError("plan secret")), FakeModel(), "plan"),
-            (FakeModel(PLAN), FakeModel(RuntimeError("writer secret")), "write"),
+    def test_two_pass_failure_is_retryable_and_never_publishes_fallback(self):
+        for planner, main, stage in (
+            (FakeModel(*[RuntimeError("plan secret")] * 2), FakeModel(), "plan"),
+            (FakeModel(PLAN), FakeModel(*[RuntimeError("writer secret")] * 2), "write"),
         ):
-            with self.subTest(stage=stage):
-                result = asyncio.run(run_resume_writer(SOURCE, {}, writer,
-                                                       structured_llm=planner, mode="two_pass"))
-                self.assertEqual(result["writer_diagnostic"]["stage"], stage)
-                self.assertEqual(result["writer_diagnostic"]["error_type"], "RuntimeError")
-                self.assertEqual(result["writer_diagnostic"]["status"], "model_fallback")
+            with self.subTest(stage=stage), self.assertRaises(ChatTurnError) as caught:
+                asyncio.run(run_resume_writer(SOURCE, {}, main, structured_llm=planner, mode="two_pass"))
+            self.assertEqual(caught.exception.code, 'E-MODEL-UPSTREAM')
+            self.assertEqual(caught.exception.error_type, 'RuntimeError')
+            self.assertEqual(len(planner.calls), 2 if stage == 'plan' else 1)
+            self.assertEqual(len(main.calls), 0 if stage == 'plan' else 2)
 
     def test_valid_one_pass_is_distinct_from_fallback(self):
         result = asyncio.run(run_resume_writer(SOURCE, {},
@@ -264,17 +262,14 @@ class WriterContractTest(unittest.TestCase):
         self.assertIn('"type": "missing"', second[-1].content)
         self.assertNotIn(TEXT, second[-1].content)
 
-    def test_two_pass_shares_one_schema_retry_budget(self):
+    def test_two_pass_primary_write_gets_its_own_single_retry(self):
         planner = FakeModel({"experience_plan": "bad"}, PLAN)
-        draft_model = FakeModel({"items": "bad"})
+        draft_model = FakeModel({"items": "bad"}, DRAFT)
         result = asyncio.run(run_resume_writer(SOURCE, {}, draft_model,
                                                structured_llm=planner, mode="two_pass"))
-        diagnostic = result["writer_diagnostic"]
-        self.assertEqual(diagnostic["status"], "model_fallback")
-        self.assertEqual(diagnostic["schema_retry_count"], 1)
-        self.assertEqual(diagnostic["stage"], "write")
+        self.assertEqual(result['writer_diagnostic']['status'], 'model_completed')
         self.assertEqual(len(planner.calls), 2)
-        self.assertEqual(len(draft_model.calls), 1)
+        self.assertEqual(len(draft_model.calls), 2)
 
     def test_validation_retry_shares_one_timeout(self):
         class SlowModel(FakeModel):

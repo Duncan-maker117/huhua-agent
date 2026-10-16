@@ -174,6 +174,28 @@ class WriterRepairContextTest(unittest.TestCase):
                          "用键盘检查搜索操作能否完成，数据接口由队友负责")
         self.assertEqual(len(result["guard_fallbacks"]), 1)
 
+        self.assertNotIn(BAD_TEXT, str(result['resume_data']))
+        self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'][0], current()['projects'][0]['polished_bullets'][0])
+        self.assertEqual(result['resume_data']['projects'][1], current()['projects'][1])
+
+    def test_primary_writer_timeout_retries_once_and_preserves_old_draft(self):
+        from app.services.error_codes import ChatTurnError
+
+        async def slow_reply():
+            await asyncio.sleep(0.1)
+            return first_output()
+
+        main = CapturingModel(('OnePassOutput', slow_reply), ('OnePassOutput', slow_reply))
+        previous = current()
+        before = deepcopy(previous)
+        with patch.object(writer, 'WRITER_TIMEOUT_SECONDS', 0.01), self.assertRaises(ChatTurnError) as caught:
+            asyncio.run(writer.run_resume_writer(source(), {}, main, current_data=previous,
+                                                scope='bullet', targets=TARGETS))
+        self.assertEqual(caught.exception.code, 'E-MODEL-TIMEOUT')
+        self.assertIn('重试', str(caught.exception))
+        self.assertEqual([name for name, _ in main.calls], ['OnePassOutput', 'OnePassOutput'])
+        self.assertEqual(previous, before)
+
     def test_main_and_repair_contracts_keep_requested_work_and_division_without_copy_all(self):
         for contract in (writer._WRITE_CONTRACT, writer._ONE_PASS_CONTRACT, writer._REPAIR_CONTRACT):
             with self.subTest(contract=contract[:20]):

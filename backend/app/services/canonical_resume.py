@@ -183,6 +183,7 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
         protected = protect_data(owner, {**state, "resume_data": canonical}, db=db)
         canonical = protected.pop("resume_data")
         state = protected
+        # Preserve caller-authored prose. Generated drafts are deduplicated upstream.
         from app.services.resume_capacity import revalidate_committed_page_check, resume_data_hash
         state["resume_meta"] = await asyncio.to_thread(
             revalidate_committed_page_check, canonical, state["resume_meta"],

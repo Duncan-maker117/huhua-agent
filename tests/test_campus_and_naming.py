@@ -56,7 +56,18 @@ class EchoWriter:
 
     def with_structured_output(self, schema):
         self.schema = schema
-        return self
+
+        async def invoke(messages):
+            if schema.__name__ == 'RepairOutput':
+                return {'bullets': []}
+            result = await self.ainvoke(messages)
+            # Flow tests use both OnePassOutput and confirmed-plan WriterDraft.
+            if schema.__name__ == 'WriterDraft':
+                return result['writer']
+            if schema.__name__ == 'MatchPlan':
+                return result['match_plan']
+            return result
+        return SimpleNamespace(ainvoke=invoke)
 
     async def ainvoke(self, messages):
         if self.fail:
@@ -170,7 +181,7 @@ class CampusNamingTest(unittest.IsolatedAsyncioTestCase):
                 semantic_check=lambda pairs: {})
         self.assertFalse(any('部长' in f['text'] for item in result['items'] for f in item['facts']))
 
-    async def test_all_sections_use_writer_and_failed_writer_cleans_prose(self):
+    async def test_all_sections_use_writer_and_secondary_failure_cleans_prose(self):
         current = await fixture()
         for section in ('projects', 'internship', 'open_source', 'awards'):
             label = 'company' if section == 'internship' else 'name'
@@ -179,7 +190,7 @@ class CampusNamingTest(unittest.IsolatedAsyncioTestCase):
         for failed in (False, True):
             with self.subTest(failed=failed), patch('app.services.fact_guard.verify_semantics', semantic_stub):
                 writer = EchoWriter(failed)
-                result = await run_resume_writer(current, {}, writer, current_data=serialized)
+                result = await run_resume_writer(current, {}, writer, current_data=serialized, primary_call=not failed)
                 data = result['resume_data']
                 if not failed:
                     self.assertEqual(result['writer_diagnostic']['status'], 'model_completed')

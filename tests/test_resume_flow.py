@@ -12,6 +12,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
+from writer_double import SourceWriter  # noqa: E402
 from app.agents.resume_writer import run_resume_writer  # noqa: E402
 from app.agents.resume_graph import (  # noqa: E402
     _empty_collected_info,
@@ -118,7 +119,7 @@ class ResumeFlowTest(unittest.IsolatedAsyncioTestCase):
         state = self._evaluating_state("继续优化")
         with (patch("app.agents.resume_graph._extract_info_from_message") as extractor,
               patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE)):
-            result = await evaluating_node(state, object())
+            result = await evaluating_node(state, SourceWriter())
         self.assertEqual(result["stage"], "EVALUATING")
         self.assertNotIn("12 份访谈笔记", result["resume_draft"])
         self.assertNotIn("投递前核对", result["messages"][0].content)

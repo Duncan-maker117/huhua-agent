@@ -31,10 +31,10 @@ def source():
 
 
 class EditorSourceCoverageTest(unittest.IsolatedAsyncioTestCase):
-    async def test_model_failure_writes_active_source_without_printing_its_limit(self):
+    async def test_secondary_failure_writes_active_source_without_printing_its_limit(self):
         collected = source()
         before = copy.deepcopy(collected)
-        result = await run_resume_writer(collected, {}, object())
+        result = await run_resume_writer(collected, {}, object(), primary_call=False)
         self.assertEqual(collected, before)
         data = result["resume_data"]
         draft = resume_to_text(data)
@@ -47,7 +47,7 @@ class EditorSourceCoverageTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_tailoring_cannot_erase_unselected_source_facts(self):
         collected = source()
-        result = await run_resume_writer(collected, {}, object())
+        result = await run_resume_writer(collected, {}, object(), primary_call=False)
         self.assertEqual([row["id"] for row in collected["projects"][0]["facts"]], ["f1", "f2"])
         self.assertEqual([row["id"] for row in active_facts_for_writer(collected)["projects"][0]["facts"]], ["f1"])
         self.assertIn("整理访谈笔记", resume_to_text(result["resume_data"]))
@@ -55,7 +55,7 @@ class EditorSourceCoverageTest(unittest.IsolatedAsyncioTestCase):
     async def test_deleted_only_item_is_not_displayed(self):
         collected = source()
         collected["projects"][0]["facts"][0]["status"] = "deleted"
-        result = await run_resume_writer(collected, {}, object())
+        result = await run_resume_writer(collected, {}, object(), primary_call=False)
         self.assertNotIn("纸页工具", resume_to_text(result["resume_data"]))
         self.assertIn("访谈整理器", resume_to_text(result["resume_data"]))
 

@@ -5,7 +5,6 @@ import json
 import sys
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from langchain_core.messages import HumanMessage
@@ -211,7 +210,8 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rebuilt["verification_notes"], [])
 
     async def test_import_then_explicit_generate_reaches_preview_data(self):
-        llm = SimpleNamespace()
+        from writer_double import SourceWriter
+        llm = SourceWriter()
         graph = build_graph(llm)
         config = {"configurable": {"thread_id": "import-then-generate"}}
         with (

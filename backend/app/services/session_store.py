@@ -188,6 +188,7 @@ def save_resume_session(
             row = ResumeSession(session_id=session_id)
             db.add(row)
         pre_sanitization_data = copy.deepcopy(resume_data)
+        # Preserve caller-authored prose. Generated drafts are deduplicated upstream.
         row.resume_data = resume_data
         row.resume_draft = resume_draft or row.resume_draft or ""
         row.stage = stage or row.stage or ""

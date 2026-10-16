@@ -508,6 +508,8 @@ def _harvest_projects_from_messages(messages: list) -> list[dict]:
         if not _candidate_source_allowed(message):
             continue
         snippet = message.content.strip()
+        if not _safe_legacy_snippet(snippet):
+            continue
         if looks_like_existing_resume(snippet):
             continue  # Structured imports are parsed by section, never one giant project.
         mention = _re.search(
@@ -540,6 +542,23 @@ def _harvest_projects_from_messages(messages: list) -> list[dict]:
                 "description": snippet,
             }
     return list(projects.values())
+
+
+def _safe_legacy_snippet(text: str) -> bool:
+    """Only a short, unambiguous experience can use literal legacy fallback."""
+    from app.services.experience_subjects import explicit_subject_spans
+    from app.services.candidate_language import literal_employment
+    if len(text) > 240 or _re.search(
+        r'(?:^|[，,。；;\n])\s*(?:再|也|先)?(?:请|不要|别|告诉我|帮我|直接生成|直接成稿)', text
+    ):
+        return False
+    subjects = {(s['section'], s['name']) for s in explicit_subject_spans(text)}
+    subjects.update(('work', company) for sentence in _re.split(r'[，,。；;\n]', text)
+                    if (company := literal_employment(sentence)[0]))
+    subjects.update(('projects', name) for sentence in _re.split(r'[，,。；;\n]', text)
+                    if (name := _guess_project_name(sentence)))
+    # Repeated mentions of the same name still represent one experience.
+    return len({name for _, name in subjects}) <= 1
 
 
 def _candidate_source_allowed(message: HumanMessage) -> bool:
@@ -728,7 +747,7 @@ def _new_raw_note_owner(collected: dict, previous: dict, text: str) -> dict | No
 
 
 def _keep_unextracted_experience(collected: dict, previous: dict, message: HumanMessage) -> dict:
-    """Keep a grounded action when an extractor fails, without saving AI wording."""
+    """Keep a grounded action missed by a successful extraction, never an outage."""
     from app.services.resume_facts import new_fact, normalize_fact_store
 
     if not isinstance(message, HumanMessage) or not _candidate_source_allowed(message) or not isinstance(message.content, str):
@@ -763,6 +782,10 @@ def _keep_unextracted_experience(collected: dict, previous: dict, message: Human
            for section in ("projects", "work_experience", "internship", "campus", "open_source")
            for item in collected.get(section, []) for fact in item.get("facts", [])):
         return collected
+    if not _safe_legacy_snippet(text):
+        result = copy.deepcopy(collected)
+        result['unrecorded'] = {'source': _hash_text(text), 'clauses': ['这轮材料的经历归属尚未整理清楚，请重试整理。']}
+        return result
     # Ambiguous negations/corrections need the semantic extractor, not append-only fallback.
     if _re.search(r"计划|准备|打算|希望|将|没有(?:负责|做|参与|设计|开发)|没做过|未负责|并未|更正|改成|不是|别写|不要(?:写|放|这|该|此)", text):
         return collected
@@ -1272,6 +1295,8 @@ async def _extract_info_from_message(
                 result["unrecorded"]["item_id"] = normalized["followup_target"]["item_id"]
         return result
     except Exception as e:
+        from app.services.error_codes import raise_model_failure
+        raise_model_failure(e)
         logger.warning("Info extraction failed: %s", type(e).__name__)
         normalized.pop("followup_target", None)
         return normalized
@@ -2267,7 +2292,7 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
 
 
 
-async def _update_without_writer(state: ResumeState, instruction: str) -> dict:
+async def _update_without_writer(state: ResumeState, instruction: str, *, dedupe: bool = False) -> dict:
     """Field-only edits (education, format) never rewrite project or work prose."""
     from app.agents.tailor_pipeline import apply_deterministic_update
     from app.agents.turn_actions import absorb_education, overlay_education
@@ -2275,7 +2300,7 @@ async def _update_without_writer(state: ResumeState, instruction: str) -> dict:
     collected = normalize_fact_store(state.get("collected_info") or _empty_collected_info())
     collected = absorb_education(collected, state.get("collected_info") or {}, instruction)
     base = overlay_education(collected, copy.deepcopy(state.get("resume_data") or {}))
-    result = await apply_deterministic_update({**state, "collected_info": collected}, base, instruction)
+    result = await apply_deterministic_update({**state, "collected_info": collected}, base, instruction, dedupe=dedupe)
     result['collected_info'] = collected
     result['resume_strategy'] = state.get('resume_strategy') or {}
     return result
@@ -2620,6 +2645,11 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                                      collected_info=corrected['collected_info'], instruction=text)
         corrected.update(resume_data=executed['data'], collected_info=executed['collected_info'])
         skill_changes = apply_literal_skill_limits(corrected['collected_info'], corrected['resume_data'], text)
+        # This path generates corrected prose; ordinary editor/API persistence
+        # must never silently deduplicate user-authored bullets.
+        from app.services.resume_dedup import changed_bullet_items, deduplicate_resume
+        deduplicate_resume(corrected['resume_data'], corrected['resume_meta'],
+                           item_ids=changed_bullet_items(data, corrected['resume_data']))
         from app.services.fact_coverage import ensure_fact_coverage
         ensure_fact_coverage(corrected['resume_data'], corrected['resume_meta'], corrected['collected_info'])
         from app.services.resume_versions import prepare_version
@@ -2743,7 +2773,8 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         result = await _update_without_writer(
             {**state, **direction, 'collected_info': updated, 'resume_data': data,
              'previous_resume_data': before_edit,
-             'session_constraints': edit_constraints or state.get('session_constraints') or {}}, text)
+             'session_constraints': edit_constraints or state.get('session_constraints') or {}}, text,
+            dedupe=bool(planned_ops))
     else:
         result = await _write_resume_update(
             {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
@@ -3240,6 +3271,7 @@ async def _stream_agent_impl(
             yield event
 
     graph_completed = False
+    model_failure = None
     try:
         async for event in durable_events():
             # Real multimode graphs emit (mode, payload). Keep update-only
@@ -3301,6 +3333,8 @@ async def _stream_agent_impl(
         graph_completed = True
     except Exception as e:
         turn_error = to_turn_error(e)
+        if turn_error.code.startswith('E-MODEL-'):
+            model_failure = turn_error
         logger.error("agent stream error code=%s error_type=%s status_code=%s",
                      turn_error.code, turn_error.error_type, turn_error.status_code)
         if get_settings().APP_ENV == "local":
@@ -3316,7 +3350,19 @@ async def _stream_agent_impl(
                 logger.warning("Graph stream cleanup failed: %s", type(exc).__name__)
         # A failed node has no LangGraph update. Restore its committed intake so
         # the next turn cannot overwrite SQL with the pre-extraction checkpoint.
-        if not graph_completed and saved_intake and callable(getattr(graph, 'aupdate_state', None)):
+        if model_failure and callable(getattr(graph, 'aupdate_state', None)):
+            # Preserve the user's checkpointed message and any independently
+            # committed facts, but never publish an unfinished document/plan.
+            repair = {key: copy.deepcopy(initial_values.get(key, default))
+                      for key, default in _init_state().items() if key != 'messages'}
+            repair.update({key: copy.deepcopy(saved_intake[key]) for key in
+                           ('collected_info', 'session_constraints') if key in saved_intake})
+            if repair['stage'] == 'BUILDING':
+                repair['stage'] = 'COLLECTING'
+            repair['messages'] = [AIMessage(content=model_failure.message, additional_kwargs={
+                'turn_error': {'code': model_failure.code, 'retryable': True}})]
+            await graph.aupdate_state(config, repair)
+        elif not graph_completed and saved_intake and callable(getattr(graph, 'aupdate_state', None)):
             snapshot = await graph.aget_state(config)
             if not snapshot or (snapshot.values or {}).get('collected_info') != saved_intake['collected_info']:
                 await graph.aupdate_state(config, saved_intake)

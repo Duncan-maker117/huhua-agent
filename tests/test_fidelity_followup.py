@@ -48,12 +48,12 @@ class FidelityFollowupTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreater(result['writer_diagnostic']['coverage_restored'], 0)
         self.assertNotIn('对接3家客户', bullets)
 
-    async def test_failed_writer_and_compound_fact_keep_administration(self):
+    async def test_secondary_writer_failure_and_compound_fact_keep_administration(self):
         for compound in (False, True):
             source = work_source()
             if compound:
                 source['work_experience'][0]['facts'] = [new_fact('；'.join(WORK_FACTS))]
-            result = await run_resume_writer(source, {}, EchoWriter(fail=True))
+            result = await run_resume_writer(source, {}, EchoWriter(fail=True), primary_call=False)
             bullets = result['resume_data']['work_experience'][0]['bullets']
             self.assertTrue(all(text_covered(text, bullets) for text in WORK_FACTS))
 

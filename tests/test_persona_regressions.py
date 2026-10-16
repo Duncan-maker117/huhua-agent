@@ -195,6 +195,8 @@ class PersonaRegressions(unittest.IsolatedAsyncioTestCase):
             stale.assert_not_awaited()
             expected = deepcopy(state['resume_data'])
             expected['work_experience'][0]['bullets'] = [b.replace(old, new) for b in expected['work_experience'][0]['bullets']]
+            from app.services.resume_dedup import deduplicate_resume
+            deduplicate_resume(expected, {})
             self.assertEqual(result['resume_data'], expected)
             self.assertEqual(state, before)
             self.assertIn('已更新正文', result['messages'][0].content)

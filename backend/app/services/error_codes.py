@@ -128,3 +128,25 @@ def error_log_fields(exc: BaseException) -> tuple[str, str, int | None]:
 def to_turn_error(exc: BaseException) -> ChatTurnError:
     code, error_type, status = error_log_fields(exc)
     return ChatTurnError(code, classify_error(exc)[1], error_type=error_type, status_code=status)
+
+
+MATERIAL_RETRY_MESSAGE = "模型服务暂时没有响应，这轮材料已收到但还没整理完成，已有草稿保持不变。请稍后点重试或重新发送。"
+
+
+def require_model_response(response: Any) -> None:
+    """Distinguish an empty transport response from a valid empty fact patch."""
+    content = getattr(response, 'content', response)
+    if isinstance(content, list) and all(isinstance(block, dict) for block in content):
+        content = ''.join(block.get('text', '') for block in content if block.get('type') == 'text')
+    if content is None or isinstance(content, (str, list)) and not (
+        content.strip() if isinstance(content, str) else content
+    ):
+        raise ChatTurnError(UPSTREAM, MATERIAL_RETRY_MESSAGE, error_type='EmptyModelResponse')
+
+
+def raise_model_failure(error: BaseException) -> None:
+    """Promote primary-call outages only; secondary callers keep local fallback."""
+    failure = to_turn_error(error)
+    if failure.code.startswith('E-MODEL-'):
+        raise ChatTurnError(failure.code, MATERIAL_RETRY_MESSAGE, error_type=failure.error_type,
+                            status_code=failure.status_code) from None

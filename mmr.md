@@ -379,3 +379,19 @@
 - 慢查询平均耗时按对象、顺序数字对、单位与约数限定识别「降到/降至」等价表达；已覆盖但漏引的事实只补引用，补漏前再次检查正文。重复指标只删重复子句，保留同条的 12 条接口测试、导师指导与 Redis 缓存等独立事实；不同对象、反向数字与计划不合并。Agent 工具调用与 RAG 的短技能别名与基本流程原话去重，保留更具体的原文。
 - 新增 `tests/test_batch11d_regressions.py` **12 项**，内嵌 `after-batch10c/career/01-initial.reply.txt` 完整原文并核验逐字一致；覆盖有/无保存、分析保留、1/2/7/53 字与整段分块、流式与历史一致、首稿漏写分工、混合 role、指标重复及引用/hash/幂等、技能正反顺序去重。既有 11/11b/11c 模块仅同步两条交付判定/回执断言，累计相关回归 **62/62**。Banz 手改的 `sourced_role(..., name)` 与 `choose_edit_plan` 函数 AST 均与本轮开始时一致。
 - 验证：指定全量命令最终 **1676/1676 通过，0 失败/跳过，50.223s**，日志 `/private/tmp/huhua-11d-full-final.log`；27 份当前变更相关 Python 文件 Ruff 与 diff 检查通过。3258 份受保护文件（checks/fixtures、全部 evaluation 历史材料、web/comparison*、`scripts/package_deploy.py`、`web/home.html`）SHA-256 未变。未调用真实模型或 8833，未 commit/push/部署；真实五人物回放仍按 Banz 提供的 after-batch11c **69/71** 记录，本轮不声称新的真实回放分数。补充证据边界：本轮读取到的 tech 首稿 JSON 已含登录分工，因此另用明确漏写的 writer 桩验证首稿确定性恢复，指标重复则与该文件一致。
+
+
+## 2026-10-16 第十二批：模型故障中止与条目内去重（本地，未 commit/部署）
+
+- 根因：`fact_extractor.extract_facts_patch` 吞异常返回空补丁，`_extract_info_from_message` 又回退原状态；collecting 继续回执，最终保存的 `_serialize_to_resume_data → _harvest_projects_from_messages` 将混合原文拼成项目。现将抽取、写作/修复及必要语义核验的连接、超时、空响应转为 `E-MODEL-*`，SSE 走错误机制，checkpoint 记可重试错误、保留原消息与旧稿；已独立提交的有效材料保留。旧 snippet 仅接受短且归属明确的经历，拒绝指令及跨经历混合文本。
+- 新增确定性条目内收尾：同组至少两个数字的要点合并保留更完整表述；后一要点的重复动作子句删除，独有数字/限定保留。同步引用/hash、事实覆盖；writer、聊天 SQL 与 canonical 保存入口共用。提供的第三轮快照离线清理后，拾光原型动作出现1次，RAG 的71→82指标只保留1条；原文件未改。
+- 新增16项回归，含连接/超时/空响应 × 抽取/写作 × 首轮/已有稿件的12组真实SSE/隔离SQLite/checkpoint失败与同消息重试，以及语义核验故障、去重幂等/补漏、三轮对比和保存入口。既有格式校验桩改用非空错误结构，超时断言改为中止；排版断言随去重后的真实密度调整，fixtures未改。指定全量命令 **1692/1692通过，0失败/跳过，54.738s**；日志 `/private/tmp/huhua-b12-full-verified.log`。本批13份Python文件Ruff、diff检查通过；全后端另有HEAD既存的`named_content.py`三项E741，未扩改。
+- 3385份evaluation/fixtures/comparison/首页/打包脚本保护文件SHA-256未变，原mmr内容完整保留。HEAD仍为`a35a805`；未调用真实模型或8833，未commit/push/部署，未声称线上效果已复测。
+
+## 2026-10-16 第十二批 b：收窄主调用错误与生成稿去重（本地，未 commit/部署）
+
+- 恢复 `test_repair_timeout_still_falls_back_once` 及原行为：主写作成功后，单条 `RepairOutput` 超时只让该条回退安全事实文本，保留其他要点/经历并交付整稿，不拼接原始聊天。语义核验、抽取后的语义检查、修补、润色、指标补漏及容量压缩的失败恢复局部降级；规划有确定性保守替代时也保留原降级。代码注释明确主要抽取/写作调用失败、必要且无确定性替代的模型路由失败与次级调用失败的边界。
+- 主要 `OnePassOutput`/`WriterDraft` 调用最多尝试两次，每次有独立超时；`None` 恢复原来的结构重试入口，连续空响应、连续非对象、结构错误或调用故障最终抛可重试 `ChatTurnError`，不再将失败主调用报告为 `model_fallback` 成功。SSE/SQL/checkpoint 回归验证已有稿不变、保留输入并能同消息重试。结构合法但未选择条目的旧 `EmptyWriterDraft` 确定性恢复路径保持原有行为，区别于 `None`/非对象；普通流程旧桩从 `object()` 改为这种合法结构桩，保留其业务断言，原失败降级的源事实断言明确用于次级压缩。
+- 去重完全移出 `save_resume_session` 和 `save_canonical_resume`，通用保存器无需来源猜测或默认去重参数。writer 产出按目标条目去重；edit_plan 后的确定性更新显式 `dedupe=True`，以及更正写回仅处理本次实际改变正文的条目，均在版本/页数计算前清理并同步引用/hash/coverage。只改排版/标题、编辑器/API 直接保存、只读聊天与恢复历史不做该清理。`test_resume_density.py` 已逐字恢复 HEAD 的原文件，包括 density=2 断言和移除第十二批新增的 noqa。
+- 新增 4 项回归：主写作两次超时且旧稿不变；编辑器/API 重复内容在回执、SQL、checkpoint 和只读聊天后均保留；edit_plan 生成结果去重且撤销恢复原稿；字面更正写回去重。恢复并加强修补超时测试，空/非对象主响应与次级语义故障测试同步边界。通用模型桩补齐 OnePass/确认方案 WriterDraft 的正确结构，未放宽原业务断言；更正旧测试的预期显式应用本批要求的条目内去重。
+- 验证：指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1696/1696 通过，0 失败/跳过，62.702s**，日志 `/private/tmp/huhua-b12b-full-final.log`；28 份当前改动相关 Python 文件 Ruff 通过，日志 `/private/tmp/huhua-b12b-ruff.log`；`git diff --check` 通过。已恢复原样的 density 测试仍有 HEAD 既存 E402，未以新 noqa 掩盖或扩改；本次 Ruff 口径为当前有差异/新增 Python 文件。3369 份保护文件 SHA-256 均与本轮开始一致（evaluation/fixtures/checks、web/comparison*、输出材料、首页及打包脚本），mmr 原内容完整保留。HEAD 仍为 `a35a805`，未 commit/push/部署，未启动/调用 8833，未调用真实模型；没有声称新的线上或真实人物回放成绩。

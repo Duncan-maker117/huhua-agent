@@ -167,10 +167,12 @@ class WebToolAPI(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(prepare.await_args.kwargs["context"]["facts"], [])
 
     async def test_guest_url_evidence_survives_claim_without_becoming_personal_fact(self):
+        from writer_double import SourceWriter
+        from app.agents import resume_graph
+        self.graph = resume_graph.build_graph(SourceWriter(), checkpointer=self.saver)
         visitor = httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://testserver", headers={"Origin":"http://testserver"})
         self.addAsyncCleanup(visitor.aclose)
         sid, data = await self.fixture(visitor, marker="GUEST_SOURCE_BOUNDARY")
-        from app.agents import resume_graph
         jd_info = {"job_title":"后端实习", "required_skills":["Kubernetes"]}
         with (patch.object(chat, "_get_llm", return_value=object()),
               patch.object(chat, "_execute_web_tool", AsyncMock(return_value=[copy.deepcopy(SOURCE)])),

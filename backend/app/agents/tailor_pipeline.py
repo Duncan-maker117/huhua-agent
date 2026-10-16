@@ -351,18 +351,29 @@ async def _retain_compressed_body(before: dict, meta: dict, revised: dict, actio
     return data, metadata, 'accepted'
 
 
-async def apply_deterministic_update(state: dict, base_data: dict, instruction: str = '') -> dict:
+async def apply_deterministic_update(state: dict, base_data: dict, instruction: str = '', *, dedupe: bool = False) -> dict:
     """Save a field-only edit (education, format) without calling the writer.
 
-    Project and work prose is taken from the previous version unchanged.
+    Only an executed edit plan opts into generated-prose cleanup. Read-only
+    delivery and generic persistence preserve the user's authored repetitions.
     """
     constraints = constraints_for_turn(state, instruction)
     current = state.get('resume_data') or {}
     data = deepcopy(current)
     data['education'] = deepcopy(base_data.get('education') or current.get('education') or [])
+    meta = deepcopy(state.get('resume_meta') or {})
+    if dedupe:
+        from app.services.resume_dedup import changed_bullet_items, deduplicate_resume
+        from app.services.fact_coverage import ensure_fact_coverage
+        # A layout/title-only operation generates no new prose. Preserve its
+        # existing bullets, including intentional repetitions from the editor.
+        previous = state.get('previous_resume_data', current)
+        changed_ids = changed_bullet_items(previous, data)
+        if deduplicate_resume(data, meta, item_ids=changed_ids):
+            ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
     version = prepare_version(state.get('previous_resume_data', current), state.get('resume_meta') or {}, state.get('resume_versions') or [],
-                              data, deepcopy(state.get('resume_meta') or {}), label='确认资料更新')
+                              data, meta, label='确认资料更新')
     diagnostic = {'status': 'not_called', 'reason': 'deterministic_only'}
     version['resume_meta'].update(page_check=measurement, writer_diagnostic=diagnostic,
                                   guard_fallbacks=[], change_summary=[])
@@ -514,7 +525,7 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                     instruction=compression_instruction,
                     scope='item' if is_merge else 'bullet',
                     targets=[action['item_id'] if is_merge else action['target']],
-                    previous_plan=confirmed or None, **kwargs)
+                    previous_plan=confirmed or None, primary_call=False, **kwargs)
                 if revised.get('writer_diagnostic'):
                     compression_diagnostics.append(revised['writer_diagnostic'])
                 revised['resume_data'], revised['resume_meta'] = sanitize(revised['resume_data'], revised['resume_meta'])

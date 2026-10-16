@@ -234,9 +234,9 @@ class ResumeWriterTest(unittest.TestCase):
         self.assertEqual(result["resume_meta"]["bullets"]["p1"][0], meta["bullets"]["p1"][0])
         self.assertEqual(current["projects"][0]["polished_bullets"], ["第一条", "第二条"])
 
-    def test_model_failure_cleans_active_fact_without_new_claims(self):
+    def test_secondary_compression_failure_cleans_active_fact_without_new_claims(self):
         model = FakeModel([("OnePassOutput", RuntimeError("offline"))])
-        result = run(source(), ROLE, model)
+        result = run(source(), ROLE, model, primary_call=False)
         content = json.dumps(result["resume_data"], ensure_ascii=False)
         self.assertIn("完成原型", content)
         self.assertNotIn("旧成果1000用户", content)

@@ -12,6 +12,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
+from writer_double import SourceWriter  # noqa: E402
 from app.agents.resume_graph import (  # noqa: E402
     _apply_explicit_project_removals,
     _extract_info_from_message,
@@ -132,11 +133,11 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
             return current
 
         with (
-            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
+            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=SourceWriter()),
             patch("app.agents.resume_graph._extract_info_from_message", side_effect=extract),
             patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
-            result = await evaluating_node(state, object())
+            result = await evaluating_node(state, SourceWriter())
         names = [item["name"] for item in result["resume_data"]["projects"]]
         self.assertIn("Huhua Agent", names)
         self.assertIn("生活工具", names)
@@ -160,7 +161,7 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
             HumanMessage(content="？"),
         ])
         with patch("app.agents.resume_graph._extract_info_from_message") as extract:
-            result = await evaluating_node(state, object())
+            result = await evaluating_node(state, SourceWriter())
         extract.assert_not_called()
         self.assertEqual(result["resume_data"]["projects"], [])
         self.assertNotIn("林同学", str(result))
@@ -170,7 +171,7 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         saved = {"basic_info": {"name": "手动修改的姓名", "objective": ""}, "projects": [], "sections": [], "skills": [], "verification_notes": []}
         state.update(stage="EVALUATING", resume_data=saved, collected_info=editor_facts(saved), messages=[HumanMessage(content=SOURCE_RESUME), HumanMessage(content="上面")])
         with patch("app.agents.resume_graph._extract_info_from_message") as extract:
-            result = await evaluating_node(state, object())
+            result = await evaluating_node(state, SourceWriter())
         extract.assert_not_called()
         data = result.get("resume_data", saved)
         self.assertEqual(data["projects"], [])
@@ -182,11 +183,11 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         saved = {"basic_info": {"name": "林同学"}, "projects": [{"name": "Huhua Agent", "description": "完成本地演示。"}], "skills": ["Python"], "skill_groups": {"工具": ["Python"]}, "sections": [{"id": "projects", "kind": "projects", "title": "代表作品", "content": ""}, {"id": "links", "kind": "custom", "title": "链接", "content": "https://example.test"}]}
         state.update(stage="EXPORT", resume_data=saved, collected_info=editor_facts(saved), messages=[HumanMessage(content="补充：我在 Huhua Agent 编写了 12 条接口测试。")])
         with (
-            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=object()),
+            patch("app.agents.resume_graph._make_non_streaming_llm", return_value=SourceWriter()),
             patch("app.agents.resume_graph._extract_info_from_message", AsyncMock(side_effect=lambda text, current, model: current)),
             patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE),
         ):
-            result = await export_node(state, object())
+            result = await export_node(state, SourceWriter())
         self.assertEqual(result["stage"], "EVALUATING")
         self.assertEqual(result["resume_data"]["sections"], saved["sections"])
         self.assertEqual(result["resume_data"]["skill_groups"], saved["skill_groups"])
@@ -200,7 +201,7 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
                 state = {**_init_state(), "stage": "EVALUATING", "messages": [HumanMessage(content=phrase)]}
                 with (patch("app.agents.resume_graph._extract_info_from_message") as extract,
                       patch("app.agents.tailor_pipeline.measure_rendered_pages", return_value=RENDER_UNAVAILABLE)):
-                    result = await evaluating_node(state, object())
+                    result = await evaluating_node(state, SourceWriter())
                 extract.assert_not_called()
                 self.assertIn("请补充教育或项目/工作经历", result["messages"][0].content)
                 self.assertNotIn("新事实", result["messages"][0].content)

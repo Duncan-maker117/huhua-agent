@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
+from writer_double import SourceWriter  # noqa: E402
 from app.agents.resume_graph import (  # noqa: E402
     _write_resume_update,
     _init_state,
@@ -29,7 +30,7 @@ def saved_resume(**overrides):
 
 class ConversationRebuildTest(unittest.IsolatedAsyncioTestCase):
     async def rebuild(self, saved, facts, *, model=None, **state_updates):
-        model = model or object()
+        model = model or SourceWriter()
         state = {
             **_init_state(),
             "resume_data": saved,

@@ -490,7 +490,7 @@ def _failed(identifier: str, reason: str) -> dict:
 
 async def verify_semantics(pairs: list[dict], llm, *, timeout: float = 45,
                            run_name: str = "semantic_verify") -> dict[str, dict]:
-    """One batch only, no retry. Missing/duplicate IDs and provider errors fail closed."""
+    """One secondary batch. Outages fail closed per fact/bullet, never abort the turn."""
     if not pairs:
         return {}
     expected = {row["id"] for row in pairs}
@@ -502,10 +502,13 @@ async def verify_semantics(pairs: list[dict], llm, *, timeout: float = 45,
     messages = career_messages(None, json.dumps(pairs, ensure_ascii=False), SEMANTIC_CONTRACT, privacy=privacy)
     try:
         result = await asyncio.wait_for(label_run(with_structured_output(llm, SemanticBatch), run_name).ainvoke(messages), timeout)
+        from app.services.error_codes import require_model_response
+        require_model_response(result)
         if isinstance(result, BaseModel):
             result = result.model_dump()
         parsed = SemanticBatch.model_validate(privacy.restore(result))
     except Exception:
+        # Unverified wording is rejected; the caller retains or restores safe facts.
         return {key: _failed(key, "semantic_verification_failed") for key in expected}
     decisions = {}
     duplicates = set()

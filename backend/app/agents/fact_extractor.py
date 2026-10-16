@@ -439,8 +439,12 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         from app.config import get_settings
         model = llm if getattr(get_settings(), "LLM_EXTRACTOR_THINKING", True) else without_thinking(llm)
         response = await label_run(model, "fact_extractor").ainvoke(messages)
+        from app.services.error_codes import require_model_response
+        require_model_response(response)
         candidate = privacy.restore(_content(response))
-    except Exception:
+    except Exception as error:
+        from app.services.error_codes import raise_model_failure
+        raise_model_failure(error)
         return empty
     if not isinstance(candidate, dict):
         return empty
@@ -733,6 +737,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             if inspect.isawaitable(verdicts):
                 verdicts = await verdicts
         except Exception:
+            # Extraction succeeded; optional entailment failure rejects only
+            # unverified facts, preserving the existing intake fallback.
             verdicts = {}
         failed = {fact["id"] for fact in pending
                   if not isinstance(verdicts, dict) or verdicts.get(fact["id"], {}).get("verdict") != "pass"}

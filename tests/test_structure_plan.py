@@ -281,11 +281,11 @@ class StructurePlanFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('positioning_source', result['pending_plan']['recommended'])
         self.assertTrue(all(row['reason'] for row in result['pending_plan']['recommended']['experience_plan']))
 
-    async def test_writer_failure_preserves_confirmed_omission(self):
+    async def test_secondary_writer_failure_preserves_confirmed_omission(self):
         selected = select_plan(card())
         selected, _ = edit_plan(selected, '纸舟计划不写', source())
         result = await run_resume_writer(source(), state()['jd_info']['role_profile'],
-            FakeModel([('WriterDraft', RuntimeError('offline'))]), previous_plan=selected, phase='write')
+            FakeModel([('WriterDraft', RuntimeError('offline'))]), previous_plan=selected, phase='write', primary_call=False)
         self.assertTrue(result['resume_data']['projects'][0]['hidden'])
         self.assertEqual(next(row for row in result['match_plan']['experience_plan'] if row['item_id'] == 'p1')['treatment'], 'backup')
 

@@ -14,6 +14,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from pydantic import BaseModel, ValidationError
 
+from app.services.error_codes import ChatTurnError, MATERIAL_RETRY_MESSAGE, UPSTREAM, raise_model_failure
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.config import get_settings
 from app.services.writing_style import LABEL, format_rows, independent_labeled_row, row_label
@@ -301,7 +302,8 @@ def _schema_retry_feedback(error: Exception, schema: type[BaseModel]) -> dict | 
 
 
 async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role_family: str,
-                *, retry_state: dict | None = None, run_name: str = "writer") -> BaseModel:
+                *, retry_state: dict | None = None, run_name: str = "writer",
+                retry_failures: bool = False) -> BaseModel:
     privacy = ContactRedactor()
     playbook = ROLE_PLAYBOOKS.get(role_family, ROLE_PLAYBOOKS["other"])
     messages = career_messages(
@@ -319,8 +321,12 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
         token = IGNORED_EXTRA_SINK.set(ignored) if wire is not schema else None
         repair_token = REPAIRED_FIELD_SINK.set(repairs) if wire is not schema else None
         try:
-            output = await structured.ainvoke(prompt)
-            return wire.model_validate(privacy.restore(_model_dict(output)))
+            # Primary writing gets at most two attempts, each with a deadline.
+            # Empty/non-object output uses the same safe schema retry as None.
+            async with asyncio.timeout(WRITER_TIMEOUT_SECONDS if retry_failures else None):
+                output = await structured.ainvoke(prompt)
+            parsed = wire.model_validate(privacy.restore(_model_dict(output)))
+            return parsed
         finally:
             if token is not None:
                 IGNORED_EXTRA_SINK.reset(token)
@@ -355,15 +361,18 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                 }
         return {"root_type": schema.__name__, "objects": objects}
 
-    # The first attempt and one optional schema correction share one deadline.
-    # A timeout or provider error is never treated as a validation retry.
-    async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
+    # Secondary calls retain their bounded schema-only retry. Primary calls
+    # retry once even on timeout/provider failure; neither attempt publishes data.
+    async with asyncio.timeout(None if retry_failures else WRITER_TIMEOUT_SECONDS):
         try:
             return await invoke(messages)
-        except ValueError as error:
+        except Exception as error:
             feedback = _schema_retry_feedback(error, schema)
-            if retry_state is None or feedback is None:
+            if retry_state is None or (feedback is None and not retry_failures):
                 raise
+            if feedback is None:
+                retry_state['model_retry_count'] = 1
+                return await invoke(messages)
             if isinstance(error, ValidationError):
                 _note_field_names(retry_state, "extra_field_names", _extra_field_names(error))
             if "reason_code" in feedback:
@@ -372,9 +381,9 @@ async def _call(llm, schema: type[BaseModel], payload: dict, contract: str, role
                 retry_state.update(feedback)
             correction = {"schema": schema.__name__, **feedback,
                           "schema_structure": schema_structure()}
-            if retry_state.get("schema_retry_count", 0) >= 1:
+            if retry_state.get("schema_retry_count", 0) >= 1 and not retry_failures:
                 raise
-            retry_state["schema_retry_count"] = 1
+            retry_state["schema_retry_count"] = retry_state.get("schema_retry_count", 0) + 1
             placement_hint = (
                 "例如 summary/summary_fact_ids 属于 WriterDraft，不属于 WrittenItem 或 WrittenBullet。"
                 if "WriterDraft" in correction["schema_structure"]["objects"] else "")
@@ -901,6 +910,8 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
                                  run_name="writer_repair")
             repairs = {row.id: row for row in output.bullets if row.id in {item["id"] for item in to_repair}}
         except Exception:
+            # The main write succeeded. Repair failure falls back only this
+            # rejected bullet to validated facts, never to pasted raw messages.
             repairs = {}
     repaired = []
     first_pass_text = {row["id"]: row["text"] for row in failed}
@@ -990,6 +1001,7 @@ async def _polish_rows(rows: list[dict], facts: dict, model, writer_llm, role_fa
             result = await _call(writer_llm, RepairOutput, payload, contract, role_family, run_name="writer_polish")
             proposals = {row.id: row for row in result.bullets if row.id in ids}
     except Exception:
+        # Optional polish cannot invalidate an already checked draft.
         pass
     candidates = []
     for row in pending:
@@ -1135,7 +1147,7 @@ async def _run_resume_writer(
     targets: Sequence[str] = (), constraints: Mapping[str, Any] | None = None,
     mode: str = "one_pass", structured_llm=None, previous_plan: Mapping[str, Any] | None = None,
     phase: str = "full", planning_context: Mapping[str, Any] | None = None,
-    _speculative: SpeculativeScope,
+    _speculative: SpeculativeScope, primary_call: bool = True,
 ) -> dict:
     """Plan and write a sourced draft without mutating facts or the current draft.
 
@@ -1212,6 +1224,7 @@ async def _run_resume_writer(
                     'empty' if not card.recommended.positioning.strip() else 'provided')
                 raw = card.model_dump()
         except Exception as error:
+            # Planning has a deterministic conservative alternative.
             diagnostic.update(status="model_fallback", error_type=_safe_error_type(error))
             diagnostic.setdefault('schema_failure_reason_code',
                                   'model_call_timeout' if isinstance(error, TimeoutError) else 'model_call_failed')
@@ -1236,27 +1249,39 @@ async def _run_resume_writer(
                          "schema_retry_count": 0}
     if reused_plan:
         writer_diagnostic["plan_reused"] = True
+
+    call_options = {'retry_failures': primary_call}
+
     try:
-        async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
+        async with asyncio.timeout(None if primary_call else WRITER_TIMEOUT_SECONDS):
             if reused_plan:
                 plan = reused_plan
                 selected_payload = dict(previous_plan) if phase == "write" else reused_plan.model_dump()
                 draft = await _call(llm, WriterDraft, {**payload, "match_plan": selected_payload},
-                                    _WRITE_CONTRACT, role_family, retry_state=writer_diagnostic)
+                                    _WRITE_CONTRACT, role_family, retry_state=writer_diagnostic, **call_options)
             elif mode == "one_pass":
                 combined = await _call(llm, OnePassOutput, payload,
                                        _ONE_PASS_CONTRACT, role_family,
-                                       retry_state=writer_diagnostic)
+                                       retry_state=writer_diagnostic, **call_options)
                 plan, draft = combined.match_plan, combined.writer
             else:
                 plan = await _call(model, MatchPlan, payload, _PLAN_CONTRACT,
-                                   role_family, retry_state=writer_diagnostic)
+                                   role_family, retry_state=writer_diagnostic, retry_failures=primary_call)
                 stage = "write"
                 draft = await _call(llm, WriterDraft, {**payload, "match_plan": plan.model_dump()},
                                     _WRITE_CONTRACT, role_family,
-                                    retry_state=writer_diagnostic)
+                                    retry_state=writer_diagnostic, **call_options)
     except Exception as error:
-        # Deterministic source-fact fallback remains safe, but must be observable.
+        # Only a failed primary model task aborts the turn: extraction, primary
+        # writing (including empty/invalid output after one retry), or required
+        # routing with no deterministic alternative. Secondary semantic checks,
+        # repair, polish and capacity compression retain their safe local fallback.
+        # Raising here lets the graph preserve the committed draft and retry input.
+        if primary_call:
+            raise_model_failure(error)
+            raise ChatTurnError(UPSTREAM, MATERIAL_RETRY_MESSAGE,
+                                error_type=_safe_error_type(error)) from None
+        # Secondary compression may retain the existing checked document.
         writer_diagnostic.update(status="model_fallback", stage=stage,
                                  error_type=_safe_error_type(error))
         if isinstance(error, WriterOutputShapeError):
@@ -1670,6 +1695,8 @@ async def _run_resume_writer(
     output, meta, _ = preserve_item_limits(output, meta, collected_info, item_ids=allowed,
                                          bullet_indices=bullet_targets if scope == 'bullet' else None,
                                          constraints=effective_constraints)
+    from app.services.resume_dedup import deduplicate_resume
+    deduplicate_resume(output, meta, item_ids=allowed)
     await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
     coverage = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
     coverage["restored"] = restored_count

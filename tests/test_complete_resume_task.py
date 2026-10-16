@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 from langchain_core.messages import AIMessage, HumanMessage
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'backend'))
+from writer_double import SourceWriter  # noqa: E402
 from app.agents.resume_graph import (  # noqa: E402
     _explicit_generate_requested, _init_state, build_graph, building_node,
     evaluating_node,
@@ -57,13 +58,13 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(_explicit_generate_requested(text), text)
 
     async def invoke(self, stage, source=SOURCE):
-        graph = build_graph(object())
+        graph = build_graph(SourceWriter())
         state = {**_init_state(), 'stage': stage, 'messages': [HumanMessage(content=source)]}
         if stage == 'EVALUATING':
             state['candidate_history_reconciled'] = True
             state['collected_info']['projects'] = [{'name': '已有项目', 'description': '保留原有测试工作。'}]
         with (
-            patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
+            patch('app.agents.resume_graph._make_non_streaming_llm', return_value=SourceWriter()),
             patch('app.agents.resume_graph.run_triage', AsyncMock(side_effect=AssertionError('完整资料不应再采访'))),
             patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
         ):
@@ -104,11 +105,11 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
                 updated = copy.deepcopy(state['collected_info'])
                 updated['projects'][0]['facts'].append(new_fact(supplement))
                 with (
-                    patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
+                    patch('app.agents.resume_graph._make_non_streaming_llm', return_value=SourceWriter()),
                     patch('app.agents.resume_graph._extract_info_from_message', AsyncMock(return_value=updated)) as extract,
                     patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
                 ):
-                    result = await evaluating_node(state, object())
+                    result = await evaluating_node(state, SourceWriter())
                 extract.assert_awaited_once()
                 from app.services.candidate_language import resume_bullet
                 self.assertIn(resume_bullet(supplement, name='纸页工具'), result['resume_draft'])
@@ -156,17 +157,17 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(chunks, [])
 
     async def test_failed_save_is_not_replayed_as_success_from_checkpoint(self):
-        graph = build_graph(object())
+        graph = build_graph(SourceWriter())
         sid = 'failed-build-checkpoint'
         with (
             patch('app.agents.resume_graph.get_graph', return_value=graph),
-            patch('app.agents.resume_graph._make_non_streaming_llm', return_value=object()),
+            patch('app.agents.resume_graph._make_non_streaming_llm', return_value=SourceWriter()),
             patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value=RENDER_UNAVAILABLE),
             patch("app.services.session_store.save_candidate_intake"),
             patch('app.services.session_store.save_resume_session', side_effect=RuntimeError('storage unavailable')),
         ):
             with self.assertRaises(RuntimeError):
-                _ = [chunk async for chunk in stream_agent([{'content': SOURCE}], sid, object())]
+                _ = [chunk async for chunk in stream_agent([{'content': SOURCE}], sid, SourceWriter())]
         snapshot = await graph.aget_state({'configurable': {'thread_id': sid}})
         reply = snapshot.values['messages'][-1]
         self.assertTrue(reply.additional_kwargs['resume_save_failed'])

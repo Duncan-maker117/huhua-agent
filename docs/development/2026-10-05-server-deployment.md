@@ -21,7 +21,14 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-16 第十一批：混合材料直接成稿 + 聊天与工作区同一份稿 + MCP 任务示例（最新）
+## 2026-10-16 第十二批：模型故障中止 + 条目内去重（最新）
+
+- 镜像 `huhua-agent:20261016-4`（sha256:4ba35b20…），基于 `20261016-3`，只替换 `backend/app`、`main.py`、`backend/scripts`，代码 `bf96f3d`。抽取/主写作连接错误、超时、空响应改为可重试 `E-MODEL-*`（保留原消息与旧稿，不再拼原文兜底项目）；writer/修改/更正写回时条目内去重同一指标与重复动作子句。
+- 无新依赖、无 schema 变更。演练 `REHEARSAL_OK`。容器测试 1696 项全过（skip 35）。备份 `/opt/huhua-backups/pre-20261016-4/`；回滚拷回 `deploy/compose.env.pre-20261016-4`（指向 20261016-3）后 `compose up -d --no-build --no-deps --wait app`。
+- 本地：五人物回放 71/71；故障注入（坏 LLM_BASE_URL）首轮返回可重试错误、无垃圾稿，恢复后同会话重发正常成稿。
+- 线上验收：`/`、`/chat`、`/resume`、`/static/comparison.html` 200，`/mcp` 401，日志无异常。线上实跑对比用例三轮流程正确（落库、12 名、删校园活动、SQL 基础），**但第三轮成稿出现新瑕疵**：RAG 项目一条只有日期的要点「2026.03—2026.05」、丢失「用Python和Streamlit在本地搭建」、拾光要点尾部挂「时间为2026.06—2026.09」。结果存 `evaluation/persona-ux/runs/live-20261016-4-comparison-case.json`（git 忽略），待下一批修。
+
+## 2026-10-16 第十一批：混合材料直接成稿 + 聊天与工作区同一份稿 + MCP 任务示例（历史）
 
 - 镜像 `huhua-agent:20261016-3`（sha256:a14054d0…），**基于线上对比页镜像 `comparison-20261015145908-1f4259`**（v2 + `web/comparison*` 静态页与首页「实测对比」入口），代码 `9b97214`：替换 `backend/app`、`main.py`、`backend/scripts`，只覆盖 6 个前端文件（`home.html/css/js`、`account-profile.css/js`、`index.html`；`home.html` 为 MCP 三步接入 + 「实测对比」合并版），对比页文件沿用基础镜像。
 - 第十一批（c6fc810）：带【教育】【项目】分节的混合材料与自然表达招聘要求可拆分；用户自带虚构/测试材料不再被防编造规则拦截；「直接成稿」当轮落库；修改/最终交付更新同一份 resume_data；统一交付闸门；「不支持 PDF」按状态改为右侧下载入口；成稿限定语/角色/技能/重复指标修复。3c87f56 MCP 三步接入与任务示例同批上线。

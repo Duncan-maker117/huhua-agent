@@ -487,8 +487,9 @@ class PersonaRemainingRegressions(unittest.IsolatedAsyncioTestCase):
         project = ' '.join(b for i in data['projects'] for b in i['polished_bullets'])
         for word in ('12', '接口测试', '测试环境', '线上压测', '导师指导'):
             self.assertIn(word, work)
-        for word in ('登录', '同学', '没有真实用户', '演示'):
+        for word in ('登录', '同学', '只给班里演示'):
             self.assertIn(word, project)
+        self.assertNotIn('没有真实用户', project)  # Batch 11b: keep the actual demonstration scope.
         self.assertTrue(any('170' in b and '线上压测' in b for i in data['work_experience'] for b in i['bullets']))
 
     async def test_career_correction_routes_from_legacy_collecting_without_writer(self):

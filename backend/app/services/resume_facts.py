@@ -64,6 +64,12 @@ def _normalized_fact(fact: dict) -> dict | None:
     if (result.get("field") == "role" or result["kind"] == "role") and is_project_status(result["text"]):
         result["kind"] = "status_limit"
         result.pop("field", None)
+    if result.get('field') in {'role', 'title'} or result['kind'] == 'role':
+        from app.services.resume_field_hygiene import positive_role
+        from app.services.candidate_language import constraint_only
+        if not positive_role(result['text']) and constraint_only(result['text']):
+            result['kind'] = 'status_limit'
+            result.pop('field', None)
     return result
 
 
@@ -291,6 +297,13 @@ def active_facts_for_writer(collected: dict) -> dict:
                 continue
             active = [{**copy.deepcopy(fact), "item_id": item["item_id"]} for fact in item.get("facts", [])
                       if fact.get("status") == "active"]
+            from app.services.resume_field_hygiene import positive_role
+            for fact in active:
+                if ((fact.get('field') in {'role', 'title'} or fact['kind'] == 'role')
+                        and not positive_role(fact['text'])):
+                    fact.pop('field', None)
+                    if fact['kind'] != 'status_limit':
+                        fact['kind'] = 'action'
             if not active:
                 continue
             result[section].append({key: copy.deepcopy(item[key]) for key in ("item_id", "name", "company", "school", "hidden", "links", "employment_type") if key in item}

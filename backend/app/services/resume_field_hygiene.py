@@ -45,6 +45,38 @@ def project_role(value: str) -> str:
     return "" if is_project_status(value) else value
 
 
+def positive_role(value: str) -> str:
+    """Keep identities, excluding duties, third-party actions and denials."""
+    parts = [part.strip() for part in re.split(r'[，,；;。\n]', str(value or ''))]
+    return '；'.join(re.sub(r'^(?:我|本人)?是', '', part) for part in parts
+                    if part and not re.search(r'不是|并非|没有|不负责|未担任|不担任|无.{0,8}经验', part)
+                    and not re.match(r'^(?:我|本人)?(?:主要|仅|只)?(?:负责(?!人)|参与(?!者)|使用|用|编写|部署|协助|处理|维护)', part)
+                    and not re.search(r'(?:由|是).{0,16}(?:同学|同事|成员|他人|主管|经理|店长).{0,12}(?:写|实现|负责|完成|审批|批准)|'
+                                      r'(?:审批|批准).{0,8}(?:主管|经理|店长)', part))
+
+
+def sourced_role(facts: list[dict], current: str = '', name: str = '') -> str:
+    roles = []
+    for fact in facts:
+        if fact.get('status', 'active') != 'active':
+            continue
+        value = positive_role(fact.get('text', ''))
+        if not value:
+            continue
+        if fact.get('field') in {'role', 'title'} or fact.get('kind') == 'role':
+            roles.append(value)
+        elif not fact.get('field') and re.fullmatch(r'[\w\u4e00-\u9fff]{0,16}(?:参与者|志愿者|负责人|组长|实习生)', value):
+            roles.append(value)
+    role = positive_role(current) or (roles[0] if roles else '')
+    return '' if name and role.strip() == name.strip() else role  # 角色与条目名相同不重复显示
+
+
+def role_body(value: str) -> str:
+    """Return prose removed from a role, including mixed identity/duty fields."""
+    return '；'.join(part.strip() for part in re.split(r'[，,；;。\n]', str(value or ''))
+                    if part.strip() and not positive_role(part.strip()))
+
+
 def strip_pr_prefix(text: str, pr: str) -> str:
     """Remove only a leading echo of this contribution's title PR number."""
     number = re.fullmatch(r"(?:PR\s*)?#?\s*(\d+)", str(pr or "").strip(), re.I)

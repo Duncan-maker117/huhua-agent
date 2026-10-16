@@ -253,14 +253,40 @@ def strip_absence(text: str) -> str:
     return "；".join(kept).strip("； ")
 
 
+def contribution_conflict(text: str, source: str) -> bool:
+    """Literal third-party ownership cannot become an unqualified personal act."""
+    actor = r'(?:其他成员|另一位同学|同学|同事|队友|他人|主管|经理|店长)'
+    for clause in re.split(r'[，,。；;\n]', source or ''):
+        match = re.fullmatch(r'(.{1,50}?)(?:主要)?(?:由|是)(' + actor + r').{0,8}(实现|完成|编写|写|负责|审批|批准)(?:的)?', clause.strip())
+        if not match:
+            continue
+        objects = [part.strip() for part in re.split(r'与|和|及|、', match[1]) if len(part.strip()) >= 2]
+        actions = r'审批|批准|决定' if match[3] in {'审批', '批准'} else r'实现|开发|编写|写|完成|负责'
+        for claim in re.split(r'[，,。；;\n]', text or ''):
+            if re.search(actor, claim) or re.search(r'未|没有|不负责', claim):
+                continue
+            if any(obj in claim for obj in objects) and re.search(actions, claim):
+                return True
+    return False
+
+
 def contradicts_limit(text: str, source: str) -> bool:
     """True when the bullet asserts what a source fact explicitly denies."""
+    if contribution_conflict(text, source):
+        return True
     responsibility_limits = (
-        (r"(?:不是|并非).{0,8}负责人|没有.{0,4}后台权限", r"负责|运营账号|独立运营|账号运营"),
+        # Not being the project lead does not negate a sourced responsibility
+        # such as "负责访谈". Only reject a promotion to ownership/management.
+        (r"(?:不是|并非).{0,8}负责人|没有管理团队", r"负责人|带领团队|管理团队|统筹(?:整个)?项目|负责(?:整个|全部)项目"),
+        (r"(?:不是|并非)账号负责人|没有.{0,4}后台权限", r"运营账号|独立运营|账号运营|负责(?:账号|后台)"),
         (r"(?:没有|未|不)(?:负责|参与|主导)(?:活动)?策划", r"(?:负责|主导|承担|统筹)(?:活动)?策划|策划(?:了|过)?活动"),
         (r"选题.{0,4}由.{1,12}(?:定|决定)", r"策划|独立选题|制定选题"),
         (r"(?:店长|部长|主管|同事).{0,4}(?:给|提供)(?:的)?文案|文案由.{1,12}(?:给|提供)", r"独立|撰写文案|创作文案"),
         (r"没有.{0,8}(?:数据|阅读量)|不知道.{0,8}(?:播放量|阅读量)", r"(?:实现|带来|提升|推动).{0,8}(?:增长|阅读量|播放量)|增长"),
+        (r'(?:没有|无)(?:真实)?用户(?:增长|营收)|没有真实用户', r'真实用户(?:增长|使用)|用户增长|实现.{0,6}营收'),
+        (r'(?:没有|无)线上测试', r'线上测试(?:通过|完成)|完成线上测试|进行了线上测试'),
+        (r'(?:没有|无)[^。；;\n]{0,20}生产部署', r'生产部署|部署到生产|已部署生产'),
+        (r'(?:没有|无)[^。；;\n]{0,30}并发', r'并发(?:性能|量|测试|达到)|支撑.{0,10}并发'),
     )
     if any(re.search(denial, source or "") and re.search(claim, text or "") and not re.search(denial, text or "")
            for denial, claim in responsibility_limits):
@@ -574,7 +600,10 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         limits = [_source_quote(f) for f in index.values() if bullet.get("item_id")
                   and f.get("item_id") == bullet["item_id"]
                   and constraint_only(_source_quote(f))]
-        if contradicts_limit(bullet.get("text", ""), "\n".join(limits)):
+        item_sources = '\n'.join(_source_quote(f) for f in index.values() if bullet.get('item_id')
+                                 and f.get('item_id') == bullet['item_id'])
+        if (contradicts_limit(bullet.get("text", ""), "\n".join(limits))
+                or contribution_conflict(bullet.get('text', ''), item_sources)):
             errors.append("contradicted_item_limit")
         claim_errors = lexical_fact_errors(bullet.get("text", ""), source, role_context)
         if bullet.get('semantic_only'):

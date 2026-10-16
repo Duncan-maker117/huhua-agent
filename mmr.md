@@ -344,3 +344,38 @@
 - 首页 #mcp 增加三步接入及「按 JD 改简历 / 把项目记进档案 / 检查简历依据」三项可复制示例，保留命令卡、隐私说明及复制反馈；工作台 AI 助手面板在令牌表单上方展示相同任务，连接入口登录页列任务名，令牌仅显示一次面板补两个 Claude Code prompt。档案视图不加任务内容。home.html 资源与 index.html 的 account-profile.js/.css 版本更新为 `20261016-ui2`。
 - 指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1614/1614 通过，0 失败/跳过，113.907s**，日志 `/private/tmp/huhua-ui2-full-tests.log`。首页/面板 DOM 覆盖任务复制成功/失败、aria-live、登录任务名和档案隔离；JS 语法及 diff 检查通过。已补 390px 页面/卡片溢出浏览器断言，但本次 Chrome CLI 启动与备用静态服务器监听均遭本机权限拒绝，未完成浏览器尺寸/截图验收。
 - 仅修改 `web/home.html`、`web/home.css`、`web/home.js`、`web/account-profile.js`、`web/account-profile.css`、`web/index.html`，以及 `tests/test_home_page.py`、`tests/test_mcp_ui.py`、`tests/home.dom.js`、`tests/mcp_profile.dom.js`、`tests/home.browser.js` 和本记录。首页 MCP/资源版本以外内容与操作前逐字一致。未写入 comparison.* 或 cross-tool 目录；期间观察到其他会话更新 comparison.html 和 methodology.md，原样保留。未改后端、未启动或调用 8833、未 commit。
+
+## 第十一批：混合输入直接成稿、统一交付与能力声明（本地，未 commit/部署）
+
+- 根因已核实：自然语言招聘要求与【个人分节】未拆分、请求前缀误把“虚构测试材料”当成编造指令；聊天正文缺少保存闸门。另修复数字更正提前返回而漏执行同轮其他修改，以及贡献限定可能被正文取舍丢弃。
+- 运行时按明确分节分离 JD 与个人材料，保留显式 JD 和纯 JD 路径；只拒绝要求 AI 编造的指令，并明确回执。明确直出请求同轮采集、采用推荐方案并完成正式写稿；缺失字段省略。P2 的 18→12、校园整段隐藏、SQL 仅基础查询在一次编辑中落库，P3 沿用该稿。
+- SSE 在正文/能力声明边界缓冲，SQL 保存后统一校验公开回复及历史；整份聊天稿改为指向右侧唯一稿件。能力提示和否定声明修正按真实导出状态及登录策略显示；现有联系方式脱敏不变，工作区保留原始电话/邮箱。指标口径回接对应评测要点，贡献/审批边界保留在要点或角色行，并拒绝把他人贡献反向归属本人。
+- 新增 `tests/test_batch11_comparison_case.py` **27 项**，使用公开冻结 P1/P2/P3、桩模型和独立 SQLite，覆盖拆分/路由、正反防编造、直接生成、交付闸门、能力声明、限定恢复、三轮事实/稿件与数据库一致性。指定全量命令 **1641/1641 通过，0 失败/跳过，48.306s**；日志 `/private/tmp/huhua-batch11-complete.log`。本批 16 份 Python 文件 Ruff、diff 检查通过；177 份保护文件前后 SHA-256 一致。
+- 未修改受保护文件或既有测试断言；保留其他未提交工作。未启动/调用 8833，未调用真实模型，未 commit/部署；真实模型回放仍由 Banz 执行，桩测试不代表真实模型效果已复测。
+
+## 2026-10-16 第十一批 b：成稿质量与流式缓冲回退（本地，未 commit/部署）
+
+- 依据 Banz 提供的 `batch11-replay.json`：P1 方案给拾光 3 条，最终正文 2 条，访谈只留在 description；未发生页面压缩。使用同一 match_plan/事实的桩做阶段对照：旧 `_numeric_fact` 漏认「18 名/8 名」，却把「4 人课程项目」当数字成果，满额补条替换访谈，随后背景合并把团队规模并入原型句，最终变成 2 条。修复识别单位、排除纯团队规模，并在确认方案的条数上限内优先恢复已选岗位证据。额外修复 fact_guard 将「不是负责人」误解为禁止所有「负责…」的规则，以及 phase=write 把整个条目 withheld 而跳过补漏的问题。原回放没有原始 WriterDraft，未声称拿到了真实模型中间输出；确定性对照 `/private/tmp/huhua-b11b-causality.json`。
+- 角色恢复原文正向身份；否定角色保留为事实约束，不充当 role。团队规模、项目未上线进入标题/角色行；他人负责代码/接口的边界移出指标句。课堂/离线/本地/自拟/人工判定按相关动作自然整合，重复指标按同一对象与有序起止值消重，纯否定尾巴不入稿；维护对应引用和 hash。教育缺失说明不渲染；技能保留 Figma 基础流程/低保真原型、Agent 工具调用/RAG 基本流程和 Python 简单脚本等原文能力范围，SQL 仍仅基础查询。
+- P2 写回另发现旧值清理按近似文本把「负责访谈12名…」当作旧 18 名句删除：已让有 replaces 关系的有效原文更正优先于模糊匹配，旧文本仍删除。隔离 SQLite 回读确认访谈 12 名出现在渲染正文，校园删除、SQL 限定和 P3 不恢复的既有三轮回归保留。
+- 普通回复按模型 token 直接流出；仅明确交付请求或累积文本出现姓名标题、简历分节、联系方式行时缓冲正文。PDF/Word/文件/下载声明只缓冲当前未结束句，句末修正后恢复流式；已保存稿的能力文案读取初始会话状态。若文件关键词到达前已有句前缀流出，SSE 无法撤回，追加明确更正并修正历史，不扩大为整条回复缓冲。
+- `tests/test_batch11_comparison_case.py` 新增 **14 项**（合计 41 项），内嵌公开回放 plan/事实，不依赖临时回放文件：覆盖 writer 已写/漏写访谈、选中非数字证据优先、角色、重复指标/口径/引用、教育元信息、技能限定、P2 SQL、旧值隔离和首 chunk 时序（不/无/简历/项目/技能均在请求第二 token 前产出）。`test_batch10_regressions.py` 与 `test_persona_regressions.py` 各一处旧语义断言按本批要求更新为保留「只给班里演示」、禁止正文「没有真实用户」，其余断言未改。
+- 最终指定全量命令 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py`：**1655/1655 通过，0 失败/跳过，50.156s**；日志 `/private/tmp/huhua-b11b-full-verified.log`。24 份现有变更 Python 文件（含第十一批）Ruff 通过，diff 检查通过；178 份 checks/fixtures/web/comparison*/evaluation/cross-tool-*、打包脚本和首页保护文件 SHA-256 未变。
+- 保留第十一批及其他未提交工作，未 commit/push/部署，未启动或调用 8833，未调用真实模型。这里验证的是桩模型与纯函数/隔离数据库，deepseek-flash 的新一轮真实成稿效果仍待外部复测。
+
+## 2026-10-16 第十一批 c：tech 指标、角色与限定恢复（本地，未 commit/部署）
+
+- 定位：`after-batch11/tech/01-initial.json` 的经历投影及 active fact coverage 已没有 420/170 指标；`guard_fallbacks` 明确记录 `unsupported_numbers:170,420`，指标句因此回退成联合索引动作。并非已证实由最后的背景合并删掉完整指标：该回放未保存原始 extractor/WriterDraft；确定性等价桩证明抽取器只交付索引动作时，原补漏器不识别“平均耗时由约 420ms 降到约 170ms”。宽 source_quote 含数字而 fact.text 漏数字时也会漏补。本轮在采集端恢复有明确归属的原文结果，保留相邻动作/测试环境出处，拒绝计划、否定及无归属；满额数字修复将同源结果接回动作，不挤掉原动作。
+- 角色根因：`positive_role` 只过滤否定而接受职责，`sourced_role` 优先沿用错误 current role；11b 限定恢复又主动把他人贡献挂到 role。现在身份字段排除职责/他人动作，误标 role 的事实在 writer 证据视图回归 action，原事实审计不变；职责、登录模块由同学编写和审批边界保留在正文。`resume_bullet` 同时清除裸职位回声，并保留无效 header 引用的 guard 诊断。Banz 手加的 `sourced_role(..., name)` 同名去重和 `choose_edit_plan` 尾部 remove_section 去重均保留。
+- 限定修复：按保守语法等价识别“对一个慢查询加了联合索引”与“对慢查询加联合索引”，清理已有重复括号；“没做线上压测”默认只约束，明确保留限制时自然接入一次。部署地点与演示受众共同恢复为“部署在实验室服务器，只给班里演示”，不因正文已有登录分工或满额而只留下演示受众；贡献边界优先放非指标要点。各步同步引用、coverage 缓存和 text_hash，重复执行幂等。
+- 回归：`tests/test_batch11_comparison_case.py` 新增 **7 项**（模块合计 **50 项**，含此前两项手改），修改前复现 6 个失败断言。等价抽取/写稿桩覆盖窄/宽引文漏指标、三轮正文、角色误标、职位回声、重复括号、实验室演示、条数预算、引用/hash、否定与计划边界；P3 同时走字面事务与实际 evaluating 路由，断言只把 170 换成 190、其余正文逐字一致且不调用 writer。原 11/11b 对照回归保留，角色行分工断言改为正文；`test_writer_repair_context.py` 两项旧回退文本断言同步要求正文保留分工，原有调用次数/失败回退检查不变。五人物现有 fixtures 对应桩测试及相关修复测试 **142/142** 通过。
+- 验证：指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` 最终 **1664/1664 通过，0 失败/跳过，50.011s**；日志 `/private/tmp/huhua-11c-full-final.log`。26 份变更相关 Python 文件 Ruff、diff 检查通过；178 份 checks/fixtures/web/comparison*/evaluation/cross-tool-*、打包脚本和首页保护文件 SHA-256 未变。未改历史回放，未调用真实模型或 8833，未 commit/push/部署；真实五人物回放仍是 Banz 提供的 68/71，本次没有声称新的真实模型通过率。
+
+2026-10-16 第十一批 d（承接当前未提交 11/11b/11c 与两处手改，仅本地）：
+
+- 交付闸门改为定位具体简历条目块：有日期的「公司/项目 | 职位 | 日期」标题及其要点，或姓名/联系方式与简历分节、要点组成的正文。迁移分析表格、证据缺口列表、改法说明和普通中文分析标题不再因标题/列表数量被误判。混合回复只将草稿块替换为一句「草稿已放到右侧『写简历』」；未保存时如实提示，保留分析、说明和问题。
+- 流式保留 11b 的明确交付/正文起始缓冲条件；未完成的 Markdown/姓名/联系方式标题先判定再释放。收尾按每条消息已消费的原文位置只追加剩余内容，历史使用实际已发前缀加处理后的尾部，避免整条替换接在 `## 能` 后。迟识别的纯文本条目标题先完整补齐该行，再追加草稿提示；普通追问首 token 即时流出回归保留。
+- 职责与分工从 role/title 移出时同步进入初始正文，并在 writer 首稿遗漏时确定性补回已有条目；混合的「身份 + 职责 + 他人分工」保留身份、将职责/边界放入正文。保留条数预算及引用/hash；不依赖 polish 才恢复登录模块分工。
+- 慢查询平均耗时按对象、顺序数字对、单位与约数限定识别「降到/降至」等价表达；已覆盖但漏引的事实只补引用，补漏前再次检查正文。重复指标只删重复子句，保留同条的 12 条接口测试、导师指导与 Redis 缓存等独立事实；不同对象、反向数字与计划不合并。Agent 工具调用与 RAG 的短技能别名与基本流程原话去重，保留更具体的原文。
+- 新增 `tests/test_batch11d_regressions.py` **12 项**，内嵌 `after-batch10c/career/01-initial.reply.txt` 完整原文并核验逐字一致；覆盖有/无保存、分析保留、1/2/7/53 字与整段分块、流式与历史一致、首稿漏写分工、混合 role、指标重复及引用/hash/幂等、技能正反顺序去重。既有 11/11b/11c 模块仅同步两条交付判定/回执断言，累计相关回归 **62/62**。Banz 手改的 `sourced_role(..., name)` 与 `choose_edit_plan` 函数 AST 均与本轮开始时一致。
+- 验证：指定全量命令最终 **1676/1676 通过，0 失败/跳过，50.223s**，日志 `/private/tmp/huhua-11d-full-final.log`；27 份当前变更相关 Python 文件 Ruff 与 diff 检查通过。3258 份受保护文件（checks/fixtures、全部 evaluation 历史材料、web/comparison*、`scripts/package_deploy.py`、`web/home.html`）SHA-256 未变。未调用真实模型或 8833，未 commit/push/部署；真实五人物回放仍按 Banz 提供的 after-batch11c **69/71** 记录，本轮不声称新的真实回放分数。补充证据边界：本轮读取到的 tech 首稿 JSON 已含登录分工，因此另用明确漏写的 writer 桩验证首稿确定性恢复，指标重复则与该文件一致。

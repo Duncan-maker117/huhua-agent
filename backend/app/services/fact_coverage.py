@@ -44,22 +44,60 @@ def extract_numeric_set(text):
     return extract_numbers(text)
 
 
+_LATENCY_CHANGE = re.compile(
+    r'(?P<object>慢查询)?平均耗时(?:由|从)(?P<before>约?\d+(?:\.\d+)?(?:ms|毫秒))'
+    r'(?:降到|降至|降低到|降低至)(?P<after>约?\d+(?:\.\d+)?(?:ms|毫秒))')
+
+
+def latency_metric_covered(text: str, covering: str) -> bool:
+    """Match a complete latency fact to its action, preserving ordered values.
+
+    Only a bare metric clause is subsumed; other actions/qualifications must
+    still be accounted for independently. Equal numbers on another object or
+    in a plan/denial are not the same observed result.
+    """
+    wanted = _LATENCY_CHANGE.fullmatch(normalize_text(text).strip('。；;'))
+    if not wanted:
+        return False
+    value = normalize_text(covering)
+    for match in _LATENCY_CHANGE.finditer(value):
+        context = value[:match.start()].rsplit('；', 1)[-1].rsplit(';', 1)[-1]
+        if re.search(r'计划|准备|打算|未|没|不(?:曾|能|会)?', context):
+            continue
+        subject = match['object'] or ('慢查询' if '慢查询' in context else '')
+        if wanted['object'] and wanted['object'] != subject:
+            continue
+        if all(wanted[key].replace('毫秒', 'ms') == match[key].replace('毫秒', 'ms')
+               for key in ('before', 'after')):
+            return True
+    return False
+
+
 def text_covered(text: str, bullets: list[str]) -> bool:
     from app.agents.fact_extractor import _clause_covered
     def normalized(value):
         value = duplicate_key(resume_bullet(value))
+        value = re.sub(r'^负责(?!人)', '', value)
+        value = value.replace('由基础版本的', '由').replace('从基础版本的', '从')
         value = re.sub(r"整理([^，,。；;]{1,18})并分类", r"分类整理\1", value)
         value = value.replace("公众号文章", "文章")
         value = re.sub(r"(?:完成)?(\d+)篇文章排版", r"排版\1篇文章", value)
         value = re.sub(r"其中(\d+)篇的?初稿(?:是我写的|由本人撰写)", r"撰写\1篇初稿", value)
+        # Same object, baseline and outcome with only grammatical differences.
+        # Keep the object and every number; shared quantities alone are not proof.
+        value = re.sub(r'(?:由|从)(\d+)(?:个|道)?(?:提高到|提升至|提升到|提高至)(\d+)(?:个|道)?',
+                       r'从\1提高到\2', value)
         return re.sub(r"(?<=[做用写查改])了", "", value)
     clauses = [normalized(part) for part in re.split(r"[，,。；;\n、]", text) if normalize_text(part)]
     quotes = [normalized(value) for value in bullets if value]
+    if '基础版本' in text and not any('基础版本' in value for value in bullets):
+        return False
     # _clause_covered's reverse-substring rule is useful during extraction but
     # cannot prove a whole responsibility survived a shorter written fragment.
     return bool(clauses) and all(any(
-        (_clause_covered(clause, [quote]) and not (quote in clause and quote != clause)
-         or _general_action_covered(clause, quote))
+        (latency_metric_covered(clause, quote) if _LATENCY_CHANGE.fullmatch(clause) else
+         ((clause in quote if len(extract_numeric_set(clause)) >= 2 else _clause_covered(clause, [quote]))
+          and not (quote in clause and quote != clause) or _general_action_covered(clause, quote)))
         and not lexical_fact_errors(clause, quote)
         for quote in quotes) for clause in clauses)
 
@@ -145,7 +183,11 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
             field = "polished_bullets" if section == "projects" else "bullets"
             hidden = item is None or item.get("hidden") or (visible_sections is not None and section not in visible_sections)
             facts = original.get("facts") or []
-            for fact in facts:
+            # The writer orders repairs by selected JD evidence. Fill the
+            # bounded slots in that order, not arbitrary extraction order.
+            priority = {fid: index for index, fid in enumerate(repairs or {})}
+            ordered = sorted(facts, key=lambda fact: priority.get(fact['id'], len(priority))) if item_id in repair_ids else facts
+            for fact in ordered:
                 if constraint_only(fact.get("source_quote") or fact["text"]):
                     continue
                 text = resume_bullet(strip_absence(fact["text"]), name=original.get("name") or original.get("company") or "",
@@ -174,6 +216,10 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                     covered = not hidden and (entailed or text_covered(text, cited_body or referenced_body
                                                                       or (displayed_body if not records else [])))
                 reason = ""
+                # resume_bullet removes header echoes. Test the original
+                # source-backed identity before treating an empty body as omitted.
+                if not hidden and text_covered(fact['text'], headers):
+                    covered = True
                 if not covered:
                     if hidden:
                         reason = withheld.get(item_id) or "经历或栏目设为备用，不在本版展示"

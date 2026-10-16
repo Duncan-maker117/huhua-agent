@@ -58,6 +58,7 @@ match_plan 含 thesis/profile_statement/positioning 时，这是用户已确认�
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；每条 active 事实须由正文或结构字段覆盖；因方案或篇幅无法展示的事实必须明确列为备用并说明原因。
 每条 bullet 引用同一 item 的 active fact_ids；更换措辞、重组事实允许，但不升级职责。限制可以用有事实支持的正向现状表述写（如「完成本地闭环原型」「演示版使用本地数据与模拟模型」），不得写缺失型表述，也不能写成相反成果。
 plain 写法的一条 bullet = 问题/场景 + 本人动作与方法 + 结果或产出，同一职责写在一条里，不同职责（如采购与行政）分条保留；背景/问题（context）事实不单独成条，并入引用它的动作 bullet；每条至少引用一个 action/method_tool/deliverable/result 类事实；只表达阶段/状态（标题行已有）或只复述项目名的 bullet 不要写。每条 bullet 对应不同的事实组；只合并语义重复的事实，引用相同 fact_id 不表示职责相同，一条复合事实可按职责分条。事实少就少写，不要凑满 target_bullets。每条 bullet 不超过 60 个汉字（英文 2 字符按 1 汉字），写不下就只保留最关键的动作与产出。
+match_plan 已选中的岗位证据须出现在正文，不能只引用 ID。role 使用原文正向角色；团队规模、项目未上线放标题/角色行，不占用正文要点。没有增长、营收、线上测试等纯否定信息仅约束写作，不印成尾巴；离线、课堂、本地、自拟、人工判定融入相应动作或指标且不重复指标。技能保留原文具体能力与熟练度限制；缺失信息说明如“未提供绩点”不入稿。
 按 JD 突出时（edit_mode.jd_focus）：fact_req_ids 非空的事实所在 bullet 放该条目第一条，并用 role_profile.jd_language 的表达，不能只换同义词或删掉最相关内容；改写前已引用的对应 JD 要求的事实仍须被引用（可改写、合并，不能丢）；要求保留团队分工/本人工作/状态限制（edit_mode.keep_roles）时，对应 role/team 事实仍须被引用；精简（edit_mode.compress）后总长度必须更短。
 不要改写或引用输入之外的旧正文；模型返回的 title 只供定位，最终标题由已确认数据确定。
 只返回目标 item，backup 不用写正文；summary 若含候选人事实必须给 summary_fact_ids。
@@ -102,7 +103,9 @@ violations.guard 是 JSON 诊断资料，semantic 中的失败维度和 unsuppor
 
 
 def _numeric_fact(fact: dict) -> bool:
-    return _body_fact(fact) and bool(re.search(r'\d+(?:\.\d+)?\s*(?:条|场|次|篇|张|份|个|人|页|ms|毫秒|%|％)', fact.get('text', ''), re.I))
+    text = fact.get('text', '')
+    return (_body_fact(fact) and not re.fullmatch(r'\d+\s*人(?:课程|小组|团队|组队)*(?:项目|作业)', text)
+            and bool(re.search(r'\d+(?:\.\d+)?\s*(?:条|场|次|篇|张|份|个|人|名|道|页|ms|毫秒|%|％)', text, re.I)))
 
 
 def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
@@ -117,8 +120,15 @@ def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[
                   if fact.get("id") and (fact.get("kind") == "result_metric" or _numeric_fact(fact)) and _body_fact(fact)
                   and str(fact.get("text") or "").strip()]
         lookup = {fact['id']: fact for fact in items[item_id][1].get('facts') or []}
-        lost = [fid for fid in wanted if not text_covered(strip_absence(lookup[fid]['text']),
-                [bullet.text for bullet in written.bullets[:caps[item_id]] if fid in bullet.fact_ids])]
+        lost = []
+        for fid in wanted:
+            covering = [bullet for bullet in written.bullets[:caps[item_id]]
+                        if text_covered(strip_absence(lookup[fid]['text']), [bullet.text])]
+            if covering:
+                for bullet in covering:
+                    bullet.fact_ids = list(dict.fromkeys([*bullet.fact_ids, fid]))
+            else:
+                lost.append(fid)
         if lost:
             missing[item_id] = lost
     return missing
@@ -135,6 +145,22 @@ def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple
         for fid in fact_ids:
             text = strip_absence(by_id[fid].get("text") or "").strip()
             if not text:
+                continue
+            from app.services.fact_coverage import text_covered
+            covering = next((bullet for bullet in bullets if text_covered(text, [bullet.text])), None)
+            if covering is not None:
+                covering.fact_ids = list(dict.fromkeys([*covering.fact_ids, fid]))
+                continue
+            # A recovered result shares the original sentence with its action.
+            # Keep them together instead of evicting the action at a full cap.
+            quote = by_id[fid].get('source_quote') or text
+            related = [b for b in bullets if any(
+                (q := by_id.get(ref, {}).get('source_quote')) and q != quote and q in quote
+                and not constraint_only(q) for ref in b.fact_ids)]
+            if related:
+                target = related[0]
+                target.text = target.text.rstrip('。；;，, ') + '，' + text
+                target.fact_ids = list(dict.fromkeys([*target.fact_ids, fid]))
                 continue
             if len(bullets) >= cap:
                 removable = [b for b in bullets if not any(_numeric_fact(by_id.get(ref, {})) for ref in b.fact_ids)]
@@ -478,7 +504,38 @@ def _without_repeated_fact_rows(rows: list[dict], item_facts: Sequence[dict] = (
 def _without_near_duplicate_rows(rows: list[dict], facts: dict | None = None, style: str = 'plain') -> list[dict]:
     """Merge only covered claims; a more complete later wording keeps its detail."""
     kept = []
-    from app.services.fact_coverage import text_covered, numeric_actions_subsumed
+    from app.services.fact_coverage import text_covered, numeric_actions_subsumed, latency_metric_covered
+
+    # Remove a repeated metric clause, not its entire bullet: a recovery row
+    # may also contain independent tests, tools or supervision boundaries.
+    unique_metrics = []
+    for row in rows:
+        row = dict(row)
+        pieces = re.split(r'([，,。；;\n])', row.get('text', ''))
+        remaining = []
+        moved_refs = set()
+        for index in range(0, len(pieces), 2):
+            clause = pieces[index].strip()
+            covering = next((other for other in unique_metrics
+                             if other.get('item_id') == row.get('item_id')
+                             and latency_metric_covered(clause, other.get('text', ''))), None)
+            if covering is not None:
+                metric_refs = [fid for fid in row.get('fact_ids', [])
+                               if latency_metric_covered((facts or {}).get(fid, {}).get('text', ''), covering['text'])]
+                covering['fact_ids'] = list(dict.fromkeys([*covering.get('fact_ids', []), *metric_refs]))
+                moved_refs.update(metric_refs)
+                continue
+            remaining.append(pieces[index] + (pieces[index + 1] if index + 1 < len(pieces) else ''))
+        text = ''.join(remaining).strip('，,。；;\n ')
+        if text != row.get('text', '').strip('，,。；;\n '):
+            row['text'] = text
+            row.pop('coverage_fact_ids', None)
+            row['fact_ids'] = [fid for fid in row.get('fact_ids', [])
+                               if fid not in moved_refs
+                               or text_covered((facts or {}).get(fid, {}).get('text', ''), [text])]
+        if text:
+            unique_metrics.append(row)
+    rows = unique_metrics
 
     def compatible(left, right):
         return style != 'labeled' or row_label(left, facts or {}) == row_label(right, facts or {})
@@ -734,7 +791,10 @@ def _bare_phase(text: str, name: str = "") -> bool:
 
 
 def _body_fact(fact: dict) -> bool:
-    return fact.get("field") not in HEADER_FIELDS
+    from app.services.resume_field_hygiene import positive_role
+    return (fact.get("field") not in HEADER_FIELDS
+            and not (fact.get('kind') == 'role' and positive_role(fact.get('text', '')))
+            and not constraint_only(fact.get('source_quote') or fact.get('text', '')))
 
 
 def _apply_section_order(output: dict, order: Sequence[str], previous: dict | None = None) -> None:
@@ -755,7 +815,7 @@ def _apply_section_order(output: dict, order: Sequence[str], previous: dict | No
 
 def _seed_item(section: str, source_item: dict, current: dict | None) -> dict:
     """Keep confirmed current headers; otherwise use sourced fields, never model titles."""
-    from app.services.resume_field_hygiene import project_role
+    from app.services.resume_field_hygiene import project_role, sourced_role
     if current is not None:
         item = deepcopy(current)
         if section == "projects" and "role" in item:
@@ -770,6 +830,10 @@ def _seed_item(section: str, source_item: dict, current: dict | None) -> dict:
         field = fact.get("field")
         if field in {"role", "title", "start_date", "end_date", "summary", "pr", "level", "date"} and not item.get(field):
             item[field] = project_role(fact.get("text", "")) if field == "role" else fact.get("text", "")
+    role_field = 'title' if section == 'work_experience' else 'role'
+    if section != 'open_source':
+        item[role_field] = sourced_role(source_item.get('facts', []), item.get(role_field, ''),
+                                       item.get('name') or item.get('company', ''))
     if section == "projects":
         item.setdefault("description", "")
         item.setdefault("polished_bullets", [])
@@ -1324,7 +1388,7 @@ async def _run_resume_writer(
                                    "allowed_reqs": req_ids, "flags": [flag for flag in bullet.flags if flag == "transferable"],
                                    "needs_metric": bullet.needs_metric, "metric_question": bullet.metric_question,
                                    "valid_refs": not reasons, "invalid_reasons": reasons})
-    candidate_rows = [row for row in candidate_rows if row["text"]]
+    candidate_rows = [row for row in candidate_rows if row["text"] or not row['valid_refs']]
     if scope != "bullet":
         candidate_rows = _merge_context_only_rows(candidate_rows, facts, bullet_style)
     # The summary check reads only the draft summary and the fact store, never the bullet
@@ -1483,7 +1547,7 @@ async def _run_resume_writer(
                 meta["summary"] = {"fact_ids": summary_refs, "text_hash": _hash(draft.summary.strip())}
     output, meta, limit_fallbacks = preserve_item_limits(
         output, meta, collected_info, item_ids=list(by_item),
-        bullet_indices=bullet_targets if scope == "bullet" else None)
+        bullet_indices=bullet_targets if scope == "bullet" else None, restore_required=False)
     fallbacks.extend(limit_fallbacks)
     for section in SECTIONS:
         field = "polished_bullets" if section == "projects" else "bullets"
@@ -1557,10 +1621,10 @@ async def _run_resume_writer(
                 for row in match_plan["experience_plan"] if row["treatment"] == "backup" or row["target_bullets"] == 0}
     # User-confirmed counts remain binding; a model's default two bullets must
     # not silently discard the rest of an experience.
-    fixed_count = phase == "write" or re.search(
-        r"(?:最多|只(?:写|留|保留)|写成|合并成|压(?:缩)?成|控制在|不超过)\s*[一二两三四五六\d]+\s*条|合并.*一条", instruction)
-    if fixed_count:
-        withheld.update({item_id: "按已确认方案或指定条数保留重点，其余事实备用" for item_id in allowed})
+    # The confirmed count is a ceiling, not permission to leave selected
+    # evidence out while slots are empty. Caps below still enforce that count.
+    if re.search(r"(?:最多|只(?:写|留|保留)|写成|合并成|压(?:缩)?成|控制在|不超过)\s*[一二两三四五六\d]+\s*条|合并.*一条", instruction):
+        withheld.update({item_id: '按指定条数保留重点，其余事实备用' for item_id in allowed})
     coverage_caps = {row.item_id: target_caps[row.item_id] for row in plan.experience_plan
                      if row.item_id in target_caps} if writer_diagnostic.get("status") != "model_fallback" else {}
     indexed_output = {item["item_id"]: (section, item) for section in SECTIONS for item in output.get(section) or []}
@@ -1580,6 +1644,8 @@ async def _run_resume_writer(
         text = resume_bullet(strip_absence(facts[fid]["text"]), name=item.get("name") or item.get("company") or "")
         if text and not _bare_phase(text, item.get("name") or item.get("company") or ""):
             missing.append({"id": fid, "item_id": item_id, "text": text, "fact_ids": [fid]})
+    selected_facts = {fid for row in match_plan['requirements'] for fid in row.get('fact_ids', [])}
+    missing.sort(key=lambda row: row['id'] not in selected_facts)
     restored = await _polish_rows(missing, facts, model, llm, role_family, force=True,
                                   unavailable_ids=[row["id"] for row in missing]
                                   if writer_diagnostic.get("status") == "model_fallback" else ()) if missing else []

@@ -199,6 +199,9 @@ def sanitize_fact_history(state, *, original=None):
                 for section in sections for item in (original.get("collected_info") or {}).get(section, [])}
 
     all_obsolete = [fact for rows in obsolete.values() for fact in rows]
+    replacements = {fact['replaces']: fact for section in sections
+                    for item in (result.get('collected_info') or {}).get(section, [])
+                    for fact in item.get('facts', []) if fact.get('id') in active and fact.get('replaces')}
 
     def normalized(text):
         return re.sub(r"[\W_]+", "", text).casefold()
@@ -208,6 +211,15 @@ def sanitize_fact_history(state, *, original=None):
             return False
         target = normalized(text)
         for fact in facts:
+            replacement = replacements.get(fact.get('id'))
+            if replacement:
+                from app.services.candidate_language import resume_bullet
+                # Exact live correction wins over the old fuzzy similarity
+                # test (18 -> 12 differs by only one character). Audit quotes
+                # and merely swapping a citation do not authorize old prose.
+                live = replacement.get('text', '')
+                if target in {normalized(live), normalized(resume_bullet(live))}:
+                    continue
             # Dates and scalar identity fields are scoped to their original slot;
             # all prose fields can contain literal or near-literal copies.
             if field not in {"description", "raw_description", "bullets", "polished_bullets", "highlights", "self_evaluation", "personal_summary"}:

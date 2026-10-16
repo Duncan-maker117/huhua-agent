@@ -136,6 +136,7 @@ _INSTRUCTION = re.compile(
 _PLAN_OR_NEGATED = re.compile(r"我(?:们)?(?:将|从未|并未|还?没有?|未|不曾|不)|计划|准备|打算|希望|想要|下个月|以后|将来|明天|还没")
 _STATUS_CLAUSE = re.compile(r"开源|未上线|没上线|Demo|原型", re.I)
 _RESULT_CLAUSE = re.compile(r"star|用户|提升|增长|降低|增加|减少|获奖|名|第一|\d", re.I)
+_METRIC_CHANGE = re.compile(r'\d[^，,。；;\n]*(?:降到|降至|降低到|降低至|提高到|提高至|提升到|提升至)[^，,。；;\n]*\d')
 
 
 def _fact_kind_for_clause(clause: str) -> str:
@@ -878,6 +879,21 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
     if objective:
         quotes += [part for part in _CLAUSE_SPLIT.split(evidence) if objective in part and re.search(r"想投|求职|应聘|找.{0,5}工作", part)]
     clauses = uncovered_action_clauses(evidence, quotes)
+    # A broad quote does not prove its result survived in fact.text. “耗时
+    # 420ms 降到 170ms” also has none of the legacy action verbs.
+    from app.services.fact_coverage import text_covered
+    metric_clauses = set()
+    for clause in _CLAUSE_SPLIT.split(evidence):
+        clause = clause.strip()
+        if (not _METRIC_CHANGE.search(clause) or non_fact(clause) or _INSTRUCTION.search(clause)
+                or _PLAN_OR_NEGATED.search(clause)
+                or re.search(r'^(?:也)?(?:未|没(?:有)?|不曾)|预计|预期|目标', clause)):
+            continue
+        owner = _nearest_named_owner(clause, evidence, [*result['items'], *(outline or [])])
+        if owner and not text_covered(clause, [f['text'] for f in owner.get('facts', [])]):
+            metric_clauses.add(clause)
+            if clause not in clauses:
+                clauses.append(clause)
     # Course headers and short delivery fragments have an explicit subject even
     # when they lack the first-person/action pattern used by the generic fallback.
     for clause in re.split(r"[，,。；;\n]", evidence):
@@ -913,7 +929,11 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
             continue
         if not any(item is owner for item in result["items"]):
             result["items"].append(owner)
-        owner["facts"].append(new_fact(_third_person(clause), kind=_fact_kind_for_clause(clause), quote=clause,
+        quote = clause
+        if clause in metric_clauses:
+            # Adjacent action/environment remains provenance for the result.
+            quote = next((part.strip() for part in re.split(r'[。；;\n]', evidence) if clause in part), clause)
+        owner["facts"].append(new_fact(_third_person(clause), kind=_fact_kind_for_clause(clause), quote=quote,
                                        source="chat", turn_id=turn_id))
         logger.info("fact_coverage_fallback turn=%s hash=%s", turn_id or "-",
                     hashlib.sha256(clause.encode("utf-8")).hexdigest()[:10])

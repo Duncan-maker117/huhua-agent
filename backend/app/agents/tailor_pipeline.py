@@ -26,6 +26,8 @@ def constraints_for_turn(state: dict, message: str) -> dict:
     profile = (state.get('jd_info') or {}).get('role_profile') or {}
     instruction = turn_instruction(message)
     overrides = {}
+    if re.search(r'缺失信息.{0,8}省略|不留.{0,4}待补', instruction):
+        overrides['omit_missing'] = True
     from app.services.candidate_language import non_fact
     rules = [clause.strip() for clause in re.split(r'[。；;\n]', instruction)
              if non_fact(clause.strip()) and re.search(r'润色|生成|保留|不要|不能|不写成|突出', clause)]
@@ -434,6 +436,9 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
                 'guard_fallbacks': [],
                 'change_summary': [], 'omitted': deepcopy(meta.get('omitted') or [])}
     data = written['resume_data']
+    if constraints.get('omit_missing'):
+        from app.services.resume_delivery import omit_missing_placeholders
+        data = omit_missing_placeholders(data)
     meta = written['resume_meta']
     # Sanitize before capacity work so persistence measures the same document.
     from app.services.profile_bridge import sanitize_fact_history

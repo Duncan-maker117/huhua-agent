@@ -205,15 +205,68 @@ def split_mixed_material(text: str) -> tuple[str, str]:
     """
     marker = re.search(r'(?:目标岗位\s*JD|目标\s*JD|新的?\s*JD|(?:^|\n)\s*JD)\s*[：:]', text, re.I)
     if not marker:
-        return text, ''
+        return _split_sectioned_material(text)
     prefix, tail = text[:marker.start()], text[marker.end():]
-    boundary = re.search(r'(?:^|(?<=[。\n]))\s*(?:(?:20\d{2}[^。\n]{0,28})?\s*在.{1,30}(?:做|任|实习)|'
+    boundary = re.search(r'【(?:基本信息|教育[^】]*|项目[^】]*|实习[^】]*|工作[^】]*|校园[^】]*|技能)】|'
+                         r'(?:^|(?<=[。\n]))\s*(?:(?:20\d{2}[^。\n]{0,28})?\s*在.{1,30}(?:做|任|实习)|'
                          r'姓名[：:]|教育[：:]|我的经历[：:]|本人经历[：:]|课程项目|实习[：:]|工作[：:]|我负责)', tail)
     if not boundary:
         return (prefix, text[marker.start():]) if re.search(r'姓名|教育|我叫|大学|学院', prefix) else (text, '')
     candidate = prefix + tail[boundary.start():]
     jd = text[marker.start():marker.end()] + tail[:boundary.start()]
     return (candidate, jd.strip()) if re.search(r'姓名|教育|我叫|我负责|本人经历', candidate) else (text, '')
+
+
+_PERSONAL_SECTION = re.compile(
+    r'【(?:基本信息|教育[^】]*|项目[^】]*|实习[^】]*|工作[^】]*|校园[^】]*|技能[^】]*)】|'
+    r'(?:^|(?<=[\n。；;]))[ \t]*(?:姓名|电话|邮箱|教育(?:背景|经历)?|项目(?:经历)?|实习|工作|校园|技能)[：:]')
+_RECRUITER_SECTION = re.compile(
+    r'(?:【)?(?:招聘(?:方)?要求|任职要求|岗位职责|岗位要求|职位要求|职位描述)(?:】)?'
+    r'(?:也是?(?:合成|虚构)?测试)?\s*(?:[：:]|(?:是|为|包括)\s*[：:]?|\n)')
+
+
+def _split_sectioned_material(text: str) -> tuple[str, str]:
+    """Only explicit personal sections allow a natural-language JD split."""
+    boundaries = list(_PERSONAL_SECTION.finditer(text))
+    if not boundaries:
+        return text, ''
+    spans = []
+    for marker in _RECRUITER_SECTION.finditer(text):
+        end = next((b.start() for b in boundaries if b.start() > marker.start()), len(text))
+        tail = text[marker.end():end]
+        # Draft instructions after the brief still belong to the user's turn.
+        instruction = re.search(r'(?:^|(?<=[。\n]))\s*(?:请|可调整|但不得|不得|不要|缺失信息|如支持|所有信息|直接|不用)', tail)
+        if instruction:
+            end = marker.end() + instruction.start()
+        spans.append((marker.start(), end))
+    if not spans:
+        return text, ''
+    candidate, jobs, offset = [], [], 0
+    for start, end in spans:
+        if start < offset:
+            continue
+        candidate.append(text[offset:start])
+        jobs.append(text[start:end].strip())
+        offset = end
+    candidate.append(text[offset:])
+    return ''.join(candidate).strip(), '\n'.join(jobs)
+
+
+def requests_fabrication(text: str) -> bool:
+    """Reject instructions to invent, not adjectives describing supplied data."""
+    for clause in re.split(r'[，,。；;！!？?\n]', text or ''):
+        # A prohibition applies to its own clause, never to a later command.
+        if re.search(r'(?:不得|不要|不能|禁止|不许|无需|不用|不应)\s*(?:再|去)?(?:编造|虚构|假设|编|假装|随便编)', clause):
+            continue
+        if re.search(r'(?:假装|假设)(?:一下)?我(?:做过|有|负责|参与|完成|是)|随便编(?:个|一|点|些|段)', clause):
+            return True
+        if re.search(r'(?:帮我|替我|给我|请(?:你)?|你来|为我)\s*'
+                     r'(?:随便|直接|随意|凭空|再|先)?\s*(?:编造|虚构|假设|编(?:写)?(?:一段|一个|几个|个))'
+                     r'(?!测试材料|材料整理)', clause):
+            return True
+        if re.match(r'\s*(?:编造|虚构|假设)(?:一段|一个|一些|点|个|我的|本人|经历|数据|职责)', clause):
+            return True
+    return False
 
 
 def looks_like_existing_resume(text: str) -> bool:

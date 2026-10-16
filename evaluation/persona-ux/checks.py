@@ -230,7 +230,7 @@ def evaluate_persona(persona, turns, *, with_recovery=False):
             ("mentor", "正文保留导师指导限定", r"导师.{0,8}指导|指导.{0,8}导师"),
             ("test_environment", "正文保留测试环境限定", r"测试环境"),
             ("no_online_load", "正文保留未做线上压测限定", r"(?:没|未|无|没有).{0,8}线上.{0,3}压测"),
-            ("team_scope", "正文保留同学负责登录、实验室演示/无真实用户分工", r"(?:登录[^\n。；]*同学|同学[^\n。；]*登录)[\s\S]*(?:实验室|无真实用户|没有真实用户)"),
+            ("team_scope", "正文保留同学负责登录、实验室演示/无真实用户分工", r"^(?=[\s\S]*(?:登录[^\n。；]*同学|同学[^\n。；]*登录))(?=[\s\S]*(?:实验室|无真实用户|没有真实用户))"),
         ):
             text_check(id_, label, turns, pattern)
         identity_check()

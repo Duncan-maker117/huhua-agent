@@ -37,11 +37,14 @@ from app.agents.triage_chain import (
 from app.services.candidate_material import (
     looks_like_existing_resume,
     parse_existing_resume,
+    requests_fabrication,
+    split_mixed_material,
 )
 from app.services.resume_review import resume_to_text, review_resume
 from app.services.resume_strategy import build_resume_strategy, has_job_description
 from app.services.resume_workspace import bounded_web_sources
 from app.services.speculative import SpeculativeScope
+from app.services.fact_guard import strip_absence as _strip_absence
 
 logger = logging.getLogger(__name__)
 
@@ -197,9 +200,6 @@ def _extract_opt_basic_info(messages: list) -> dict:
     return out
 
 
-from app.services.fact_guard import strip_absence as _strip_absence  # 「没有用户量」类限制不进入简历展示文本；事实母版原样保留
-
-
 def _serialize_to_resume_data(state: "ResumeState") -> dict:
     """state → ResumeData dict（供 /resume 接口返回给前端渲染）。"""
     collected = state.get("collected_info") or _empty_collected_info()
@@ -253,10 +253,15 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             for field in {fact.get("field") for fact in facts if fact.get("field")}:
                 values = [fact["text"] for fact in facts if fact.get("field") == field and fact.get("status", "active") == "active"]
                 item[field] = values[-1] if values else ""
-            body = [cleaned for fact in facts if fact.get("status", "active") == "active" and not fact.get("field")
-                    if (cleaned := _strip_absence(fact["text"]))]
+            from app.services.resume_field_hygiene import role_body, sourced_role
+            body = [cleaned for fact in facts if fact.get("status", "active") == "active"
+                    and (not fact.get("field") or fact.get('field') in {'role', 'title'})
+                    if (cleaned := _strip_absence(role_body(fact['text']) if fact.get('field') in {'role', 'title'}
+                                                 else fact['text']))]
             item["description"] = "\n".join(body)
             item["bullets"] = body
+            field = 'title' if 'company' in item else 'role'
+            item[field] = sourced_role(facts, item.get(field, ''), item.get('name') or item.get('company', ''))
         return item
 
     def _presentation(item: dict) -> dict:
@@ -546,7 +551,10 @@ def _candidate_source_allowed(message: HumanMessage) -> bool:
     """
     from app.services.candidate_material import personal_attachment
     text = message.content if isinstance(message.content, str) else ""
-    if message.additional_kwargs.get("career_material_type") == 'jd' and personal_attachment(text):
+    candidate, mixed_jd = split_mixed_material(text)
+    if requests_fabrication(text):
+        return False
+    if message.additional_kwargs.get("career_material_type") == 'jd' and (personal_attachment(text) or mixed_jd):
         return True
     if message.additional_kwargs.get("career_material_type") in {
         "review",
@@ -557,17 +565,21 @@ def _candidate_source_allowed(message: HumanMessage) -> bool:
     text = message.content if isinstance(message.content, str) else ""
     if _is_review_intent(text):
         return False
-    if _has_jd_text(text) and not personal_attachment(text):
+    if _has_jd_text(candidate) and not personal_attachment(text):
         return False
     if _re.search(
-        r"(?:^|\n)\s*(?:示例简历|简历范文|参考简历|参考材料|虚构简历|以下是范文|他人简历)[:：]?"
-        r"|(?:帮我|请|替我|给我)(?:.{0,6})(?:编造|虚构|编一段|编一个|编几段)"
-        r"|(?:假设我|假装我|随便编)",
+        r"(?:^|\n)\s*(?:示例简历|简历范文|参考简历|参考材料|虚构简历|以下是范文|他人简历)[:：]?",
         text,
         _re.IGNORECASE,
     ):
         return False
     return True
+
+
+def _fabrication_refusal(state: dict) -> dict | None:
+    if requests_fabrication(_latest_human_text(state)):
+        return {'messages': [AIMessage(content='要求 AI 编造的经历、数据或职责这部分不会写进简历，因为没有用户提供的事实依据。本轮未交付新稿；可以提供已有材料再整理。')]}
+    return None
 
 
 def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
@@ -885,6 +897,8 @@ def _explicit_generate_requested(text: str) -> bool:
             continue
         if _re.search(r"不要|先别|暂不|不想|还不|别急|是否|要不要|能否|[？?]", clause):
             continue
+        if _re.search(r'(?:^|[，,])\s*(?:请|现在|帮我)?(?:直接(?:成稿|生成|写)|不用先问|不必先问|整理成.{0,60}简历)', clause):
+            return True
         if _re.search(
             r"(?:^|[，,])\s*(?:请|帮我|给我|现在|直接|开始|先|按已有|按现有).{0,30}"
             r"(?:生成|制作|整理|写|输出|做一份|出一份|做).{0,20}(?:简历|草稿)"
@@ -1207,7 +1221,7 @@ def _latest_human_text(state: dict) -> str:
 
 def _no_more_questions(state: dict) -> bool:
     return bool((state.get("collected_info") or {}).get("no_more_questions") or any(
-        _re.search(r"不要再追问|不要追问|不用问了|不要再问|别再问|(?<!不要)(?<!先不)直接生成", m.content)
+        _re.search(r"不要再追问|不要追问|不用问了|不用先问|不再反问|不要再问|别再问|(?<!不要)(?<!先不)直接(?:生成|成稿|写)", m.content)
         for m in state.get("messages", []) if isinstance(m, HumanMessage) and isinstance(m.content, str)))
 
 
@@ -1215,6 +1229,7 @@ async def _extract_info_from_message(
     message: str, current: dict, llm: ChatOpenAI,
 ) -> dict:
     """Apply a sparse, per-fact validated user message patch."""
+    message, _ = split_mixed_material(message)
     from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch, followup_item
     from app.services.resume_facts import normalize_fact_store
     if _no_more_questions({"messages": [HumanMessage(content=message)]}):
@@ -1415,6 +1430,8 @@ def _has_personal_features(text: str) -> bool:
 def _jd_decode_allowed(text: str, state: dict) -> bool:
     """A triage guess or explicit task cannot replace a JD with personal data."""
     from app.services.candidate_material import personal_attachment
+    if split_mixed_material(text)[1]:
+        return False
     if personal_attachment(text):
         return False
     if _has_jd_text(text):
@@ -1657,6 +1674,8 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段1：等待 JD / 跳过 JD / 轻量模式。由 Triage 决定走哪条分支。"""
+    if refusal := _fabrication_refusal(state):
+        return refusal
     if prepared := await _separate_candidate_turn(state, llm):
         return _candidate_turn_result(prepared, await jd_input_node({**state, **prepared}, llm))
     messages = state["messages"]
@@ -1809,6 +1828,8 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if refusal := _fabrication_refusal(state):
+        return {'collected_info': state.get('collected_info') or _empty_collected_info(), **refusal}
     if prepared := await _separate_candidate_turn(state, llm):
         return _candidate_turn_result(prepared, await collecting_node({**state, **prepared}, llm))
     if receipt := _stale_plan_confirmation(state):
@@ -2211,6 +2232,9 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
         from app.agents.resume_writer import run_resume_writer
         card = state.get('pending_plan') or {}
         action, index = plan_action(latest, card)
+        from app.services.resume_delivery import delivery_requested
+        if action != 'confirm' and delivery_requested(latest) and _explicit_generate_requested(latest):
+            action = 'direct'
         if not card:
             profile = copy.deepcopy((state.get('jd_info') or {}).get('role_profile') or {})
             planned = await run_resume_writer(collected, profile, writer, current_data=base,
@@ -2317,7 +2341,8 @@ def _writer_reply(result: dict) -> str:
 
 def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
     if _no_more_questions(state):
-        return "", state.get("asked_questions") or []
+        summary = result.get('plan_summary')
+        return ('\n\n**这版的思路**：' + summary if summary else ''), state.get("asked_questions") or []
     from app.agents.interviewer import compose_interviewer_reply, education_question
     if (result.get("writer_diagnostic") or {}).get("status") == "model_fallback":
         note, asked = education_question({**state, **result})
@@ -2343,6 +2368,8 @@ def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
 
 
 async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:
+    if refusal := _fabrication_refusal(state):
+        return refusal
     if not plan_confirmation and (receipt := _stale_plan_confirmation(state)):
         return receipt
     result = await _write_resume_update(state, llm)
@@ -2474,6 +2501,8 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
 
 
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    if refusal := _fabrication_refusal(state):
+        return refusal
     if prepared := await _separate_candidate_turn(state, llm):
         return _candidate_turn_result(prepared, await evaluating_node({**state, **prepared}, llm))
     if receipt := _stale_plan_confirmation(state):
@@ -2568,12 +2597,29 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             return {**updated, **(await building_node({**state, **updated}, llm))}
         return {'messages': [AIMessage(content='这段参考材料未作为本人事实写入，请说明要怎样修改当前稿。')]}
     collected = state.get('collected_info') or _empty_collected_info()
+    from app.services.resume_delivery import export_capability
+    if (state.get('resume_data') and _re.search(r'交付最终|最终投递版', text)
+            and not _re.search(r'应为|记错|改成|改为|(?:删除|去掉)[「“]|(?:仅做|以下)修改|新增', text)
+            and not _generation_contains_facts(text, editing_existing=True)):
+        result = await _update_without_writer(state, text)
+        return {**result, 'stage': 'EVALUATING', 'resume_draft': resume_to_text(result['resume_data']),
+                'messages': [AIMessage(content='最终稿已放到右侧「写简历」，沿用已确认的事实和删改要求。' + export_capability(result['resume_data']))]}
     from app.services.fact_corrections import apply_literal_corrections, correction_pairs
     pairs = correction_pairs(text, collected)
     if pairs:
         corrected = apply_literal_corrections(collected, data, state.get('resume_meta') or {}, pairs)
         if corrected.get('error'):
             return {'messages': [AIMessage(content='更正未完成：' + corrected['error'])]}
+        # A literal correction must not swallow other edits in the same turn.
+        from app.agents.turn_actions import choose_edit_plan, render_operation_report
+        from app.services.edit_plan import execute_edit_plan
+        from app.services.candidate_skills import apply_literal_skill_limits
+        plan = choose_edit_plan(text, corrected['resume_data'], [], corrected['collected_info'], router_failed=True)
+        executed = execute_edit_plan(corrected['resume_data'], state.get('session_constraints'),
+                                     [op for op in plan if op['op'] not in {'rewrite', 'compress', 'refocus'}],
+                                     collected_info=corrected['collected_info'], instruction=text)
+        corrected.update(resume_data=executed['data'], collected_info=executed['collected_info'])
+        skill_changes = apply_literal_skill_limits(corrected['collected_info'], corrected['resume_data'], text)
         from app.services.fact_coverage import ensure_fact_coverage
         ensure_fact_coverage(corrected['resume_data'], corrected['resume_meta'], corrected['collected_info'])
         from app.services.resume_versions import prepare_version
@@ -2584,12 +2630,15 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         measurement = await asyncio.to_thread(measure_rendered_pages, corrected['resume_data'], constraints_for_turn(state, text))
         version['resume_meta']['page_check'] = measurement
         changes = [f"{pair['old']} → {pair['new']}" for pair in pairs]
+        changes.extend(render_operation_report(executed['operation_results'], data, corrected['resume_data']))
+        changes.extend(skill_changes)
         version['resume_meta']['change_summary'] = changes
         version['resume_meta']['writer_diagnostic'] = {'status': 'not_called', 'reason': 'literal_correction'}
         return {**version, 'collected_info': corrected['collected_info'], 'page_check': measurement,
+                'session_constraints': constraints_for_turn(state, text),
                 'stage': 'EVALUATING', 'resume_draft': resume_to_text(version['resume_data']),
                 'change_summary': changes,
-                'messages': [AIMessage(content='已更新正文中的' + '、'.join(changes) + '，其他内容保持不变。')]}
+                'messages': [AIMessage(content='已更新正文。本次修改：' + '；'.join(changes) + '。' + export_capability(version['resume_data']))]}
     from app.agents.turn_actions import wording_only
     local_wording = wording_only(text)
     imported = parse_existing_resume(text)
@@ -2805,6 +2854,11 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
 
 def route_by_stage(state: ResumeState) -> str:
     latest = _latest_human_text(state)
+    if requests_fabrication(latest):
+        return 'jd_input'
+    from app.services.resume_delivery import delivery_requested
+    if state.get('resume_data') and delivery_requested(latest):
+        return 'evaluating'
     if _dialogue_requested(latest):
         return "dialogue"
     if state.get("requested_task", "auto") != "auto":
@@ -3110,9 +3164,11 @@ async def _stream_agent_impl(
     # Fresh sessions may publish source-backed intake previews before drafting.
     # Mark them once so that those previews do not trigger legacy compatibility.
     from app.config import get_settings
-    if get_settings().LLM_PLAN_CONFIRM and callable(getattr(graph, 'aget_state', None)):
+    initial_values = {}
+    if callable(getattr(graph, 'aget_state', None)):
         initial_snapshot = await graph.aget_state(config)
         initial_values = (initial_snapshot.values if initial_snapshot else {}) or {}
+    if get_settings().LLM_PLAN_CONFIRM:
         from app.agents.tailor_pipeline import _has_visible_experience_body
         if not initial_values.get('messages') and not _has_visible_experience_body(initial_values.get('resume_data') or {}):
             input_state['plan_required'] = True
@@ -3132,8 +3188,13 @@ async def _stream_agent_impl(
         "structure_plan",
     }
     streamed_reply_ids: set[str] = set()
+    buffered_reply_ids: set[str] = set()
+    emitted_text: dict[str, str] = {}
+    from app.services.resume_delivery import delivery_requested, guard_delivery, ReplyStreamBuffer
+    hold_delivery = delivery_requested(last_msg['content'])
+    reply_buffers = {}
     completed_reply_ids: set[str] = set()
-    pending_replies: list[str] = []
+    pending_replies: dict[int, str] = {}
     turn_replies: list[AIMessage] = []
     saved_intake = {}
 
@@ -3202,8 +3263,16 @@ async def _stream_agent_impl(
                     or not content
                 ):
                     continue
-                streamed_reply_ids.add(reply_id)
-                yield content
+                buffer = reply_buffers.setdefault(reply_id, ReplyStreamBuffer(
+                    initial_values.get('resume_data') or {}, delivery=hold_delivery))
+                delta = buffer.feed(content)
+                if buffer.buffered:
+                    buffered_reply_ids.add(reply_id)
+                    continue
+                if delta:
+                    streamed_reply_ids.add(reply_id)
+                    emitted_text[reply_id] = emitted_text.get(reply_id, '') + delta
+                    yield delta
                 continue
             if mode != "updates" or not isinstance(update, dict):
                 continue
@@ -3219,8 +3288,16 @@ async def _stream_agent_impl(
                         turn_replies.append(message)
                         if message.id:
                             completed_reply_ids.add(message.id)
-                        if message.content and message.id not in streamed_reply_ids:
-                            pending_replies.append(message.content)
+                        buffer = reply_buffers.get(message.id)
+                        if buffer and not buffer.buffered:
+                            tail = buffer.feed('', final=True)
+                            if tail:
+                                streamed_reply_ids.add(message.id)
+                                emitted_text[message.id] = emitted_text.get(message.id, '') + tail
+                                yield tail
+                        if message.content and (message.id not in streamed_reply_ids or message.id in buffered_reply_ids):
+                            consumed = buffer.consumed if buffer else len(emitted_text.get(message.id, ''))
+                            pending_replies[id(message)] = message.content[consumed:]
         graph_completed = True
     except Exception as e:
         turn_error = to_turn_error(e)
@@ -3260,6 +3337,11 @@ async def _stream_agent_impl(
             resume_data = values.get("resume_data") or {}
             if not resume_data and not values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
                 resume_data = _serialize_to_resume_data(values)
+            from app.agents.tailor_pipeline import constraints_for_turn
+            constraints = constraints_for_turn(values, last_msg['content'])
+            if constraints.get('omit_missing'):
+                from app.services.resume_delivery import omit_missing_placeholders
+                resume_data = omit_missing_placeholders(resume_data)
             # The saver creates/closes its own DB session. Page layout and its
             # transaction stay on one worker thread, away from the event loop.
             save_task = asyncio.create_task(asyncio.to_thread(save_resume_session,
@@ -3271,7 +3353,7 @@ async def _stream_agent_impl(
                 collected_info=values.get("collected_info") or {},
                 resume_meta=values.get("resume_meta") or {},
                 resume_versions=values.get("resume_versions") or [],
-                session_constraints=values.get("session_constraints") or {},
+                session_constraints=constraints,
             ))
             try:
                 committed = await asyncio.shield(save_task)
@@ -3326,7 +3408,7 @@ async def _stream_agent_impl(
                     "writer_diagnostic": canonical_meta.get("writer_diagnostic") or {}})
                 if data_changed:
                     corrected += "\n\n正文在保存时经过事实校验调整，请核对右侧已保存内容。"
-                pending_replies = [corrected if text == reply.content else text for text in pending_replies]
+                pending_replies[id(reply)] = corrected
                 if reply.id:
                     corrected_messages.append(AIMessage(id=reply.id, content=corrected,
                                                          additional_kwargs=reply.additional_kwargs))
@@ -3339,6 +3421,28 @@ async def _stream_agent_impl(
                 await repair(config, repair_values)
             except Exception:
                 logger.warning("Resume committed; checkpoint reconciliation failed")
+    # This single gate runs after SQL commit, for every route and for history.
+    canonical = committed.get('resume_data') or {} if isinstance(committed, dict) else resume_data
+    guarded_messages = []
+    for reply in turn_replies:
+        original = next((m.content for m in corrected_messages if m.id == reply.id), reply.content) if isinstance(committed, dict) else reply.content
+        buffer = reply_buffers.get(reply.id)
+        consumed = buffer.consumed if buffer else len(emitted_text.get(reply.id, ''))
+        guarded = guard_delivery(original, canonical, saved_this_turn=True, preserve_prefix=consumed)
+        # Offsets refer to model text; emitted text may already contain a
+        # capability correction. Neither prefix may be replaced or duplicated.
+        prefix = emitted_text.get(reply.id, '')
+        final_text = prefix + guarded[consumed:]
+        if id(reply) in pending_replies:
+            pending_replies[id(reply)] = guarded[consumed:]
+        if final_text != original:
+            if reply.id:
+                guarded_messages.append(AIMessage(id=reply.id, content=final_text, additional_kwargs=reply.additional_kwargs))
+    if guarded_messages and callable(getattr(graph, 'aupdate_state', None)):
+        try:
+            await graph.aupdate_state(config, {'messages': guarded_messages})
+        except Exception:
+            logger.warning('Resume committed; public receipt reconciliation failed')
     try:
         from app.services.conversation_store import session_owner, update_conversation_title
         title_values = {**state.values, **(committed if isinstance(committed, dict) else {})}
@@ -3346,5 +3450,5 @@ async def _stream_agent_impl(
     except Exception:
         # Label maintenance must never turn a committed turn into a save error.
         logger.warning("Conversation saved; automatic title update failed")
-    for reply in pending_replies:
+    for reply in pending_replies.values():
         yield reply

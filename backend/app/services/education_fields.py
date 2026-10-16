@@ -13,6 +13,9 @@ _LABELS = {
 
 
 def clean_education_value(field: str, value: str) -> str:
+    if field in {'highlights', 'description'} and isinstance(value, str):
+        from app.services.candidate_language import editorial_absence
+        return ''.join(part for part in re.split(r'(?<=[。；;\n])', value) if not editorial_absence(part))
     if field not in FIELDS or not isinstance(value, str):
         return value
     value = value.strip()

@@ -131,7 +131,7 @@ def apply_experience_merges(store: dict, merges: list[dict]) -> None:
             store.pop('followup_target', None)
 
 
-_NUMBER = r"\d+(?:\.\d+)?\s*(?:ms|毫秒|秒|场|条|人|次|个|篇|张|页|%|％)"
+_NUMBER = r"\d+(?:\.\d+)?\s*(?:ms|毫秒|秒|场|条|人|名|次|个|篇|张|页|%|％)"
 _REVERSE = re.compile(r"(?P<new>" + _NUMBER + r")[，,\s]*(?:而?不是|并非)\s*(?P<old>" + _NUMBER + r")", re.I)
 _FORWARD = re.compile(r"(?P<old>" + _NUMBER + r")\s*(?:改成|改为|改|更正为|替换为)\s*(?P<new>" + _NUMBER + r")", re.I)
 _QUOTED = re.compile(r"[“「\"](?P<old>[^”」\"\n]+)[”」\"]\s*(?:改成|改为|替换为)\s*[“「\"](?P<new>[^”」\"\n]+)[”」\"]")

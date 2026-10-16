@@ -35,7 +35,12 @@ def literal_employment(text: str) -> tuple[str, str]:
 
 
 def non_fact(text: str) -> bool:
-    return bool(_NON_FACT.search(text))
+    return bool(_NON_FACT.search(text)) or editorial_absence(text)
+
+
+def editorial_absence(text: str) -> bool:
+    """Missing-input notes constrain writing; they are not candidate evidence."""
+    return bool(re.match(r'^\s*(?:未|没有)(?:提供|填写|披露).{0,30}(?:绩点|GPA|排名|奖学金|成绩)', text, re.I))
 
 
 def personal_header(text: str) -> bool:
@@ -60,6 +65,10 @@ def constraint_only(text: str) -> bool:
     clauses = [part.strip() for part in re.split(r"[，,。；;\n]", text or "") if part.strip()]
 
     def only_limit(clause):
+        if editorial_absence(clause):
+            return True
+        if re.match(r'^(?:也)?(?:没有管理团队|(?:没有|无)(?:真实用户|线上测试|生产部署|并发|模型训练))', clause):
+            return True
         if (re.match(r'^(?:我|本人)?(?:没有|未|不曾|不)(?:负责|参与|主导)', clause)
                 and not re.search(r'但|却|而', clause)):
             return True
@@ -170,7 +179,7 @@ def resume_bullet(text: str, *, name: str = "", role: str = "") -> str:
             clause = re.sub(r"^(?:在)?" + re.escape(name) + r"(?:中)?(?:的)?", "", clause).strip()
             if re.fullmatch(r"(?:参与|加入|参加)(?:了)?" + re.escape(name), clause):
                 continue
-        if role and re.fullmatch(r"(?:在.{1,16}(?:中)?)?(?:担任|任)(?:了)?" + re.escape(role), clause):
+        if role and (clause == role or re.fullmatch(r"(?:在.{1,16}(?:中)?)?(?:担任|任)(?:了)?" + re.escape(role), clause)):
             continue
         clause = re.sub(r"^(?:也|还|又)", "", clause)
         clause = re.sub(r"^帮忙做过?(?=公众号排版)", "协助", clause)

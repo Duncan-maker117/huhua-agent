@@ -22,7 +22,7 @@ SECTION_ALIASES = {"项目": "projects", "项目经历": "projects", "projects":
                    "证书": "certificates", "certificates": "certificates",
                    "自我评价": "self_evaluation", "个人总结": "self_evaluation",
                    "self_evaluation": "self_evaluation"}
-SECTION_ALIASES.update({"校园经历": "campus", "社团经历": "campus", "校园": "campus", "campus": "campus", "开源贡献": "open_source", "开源经历": "open_source", "open_source": "open_source",
+SECTION_ALIASES.update({"校园活动": "campus", "校园经历": "campus", "社团经历": "campus", "校园": "campus", "campus": "campus", "开源贡献": "open_source", "开源经历": "open_source", "open_source": "open_source",
                         "竞赛荣誉": "awards", "竞赛和荣誉": "awards", "竞赛与荣誉": "awards", "awards": "awards"})
 BASIC_FIELDS = {"name", "phone", "email", "location", "objective", "gender", "age", "birthday",
                 "hometown", "political", "ethnicity", "height", "availability"}

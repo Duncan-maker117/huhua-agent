@@ -11,10 +11,12 @@ _LABELS = {
     '教育': 'education', '教育经历': 'education', '教育背景': 'education',
     '实习': 'internship', '实习经历': 'internship',
     '工作': 'work_experience', '工作经历': 'work_experience',
-    '校园': 'campus', '校园经历': 'campus',
+    '校园': 'campus', '校园经历': 'campus', '校园活动': 'campus',
     '项目': 'projects', '项目经历': 'projects', '技能': 'skills',
+    '基本信息': '',
 }
-_MARKER = re.compile(r'(?m)^[ \t]*(?P<label>' + '|'.join(_LABELS) + r')[：:]|(?<!\d)\d+[）)]')
+_MARKER = re.compile(r'(?m)(?:^[ \t]*|【)(?P<label>' + '|'.join(sorted(_LABELS, key=len, reverse=True))
+                     + r')(?:[：:]|[一二三四五六七八九十\d]*】)|(?<!\d)\d+[）)]')
 
 
 def explicit_subject_spans(text: str) -> list[dict]:

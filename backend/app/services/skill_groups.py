@@ -20,7 +20,7 @@ _VOCABULARY: tuple[tuple[str, re.Pattern], ...] = (
     ("AI 工具", re.compile(r"即梦|workbuddy", re.I)),
     ("办公软件", re.compile(r"word|excel|ppt|powerpoint", re.I)),
     ("工具", re.compile(r"^(?:claude\s*code|codex|cursor|chatgpt|gemini|figma|google\s*stitch|openclaw|notion|xmind|excel|"
-                        r"copilot|axure|墨刀|飞书|jira|trae|windsurf|midjourney|stable\s*diffusion)$", re.I)),
+                        r"figma能.+|copilot|axure|墨刀|飞书|jira|trae|windsurf|midjourney|stable\s*diffusion)$", re.I)),
     ("AI 与 Agent", re.compile(r"llm|rag|agent|mcp|prompt|skill|langgraph|langchain|function\s*calling|tool\s*use|embedding|"
                               r"大模型|工具调用|多\s*agent|微调|向量", re.I)),
     ("开发", re.compile(r"python|java(?!script)|javascript|typescript|spring|mysql|sql|fastapi|flask|django|git|github|redis|"
@@ -88,11 +88,22 @@ def normalize_skill_groups(groups: Mapping[str, Sequence[str]], extra: Iterable[
     extra = split_skills(extra)
     protected = {identity(skill) for skill in extra}
     seen: dict[str, tuple[str, str]] = {}
+    def keep(skill, name, *, sourced=False):
+        key = identity(skill)
+        previous = seen.get(key)
+        if key == 'agent工具调用与rag' and previous:
+            # Keep the literal, more specific ability declaration regardless
+            # of whether the extractor or writer listed its short alias first.
+            if re.search(r'基本流程|基础流程', previous[0]) and not re.search(r'基本流程|基础流程', skill):
+                return
+            sourced = sourced or bool(re.search(r'基本流程|基础流程', skill))
+        if sourced or previous is None:
+            seen[key] = (skill, _category(skill, name))
     for name, values in groups.items():
         for skill in split_skills(values):
-            seen.setdefault(identity(skill), (skill, _category(skill, name)))
+            keep(skill, name)
     for skill in extra:
-        seen[identity(skill)] = (skill, _category(skill, ""))
+        keep(skill, '', sourced=True)
     terms = [_key(term) for term in jd_terms if isinstance(term, str)]
     grouped: dict[str, list[tuple[int, int, str]]] = {}
     for order, (skill, category) in enumerate(seen.values()):

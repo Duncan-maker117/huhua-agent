@@ -483,6 +483,13 @@ def deterministic_compound_plan(message: str, data: dict | None = None) -> list[
         from app.services.resume_layout import density_operations
         ops.extend(density_operations(clause))
         target = _match_label(clause, labels) or _ordinal_target(clause)
+        from app.services.edit_plan import SECTION_ALIASES
+        section = next((alias for alias in sorted(SECTION_ALIASES, key=len, reverse=True)
+                        if alias in clause and re.search(r'整段|整个|栏目|模块|这一段', clause)), '')
+        if section and re.search(r'删除|删掉|去掉|移除', clause) and not re.search(r'不(?:要|再)(?:删除|删掉)', clause):
+            ops.extend([{'op': 'remove_section', 'target': section, 'args': {}},
+                        {'op': 'hide_item', 'target': section, 'args': {}}])
+            continue
         if re.search(r"[一二两12]\s*页", clause):
             number = 2 if re.search(r"[两2]\s*页", clause) else 1
             ops.append({"op": "set_constraint", "target": "page_limit", "args": {"page_limit": number}})
@@ -714,7 +721,9 @@ def choose_edit_plan(message: str, data: dict | None, model_plan: list[dict],
                                           and (op.get("args") or {}).get("field") == "objective")]
         plan.append({"op": "set_field", "target": "basic_info",
                      "args": {"field": "objective", "value": value}})
-    return plan
+    # 整段删除已覆盖该栏目，同名的逐条隐藏只会产生多余的待确认提示
+    removed = {op.get("target") for op in plan if op.get("op") == "remove_section"}
+    return [op for op in plan if not (op.get("op") in {"hide_item", "delete_item"} and op.get("target") in removed)]
 
 
 def section_move_ops(message: str, data: dict | None) -> list[dict]:

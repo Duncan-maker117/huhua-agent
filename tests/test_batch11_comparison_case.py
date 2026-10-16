@@ -37,7 +37,7 @@ from app.services.resume_workspace import build_workspace
 from test_campus_and_naming import EchoWriter, ExtractorStub, semantic_stub
 from test_structure_plan import FakeModel, card, source, writer_draft
 
-P1, P2, P3 = re.findall(r'```text\n(.*?)\n```', (ROOT / 'web/comparison/prompts.txt').read_text(), re.S)[:3]
+P1, P2, P3 = re.findall(r'```text\n(.*?)\n```', (Path(__file__).with_name('comparison_case_prompts.txt')).read_text(), re.S)[:3]
 BODY = '# 林知夏\n## 教育背景\n海川理工大学\n## 项目经历\n- 访谈18名同学\n## 技能\nSQL基础查询\n邮箱：（邮箱已提供）'
 
 

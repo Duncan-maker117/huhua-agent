@@ -331,7 +331,8 @@ def deepen_context(state: dict) -> dict:
     from app.services.ask_user import question_dimension
     update = intake_update(state)
     current = current_experience(state)
-    context = {**update, "instruction": "表单可跳过，任何自由文本照常抽取。target 阶段只在正文开放询问岗位方向，不出问题卡。"}
+    from app.services.job_intel.integration import market_context
+    context = {**update, "market_context": market_context(state), "instruction": "表单可跳过，任何自由文本照常抽取。target 阶段只在正文开放询问岗位方向，不出问题卡。"}
     if not current:
         context["instruction"] += " 当前尚未到深挖，或深挖已经结束，不调用 ask_user；有表单时简短说明即可。"
         return context

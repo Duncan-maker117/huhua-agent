@@ -350,10 +350,31 @@ def _extract(
             for key in ("title", "description", "responsibilities", "qualifications", "skills", "educationRequirements", "experienceRequirements", "jobBenefits"):
                 value = job.get(key)
                 if isinstance(value, str):
-                    fields.append(_html_text(value, content_limit))
+                    label = {"title": "岗位", "responsibilities": "岗位职责", "qualifications": "任职要求",
+                             "skills": "岗位要求", "educationRequirements": "任职要求",
+                             "experienceRequirements": "任职要求", "jobBenefits": "岗位亮点"}.get(key)
+                    fields.append((label + "：" if label else "") + _html_text(value, content_limit))
             company = job.get("hiringOrganization")
             if isinstance(company, dict) and isinstance(company.get("name"), str):
                 fields.insert(0, "公司：" + _html_text(company["name"], 200))
+            # 保留招聘页明确提供的地点与薪资，缺失时不补猜。
+            locations = job.get("jobLocation") or []
+            for location in locations if isinstance(locations, list) else [locations]:
+                address = location.get("address") if isinstance(location, dict) else None
+                if isinstance(address, dict):
+                    parts = [address.get(key) for key in ("addressRegion", "addressLocality", "streetAddress")]
+                    label = " / ".join(value for value in parts if isinstance(value, str) and value)
+                    if label:
+                        fields.insert(0, "工作地点：" + _html_text(label, 240))
+            salary = job.get("baseSalary")
+            if isinstance(salary, dict) and isinstance(salary.get("value"), dict):
+                value = salary["value"]
+                amount = value.get("value")
+                if amount is None and value.get("minValue") is not None and value.get("maxValue") is not None:
+                    amount = f"{value['minValue']}–{value['maxValue']}"
+                if type(amount) in (str, int, float):
+                    label = " ".join(str(part) for part in (salary.get("currency"), amount, value.get("unitText")) if part is not None)
+                    fields.insert(0, "薪资：" + _html_text(label, 240))
             content = _clean("\n".join(fields), content_limit)
             if len(content) >= 80:
                 _require_readable_encoding(content)
@@ -574,15 +595,15 @@ def _search_query(company: str, role: str) -> str:
     return " ".join(value for value in values if value) + " 岗位职责"
 
 
-async def _search_response(query: str, key: str) -> dict:
+async def _search_response(query: str, key: str, *, count: int = 4, timeout: float = 15.0) -> dict:
     # Fixed provider endpoint; no user-supplied URL or redirect can receive key.
     request = httpx.Request(
         "POST", "https://api.tavily.com/search",
         headers={"Authorization": f"Bearer {key}", "Accept-Encoding": "gzip, deflate"},
-        json={"query": query, "search_depth": "basic", "max_results": 4, "topic": "general",
+        json={"query": query, "search_depth": "basic", "max_results": min(20, max(1, count)), "topic": "general",
               "include_answer": False, "include_raw_content": False, "include_images": False,
               "auto_parameters": False},
-        extensions={"timeout": {"connect": 5.0, "read": 10.0, "write": 5.0, "pool": 5.0}},
+        extensions={"timeout": dict.fromkeys(("connect", "read", "write", "pool"), timeout)},
     )
     async with httpx.AsyncHTTPTransport(trust_env=False, retries=0) as transport:
         response = await transport.handle_async_request(request)

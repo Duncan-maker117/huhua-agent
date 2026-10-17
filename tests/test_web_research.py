@@ -162,12 +162,13 @@ class WebResearchTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIs(result["content_truncated"], length > web.READ_CONTENT_LIMIT)
 
     async def test_jobposting_counts_combined_fields_when_marking_truncation(self):
-        for second_length in (5999, 6000):
+        # JSON-LD qualification labels count toward the same hard content limit.
+        for second_length in (5994, 5995, 5999, 6000):
             with self.subTest(second_length=second_length):
                 job = {"@type": "JobPosting", "description": "责" * 6000, "qualifications": "技" * second_length}
                 html = '<script type="application/ld+json">' + json.dumps(job, ensure_ascii=False) + '</script>'
                 result = await self._read_fixture(html)
-                expected = "责" * 6000 + "\n" + "技" * second_length
+                expected = "责" * 6000 + "\n任职要求：" + "技" * second_length
                 self.assertEqual(result["content"], expected[:web.READ_CONTENT_LIMIT])
                 self.assertIs(result["content_truncated"], len(expected) > web.READ_CONTENT_LIMIT)
 

@@ -80,6 +80,13 @@ class Settings(BaseSettings):
 
     # Optional, server-only. Job URL reading does not require a search key.
     TAVILY_API_KEY: str = ""
+    # 岗位情报独立凭证优先；仅官方 DeepSeek 地址可复用模型凭证。
+    DEEPSEEK_TOOLS_API_KEY: str = ""
+    JOB_INTEL_PROVIDERS: str = "deepseek,tavily"
+    JOB_INTEL_DAILY_LIMIT: int = Field(default=300, ge=0)
+    JOB_INTEL_READ_LIMIT: int = Field(default=5, ge=0)
+    JOB_INTEL_SAMPLE_LIMIT: int = Field(default=2, ge=0)
+    JOB_INTEL_COMPANY_LIMIT: int = Field(default=3, ge=0)
 
     # RAG
     CHROMA_DIR: str = str(PROJECT_DIR / "data" / "chroma_db")

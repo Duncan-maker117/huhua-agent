@@ -14,7 +14,7 @@ def main():
             **os.environ,
             "DATABASE_URL": f"sqlite:///{path / 'application.sqlite3'}",
             "CHECKPOINT_DB_PATH": str(path / "checkpoints.sqlite3"),
-            "LLM_API_KEY": "", "TAVILY_API_KEY": "", "ENABLE_RAG": "false",
+            "LLM_API_KEY": "", "TAVILY_API_KEY": "", "DEEPSEEK_TOOLS_API_KEY": "", "ENABLE_RAG": "false",
             # Legacy intake fixtures assert one-turn generation. P3 fixtures
             # explicitly enable confirmation and exercise the new default path.
             "LLM_PLAN_CONFIRM": "false",

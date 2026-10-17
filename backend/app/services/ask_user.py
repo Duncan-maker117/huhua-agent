@@ -224,7 +224,8 @@ def question_context(state: dict, *, tools_available: bool = True) -> str:
         budget = "本轮正文提问预算：0 个问句。用户已要求停止追问，不要提问或调用 ask_user。"
     elif not tools_available or not can_ask_user(state):
         budget += " 本轮 ask_user 不可用，只挑一个最有价值的问题，其余留到后续轮次。"
-    contract = ASK_CONTRACT + "\n以下本轮预算优先于上面的工具规则及其他阶段提示中的追问、建议和格式要求：\n" + budget
+    from app.services.job_intel.integration import market_context
+    contract = market_context(state) + "\n" + ASK_CONTRACT + "\n以下本轮预算优先于上面的工具规则及其他阶段提示中的追问、建议和格式要求：\n" + budget
     if state.get("intake_stage") and state.get("intake_stage") != "ready":
         return contract + "\n分阶段规则优先于旧候选：\n" + json.dumps({
             "closed_questions": state.get("closed_questions") or [], **deepen_context(state),

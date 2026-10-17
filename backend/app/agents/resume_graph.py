@@ -27,6 +27,7 @@ from app.agents.decoder_chain import run_decoder_chain
 from app.services.error_codes import to_turn_error
 from app.agents.career_prompt import career_messages, career_system
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, stream_public_reply
+from app.services.job_intel.integration import enrich_direction, intel_result
 from app.agents.router import advice_contains_facts, explicit_edit_requested, is_advice, is_greeting
 from app.agents.triage_chain import (
     TriageAction,
@@ -1624,7 +1625,12 @@ def _direction_profile_update(state: dict, message: str, collected: dict | None 
     if not direction:
         return {}
     profile = role_profile_from_direction(direction)
-    info = {"role_profile": profile, "role_direction": direction}
+    previous = state.get("jd_info") or {}
+    if previous.get("role_direction") == direction:
+        profile = {**profile, **(previous.get("role_profile") or {})}
+    else:
+        previous = {key: value for key, value in previous.items() if key == "company"}
+    info = {**previous, "role_profile": profile, "role_direction": direction}
     return {
         "jd_info": info, "jd_skipped": True, "jd_keywords": [direction],
         "resume_strategy": build_resume_strategy(jd_info=info, jd_keywords=[direction], has_jd=False),
@@ -1695,6 +1701,7 @@ def _dialogue_requested(text: str) -> bool:
     return is_greeting(text) or (is_advice(text) and not explicit_edit_requested(text))
 
 
+@intel_result
 async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """Reply without a draft update; statements alongside advice still become facts."""
     text = _latest_human_text(state)
@@ -1733,9 +1740,11 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     return result
 
 
+@intel_result
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.services.intake import intake_update
     result = await _jd_input_turn(state, llm)
+    result.update(await enrich_direction({**state, **result}, llm))
     result.update(intake_update({**state, **result}))
     return result
 
@@ -1895,6 +1904,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     return {"messages": [response]}
 
 
+@intel_result
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if refusal := _fabrication_refusal(state):
         return {'collected_info': state.get('collected_info') or _empty_collected_info(), **refusal}
@@ -1916,6 +1926,8 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     profile_update = (_direction_profile_update(state, latest_message.content, collected)
                       if latest_message and _candidate_source_allowed(latest_message) else {})
     working = {**state, **profile_update, "collected_info": collected}
+    profile_update.update(await enrich_direction(working, llm))
+    working.update(profile_update)
     result = await _collecting_turn_node(working, llm)
     result = {**profile_update, **result}
     if not profile_update and result.get("collected_info"):
@@ -2482,6 +2494,7 @@ async def _model_followup(state: dict, result: dict, llm) -> AIMessage:
         return AIMessage(content=prefix)
 
 
+@intel_result
 async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:
     if refusal := _fabrication_refusal(state):
         return refusal
@@ -2515,6 +2528,7 @@ def _plan_card_update(result: dict) -> dict:
             'messages': [AIMessage(content='先定这份简历的方案。选「按推荐写」或备选方案后开始成稿，也可以直接说想怎么改。')]}
 
 
+@intel_result
 async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.schemas.writer import MatchPlan
     from app.services.structure_plan import plan_action, select_plan, edit_plan, apply_plan_structure, profile_edit, style_edit, accept_profile
@@ -2634,6 +2648,7 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
     return reply, checks
 
 
+@intel_result
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if refusal := _fabrication_refusal(state):
         return refusal
@@ -2936,6 +2951,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             'messages': [followup.model_copy(update={'content': reply})]}
 
 
+@intel_result
 async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段5：引导用户核对并使用真实存在的预览与导出入口。"""
     latest = next(
@@ -3035,6 +3051,7 @@ def route_by_stage(state: ResumeState) -> str:
     return stage.lower()
 
 
+@intel_result
 async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """Explicit single-turn skills; review materials never enter candidate facts."""
     from app.agents.career_tasks import run_resume_review
@@ -3150,11 +3167,21 @@ async def research_job_node(state: ResumeState, request_text: str, llm) -> dict:
 def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     """构建并编译 LangGraph 状态机"""
     from functools import partial
+    from app.services.job_intel.background import current_graph
+
+    def with_intel_graph(node):
+        async def run(state):
+            token = current_graph.set(compiled)
+            try:
+                return await node(state, llm=llm)
+            finally:
+                current_graph.reset(token)
+        return run
 
     graph = StateGraph(ResumeState)
 
-    graph.add_node("jd_input", partial(jd_input_node, llm=llm))
-    graph.add_node("collecting", partial(collecting_node, llm=llm))
+    graph.add_node("jd_input", with_intel_graph(jd_input_node))
+    graph.add_node("collecting", with_intel_graph(collecting_node))
     graph.add_node("building", partial(building_node, llm=llm))
     graph.add_node("evaluating", partial(evaluating_node, llm=llm))
     graph.add_node("export", partial(export_node, llm=llm))
@@ -3193,7 +3220,8 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue", "structure_plan"]:
         graph.add_edge(node, END)
 
-    return graph.compile(checkpointer=checkpointer or MemorySaver())
+    compiled = graph.compile(checkpointer=checkpointer or MemorySaver())
+    return compiled
 
 
 # ── 对外接口 ──────────────────────────────────────────────────────────────────

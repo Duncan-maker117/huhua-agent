@@ -130,7 +130,8 @@ async def available_web_tools():
 
 
 async def _execute_web_tool(tool: ReadJobURL | ReadPublicURL | SearchJobContext) -> list[dict]:
-    from app.services.web_research import WebResearchError, read_job_url, read_public_url, search_job_context
+    from app.services.web_research import WebResearchError, read_public_url, search_job_context
+    from app.services.job_intel import read_job_url
 
     global _web_slots, _web_loop
     loop = asyncio.get_running_loop()
@@ -144,7 +145,12 @@ async def _execute_web_tool(tool: ReadJobURL | ReadPublicURL | SearchJobContext)
     try:
         async with asyncio.timeout(20):
             if isinstance(tool, ReadJobURL):
-                return [await read_job_url(tool.url)]
+                result = await read_job_url(tool.url)
+                if result.get("status") == "ok":
+                    return [{**result["page"], "job_card": result["card"]}]
+                if result.get("status") == "public_page":
+                    return [result["page"]]
+                return [{"kind": "intel_notice", "content": result.get("message", "暂未读到岗位正文。请上传截图或复制原文。")}]
             if isinstance(tool, ReadPublicURL):
                 return [await read_public_url(tool.url)]
             return await search_job_context(tool.company, tool.role)
@@ -159,7 +165,7 @@ async def _execute_web_tool(tool: ReadJobURL | ReadPublicURL | SearchJobContext)
 def _web_turn(messages: list[dict], tool, sources: list[dict]) -> tuple[list[dict], str]:
     """Server-owned tool text has a forced non-candidate graph route."""
     copied = [dict(message) for message in messages]
-    if isinstance(tool, ReadJobURL):
+    if isinstance(tool, ReadJobURL) and sources[0].get("kind") == "job_page":
         source = sources[0]
         scope = ("正文较长，本次仅取得前 12,000 字符，请仅依据这些材料分析。"
                  if source.get("content_truncated") is True
@@ -171,7 +177,7 @@ def _web_turn(messages: list[dict], tool, sources: list[dict]) -> tuple[list[dic
             f"获取时间：{source['fetched_at']}\n\n{source['content']}"
         )
         return copied, "decode_jd"
-    if isinstance(tool, ReadPublicURL):
+    if isinstance(tool, (ReadJobURL, ReadPublicURL)):
         # The user's explicit request goes to the model, not the fetch provider.
         # Sources stay separate and use the existing reference-only graph path.
         return copied, "research_job"
@@ -229,9 +235,11 @@ async def _session_meta(session_id: str, llm: ChatOpenAI) -> dict:
     try:
         graph = get_graph(llm)
         state = await graph.aget_state({"configurable": {"thread_id": session_id}})
+        from app.services.job_intel.background import refresh_expired
+        refreshed = await refresh_expired(graph, session_id, (state.values if state else {}) or {}, locked=True)
         from app.services.conversation_store import session_owner
         owner = session_owner(session_id)
-        vals = protect_state(owner, (state.values if state else {}) or {})
+        vals = protect_state(owner, refreshed)
         stage = vals.get("stage") or "JD_INPUT"
         stored = load_resume_session(session_id)
         if stored and stored.get('has_authoritative_state'):
@@ -365,6 +373,14 @@ async def chat_stream(request: Request):
                         sources = await _execute_web_tool(tool)
                         if not sources:
                             raise HTTPException(404, "暂未找到可用的公开资料，请换用更准确的公司/岗位名，或粘贴 JD 正文")
+                        if sources[0].get("kind") == "intel_notice":
+                            from app.services.job_intel.integration import save_notice
+                            notice = sources[0]["content"]
+                            await save_notice(get_graph(llm), session_id, messages[-1]["content"], notice)
+                            yield f"data: {json.dumps({'content': notice}, ensure_ascii=False)}\n\n"
+                            yield f"data: {json.dumps(await _session_meta(session_id, llm), ensure_ascii=False)}\n\n"
+                            yield "data: [DONE]\n\n"
+                            return
                         yield f"data: {json.dumps({'type': 'sources', 'sources': sources}, ensure_ascii=False)}\n\n"
                         yield f"data: {json.dumps({'type': 'tool_status', 'tool': tool.action, 'status': 'completed', 'message': '已读取公开资料，正在结合当前材料分析…'}, ensure_ascii=False)}\n\n"
                         tool_messages, tool_task = _web_turn(messages, tool, sources)

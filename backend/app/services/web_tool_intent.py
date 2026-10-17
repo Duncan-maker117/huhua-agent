@@ -54,11 +54,10 @@ def _is_explicit_request(match: re.Match | None, text: str) -> bool:
 
 
 def infer_web_tool(text: str) -> dict | None:
-    """Infer only one explicitly requested public read, or a bare GitHub URL.
+    """自动识别一条用户链接；招聘与普通网页在读取后再区分。
 
-    Bare recruitment URLs and explicit JD reads select the existing JD path.
-    GitHub stays public reference material. Negative, multiple-link, long pasted
-    material, attachment and code-block inputs abstain.
+    GitHub 和明确的公开作品请求沿用参考路径；否定、附件/代码材料和
+    多链接继续交给用户明确对象，不将附件内的 URL 视作读取指令。
     """
     if not isinstance(text, str) or not text.strip() or len(text) > 1000:
         return None
@@ -87,6 +86,8 @@ def infer_web_tool(text: str) -> dict | None:
     if _is_explicit_request(_JD_READ_REQUEST.search(remainder), remainder):
         return {"action": "read_public_url" if github else "read_url", "url": normalized}
     request = _READ_REQUEST.search(remainder)
-    if _is_explicit_request(request, remainder):
+    if _is_explicit_request(request, remainder) and (github or re.search(
+            r"作品集|仓库|主页|\bportfolio\b|/project(?:[/?#]|$)", remainder + " " + normalized, re.I)):
         return {"action": "read_public_url", "url": normalized}
-    return None
+    # 招聘链接无需另点按钮；最终是否为 JD 由安全读取后的正文决定。
+    return {"action": "read_public_url" if github else "read_url", "url": normalized}

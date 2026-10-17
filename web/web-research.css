@@ -25,3 +25,29 @@
 .web-tool-usage-notice { margin: 0 0 10px; color: #654c29; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
 .web-direct-link-notice { margin: 0 16px 8px; }
 .web-tool-usage-notice[hidden] { display: none; }
+/* 第十五批：读岗位面板里的岗位卡 / 岗位画像 / 公司卡 */
+.intel-card { margin-top: 14px; padding: 16px 18px; border: 1px solid #e6e2ee; border-radius: 14px; background: #fff; overflow-wrap: anywhere; }
+.intel-card:first-child { margin-top: 0; }
+.intel-title { font-size: 15px; line-height: 1.5; font-weight: 650; color: #1d1a26; }
+.intel-meta { margin-top: 3px; font-size: 12px; line-height: 1.6; color: #8a8398; }
+.intel-card h4 { margin-top: 14px; font-size: 12px; font-weight: 650; color: #5423e7; letter-spacing: .02em; }
+.intel-group { margin-top: 2px; }
+.intel-list { margin-top: 6px; padding: 0; list-style: none; }
+.intel-list li { position: relative; display: flex; align-items: baseline; gap: 10px; padding: 5px 0 5px 14px; font-size: 13px; line-height: 1.6; color: #2f2a3b; border-top: 1px solid #f3f0f8; }
+.intel-list li:first-child { border-top: 0; }
+.intel-list li::before { content: ""; position: absolute; left: 2px; top: 13px; width: 4px; height: 4px; border-radius: 50%; background: #b9a4f0; }
+.intel-count { margin-left: auto; flex-shrink: 0; padding: 0 7px; border-radius: 999px; font-size: 11px; line-height: 18px; font-variant-numeric: tabular-nums; color: #3c00bd; background: #f1ecff; }
+.intel-card > p:not(.intel-meta) { margin-top: 8px; font-size: 13px; line-height: 1.65; color: #2f2a3b; }
+.intel-source { display: inline-block; margin: 8px 14px 0 0; font-size: 12px; color: #5423e7; text-decoration: underline; text-decoration-color: rgba(84, 35, 231, .3); text-underline-offset: 3px; }
+.intel-source:hover { text-decoration-color: currentColor; }
+.intel-raw, .intel-sources { margin-top: 12px; border-top: 1px solid #f0edf5; padding-top: 10px; }
+.intel-raw summary, .intel-sources summary { cursor: pointer; font-size: 12px; color: #645e72; }
+.intel-raw summary:hover, .intel-sources summary:hover { color: #3c00bd; }
+.intel-raw p { margin-top: 8px; max-height: 260px; overflow: auto; white-space: pre-wrap; font-size: 12px; line-height: 1.7; color: #474255; }
+.intel-sources .intel-list li { padding-left: 0; }
+.intel-sources .intel-list li::before { display: none; }
+.intel-sources .intel-source { margin: 0; }
+.intel-profile[data-state="pending"], .intel-profile[data-state="failed"] { background: #fbfafd; border-style: dashed; }
+.intel-profile[data-state="pending"] .intel-title::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: #5423e7; vertical-align: middle; animation: intel-pulse 1.2s ease-in-out infinite; }
+@keyframes intel-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .intel-profile[data-state="pending"] .intel-title::before { animation: none; } }

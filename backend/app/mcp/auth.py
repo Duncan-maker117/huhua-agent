@@ -31,6 +31,8 @@ TOOL_SCOPES = {
     'huhua_resume_get': 'resume:read', 'huhua_resume_measure': None,
     'huhua_resume_export': 'resume:export', 'huhua_facts_propose': 'profile:propose',
     'huhua_resume_check_facts': 'profile:read', 'huhua_resume_save': 'resume:write',
+    # 提交文稿预览无需额外 scope；读取保存稿在服务层另查 resume:read。
+    'huhua_writing_guide': None, 'huhua_resume_preview': None,
 }
 
 

@@ -60,7 +60,11 @@ async def _persist_intake(state: dict, collected: dict) -> dict:
     from app.agents.tailor_pipeline import constraints_for_turn
     update = {"collected_info": collected,
               "session_constraints": constraints_for_turn(state, _latest_human_text(state))}
+    from app.services.intake import intake_update
+    update.update(intake_update({**state, **update}))
     if (saver := _intake_saver.get()) and (collected != state.get('collected_info')
+            or update['intake_stage'] != state.get('intake_stage')
+            or update['intake_progress'] != state.get('intake_progress')
             or update['session_constraints'].get('writing_rules') != (state.get('session_constraints') or {}).get('writing_rules')):
         await saver({**state, **update})
     return update
@@ -107,6 +111,10 @@ class ResumeState(TypedDict):
     non_candidate_message_ids: list[str]  # 自动识别的招聘资料也排除历史事实兜底
     candidate_history_reconciled: bool  # Legacy user facts recovered once; never replay editor deletions.
     profile_summary: dict  # Account archive identity/counts only, refreshed by profile_bridge.
+    intake_stage: str  # basics → target → experiences → deepen → ready
+    intake_progress: dict  # 表单确认/跳过，以及每段经历的已问维度、轮数和完成情况
+    intake_profile: dict  # 基本与教育预填白名单，不含联系方式
+    intake_account: bool
 
 
 def _empty_collected_info() -> dict:
@@ -157,6 +165,10 @@ def _init_state() -> ResumeState:
         "non_candidate_message_ids": [],
         "candidate_history_reconciled": False,
         "profile_summary": {},
+        "intake_stage": "basics",
+        "intake_progress": {},
+        "intake_profile": {},
+        "intake_account": False,
     }
 
 
@@ -878,7 +890,8 @@ async def _recover_candidate_history(state: ResumeState, llm: ChatOpenAI) -> dic
         return collected
     excluded = set(state.get("non_candidate_message_ids") or [])
     humans = [m for m in state.get("messages", []) if isinstance(m, HumanMessage)]
-    history = [m for m in humans[:-1] if m.id not in excluded and _candidate_source_allowed(m)]
+    history = [m for m in humans[:-1] if m.id not in excluded and _candidate_source_allowed(m)
+               and not m.additional_kwargs.get("intake")]
     followups = []
     for message in history:
         imported = parse_existing_resume(message.content)
@@ -918,7 +931,7 @@ def _explicit_generate_requested(text: str) -> bool:
         return False
     # Check clauses rather than just the first line; ignore quoted examples and
     # negative/conditional requests instead of treating them as consent to build.
-    for clause in _re.split(r"[\n。；;！!]", text.strip()):
+    for clause in _re.split(r"[\n。；;！!，,]", text.strip()):
         clause = clause.strip()
         if not clause or clause.startswith((">", "“", "‘", '"', "```")):
             continue
@@ -999,6 +1012,7 @@ def _has_minimum_info(collected: dict) -> bool:
         collected.get("work_experience")
         or collected.get("internship")
         or collected.get("projects")
+        or collected.get("campus")
         or collected.get("open_source")
         or collected.get("awards")
     )
@@ -1082,6 +1096,8 @@ def _bind_followup_target(previous: dict, collected: dict, reply: str, *, focus_
 
 
 def _finish_followup_turn(state: dict, result: dict) -> dict:
+    from app.services.intake import record_questions
+    result.update(record_questions({**state, **result}, result.get("messages") or []))
     # 工具轮不删改模型正文，也不追加缺字段问句；工具参数单独校验。
     if any(m.additional_kwargs.get("ask_user_enabled") for m in result.get("messages") or [] if isinstance(m, AIMessage)):
         # 不碰展示正文；仍给下一轮短答案保留可确定的事实归属。
@@ -1446,6 +1462,7 @@ def _get_stage_system(
 
 
 def _stage_context(state: ResumeState) -> HumanMessage:
+    from app.services.intake import deepen_context
     return HumanMessage(
         content="任务资料（招聘要求与本人事实分别使用）：\n"
         + json.dumps(
@@ -1454,6 +1471,7 @@ def _stage_context(state: ResumeState) -> HumanMessage:
                 "resume_strategy": state.get("resume_strategy") or {},
                 "candidate_facts": state.get("collected_info") or {},
                 "resume_updated": state.get("resume_updated", False),
+                "intake": deepen_context(state),
             },
             ensure_ascii=False,
         )
@@ -1716,6 +1734,13 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
+    from app.services.intake import intake_update
+    result = await _jd_input_turn(state, llm)
+    result.update(intake_update({**state, **result}))
+    return result
+
+
+async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段1：等待 JD / 跳过 JD / 轻量模式。由 Triage 决定走哪条分支。"""
     if refusal := _fabrication_refusal(state):
         return refusal
@@ -1883,6 +1908,9 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     # Editing it belongs to the writer regardless of that historical label.
     if _visible_draft_edit_requested(state):
         return await evaluating_node(state, llm)
+    latest_form = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
+    if latest_form and latest_form.additional_kwargs.get("intake"):
+        return await _intake_form_turn(state, llm, latest_form)
     collected = await _recover_candidate_history(state, llm)
     latest_message = next((m for m in reversed(state.get("messages", [])) if isinstance(m, HumanMessage)), None)
     profile_update = (_direction_profile_update(state, latest_message.content, collected)
@@ -1898,7 +1926,7 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     latest = result.get("collected_info", collected)
     from app.services.followup_context import latest_followup
     reply = "\n\n".join(m.content for m in result.get("messages", []) if isinstance(m.content, str))
-    if latest_message and result.get("messages") and result.get("stage") != "BUILDING" and not latest_followup(reply) and not any(m.additional_kwargs.get("ask_user_enabled") for m in result["messages"]):
+    if latest_message and result.get("messages") and result.get("stage") != "BUILDING" and result.get("intake_stage", "ready") == "ready" and not latest_followup(reply) and not any(m.additional_kwargs.get("ask_user_enabled") for m in result["messages"]):
         from app.agents.interviewer import education_question
         note, asked = education_question({**state, **result, "messages": state.get("messages") or []})
         current_reply = result["messages"][-1]
@@ -1912,6 +1940,37 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     ):
         result.update(_live_resume_update({**working, **result}, latest))
     return result
+
+
+async def _intake_form_turn(state: ResumeState, llm, message: HumanMessage) -> dict:
+    """结构字段先落事实；简介仍走原抽取链，不把整张表再次抽成重复经历。"""
+    from app.services.intake import apply_submission, intake_update
+    payload = message.additional_kwargs["intake"]
+    update = apply_submission(state, payload, message)
+    working = {**state, **update}
+    # 在可能失败的模型调用前保存本人确认的字段。
+    update.update(await _persist_intake(working, update["collected_info"]))
+    if saver := _intake_saver.get():
+        # 全空确认/跳过也有进度变化，不能因为没有新增事实而丢掉确认记录。
+        await saver({**working, **update})
+    if payload["kind"] == "experiences" and not payload.get("skipped"):
+        for row in payload.get("items") or []:
+            if row.get("summary"):
+                update["collected_info"] = await _extract_with_previous_assistant(
+                    f'关于「{row["name"]}」：{row["summary"]}', update["collected_info"],
+                    _make_non_streaming_llm(llm, temperature=0), f'「{row["name"]}」的一句话简介是什么？')
+        # 抽取只补正文，姓名、日期等字段以本次表单的本人确认值为准。
+        update.update(apply_submission({**state, **update}, payload, message))
+    update.update(await _persist_intake(working, update["collected_info"]))
+    update.update(intake_update({**state, **update}))
+    working = {**state, **update}
+    if update["intake_stage"] == "ready":
+        return {**update, "stage": "BUILDING"}
+    response = await _collection_reply(llm, [SystemMessage(content=career_system(None,
+        "用户已提交或跳过表单。根据分阶段上下文继续；基本信息和经历清单阶段只用一句过渡，岗位未知在正文问方向，深挖阶段使用 ask_user。")),
+        _stage_context(working), *state.get("messages", [])], update["collected_info"], message.content, working)
+    return _finish_followup_turn(working, {**update, "stage": "COLLECTING", "messages": [response],
+        **_live_resume_update(working, update["collected_info"])})
 
 
 def _latest_previous_assistant(messages: list) -> str:
@@ -1963,7 +2022,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         from app.agents.turn_actions import bind_role_followup
         collected = bind_role_followup(collected, _latest_previous_assistant(messages), last_human, source_message.id or '')
     imported = parse_existing_resume(last_human) if candidate_material else None
-    generate_requested = _explicit_generate_requested(last_human)
+    from app.services.intake import direct_requested
+    generate_requested = direct_requested(state)
 
     if imported:
         collected = _merge_imported_candidate(collected, imported)
@@ -2114,15 +2174,14 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
 
     action = decision.action
 
-    from app.agents.interviewer import first_draft_ready
-    from app.agents.tailor_pipeline import _has_visible_experience_body
+    from app.services.intake import intake_update
     state = {**state, **base_update}  # Public guidance sees this turn's committed facts.
     ready_state = {**state, **base_update}
     # Implicit first draft only. A later fact keeps the live resume update;
     # "出一版/生成" still takes the explicit generate path above.
     if (action != TriageAction.DECODE_JD and candidate_material
-            and not _has_visible_experience_body(state.get("resume_data") or {})
-            and first_draft_ready(ready_state)
+            and not state.get("resume_versions")
+            and intake_update(ready_state)["intake_stage"] == "ready"
             and (_has_minimum_info(collected) or collected.get("education")
                  or (state.get("resume_data") or {}).get("projects")
                  or (state.get("resume_data") or {}).get("work_experience"))):
@@ -2139,7 +2198,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             f"projects={len(collected.get('projects', []))} "
             f"work={len(collected.get('work_experience', []))}"
         )
-        if has_min:
+        if has_min and intake_update(state)["intake_stage"] == "ready":
             base_update["stage"] = "BUILDING"
             return base_update
 
@@ -2206,7 +2265,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         base_update["jd_text"] = last_human
         base_update["jd_info"] = jd_info
         base_update["resume_strategy"] = resume_strategy
-        if first_draft_ready({**state, **base_update}) and (
+        base_update.update(intake_update({**state, **base_update}))
+        if base_update["intake_stage"] == "ready" and (
             _has_minimum_info(collected) or collected.get("education")
         ):
             base_update["stage"] = "BUILDING"
@@ -2279,9 +2339,15 @@ async def _write_resume_update(state: ResumeState, llm: ChatOpenAI, *, scope='wh
         working['confirmed_plan'] = {}
     elif not confirmed and not (scope != 'whole' and _has_visible_experience_body(current)) and (state.get('plan_required') or state.get('pending_plan')
                            or not _has_visible_experience_body(current)):
+        from app.services.intake import intake_update
+        if intake_update(working)['intake_stage'] != 'ready':
+            # 改稿/显式 skill 也可能来到这里，所有方案入口共用同一个门槛。
+            return {'intake_pending': True, 'collected_info': collected}
         from app.agents.resume_writer import run_resume_writer
         card = state.get('pending_plan') or {}
         action, index = plan_action(latest, card)
+        if _re.fullmatch(r'(?:全部|都|先)?跳过[。！!\s]*', latest.strip()):
+            action = 'direct'
         from app.services.resume_delivery import delivery_requested
         if action != 'confirm' and delivery_requested(latest) and _explicit_generate_requested(latest):
             action = 'direct'
@@ -2425,7 +2491,17 @@ async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmatio
         return refusal
     if not plan_confirmation and (receipt := _stale_plan_confirmation(state)):
         return receipt
+    from app.services.intake import intake_update
+    update = intake_update(state)
+    state = {**state, **update}
+    if update["intake_stage"] != "ready":
+        # Triage/旧节点都不能绕过首稿门槛；保留当轮已抽取事实，继续正常对话。
+        response = await _collection_reply(llm, [SystemMessage(content=career_system(None,
+            "首稿前先完成当前收集阶段，不提出确认方案。")), _stage_context(state), *state.get("messages", [])],
+            state.get("collected_info") or {}, _latest_human_text(state), state)
+        return _finish_followup_turn(state, {**update, "stage": "COLLECTING", "messages": [response]})
     result = await _write_resume_update(state, llm)
+    result.update(update)
     if result.pop('plan_card', False):
         return _finish_followup_turn(state, _plan_card_update(result))
     followup = await _model_followup(state, result, llm)
@@ -2519,9 +2595,10 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
 
 
 def _clear_structure_plan(state: dict) -> dict:
+    from app.services.intake import intake_update
     meta = copy.deepcopy(state.get('resume_meta') or {})
     meta.pop('confirmed_plan', None)
-    return {'confirmed_plan': {}, 'pending_plan': {}, 'plan_required': True, 'resume_meta': meta}
+    return {**intake_update(state), 'confirmed_plan': {}, 'pending_plan': {}, 'plan_required': True, 'resume_meta': meta}
 
 
 def _user_wants_export(text: str) -> bool:
@@ -2816,6 +2893,11 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             {**state, **direction, 'collected_info': updated, 'resume_data': write_resume,
              'session_constraints': edit_constraints or state.get('session_constraints') or {}},
             llm, scope=scope, targets=targets)
+    if result.pop('intake_pending', False):
+        # 阶段拦截只改变后续回复，已抽取事实、岗位与本轮约束仍要交回图保存。
+        pending = {**direction, **result,
+                   'session_constraints': edit_constraints or state.get('session_constraints') or {}}
+        return {**pending, **await building_node({**state, **pending}, llm)}
     if result.pop('plan_card', False):
         return _plan_card_update(result)
     if edit_constraints:
@@ -2921,6 +3003,9 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
 
 def route_by_stage(state: ResumeState) -> str:
     latest = _latest_human_text(state)
+    last_message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
+    if last_message and last_message.additional_kwargs.get("intake"):
+        return 'collecting'
     if state.get('plan_choice') and state.get('pending_plan'):
         return 'structure_plan'
     if requests_fabrication(latest):
@@ -3137,7 +3222,7 @@ def get_graph(llm: ChatOpenAI) -> Any:
 
 async def stream_agent(
     messages: list[dict], session_id: str, llm: ChatOpenAI, task: str = "auto",
-    web_sources: list[dict] | None = None, *, answers: dict | None = None, plan_choice: dict | None = None,
+    web_sources: list[dict] | None = None, *, answers: dict | None = None, plan_choice: dict | None = None, intake: dict | None = None,
 ):
     """Repair cancelled checkpoints and bind final writeback to literal edit scope."""
     from app.services.chat_turns import current_turn
@@ -3167,7 +3252,7 @@ async def stream_agent(
                 version['resume_meta'].setdefault('bullets', {})[item_id] = copy.deepcopy(records)
         return {**values, **version, 'resume_draft': resume_to_text(data)}
 
-    source = _stream_agent_impl(messages, session_id, llm, task, web_sources, protect_final=protect_final, answers=answers, plan_choice=plan_choice)
+    source = _stream_agent_impl(messages, session_id, llm, task, web_sources, protect_final=protect_final, answers=answers, plan_choice=plan_choice, intake=intake)
     try:
         async for chunk in source:
             if turn:
@@ -3199,7 +3284,7 @@ async def stream_agent(
 async def _stream_agent_impl(
     messages: list[dict], session_id: str, llm: ChatOpenAI, task: str = "auto",
     web_sources: list[dict] | None = None, *, protect_final=lambda values: values,
-    answers: dict | None = None, plan_choice: dict | None = None,
+    answers: dict | None = None, plan_choice: dict | None = None, intake: dict | None = None,
 ):
     """Stream only public graph-node replies, never internal model tokens."""
     graph = get_graph(llm)
@@ -3228,7 +3313,8 @@ async def _stream_agent_impl(
     lc_msg = HumanMessage(
         id=str(uuid.uuid4()),
         content=last_msg["content"],
-        additional_kwargs={"career_material_type": material_type, **({"web_sources": provenance} if provenance else {})},
+        additional_kwargs={"career_material_type": material_type, **({"web_sources": provenance} if provenance else {}),
+                           **({"intake": intake} if intake else {})},
     )
     input_state = {"messages": [lc_msg], "requested_task": task}
     # Fresh sessions may publish source-backed intake previews before drafting.
@@ -3240,6 +3326,14 @@ async def _stream_agent_impl(
         initial_values = (initial_snapshot.values if initial_snapshot else {}) or {}
     from app.services.ask_user import close_answers
     input_state["closed_questions"] = close_answers(initial_values, last_msg["content"], answers)
+    from app.services.intake import close_free_reply, intake_guidance, intake_update
+    input_state["closed_questions"] = close_free_reply(initial_values, last_msg["content"], input_state["closed_questions"], structured=bool(answers or intake))
+    progress = copy.deepcopy(initial_values.get("intake_progress") or {})
+    previous_card = intake_guidance(initial_values)
+    if not intake and previous_card and previous_card["kind"] == "intake_basics" and progress.get("basics") == "deferred":
+        progress["basics"] = "continued_in_text"
+    input_state["intake_progress"] = progress
+    input_state.update(intake_update({**initial_values, **input_state, "messages": [*initial_values.get("messages", []), lc_msg]}))
     input_state["plan_choice"] = plan_choice or {}
     if get_settings().LLM_PLAN_CONFIRM:
         from app.agents.tailor_pipeline import _has_visible_experience_body
@@ -3276,7 +3370,8 @@ async def _stream_agent_impl(
         from app.services.session_store import save_candidate_intake
         from app.services.profile_bridge import archive_event_for_message
         update = {key: copy.deepcopy(values.get(key) or {}) for key in ('collected_info', 'session_constraints')}
-        if update == {key: saved_intake.get(key) for key in update}:
+        workflow = {key: copy.deepcopy(values[key]) for key in ('intake_stage', 'intake_progress') if key in values}
+        if {**update, **workflow} == {key: saved_intake.get(key) for key in (*update, *workflow)}:
             return
         # Keep the existing document/version until writing succeeds. This is a
         # fact commit, not a success receipt for an unfinished draft.
@@ -3291,9 +3386,9 @@ async def _stream_agent_impl(
             committed = await asyncio.shield(save_task)
         except asyncio.CancelledError:
             await save_task
-            saved_intake = {**update, 'stage': stage}
+            saved_intake = {**update, **workflow, 'stage': stage}
             raise
-        saved_intake = committed if isinstance(committed, dict) else {**update, 'stage': stage}
+        saved_intake = {**(committed if isinstance(committed, dict) else {**update, 'stage': stage}), **workflow}
 
     graph_stream = graph.astream(
         input_state, config=config, stream_mode=["custom", "updates"]
@@ -3398,7 +3493,7 @@ async def _stream_agent_impl(
             repair = {key: copy.deepcopy(initial_values.get(key, default))
                       for key, default in _init_state().items() if key != 'messages'}
             repair.update({key: copy.deepcopy(saved_intake[key]) for key in
-                           ('collected_info', 'session_constraints') if key in saved_intake})
+                           ('collected_info', 'session_constraints', 'intake_stage', 'intake_progress') if key in saved_intake})
             if repair['stage'] == 'BUILDING':
                 repair['stage'] = 'COLLECTING'
             repair['messages'] = [AIMessage(content=model_failure.message, additional_kwargs={
@@ -3406,7 +3501,7 @@ async def _stream_agent_impl(
             await graph.aupdate_state(config, repair)
         elif not graph_completed and saved_intake and callable(getattr(graph, 'aupdate_state', None)):
             snapshot = await graph.aget_state(config)
-            if not snapshot or (snapshot.values or {}).get('collected_info') != saved_intake['collected_info']:
+            if not snapshot or any((snapshot.values or {}).get(key) != value for key, value in saved_intake.items()):
                 await graph.aupdate_state(config, saved_intake)
 
     # Keep deterministic success receipts private until the canonical save commits.

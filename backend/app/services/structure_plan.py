@@ -358,13 +358,23 @@ def apply_plan_structure(data: dict, plan: dict) -> dict:
     return result
 
 
-def plan_guidance(card: dict, collected: dict, profile: dict | None = None) -> dict:
+def plan_guidance(card: dict, collected: dict, profile: dict | None = None, *, retained_sections=()) -> dict:
     names = {item.get('item_id'): item.get('name') or item.get('company') or item.get('item_id')
              for section in (*SECTION_LABELS, 'internship') for item in collected.get(section) or [] if isinstance(item, dict)}
     display = deepcopy(card)
     display['recommended'] = readable_plan(display['recommended'], profile)
     display['alternatives'] = [readable_plan(row, profile) for row in display.get('alternatives', [])]
     for row in [display['recommended'], *display.get('alternatives', [])]:
+        # 只修正卡片显示；写作器的栏目组织与措辞留给下一批。
+        present = {section for section in SECTION_LABELS if any(
+            (isinstance(item, str) and item.strip()) or
+            (isinstance(item, dict) and not item.get('hidden') and (
+                any(item.get(field) for field in ('name', 'company', 'school', 'text'))
+                or any(f.get('status', 'active') == 'active' for f in item.get('facts') or [])))
+            for key in (('work_experience', 'internship') if section == 'work_experience' else (section,))
+            for item in collected.get(key) or [])}
+        row['section_order'] = [section for section in row.get('section_order') or []
+                                if section in present or section in retained_sections]
         for entry in row['experience_plan']:
             entry['name'] = names.get(entry['item_id'], entry['item_id'])
     return {'kind': 'structure_plan', 'title': '定方案', 'question': '选好方案后开始写首稿',

@@ -37,7 +37,7 @@ class WorkspaceProjectionTest(unittest.TestCase):
 
     def test_initial_guidance_allows_no_jd(self):
         view = build_workspace({}, {})
-        self.assertIsNone(view['guidance'])
+        self.assertEqual(view['guidance']['kind'], 'intake_basics')
         self.assertEqual(view['focus'], 'jd')
 
     def test_projection_is_read_only_and_never_uses_assistant_as_candidate(self):
@@ -257,7 +257,10 @@ class WorkspaceProjectionTest(unittest.TestCase):
             states.append(({"messages": [HumanMessage(content="补充"), AIMessage(content="**需要你补充**\n" + question)]}, self.data))
         for state, data in states:
             view = build_workspace(state, data)
-            self.assertIsNone(view["guidance"])
+            if not data:
+                self.assertEqual(view['guidance']['kind'], 'intake_experiences' if state.get('jd_info') else 'intake_basics')
+            else:
+                self.assertIsNone(view["guidance"])
 
     def test_deliverable_choice_does_not_add_a_specific_artifact(self):
         self.data['projects'][0]['polished_bullets'] = []

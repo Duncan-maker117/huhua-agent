@@ -57,14 +57,16 @@ async def stream_public_reply(
     failure is closed with a clear interruption notice, not retried into an
     already visible response.
     """
-    from app.services.ask_user import AskUser, question_context, validate_card
-    enabled = ask_state is not None and callable(getattr(llm, "bind_tools", None))
+    from app.services.ask_user import AskUser, can_ask_user, question_context, validate_card
+    enabled = ask_state is not None
+    tools_available = callable(getattr(llm, "bind_tools", None))
     if enabled:
-        messages = [*messages, SystemMessage(content=question_context(ask_state))]
-        if not ask_state.get("pending_plan"):
+        messages = [*messages, SystemMessage(content=question_context(ask_state, tools_available=tools_available))]
+        if tools_available and can_ask_user(ask_state):
             tool = convert_to_openai_tool(AskUser)
             tool['function'].update(name='ask_user', description='用结构化问题卡收集用户补充信息。')
             llm = llm.bind_tools([tool], tool_choice="auto")
+        # 预算在生成前约束；包括无工具适配器和表单轮，均不事后裁剪正文。
         single_question = False
     messages = redact_model_messages(messages)
     llm = label_run(llm, "public_reply")
@@ -164,7 +166,7 @@ async def stream_public_reply(
         if writer is not None:
             writer({"type": PUBLIC_REPLY_EVENT, "node": node, "reply_id": reply_id, "content": parts[0]})
     card = {}
-    if enabled and not interrupted:
+    if enabled and tools_available and not interrupted:
         for call in [*tool_parts.values(), *completed_tools]:
             if call.get("name") == "ask_user":
                 card = validate_card(call.get("args"), ask_state, reply_id)

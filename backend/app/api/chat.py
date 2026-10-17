@@ -374,6 +374,8 @@ async def chat_stream(request: Request):
                     # Keep automatic requests compatible with existing callers;
                     # an explicit task applies only to this submitted turn.
                         choices = {}
+                        if req.intake is not None:
+                            choices['intake'] = req.intake.model_dump()
                         if req.answers is not None:
                             choices['answers'] = req.answers.model_dump()
                         if req.plan_choice is not None:

@@ -22,7 +22,7 @@
   let webSourceSession = null;
   const answeredGuidance = new Set();
   let choicePending = false;
-  const askDrafts = new Map(), planStyles = new Map();
+  const askDrafts = new Map(), planStyles = new Map(), intakeDrafts = new Map();
   function button(text, handler, className = 'workspace-button') {
     const el = node('button', text, className);
     el.type = 'button'; el.addEventListener('click', handler);
@@ -64,7 +64,7 @@
   }
   function guidanceKey() {
     const guidance = workspace.guidance;
-    return JSON.stringify([callbacks.session?.(), guidance?.turn_id, guidance?.questions, guidance?.question, guidance?.options, guidance?.structure_plan]);
+    return JSON.stringify([callbacks.session?.(), guidance?.kind, guidance?.turn_id, guidance?.questions, guidance?.question, guidance?.options, guidance?.structure_plan]);
   }
   async function answer(value, key, payload = {}) {
     // Claim this question synchronously: double clicks, keyboard repeats and
@@ -412,6 +412,90 @@
     return {message: (guidance.subject ? '关于「' + guidance.subject + '」：' : '') + message,
       answers: {turn_id: guidance.turn_id, items}};
   }
+  function renderIntakeCard(dock, guidance, key) {
+    const kind = guidance.kind === 'intake_basics' ? 'basics' : 'experiences';
+    const blank = () => ({name: '', type: '项目', start: '', end: '', role: '', summary: ''});
+    if (!intakeDrafts.has(key)) intakeDrafts.set(key, kind === 'basics'
+      ? {...guidance.values} : {items: list(guidance.items).length ? guidance.items.map(row => ({...row})) : [blank()]});
+    const draft = intakeDrafts.get(key);
+    const form = node('form', undefined, 'intake-card'); form.dataset.intake = kind;
+    form.setAttribute('aria-label', guidance.title || (kind === 'basics' ? '基本信息' : '经历清单'));
+    form.noValidate = true;
+    form.append(node('p', guidance.title || (kind === 'basics' ? '基本信息' : '经历清单'), 'intake-card-label'));
+    function field(parent, row, name, label, type = 'text', options = null) {
+      const wrap = node('label', undefined, 'intake-field');
+      wrap.append(node('span', label, 'intake-field-name'));
+      const input = node(options ? 'select' : type === 'textarea' ? 'textarea' : 'input');
+      input.name = name;
+      if (options) for (const value of name === 'type' ? options : ['', ...options]) {
+        const option = node('option', value || '请选择'); option.value = value; input.append(option);
+      }
+      else if (type !== 'textarea') input.type = type;
+      input.value = row[name] || '';
+      input.addEventListener(options ? 'change' : 'input', () => { row[name] = input.value; });
+      wrap.append(input); parent.append(wrap); return input;
+    }
+    const errors = [];
+    if (kind === 'basics') {
+      for (const [name, label, type, options] of [
+        ['name', '姓名'], ['school', '学校'], ['major', '专业'],
+        ['degree', '学历', 'text', ['本科', '硕士', '博士', '大专', '其他']],
+        ['graduation', '毕业时间', 'month'], ['location', '所在城市'], ['availability', '可实习时间'],
+      ]) field(form, draft, name, label, type, options);
+    } else {
+      draft.items.forEach((row, index) => {
+        const group = node('fieldset', undefined, 'intake-row');
+        group.append(node('legend', '经历 ' + (index + 1)));
+        const name = field(group, row, 'name', '名称'); name.required = true;
+        field(group, row, 'type', '类型', 'text', ['项目', '实习', '校园', '竞赛', '其他']);
+        field(group, row, 'start', '开始年月', 'month');
+        const end = field(group, row, 'end', '结束年月', 'month');
+        end.disabled = row.end === '至今'; if (end.disabled) end.value = '';
+        const check = node('label', undefined, 'intake-check'), input = node('input'); input.type = 'checkbox';
+        input.checked = row.end === '至今';
+        input.addEventListener('change', () => {
+          if (input.checked) { row.previousEnd = end.value; row.end = '至今'; end.value = ''; }
+          else { row.end = row.previousEnd || ''; end.value = row.end; }
+          end.disabled = input.checked;
+        });
+        check.append(input, document.createTextNode(' 至今')); group.append(check);
+        field(group, row, 'role', '角色'); field(group, row, 'summary', '一句话简介', 'textarea');
+        const error = node('p', '', 'intake-error'); error.setAttribute('role', 'alert'); error.hidden = true;
+        errors.push({row, error, name}); group.append(error);
+        const remove = button('删除这段', () => { draft.items.splice(index, 1); renderGuidance(); }, 'intake-row-remove');
+        remove.hidden = draft.items.length === 1; group.append(remove); form.append(group);
+      });
+      const add = button('再加一段', () => { draft.items.push(blank()); renderGuidance(); }, 'intake-add');
+      add.disabled = draft.items.length >= 30; form.append(add);
+    }
+    async function submit(skipped = false) {
+      if (!skipped && kind === 'experiences') {
+        for (const {row, error, name} of errors) {
+          error.hidden = Boolean(row.name.trim()); error.textContent = error.hidden ? '' : '请填写经历名称';
+          name.setAttribute('aria-invalid', String(!error.hidden));
+        }
+        const invalid = errors.find(row => !row.error.hidden);
+        if (invalid) { invalid.name.focus(); return; }
+      }
+      const values = kind === 'basics' ? {...draft} : null;
+      const items = kind === 'experiences' && !skipped ? draft.items.map(row => Object.fromEntries(
+        ['item_id', 'name', 'type', 'start', 'end', 'role', 'summary'].map(name => [name, (row[name] || '').trim()]))) : [];
+      const intake = kind === 'basics' ? {kind, values, skipped} : {kind, items, skipped};
+      const message = skipped ? (kind === 'basics' ? '跳过基本信息，继续。' : '跳过经历清单，继续。')
+        : kind === 'basics' ? '基本信息：' + (Object.entries(values).filter(([, value]) => value).map(([name, value]) =>
+          ({name: '姓名', school: '学校', major: '专业', degree: '学历', graduation: '毕业时间', location: '所在城市', availability: '可实习时间'}[name] + '：' + value)).join('，') || '暂未填写')
+        : '经历清单：\n' + items.map(row => '「' + row.name + '」；类型：' + row.type +
+          (row.start || row.end ? '；时间：' + (row.start && row.end
+            ? row.start + (row.end === '至今' ? ' ' : ' 至 ') + row.end : row.start || row.end) : '') +
+          (row.role ? '；角色：' + row.role : '') + (row.summary ? '；简介：' + row.summary : '')).join('\n');
+      return answer(message, key, {intake});
+    }
+    const actions = node('div', undefined, 'intake-actions');
+    actions.append(button('跳过', () => submit(true), 'intake-skip'));
+    const confirm = node('button', '确认', 'intake-submit'); confirm.type = 'submit'; actions.append(confirm);
+    form.addEventListener('submit', event => { event.preventDefault(); return submit(); });
+    form.append(actions); dock.append(form);
+  }
   function renderAskCard(dock, guidance, key) {
     const questions = list(guidance.questions);
     if (!questions.length) return;
@@ -502,6 +586,11 @@
     if (guidance?.kind === 'structure_plan') {
       dock.hidden = streaming || choicePending || answeredGuidance.has(key);
       if (!dock.hidden) renderStructurePlan(dock, guidance, key);
+      return;
+    }
+    if (['intake_basics', 'intake_experiences'].includes(guidance?.kind)) {
+      dock.hidden = streaming || choicePending || answeredGuidance.has(key);
+      if (!dock.hidden) renderIntakeCard(dock, guidance, key);
       return;
     }
     if (guidance?.kind === 'ask_user') {
@@ -623,7 +712,7 @@
     updateStatus();
   }
   function reset() {
-    askDrafts.clear(); planStyles.clear(); answeredGuidance.clear();
+    askDrafts.clear(); planStyles.clear(); intakeDrafts.clear(); answeredGuidance.clear();
     webSourceSession = null;
     resumeData = null; workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
     paintedVersion = null; status = ''; streaming = false; interactedDuringTurn = false; paintedDuringTurn = false;

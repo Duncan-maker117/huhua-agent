@@ -125,7 +125,8 @@ async def _current_resume(request: Request, session_id: str):
         stored.get("resume_data") or stored.get("stage") not in ("", "JD_INPUT")
     ))
     can_save = not graph_error and not missing_context
-    workspace = build_workspace(vals, rd)
+    from app.services.profile_bridge import intake_profile_state
+    workspace = build_workspace({**vals, **intake_profile_state(owner)}, rd)
     if not canonical_has_content(rd):
         if graph_error and not stored:
             raise HTTPException(

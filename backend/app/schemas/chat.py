@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.services.ask_user import Answers, PlanChoice
+from app.services.intake import Intake
 
 
 class Message(BaseModel):
@@ -37,6 +38,7 @@ class SearchJobContext(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    intake: Intake | None = None
     answers: Answers | None = None
     plan_choice: PlanChoice | None = None
     messages: list[Message]

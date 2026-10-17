@@ -400,7 +400,7 @@ function setSendButtonMode(mode) {
   }
 }
 
-async function send(text, {quickReply = false, webTool = null, keepDraft = false, answers = null, plan_choice = null} = {}) {
+async function send(text, {quickReply = false, webTool = null, keepDraft = false, answers = null, plan_choice = null, intake = null} = {}) {
   if (window.HuhuaAccount?.claimPending()) return false;
   // 流式中忽略新发送，避免孤儿 fetch（旧 controller 被覆盖就再也 abort 不了）
   if (currentController) return false;
@@ -495,7 +495,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     const res = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}), ...(answers ? {answers} : {}), ...(plan_choice ? {plan_choice} : {}) }),
+      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}), ...(answers ? {answers} : {}), ...(plan_choice ? {plan_choice} : {}), ...(intake ? {intake} : {}) }),
       signal: currentController.signal
     });
     acceptTurn(res.ok);

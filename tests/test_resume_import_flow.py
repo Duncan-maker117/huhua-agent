@@ -269,7 +269,7 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
             "page_check": {"status": "not_rendered", "pages": None},
             "guard_fallbacks": [], "changed": True, "change_summary": [],
         })):
-            result = await building_node(_init_state(), object())
+            result = await building_node({**_init_state(), 'messages': [HumanMessage(content='直接写')]}, object())
         public_text = result["messages"][0].content
         self.assertTrue(public_text.startswith("已按已有事实更新右侧待核对草稿"))
         self.assertIn("4 项信息待核对", public_text)

@@ -133,6 +133,8 @@ async def conversation_detail(session_id: str, request: Request, response: Respo
             if not values and (stored["stage"] != "JD_INPUT" or stored["has_data"] or stored["resume_draft"]):
                 raise RuntimeError("Nonempty conversation checkpoint is missing")
             canonical = protect_data(owner, current_canonical(values, stored, _serialize_to_resume_data))
+            from app.services.profile_bridge import intake_profile_state
+            workspace = build_workspace({**values, **intake_profile_state(owner)}, canonical)
             return {
                 "session_id": session_id,
                 "title": stored["title"],
@@ -142,7 +144,7 @@ async def conversation_detail(session_id: str, request: Request, response: Respo
                 "collected_info": values.get("collected_info") or {},
                 "stage": values.get("stage") or stored["stage"],
                 "resume_data": canonical,
-                "workspace": build_workspace(values, canonical),
+                "workspace": workspace,
                 "has_data": resume_data_has_content(canonical),
                 "updated_at": stored["updated_at"],
             }

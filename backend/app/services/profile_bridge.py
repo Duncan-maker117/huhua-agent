@@ -64,6 +64,26 @@ def account_id(owner):
     return owner.split(":", 1)[1] if owner and owner.startswith("account:") else None
 
 
+def intake_profile_state(owner, *, db=None):
+    """读端也能显示确认卡；不因打开卡片把档案教育或联系方式写入简历。"""
+    account = account_id(owner)
+    if not account:
+        return {"intake_account": False, "intake_profile": {}}
+    from app.services.intake import basics_values
+    from app.services.profile_service import get_intake_context
+
+    def read(session):
+        values = basics_values(context_to_collected_info(get_intake_context(session, account)))
+        return {"intake_account": True, "intake_profile": {
+            "basic_info": {key: values[key] for key in ("name", "location", "availability")},
+            "education": [{"school": values["school"], "major": values["major"], "degree": values["degree"], "end_date": values["graduation"]}],
+        }}
+    if db is not None:
+        return read(db)
+    with SessionLocal() as session:
+        return read(session)
+
+
 def protect_data(owner, data, *, reject=False, db=None):
     account = account_id(owner)
     if not account:
@@ -131,6 +151,8 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
             context = get_context(db, account, subject_ids=fact_ids, limit=100, include_contacts=False) if account else {"facts": [], "fact_refs": []}
         from app.services.profile_service import get_profile_summary
         summary = get_profile_summary(db, account) if account else {}
+        # 表单预填独立于简历投影；只从既有服务读取非联系方式白名单。
+        intake_profile = intake_profile_state(owner, db=db)
         collected = (context_to_collected_info(context, values.get("collected_info"))
                      if context["facts"] else values.get("collected_info") or {})
     update = {k: v for k, v in values.items() if k != "messages"}
@@ -139,7 +161,8 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
     update["messages"] = [RemoveMessage(id=item) for item in old_ids - new_ids] + values.get("messages", [])
     update["collected_info"] = collected
     update["profile_summary"] = summary
-    if previous or context["facts"] or summary.get("has_facts"):
+    update.update(intake_profile)
+    if previous or context["facts"] or summary.get("has_facts") or account:
         await graph.aupdate_state(config, update, as_node="building")
     return context
 

@@ -72,6 +72,9 @@ class PersonaModel(EchoWriter):
         self.inputs = []
 
     async def ainvoke(self, messages):
+        # 首轮未达阶段门槛时会进入公开回复，桩也须支持该通道。
+        if not messages[-1].content.lstrip().startswith('{'):
+            return AIMessage(content='继续补充这段经历。')
         payload = json.loads(messages[-1].content)
         if 'existing' in payload:
             self.inputs.append(payload['message'])
@@ -400,7 +403,7 @@ class PersonaRemainingRegressions(unittest.IsolatedAsyncioTestCase):
         compiled = graph.build_graph(model)
         original = model.ainvoke
         async def delayed(messages):
-            if 'existing' in json.loads(messages[-1].content):
+            if messages[-1].content.lstrip().startswith('{') and 'existing' in json.loads(messages[-1].content):
                 entered.set()
                 await release.wait()
             return await original(messages)

@@ -31,6 +31,7 @@ STATUS = {'id': 'status', 'prompt': '现在什么状态？', 'kind': 'single', '
 
 def project_state():
     return {**graph._init_state(), 'stage': 'COLLECTING', 'candidate_history_reconciled': True,
+            'intake_stage': 'ready', 'resume_versions': [{'id': 'existing-draft'}],
             'jd_info': {'job_title': 'AI 产品经理', 'role_profile': {'role_family': 'ai-pm'}},
             'collected_info': {'projects': [{'item_id': 'p1', 'name': 'AI 简历项目', 'facts': [
                 {'id': 'f1', 'kind': 'action', 'text': '独立开发 AI 简历项目，已上线',

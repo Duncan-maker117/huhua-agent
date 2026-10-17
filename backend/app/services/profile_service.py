@@ -1077,6 +1077,15 @@ def get_context(db, account_id, *, subject_ids=None, limit=30, include_contacts=
             "facts": facts, "fact_refs": [{"fact_id": f["id"], "revision": f["revision"]} for f in facts]}
 
 
+def get_intake_context(db, account_id):
+    """基本信息确认卡专用：仅取基本与教育档案，排除手机和邮箱。"""
+    ids = list(db.scalars(select(ProfileFact.id).where(
+        ProfileFact.account_id == account_id, ProfileFact.status == "active",
+        ProfileFact.category.in_(["basic", "education"]),
+    ).order_by(ProfileFact.updated_at.desc()).limit(100)))
+    return get_context(db, account_id, subject_ids=ids, limit=100, include_contacts=False)
+
+
 def _archive_context(db, account_id, payload):
     """A mentioned project can be compared without importing it into a résumé.
 

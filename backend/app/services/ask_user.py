@@ -59,13 +59,28 @@ class PlanChoice(BaseModel):
 
 
 ASK_CONTRACT = """你可以调用 ask_user 提供 1–4 题补充卡，由你决定是否需要。每轮最多调用一次。
-调用时正文只写一两句过渡语，不复述题干；单个纯开放、只能自由描述的问题直接在正文问，不调用工具。
+正文最多一个问句，且只收集一个问题的信息；需要问两个及以上问题时必须用 ask_user，不得用逗号、顿号或省略问号把多题塞进正文。
+调用时正文只写一句过渡语，不提问、不复述题干；单个纯开放、只能自由描述的问题直接在正文问，不调用工具。
 题目 id 使用稳定的短 slug，同一维度不要换 id 重问；subject 使用资料中对应经历的原名称。
 single/multi 必须提供 2–6 个中性、真实可选的选项，不替用户预选，不把选项当事实。
 以下关闭记录中的问题已问过、已回答或用户说不知道/跳过，永久不要再问，也不要换同义说法追问。
 AI 产品岗优先问：问题定义、本人分工、关键决策、badcase 与迭代、技术栈、现状与链接。
 个人开发项目没有用户数很正常，不以量化或用户规模作为出稿前提。
 候选问题只供参考，不必全部问；pending_plan 存在时只提示确认方案，不调用 ask_user。"""
+
+
+def can_ask_user(state: dict) -> bool:
+    """与工作台共用表单判定；不让模型工具抢占本轮已展示的收集卡。"""
+    from app.services.intake import deepen_context, intake_guidance
+
+    if state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
+        return False
+    # 空字典供无会话的工具适配器使用；真实/旧会话均按实际资料推断表单。
+    if state and intake_guidance(state):
+        return False
+    if state.get("intake_stage") and state.get("intake_stage") != "ready":
+        return bool(deepen_context(state).get("subject"))
+    return True
 
 
 def question_dimension(identifier: str = "", prompt: str = "") -> str:
@@ -76,7 +91,8 @@ def question_dimension(identifier: str = "", prompt: str = "") -> str:
         ("my_work", r"my_work|ownership|contribution|职责|分工|本人|你.*(?:做了|负责)|独立完成|团队协作"),
         ("problem", r"problem|pain[_-]?point|问题定义|解决谁|什么问题"),
         ("decision", r"decision|tradeoff|关键决策|为什么|为何|取舍"),
-        ("iteration", r"iteration|badcase|bad_case|迭代|效果不好|怎么改|失败|评测|验证"),
+        ("iteration", r"iteration|badcase|bad_case|迭代|效果不好|怎么改|失败"),
+        ("evaluation", r"evaluation|evaluate|评测|验证|怎么判断|好不好|测试集|基线"),
         ("tech_stack", r"tech[_-]?stack|technology|技术栈|哪些工具|什么技术|怎么实现"),
         ("status", r"status|launch|上线|现状|什么状态|做到哪|跑通|原型"),
         ("links", r"links?|url|链接|网址|能访问"),
@@ -111,24 +127,36 @@ def is_closed(state: dict, subject: str, identifier: str = "", prompt: str = "")
 
 def validate_card(arguments, state: dict, turn_id: str) -> dict:
     """封套非法时忽略调用；单题非法时只丢该题，保留其余合法题。"""
-    if state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
+    if not can_ask_user(state):
         return {}
+    from app.services.intake import deepen_context
+    context = deepen_context(state) if state.get("intake_stage") and state.get("intake_stage") != "ready" else None
     try:
         raw = json.loads(arguments) if isinstance(arguments, str) else arguments
         if not isinstance(raw, dict) or set(raw) - {"subject", "questions"}:
+            return {}
+        if context and subject_key(raw.get("subject", ""), state) != subject_key(context["subject"], state):
             return {}
         rows = raw.get("questions")
         if not isinstance(rows, list) or not 1 <= len(rows) <= 4:
             return {}
         valid, seen = [], set()
+        previous_dimensions = set((context or {}).get("current_progress", {}).get("asked_dimensions") or [])
+        selected_dimensions = set()
         for row in rows:
             try:
                 question = AskQuestion.model_validate(row)
             except (ValidationError, TypeError):
                 continue
+            if context and question_dimension(question.id, question.prompt) not in context["remaining_dimensions"]:
+                continue
+            dimension = question_dimension(question.id, question.prompt)
+            if context and (dimension in selected_dimensions or len(previous_dimensions | selected_dimensions | {dimension}) > 4):
+                continue
             if question.id not in seen and not is_closed(state, raw.get("subject", ""), question.id, question.prompt):
                 valid.append(question.model_dump())
                 seen.add(question.id)
+                selected_dimensions.add(dimension)
         parsed = AskUser.model_validate({**raw, "questions": valid})
     except (ValueError, TypeError):
         return {}
@@ -179,9 +207,29 @@ def close_answers(state: dict, text: str, answers: dict | None = None) -> list[d
     return closed
 
 
-def question_context(state: dict) -> str:
+def question_context(state: dict, *, tools_available: bool = True) -> str:
     from app.agents.interviewer import question_candidates
-    return ASK_CONTRACT + "\n" + json.dumps({
+    from app.services.intake import deepen_context, intake_guidance
+
+    card = intake_guidance(state) if state else None
+    budget = "本轮正文提问预算：最多 1 个问句、只问 1 件事；需要问两个及以上问题时必须用 ask_user。"
+    if card:
+        collecting = ("基本信息（姓名、教育、城市与可实习时间）" if card["kind"] == "intake_basics"
+                      else "经历清单（名称、类型、时间、角色与简介）")
+        budget = (f"本轮正文提问预算：0 个问句。本轮卡片已在收集{collecting}，"
+                  "正文只写一句过渡语，不要提问；不要同时深挖经历或询问其他信息。本轮不提供 ask_user，不得调用。")
+    elif state.get("pending_plan"):
+        budget = "本轮正文提问预算：0 个问句。方案卡已在等待确认，正文只写一句过渡语，不要另行提问或调用 ask_user。"
+    elif (state.get("collected_info") or {}).get("no_more_questions"):
+        budget = "本轮正文提问预算：0 个问句。用户已要求停止追问，不要提问或调用 ask_user。"
+    elif not tools_available or not can_ask_user(state):
+        budget += " 本轮 ask_user 不可用，只挑一个最有价值的问题，其余留到后续轮次。"
+    contract = ASK_CONTRACT + "\n以下本轮预算优先于上面的工具规则及其他阶段提示中的追问、建议和格式要求：\n" + budget
+    if state.get("intake_stage") and state.get("intake_stage") != "ready":
+        return contract + "\n分阶段规则优先于旧候选：\n" + json.dumps({
+            "closed_questions": state.get("closed_questions") or [], **deepen_context(state),
+        }, ensure_ascii=False)
+    return contract + "\n" + json.dumps({
         "closed_questions": state.get("closed_questions") or [],
         "candidate_questions": question_candidates(state),
         "pending_plan": bool(state.get("pending_plan")),

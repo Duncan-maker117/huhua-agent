@@ -135,7 +135,7 @@ class CompleteResumeTaskTest(unittest.IsolatedAsyncioTestCase):
             'page_check': {'status': 'not_rendered', 'pages': None},
             'guard_fallbacks': [], 'changed': True, 'change_summary': [],
         })):
-            result = await building_node(_init_state(), object())
+            result = await building_node({**_init_state(), 'intake_stage': 'ready'}, object())
         self.assertIn('只整理到基本信息', result['messages'][0].content)
         self.assertNotIn('已更新', result['messages'][0].content)
 

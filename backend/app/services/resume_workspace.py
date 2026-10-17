@@ -281,10 +281,18 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     if guidance:
         guidance.update(kind="next_action", turn_id=hashlib.sha256(
             f"{len(values.get('messages') or [])}:{request}:{reply}".encode()).hexdigest()[:16])
-    guidance = pending_card(values) or guidance
+    from app.services.intake import intake_guidance, intake_update
+    intake_state = {**values, 'resume_data': canonical}
+    # 旧会话的成稿可能只在 canonical 中；工具校验与表单必须看到同一份状态。
+    guidance = pending_card(intake_state) or guidance
+    guidance = intake_guidance(intake_state) or guidance
     if values.get('pending_plan'):
-        from app.services.structure_plan import plan_guidance
-        guidance = {**plan_guidance(values['pending_plan'], facts, (values.get('jd_info') or {}).get('role_profile')),
+        from app.services.structure_plan import plan_guidance, ALIASES
+        retained = {section for message in values.get('messages') or [] if isinstance(message, HumanMessage)
+                    for clause in re.split(r'[。；;\n]', str(message.content))
+                    if re.search(r'保留.{0,15}栏目|栏目.{0,15}保留', clause) and not re.search(r'不保留|不要保留', clause)
+                    for alias, section in ALIASES.items() if alias in clause}
+        guidance = {**plan_guidance(values['pending_plan'], facts, (values.get('jd_info') or {}).get('role_profile'), retained_sections=retained),
                     'turn_id': hashlib.sha256(str(values['pending_plan']).encode()).hexdigest()[:16]}
 
     advice = re.search(r"(?:\*\*|#{1,3}\s*|【)我的建议(?:\*\*|】)?\s*[:：]?\s*([\s\S]*?)(?=(?:\*\*|#{1,3}\s*|【)需要你补充|$)", reply)
@@ -323,7 +331,7 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
                         "verification_notes": notes},
         "resume": {"has_data": has_data, "version": resume_revision(canonical)},
         "review": {"items": review_resume(canonical, jd) if has_data else [], "reply": reply if material == "review" else ""},
-        "guidance": guidance, "suggestions": suggestions, "focus": focus,
+        "guidance": guidance, "intake_stage": intake_update(intake_state)["intake_stage"], "suggestions": suggestions, "focus": focus,
         "focus_download": stage == "EXPORT" and focus == "resume",
     }
 

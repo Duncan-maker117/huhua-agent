@@ -27,6 +27,7 @@ from app.agents.decoder_chain import run_decoder_chain
 from app.services.error_codes import to_turn_error
 from app.agents.career_prompt import career_messages, career_system
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, stream_public_reply
+from app.services.job_intel.integration import enrich_direction, intel_result
 from app.agents.router import advice_contains_facts, explicit_edit_requested, is_advice, is_greeting
 from app.agents.triage_chain import (
     TriageAction,
@@ -1637,7 +1638,13 @@ def _direction_profile_update(state: dict, message: str, collected: dict | None 
     handbook_direction = ("AI产品" if _re.fullmatch(
         r"(?:我)?(?:想投|想做|做)?产品(?:相关)?(?:工作|岗位|方向)?[。！!]*", compact_direction) else direction)
     profile = role_profile_from_direction(handbook_direction)
-    info = {"role_profile": profile, "role_direction": direction}
+    # 同一方向的后台画像结果保留；换方向时只保留公司卡。
+    previous = state.get("jd_info") or {}
+    if previous.get("role_direction") == direction:
+        profile = {**profile, **(previous.get("role_profile") or {})}
+    else:
+        previous = {key: value for key, value in previous.items() if key == "company"}
+    info = {**previous, "role_profile": profile, "role_direction": direction}
     return {
         "jd_info": info, "jd_skipped": True, "jd_keywords": [direction],
         "resume_strategy": build_resume_strategy(jd_info=info, jd_keywords=[direction], has_jd=False),
@@ -1708,6 +1715,7 @@ def _dialogue_requested(text: str) -> bool:
     return is_greeting(text) or (is_advice(text) and not explicit_edit_requested(text))
 
 
+@intel_result
 async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """Reply without a draft update; statements alongside advice still become facts."""
     text = _latest_human_text(state)
@@ -1746,11 +1754,30 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     return result
 
 
+@intel_result
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.services.intake import intake_update
     result = await _jd_input_turn(state, llm)
+    result.update(await enrich_direction({**state, **result}, llm))
+    # Enrichment may synchronously find a cached, ready profile. Use it in this
+    # reply, without waiting for a newly scheduled background sample.
+    for message in result.get("messages", []):
+        if message.additional_kwargs.get("direction_intro"):
+            message.content = _direction_intro({**state, **result})
     result.update(intake_update({**state, **result}))
     return result
+
+
+def _direction_intro(state):
+    from app.services.role_profile import direction_focus
+
+    info = state.get("jd_info") or {}
+    direction = info.get("role_direction") or "、".join(state.get("jd_keywords") or [])
+    return (
+        f"好，先按「{direction}」做能力展示型简历。\n\n"
+        f"{direction_focus(info, direction)}\n\n"
+        "可以一次把所有经历和材料贴进来：旧简历、截图、项目、实习、课程作品、比赛列表都可以。"
+    )
 
 
 async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
@@ -1784,19 +1811,15 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     if _looks_like_role_direction(last_human):
         jd_keywords = _extract_role_direction_keywords(last_human)
         resume_strategy = build_resume_strategy(jd_keywords=jd_keywords, has_jd=False)
-        priorities = "、".join(resume_strategy.get("recruiter_priorities", [])[:4])
-        reply = (
-            f"好，先按「{'、'.join(jd_keywords)}」做能力展示型简历。\n\n"
-            f"我会优先证明：{priorities}。\n\n"
-            "可以一次把所有经历和材料贴进来：旧简历、截图、项目、实习、课程作品、比赛列表都可以。"
-        )
+        direction_update = _direction_profile_update(state, last_human)
+        reply = _direction_intro({**state, "jd_keywords": jd_keywords, **direction_update})
         return {
-            "messages": [AIMessage(content=reply)],
+            "messages": [AIMessage(content=reply, additional_kwargs={"direction_intro": True})],
             "stage": "COLLECTING",
             "jd_skipped": True,
             "jd_keywords": jd_keywords,
             "resume_strategy": resume_strategy,
-            **_direction_profile_update(state, last_human),
+            **direction_update,
         }
 
     # 先跑 Triage
@@ -1866,12 +1889,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
             update.update(_direction_profile_update(
                 {**state, "jd_keywords": decision.jd_keywords}, last_human,
             ))
-            priorities = "、".join(resume_strategy.get("recruiter_priorities", [])[:4])
-            reply = (
-                f"好，收到。岗位方向：{'、'.join(decision.jd_keywords)}。\n\n"
-                f"我会按「能力展示型简历」来做，优先证明：{priorities}。\n\n"
-                f"现在告诉我你的经历——做过什么工作、项目、或者平时有什么习惯跟这个方向相关的都行。"
-            )
+            reply = _direction_intro({**state, **update})
         else:
             # 跳过了但没给方向，下一轮 LIGHT_MODE_ASK
             sys_msg = SystemMessage(content=_get_stage_system("LIGHT_MODE_ASK", state))
@@ -1881,7 +1899,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
             update["messages"] = [response]
             update["stage"] = "JD_INPUT"
             return update
-        update["messages"] = [AIMessage(content=reply)]
+        update["messages"] = [AIMessage(content=reply, additional_kwargs={"direction_intro": True})]
         return update
 
     # 分支 3：用户回复太模糊 → 问清楚
@@ -1908,6 +1926,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     return {"messages": [response]}
 
 
+@intel_result
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if refusal := _fabrication_refusal(state):
         return {'collected_info': state.get('collected_info') or _empty_collected_info(), **refusal}
@@ -1929,6 +1948,8 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     profile_update = (_direction_profile_update(state, latest_message.content, collected)
                       if latest_message and _candidate_source_allowed(latest_message) else {})
     working = {**state, **profile_update, "collected_info": collected}
+    profile_update.update(await enrich_direction(working, llm))
+    working.update(profile_update)
     result = await _collecting_turn_node(working, llm)
     result = {**profile_update, **result}
     if not profile_update and result.get("collected_info"):
@@ -2495,6 +2516,7 @@ async def _model_followup(state: dict, result: dict, llm) -> AIMessage:
         return AIMessage(content=prefix)
 
 
+@intel_result
 async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:
     if refusal := _fabrication_refusal(state):
         return refusal
@@ -2528,6 +2550,7 @@ def _plan_card_update(result: dict) -> dict:
             'messages': [AIMessage(content='先定这份简历的方案。选「按推荐写」或备选方案后开始成稿，也可以直接说想怎么改。')]}
 
 
+@intel_result
 async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.schemas.writer import MatchPlan
     from app.services.structure_plan import plan_action, select_plan, edit_plan, apply_plan_structure, profile_edit, style_edit, accept_profile
@@ -2649,6 +2672,7 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
     return reply, checks
 
 
+@intel_result
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if refusal := _fabrication_refusal(state):
         return refusal
@@ -2951,6 +2975,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             'messages': [followup.model_copy(update={'content': reply})]}
 
 
+@intel_result
 async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段5：引导用户核对并使用真实存在的预览与导出入口。"""
     latest = next(
@@ -3050,6 +3075,7 @@ def route_by_stage(state: ResumeState) -> str:
     return stage.lower()
 
 
+@intel_result
 async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """Explicit single-turn skills; review materials never enter candidate facts."""
     from app.agents.career_tasks import run_resume_review
@@ -3165,11 +3191,21 @@ async def research_job_node(state: ResumeState, request_text: str, llm) -> dict:
 def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     """构建并编译 LangGraph 状态机"""
     from functools import partial
+    from app.services.job_intel.background import current_graph
+
+    def with_intel_graph(node):
+        async def run(state):
+            token = current_graph.set(compiled)
+            try:
+                return await node(state, llm=llm)
+            finally:
+                current_graph.reset(token)
+        return run
 
     graph = StateGraph(ResumeState)
 
-    graph.add_node("jd_input", partial(jd_input_node, llm=llm))
-    graph.add_node("collecting", partial(collecting_node, llm=llm))
+    graph.add_node("jd_input", with_intel_graph(jd_input_node))
+    graph.add_node("collecting", with_intel_graph(collecting_node))
     graph.add_node("building", partial(building_node, llm=llm))
     graph.add_node("evaluating", partial(evaluating_node, llm=llm))
     graph.add_node("export", partial(export_node, llm=llm))
@@ -3208,7 +3244,8 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue", "structure_plan"]:
         graph.add_edge(node, END)
 
-    return graph.compile(checkpointer=checkpointer or MemorySaver())
+    compiled = graph.compile(checkpointer=checkpointer or MemorySaver())
+    return compiled
 
 
 # ── 对外接口 ──────────────────────────────────────────────────────────────────

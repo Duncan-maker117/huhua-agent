@@ -58,14 +58,23 @@ async def stream_public_reply(
     already visible response.
     """
     from app.services.ask_user import AskUser, can_ask_user, question_context, validate_card
+    from app.services.job_intel.integration import SearchCompany, COMPANY_CONTRACT, company_tool, company_reply
+    from app.services.job_intel import search_company
+    original_llm = llm
     enabled = ask_state is not None
     tools_available = callable(getattr(llm, "bind_tools", None))
     if enabled:
-        messages = [*messages, SystemMessage(content=question_context(ask_state, tools_available=tools_available))]
-        if tools_available and can_ask_user(ask_state):
-            tool = convert_to_openai_tool(AskUser)
-            tool['function'].update(name='ask_user', description='用结构化问题卡收集用户补充信息。')
-            llm = llm.bind_tools([tool], tool_choice="auto")
+        messages = [*messages, SystemMessage(content=COMPANY_CONTRACT + "\n" + question_context(ask_state, tools_available=tools_available))]
+        if tools_available:
+            tools = []
+            if can_ask_user(ask_state):
+                tool = convert_to_openai_tool(AskUser)
+                tool['function'].update(name='ask_user', description='用结构化问题卡收集用户补充信息。')
+                tools.append(tool)
+            company = convert_to_openai_tool(SearchCompany)
+            company['function'].update(name='search_company', description='按公司名查公开背景，附来源；每轮至多一次。')
+            tools.append(company)
+            llm = llm.bind_tools(tools, tool_choice="auto")
         # 预算在生成前约束；包括无工具适配器和表单轮，均不事后裁剪正文。
         single_question = False
     messages = redact_model_messages(messages)
@@ -158,6 +167,19 @@ async def stream_public_reply(
         logger.warning("Public reply interrupted: %s", type(exc).__name__)
         interrupted = True
         emit(PUBLIC_REPLY_INTERRUPTED)
+    intel_company = {}
+    if enabled and tools_available and not interrupted:
+        # 同一输出即使携带多个公司调用，也只执行第一个；不启动自主工具循环。
+        call = next((call for call in [*tool_parts.values(), *completed_tools]
+                     if call.get("name") == "search_company"), None)
+        if call:
+            try:
+                parsed = await company_tool(call.get("args"), ask_state)
+                result = parsed if isinstance(parsed, dict) else await search_company(parsed.name, llm=original_llm)
+            except Exception:
+                result = {"status": "unavailable", "message": "暂未查到可核对的公司资料。"}
+            intel_company = result.get("company") or {}
+            emit(("\n\n" if parts else "") + company_reply(result))
     if not interrupted:
         emit(suffix)
     if transform is not None:
@@ -176,5 +198,6 @@ async def stream_public_reply(
         id=reply_id,
         additional_kwargs={"public_reply_interrupted": interrupted,
                            **({"ask_user_enabled": True} if enabled else {}),
+                           **({"intel_company": intel_company} if intel_company else {}),
                            **({"ask_user": card} if card else {})},
     )

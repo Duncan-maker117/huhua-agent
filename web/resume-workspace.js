@@ -226,7 +226,9 @@
     const panel = $('workspace-panel-jd'); panel.replaceChildren();
     const jd = workspace.jd || {}, info = jd.info || {};
     heading(panel, '目标岗位', '招聘要求保留原句，方便对照你的经历。');
+    window.HuhuaWebResearch?.render(panel, info);
     renderWebSources(panel);
+    if (info.job_card || info.role_profile?.source === 'market_sample' || ['pending', 'failed'].includes(info.role_profile?.status)) { renderMatch(panel); return; }
     const hasMatch = list(workspace.tailor?.match_plan?.requirements).length > 0;
     if (!hasMatch && !plain(jd.raw_text) && !Object.values(info).some(v => plain(v) || list(v).length) && !list(jd.keywords).length) {
       if (currentWebSources().length) empty(panel, '来源资料已保留', '可打开来源核对公开资料，或继续粘贴具体 JD。');
@@ -236,7 +238,7 @@
     if (!plain(jd.raw_text) && !Object.values(info).some(v => plain(v) || list(v).length) && !list(jd.keywords).length) { renderMatch(panel); return; }
     const card = node('article', undefined, 'workspace-card');
     card.append(node('h3', info.job_title || info.target_role || '当前岗位'));
-    facts(card, [['公司', info.company], ['学历', info.education], ['经验', info.experience_years], ['薪资', info.salary_range]]);
+    facts(card, [['公司', typeof info.company === 'object' ? info.company?.name : info.company], ['学历', info.education], ['经验', info.experience_years], ['薪资', info.salary_range]]);
     const tags = [...new Set([...list(jd.keywords), ...list(info.keyword_cloud?.core_keywords)].map(readable).filter(Boolean))];
     if (tags.length) {
       const row = node('div', undefined, 'workspace-tags'); tags.forEach(tag => row.append(node('span', tag))); card.append(row);

@@ -2,6 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, inspect, text
 from app.database import Base
+from app.services.job_intel.storage import IntelCache, IntelUsage  # noqa: F401
 
 
 class SchemaVersion(Base):
@@ -20,12 +21,21 @@ def record_schema_version(engine):
             connection.execute(text("INSERT INTO schema_versions(component, version) VALUES ('product_profile', :version)"), {"version": SCHEMA_VERSION})
         elif version != SCHEMA_VERSION:
             raise RuntimeError("Unsupported product schema version; explicit migration required")
+        # 独立组件的增量表，不改写个人资料或提高旧产品表的版本。
+        intel_version = connection.execute(text("SELECT version FROM schema_versions WHERE component = 'job_intel'")).scalar()
+        if intel_version is None:
+            connection.execute(text("INSERT INTO schema_versions(component, version) VALUES ('job_intel', 1)"))
+        elif intel_version != 1:
+            raise RuntimeError("Unsupported job intel schema version")
 
 
 def require_current_schema(engine):
     inspector = inspect(engine)
     if "schema_versions" in inspector.get_table_names():
         with engine.connect() as connection:
+            intel_version = connection.execute(text("SELECT version FROM schema_versions WHERE component = 'job_intel'")).scalar()
+            if intel_version not in (None, 1):
+                raise RuntimeError("Unsupported job intel schema version; explicit migration required")
             version = connection.execute(text("SELECT version FROM schema_versions WHERE component = 'product_profile'")).scalar()
             if version is not None and version != SCHEMA_VERSION:
                 raise RuntimeError("Unsupported product schema version; explicit migration required")

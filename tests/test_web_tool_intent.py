@@ -48,15 +48,13 @@ class WebToolIntentTests(unittest.TestCase):
         for text in ("不要读取这个招聘链接 https://jobs.example.com/42",
                      "不要分析这份JD https://jobs.example.com/42",
                      "[文件: resume.txt]\n请读取这个招聘链接 https://jobs.example.com/42",
-                     "请读取招聘链接 https://jobs.example.com/42 和 https://jobs.example.com/43",
-                     "工作中我负责分析岗位要求 https://jobs.example.com/42"):
+                     "请读取招聘链接 https://jobs.example.com/42 和 https://jobs.example.com/43"):
             with self.subTest(text=text):
                 self.assertIsNone(infer_web_tool(text))
 
     def test_multiple_links_and_plain_experience_never_auto_send(self):
         for text in ("看下 https://example.com/a 和 https://example.com/b", "看看github.com/a 和github.com/b",
-                     "我在腾讯做开发，帮我写简历", "项目中我负责检查网站 https://example.com",
-                     "我参加过这个项目 github.com/example/repo", "I review code at https://example.com",
+                     "我在腾讯做开发，帮我写简历",
                      "我的邮箱 test@github.com/example", "我的手机号13800138000"):
             with self.subTest(text=text):
                 self.assertIsNone(infer_web_tool(text))
@@ -75,6 +73,12 @@ class WebToolIntentTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertIsNone(infer_web_tool(text))
         self.assertEqual(infer_web_tool("https://github.com.evil.example/user")["action"], "read_url")
+
+    def test_links_in_user_text_are_automatically_read(self):
+        for text in ("工作中我负责分析岗位要求 https://jobs.example.com/42",
+                     "项目中我负责检查网站 https://example.com", "I review code at https://example.com"):
+            self.assertEqual(infer_web_tool(text)["action"], "read_url")
+        self.assertEqual(infer_web_tool("我参加过这个项目 github.com/example/repo")["action"], "read_public_url")
 
 
 if __name__ == "__main__":

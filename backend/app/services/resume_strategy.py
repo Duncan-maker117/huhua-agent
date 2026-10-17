@@ -21,7 +21,9 @@ def has_job_description(info: dict | None) -> bool:
     """A direction-derived profile is a target, not an employer-supplied JD."""
     return bool(isinstance(info, dict) and any(
         value for key, value in info.items()
-        if key not in {"role_profile", "role_direction"}
+        if key not in {"role_profile", "role_direction", "source", "urls", "url", "fetched_at",
+                       "sample_attempted_direction", "intel_notice"}
+        and not (key == "company" and isinstance(value, dict) and value.get("source") == "company_search")
     ))
 
 

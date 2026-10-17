@@ -98,21 +98,9 @@ const guidance = {kind: 'ask_user', turn_id: 'ask-1', subject: 'AI 简历', ques
   const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
   assert.match(html, /sendChoice: \(value, payload = \{\}\) => send\(value, \{\.\.\.payload, quickReply: true\}\)/);
   assert.match(html, /\.\.\.\(answers \? \{answers\} : \{\}\)/);
-  const ids = new Map();
-  const webContext = {window: {}, URL, document: {getElementById: id => {
-    if (!ids.has(id)) ids.set(id, new Element('div')); return ids.get(id);
-  }}};
-  const webCode = fs.readFileSync(path.join(__dirname, '../web/web-research.js'), 'utf8').replace('window.HuhuaWebResearch =',
-    'window.capabilitiesFixture = value => { capabilities = value; sync(); }; window.HuhuaWebResearch =');
-  vm.runInNewContext(webCode, webContext);
-  webContext.window.capabilitiesFixture({read_url: false, search: false});
-  assert.equal(ids.get('web-read-toggle').hidden, true);
-  assert.equal(ids.get('web-search-toggle').hidden, true);
-  assert.equal(ids.get('web-tool-actions').hidden, true);
-  assert.ok(!ids.get('web-search-toggle').textContent.includes('未开通'));
-  webContext.window.capabilitiesFixture({read_url: true, search: false});
-  assert.equal(ids.get('web-read-toggle').hidden, false);
-  assert.equal(ids.get('web-search-toggle').hidden, true);
-  assert.equal(ids.get('web-tool-actions').hidden, false);
+  // 第十五批自动识别链接，旧入口彻底删除，不再按 capability 隐藏。
+  for (const id of ['web-read-toggle', 'web-search-toggle', 'web-tool-actions', 'web-read-panel', 'web-search-panel']) {
+    assert.ok(!html.includes(`id="${id}"`));
+  }
   console.log('ask_user DOM checks passed');
 })().catch(error => {console.error(error); process.exitCode = 1;});

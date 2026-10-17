@@ -164,20 +164,6 @@
           </div>
           <p id="selected-task-hint" class="hidden px-4 pb-2 text-xs text-primary" aria-live="polite"></p>
           <p id="request-status" class="hidden px-4 pb-2 text-xs text-on-surface-variant" role="status" aria-live="polite"></p>
-          <section id="web-research-panel" aria-label="读取招聘资料" hidden>
-            <div class="web-research-heading"><span>读取公开招聘资料</span><button id="web-research-close" type="button">收起</button></div>
-            <form id="web-read-panel" hidden>
-              <label>招聘链接<input id="web-read-url" type="url" required maxlength="2048" placeholder="https://…" autocomplete="off"></label>
-              <button id="web-read-submit" class="web-tool-submit" type="submit" disabled>读取链接</button>
-            </form>
-            <form id="web-search-panel" hidden>
-              <label>公司名称<input id="web-search-company" maxlength="80" placeholder="例如：目标公司" autocomplete="off"></label>
-              <label>岗位关键词<input id="web-search-role" maxlength="80" placeholder="例如：AI 产品经理" autocomplete="off"></label>
-              <button id="web-search-submit" class="web-tool-submit" type="submit" disabled>搜索岗位</button>
-            </form>
-            <p id="web-research-status" role="status" aria-live="polite"></p>
-            <button id="web-tools-retry" type="button">重新检查工具</button>
-          </section>
           <!-- 附件 chip 区 -->
           <div id="attachments" class="hidden flex-wrap gap-2 px-4 pb-3"></div>
           <!-- 拖拽提示遮罩 -->
@@ -188,15 +174,10 @@
           </div>
           <div class="flex flex-col gap-2">
             <div class="flex items-start px-3 gap-3">
-              <span class="ui-icon composer-lead-icon mt-2.5" data-icon="edit_note" aria-hidden="true"></span>
               <textarea id="input" rows="1" class="flex-1 bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline text-[15px] leading-relaxed py-2 resize-none outline-none" placeholder="输入消息，Enter 发送 · 可粘贴或拖入 PDF/DOCX/JPG/PNG"></textarea>
             </div>
             <div class="flex items-center justify-between pt-1 px-1">
               <div class="web-research-actions">
-                <span id="web-tool-actions" hidden>
-                <button id="web-read-toggle" class="web-tool-toggle" type="button" aria-controls="web-research-panel" aria-expanded="false">读招聘链接</button>
-                <button id="web-search-toggle" class="web-tool-toggle" type="button" aria-controls="web-research-panel" aria-expanded="false">查公司岗位</button>
-                </span>
                 <label class="composer-attach p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant cursor-pointer" title="上传文件（PDF/DOCX/TXT/MD/JPG/PNG；图片由视觉模型识别）">
                   <span class="ui-icon text-lg" data-icon="attach_file" aria-hidden="true"></span>
                   <input id="file-input" type="file" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.jpg,.jpeg,.png" multiple/>
@@ -400,7 +381,7 @@ function setSendButtonMode(mode) {
   }
 }
 
-async function send(text, {quickReply = false, webTool = null, keepDraft = false, answers = null, plan_choice = null, intake = null} = {}) {
+async function send(text, {quickReply = false, keepDraft = false, answers = null, plan_choice = null, intake = null} = {}) {
   if (window.HuhuaAccount?.claimPending()) return false;
   // 流式中忽略新发送，避免孤儿 fetch（旧 controller 被覆盖就再也 abort 不了）
   if (currentController) return false;
@@ -414,8 +395,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   }
   text = (text ?? inputEl.value).trim();
   // 允许"只有附件没有文字"也能发
-  const sentAttachments = quickReply || webTool ? [] : [...attachments];
-  if (!quickReply && !webTool) webTool = window.HuhuaWebResearch?.infer(text, sentAttachments.length) || null;
+  const sentAttachments = quickReply ? [] : [...attachments];
   const submittedSession = SESSION_ID;
   if (!text && sentAttachments.length === 0) return false;
 
@@ -452,7 +432,6 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   let buffer = '';
   let interrupted = false;
   let completed = false;
-  let usedWebTool = Boolean(webTool);
   let toolMessage = '';
   let lastWorkspaceMeta = null;
   let changeMeta = null;
@@ -495,7 +474,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     const res = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}), ...(answers ? {answers} : {}), ...(plan_choice ? {plan_choice} : {}), ...(intake ? {intake} : {}) }),
+      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(answers ? {answers} : {}), ...(plan_choice ? {plan_choice} : {}), ...(intake ? {intake} : {}) }),
       signal: currentController.signal
     });
     acceptTurn(res.ok);
@@ -529,7 +508,6 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
         applyMeta(parsed); return;
       }
       if (parsed.type === 'tool_status') {
-        usedWebTool = true;
         toolMessage = typeof parsed.message === 'string' ? parsed.message : parsed.status === 'completed' ? '网页资料已获取，正在解读…' : '正在获取网页资料…';
         window.HuhuaWebResearch?.toolStatus({...parsed, message:toolMessage}); updateWaiting(); return;
       }
@@ -598,7 +576,6 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
   updateFlowActions();
   if (!completed) {
     if (!quickReply && !keepDraft && !inputEl.value.trim()) { inputEl.value = text; autoResize(); }
-    if (usedWebTool) window.HuhuaWebResearch?.offerRetry(webTool);
   }
   inputEl.focus();
   // Guidance reappears after streaming and changes the available message height.
@@ -1093,10 +1070,7 @@ commandBar.addEventListener('drop', async e => {
   if (files && files.length) await uploadFiles(files);
 });
 
-window.HuhuaWebResearch?.init({
-  send, input: () => inputEl.value,
-  busy: () => Boolean(currentController || pendingUploads || conversationBusy || !conversationReady || window.HuhuaAccount?.claimPending()),
-});
+window.HuhuaWebResearch?.init({input: () => inputEl.value});
 window.HuhuaResumeActions?.init({session: () => SESSION_ID, data: () => canvasState.data, template: () => canvasState.templateId, refresh: refreshCanvas});
 window.HuhuaWorkspace?.init({
   sendChoice: (value, payload = {}) => send(value, {...payload, quickReply: true}),

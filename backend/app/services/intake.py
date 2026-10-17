@@ -335,7 +335,8 @@ def deepen_context(state: dict) -> dict:
     from app.services.followup_context import latest_followup
     asked_target = any(re.search(r"岗位|方向|想投", latest_followup(str(m.content)))
                        for m in state.get("messages") or [] if isinstance(m, AIMessage))
-    context = {**update, "instruction": "表单可跳过，任何自由文本照常抽取。岗位方向是可选信息，有经历就继续经历清单与深挖，不等待方向。"}
+    from app.services.job_intel.integration import market_context
+    context = {**update, "market_context": market_context(state), "instruction": "表单可跳过，任何自由文本照常抽取。岗位方向是可选信息，有经历就继续经历清单与深挖，不等待方向。"}
     if not target_known(state):
         context["instruction"] += (" 已在正文问过岗位方向，不再追问。" if asked_target else
                                    " 本轮可在正文顺带问一次目标岗位，不出方向问题卡，不阻塞经历收集。")

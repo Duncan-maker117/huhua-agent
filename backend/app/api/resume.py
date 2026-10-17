@@ -102,13 +102,15 @@ async def _current_resume(request: Request, session_id: str):
     try:
         graph = get_graph(_llm_for_graph())
         state = await graph.aget_state(config)
+        from app.services.job_intel.background import refresh_expired
+        refreshed = await refresh_expired(graph, session_id, (state.values if state else {}) or {})
     except Exception:
         state = None
         graph_error = True
     else:
         graph_error = False
 
-    vals = protect_state(owner, (state.values if state else {}) or {})
+    vals = protect_state(owner, refreshed if not graph_error else {})
     if vals:
         stage = vals.get("stage") or "JD_INPUT"
         from app.services.resume_strategy import has_job_description

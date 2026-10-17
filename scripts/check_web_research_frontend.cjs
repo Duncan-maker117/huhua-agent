@@ -11,32 +11,18 @@ const toolsCode = read('web/web-research.js'), workspace = read('web/resume-work
 const context = {window:{},document:{},URL};
 vm.runInNewContext(toolsCode, context);
 const tools = context.window.HuhuaWebResearch;
-check('pure HTTPS URL becomes explicit read-url payload', () => {
-  const value = tools.infer('https://careers.example.invalid/jobs/123?lang=zh');
-  assert.equal(value.action, 'read_url'); assert.equal(value.url, 'https://careers.example.invalid/jobs/123?lang=zh');
+check('URL interpretation is owned by the server, with no explicit button payload', () => {
+  assert.equal(tools.safeUrl('  https://example.invalid/job  '), 'https://example.invalid/job');
+  assert.equal(tools.safeUrl('http://careers.example.invalid/job'), 'http://careers.example.invalid/job');
+  assert.doesNotMatch(page, /web_tool:|HuhuaWebResearch\?\.infer/);
 });
-check('HTTP supported', () => assert.equal(tools.infer('http://careers.example.invalid/job').action, 'read_url'));
-check('GitHub links use public reference mode with and without scheme', () => {
-  for (const url of ['https://github.com/example/tool', 'github.com/example']) {
-    assert.equal(tools.infer(url).action, 'read_public_url');
-  }
-  assert.equal(tools.infer('github.com/example', 1), null);
-  assert.equal(tools.infer('https://github.com.example.org/jobs/123').action, 'read_url');
-});
-check('surrounding whitespace accepted', () => assert.equal(tools.infer('  https://example.invalid/job  ').url, 'https://example.invalid/job'));
-check('mixed personal material is never automatically read', () => assert.equal(tools.infer('我的项目用了 Python，参考 https://example.invalid/job'), null));
-check('two links never become one tool action', () => assert.equal(tools.infer('https://a.example.invalid https://b.example.invalid'), null));
-check('attachments prevent URL auto-reading', () => assert.equal(tools.infer('https://example.invalid/job', 1), null));
 check('unsafe and credential-bearing protocols rejected', () => {
   for (const url of ['javascript:alert(1)','data:text/html,hello','file:///tmp/a','//example.invalid','https://user:pass@example.invalid','https://']) assert.equal(tools.safeUrl(url), null, url);
 });
-check('keyword fields bounded and separate', () => {
-  assert.match(page, /id="web-search-company" maxlength="80"/); assert.match(page, /id="web-search-role" maxlength="80"/);
-  assert.match(toolsCode, /tool = \{action, company, role\}/); assert.match(toolsCode, /if \(!company && !role\)/);
-});
-check('explicit tools preserve existing composer and attachment draft', () => {
-  assert.match(toolsCode, /webTool:tool, keepDraft:true/); assert.match(page, /quickReply \|\| webTool \? \[\] : \[\.\.\.attachments\]/);
-  assert.match(page, /if \(!quickReply && !keepDraft\) clearAttachments\(\)/);
+check('removed controls stay absent while attachments are kept', () => {
+  for (const id of ['web-search-company','web-search-role','web-read-toggle','web-search-toggle','web-research-panel']) assert.ok(!page.includes(`id="${id}"`));
+  assert.match(page, /id="file-input"/);
+  assert.match(page, /quickReply \? \[\] : \[\.\.\.attachments\]/);
 });
 check('tool metadata is handled before content and returns early', () => {
   const status = page.indexOf("parsed.type === 'tool_status'"); const sources = page.indexOf("parsed.type === 'sources'"); const content = page.indexOf("typeof parsed.content === 'string'", sources);
@@ -90,38 +76,19 @@ check('display numbers follow server sequence and commit only after successful s
   assert.match(page, /if \(completed\) window.HuhuaWorkspace\?\.commitWebSources\(lastWorkspaceMeta, submittedSession\)/);
   assert.match(workspace, /hasOwnProperty.call\(value, 'web_sources'\)/);
 });
-const noticeNodes = {'web-tool-usage-notice': {textContent:'',hidden:true}, 'web-direct-link-notice': {hidden:true}};
+const noticeNodes = {'web-direct-link-notice': {textContent:'',hidden:true}};
 const noticeContext = {window:{},document:{getElementById:id => noticeNodes[id]},URL};
 vm.runInNewContext(toolsCode.replace('  window.HuhuaWebResearch =', `  window.__usageTest = {
-  update: syncUsageNotice,
-  select(action, available, input = '', running = false) { active = action; capabilities = {read_url:available, search:available}; callbacks = {input: () => input}; busy = running; }
+  select(input, running = false) { callbacks = {input: () => input}; busy = running; syncNotice(); }
 };
   window.HuhuaWebResearch =`), noticeContext);
-const usage = noticeContext.window.__usageTest;
-check('read entry explains JD replacement and attempts before execution', () => {
-  usage.select('read_url', true); usage.update();
-  assert.equal(noticeNodes['web-tool-usage-notice'].hidden, false);
-  assert.match(noticeNodes['web-tool-usage-notice'].textContent, /替换当前目标 JD/);
-  assert.match(noticeNodes['web-tool-usage-notice'].textContent, /开始执行后，即使失败也计入尝试次数/);
-});
-check('search scope is explicitly limited to snippets and preserves JD', () => {
-  usage.select('search', true); usage.update();
-  assert.match(noticeNodes['web-tool-usage-notice'].textContent, /仅基于搜索结果摘要/);
-  assert.match(noticeNodes['web-tool-usage-notice'].textContent, /不替换当前目标 JD/);
-});
-check('pure link input shows replacement notice without opening tool panel', () => {
-  usage.select('', true, 'https://example.invalid/job'); usage.update();
+check('automatic link notice explains public references and manual fallback', () => {
+  noticeContext.window.__usageTest.select('这个岗位 https://example.invalid/job');
   assert.equal(noticeNodes['web-direct-link-notice'].hidden, false);
-  usage.select('', true, '本人项目参考 https://example.invalid/job'); usage.update();
+  assert.match(noticeNodes['web-direct-link-notice'].textContent, /自动识别公开链接/);
+  assert.match(noticeNodes['web-direct-link-notice'].textContent, /截图或复制正文/);
+  noticeContext.window.__usageTest.select('仅介绍经历');
   assert.equal(noticeNodes['web-direct-link-notice'].hidden, true);
-});
-check('GitHub direct-link notice correctly preserves JD', () => {
-  usage.select('', true, 'github.com/example'); usage.update();
-  assert.equal(noticeNodes['web-direct-link-notice'].hidden, false);
-  assert.match(noticeNodes['web-direct-link-notice'].textContent, /不会替换目标 JD/);
-});
-check('unavailable tool does not imply an attempt was consumed', () => {
-  usage.select('search', false); usage.update(); assert.equal(noticeNodes['web-tool-usage-notice'].hidden, true);
 });
 check('source normalization preserves only strict truncation booleans', () => {
   const normalized = groups.normalize([{kind:'job_page',content_truncated:true}, {kind:'job_page',content_truncated:false}, {kind:'job_page',content_truncated:'true'}, {kind:'job_page',content_truncated:1}]);

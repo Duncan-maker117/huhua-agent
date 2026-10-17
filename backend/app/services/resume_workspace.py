@@ -58,6 +58,11 @@ def bounded_web_sources(sources, *, content_limit=1800) -> list[dict]:
             item["read_scope"] = source["read_scope"]
         if type(source.get("request_count")) is int and 1 <= source["request_count"] <= 4:
             item["request_count"] = source["request_count"]
+        if source["kind"] == "job_page" and isinstance(source.get("job_card"), dict):
+            card = source["job_card"]
+            item["job_card"] = {key: card[key] for key in (
+                "company", "job_title", "location", "salary", "requirements", "responsibilities",
+                "skills", "bonuses", "url", "source", "provider", "fetched_at", "raw_text") if key in card}
         result.append(item)
     return result
 
@@ -245,7 +250,8 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
                 "bullets": bullets, "missing": missing,
             })
 
-    jd = copy.deepcopy(values.get("jd_info") or {})
+    from app.services.job_intel.background import expire_info
+    jd = expire_info(values.get("jd_info"))
     if items and isinstance(jd.get("summary"), str):
         kept = [part for part in re.split(r"(?<=[。！])|\n", jd["summary"])
                 if part.strip() and not re.search(r"只给了|没有给我个人|没有个人材料|只有\s*JD|只给了岗位", part)]

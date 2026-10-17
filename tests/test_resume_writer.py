@@ -52,7 +52,21 @@ def source_echo_model(collected):
                                       'fact_ids': [fact['id']]}
                                      for fact in source_item.get('facts') or []
                                      if fact.get('status', 'active') == 'active' and _body_fact(fact)]})
-    return FakeModel([('OnePassOutput', {'match_plan': {}, 'writer': {'items': rows}})])
+    class EchoModel(FakeModel):
+        async def ainvoke(self, messages):
+            import json
+            payload = json.loads(messages[-1].content)
+            if self.schema.__name__ == 'FactSlots':
+                from app.services.labeled_writer import rule_slot
+                self.calls.append((self.schema.__name__, messages))
+                return {'assignments': [{'fact_id': f['id'], 'slot': rule_slot(f) or '技术'}
+                                        for f in payload['facts']]}
+            if self.schema.__name__ == 'SemanticBatch':
+                from test_fact_guard import decision
+                self.calls.append((self.schema.__name__, messages))
+                return {'decisions': [decision(row['id']) for row in payload]}
+            return await super().ainvoke(messages)
+    return EchoModel([('OnePassOutput', {'match_plan': {}, 'writer': {'items': rows}})])
 
 
 def draft(items, **extra):

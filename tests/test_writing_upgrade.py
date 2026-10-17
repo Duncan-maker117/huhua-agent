@@ -213,6 +213,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
         collected = evidence()
         plan = select_plan((await self.planned())['structure_plan'])
         plan['bullet_style'] = 'plain'
+        plan['bullet_style_source'] = 'user'
         written = await run_resume_writer(collected, {'role_family': 'ai_pm'},
             PlanModel([('WriterDraft', draft())]), phase='write', previous_plan=plan)
         self.assertFalse(any('：' in b for b in written['resume_data']['projects'][0]['polished_bullets']))

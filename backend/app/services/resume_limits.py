@@ -120,11 +120,19 @@ def _limit_key(text: str) -> str:
     text = text.replace('对一个', '对').replace('加了', '加')
     text = re.sub(r'(?:没(?:有)?|未)(?:做|进行|开展)?线上压测', '未做线上压测', text)
     text = re.sub(r'(?:仅|只)(?:面向|给)(?:班级|班里|全班)(?:进行)?演示', '只给班里演示', text)
-    return re.sub(r'是(.{1,12}(?:同学|同事|成员|队友))写的', r'由\1编写', text)
+    text = re.sub(r'是(.{1,12}(?:同学|同事|成员|队友))写的', r'由\1编写', text)
+    # Narrow ownership equivalence: retain the module and the exact actor.
+    # “负责/参与/协助/计划实现” are deliberately not equivalent to completion.
+    return re.sub(r'由(?:组内|团队内)?(另一位(?:同学|同事|成员|队友))(?:编写|实现|完成)',
+                  r'由\1编写', text)
 
 
 def _already_visible(clause: str, texts: Sequence[str]) -> bool:
     key = _limit_key(clause)
+    if re.fullmatch(r'.+由另一位(?:同学|同事|成员|队友)编写', key):
+        # Compare the whole ownership clause: a negation, plan or partial
+        # contribution around the same words does not establish completion.
+        return any(key == _limit_key(part) for text in texts for part in _CLAUSE_BREAK.split(text))
     if key and any(key in _limit_key(text) for text in texts):
         return True
     # Deployment and demo audience are separate units. Preserve the literal
@@ -134,7 +142,7 @@ def _already_visible(clause: str, texts: Sequence[str]) -> bool:
         return all(_already_visible(part, texts) for part in parts)
     # 正文已换说法写出同一动作（如「对一个慢查询加了联合索引」→「定位慢查询并添加联合索引」）
     # 时不再原句追加；否定、边界类限定不走这条近似判断。
-    if not re.search(r"没|未|不|无|非|仅|只|由|指导", clause):
+    if not re.search(r"没|未|不|无|非|仅|只|由|指导", clause) and not _CONTRIBUTION_LIMIT.search(clause):
         wanted = set(re.sub(r"[\W\d_a-zA-Z]|[的了一个对把将在并和与及等]", "", key))
         if len(wanted) >= 6 and any(len(wanted - set(_limit_key(text))) <= 1 for text in texts):
             return True

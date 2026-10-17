@@ -118,7 +118,7 @@ def select_plan(card: dict, index: int = 0) -> dict | None:
         result['experience_plan'] = [deepcopy(diffs.get(row['item_id'], row)) for row in result['experience_plan']]
         for key in ('label', 'positioning', 'thesis', 'section_order'):
             result[key] = deepcopy(alternative[key])
-        for key in ('profile_statement', 'profile_statement_source', 'profile_statement_fact_ids', 'bullet_style'):
+        for key in ('profile_statement', 'profile_statement_source', 'profile_statement_fact_ids', 'bullet_style', 'bullet_style_source'):
             result.pop(key, None)
             if key in alternative:
                 result[key] = deepcopy(alternative[key])
@@ -168,7 +168,11 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
 
     def validated(row, index):
         raw = {key: row[key] for key in MatchPlan.model_fields if key in row}
+        from app.services.writing_style import effective_style
+        raw['bullet_style'] = effective_style(profile.get('role_family', 'other'), row)
         plan = _validate_plan(MatchPlan.model_validate(raw), source, profile, items, facts)
+        if row.get('bullet_style_source') == 'user':
+            plan['bullet_style_source'] = 'user'
         # Thesis is a card-only narrative, not resume prose. Check concrete
         # claims, numbers and units without requiring full lexical coverage.
         thesis = str(row.get('thesis') or '').strip()
@@ -252,7 +256,7 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
             alternative['label'] += f"（备选{len(result['alternatives']) + 1}）"
         baseline = {row['item_id']: row for row in recommended['experience_plan']}
         result['alternatives'].append({**{key: alternative[key] for key in ('label', 'positioning', 'profile_statement', 'bullet_style', 'thesis', 'section_order')},
-                                      **{key: alternative[key] for key in ('profile_statement_source', 'profile_statement_fact_ids') if key in alternative},
+                                      **{key: alternative[key] for key in ('profile_statement_source', 'profile_statement_fact_ids', 'bullet_style_source') if key in alternative},
                                       **({'positioning_source': 'derived'} if alternative.get('positioning_source') == 'derived' else {}),
                                       'experience_plan': [row for row in alternative['experience_plan'] if row != baseline[row['item_id']]]})
     if not result['alternatives']:
@@ -261,7 +265,7 @@ async def validate_structure_plan(card: dict, source: dict, profile: dict, items
                  if row['treatment'] != 'keep']
         result['alternatives'] = [{'label': '经历均衡型', 'positioning': recommended['positioning'], 'thesis': '',
                                    'profile_statement': recommended['profile_statement'], 'bullet_style': recommended['bullet_style'],
-                                   **{key: recommended[key] for key in ('profile_statement_source', 'profile_statement_fact_ids') if key in recommended},
+                                   **{key: recommended[key] for key in ('profile_statement_source', 'profile_statement_fact_ids', 'bullet_style_source') if key in recommended},
                                    **({'positioning_source': 'derived'} if recommended.get('positioning_source') == 'derived' else {}),
                                    'section_order': list(recommended['section_order']), 'experience_plan': diffs}]
     return result
@@ -275,6 +279,7 @@ def edit_plan(plan: dict, text: str, collected: dict) -> tuple[dict, bool]:
         return result, True
     if style := style_edit(text):
         result['bullet_style'] = style
+        result['bullet_style_source'] = 'user'
         return result, True
     labels = {item.get('item_id'): item.get('name') or item.get('company') or ''
               for section in (*SECTION_LABELS, 'internship') for item in collected.get(section) or [] if isinstance(item, dict)}

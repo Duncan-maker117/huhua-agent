@@ -277,9 +277,14 @@ class Batch14c4WriterTests(unittest.IsolatedAsyncioTestCase):
         facts = {'f': fact('f', text, kind='context')}
         for prefix in ('：', ': ', '  ：', '问题：'):
             for style in ('plain', 'labeled'):
-                row = format_rows([{'text': prefix + text, 'fact_ids': ['f']}], facts, style, role_family='ai_pm')[0]
-                self.assertEqual(row['text'], text)
-                self.assertEqual(row['fact_ids'], ['f'])
+                rows = format_rows([{'text': prefix + text, 'fact_ids': ['f']}], facts, style, role_family='ai_pm')
+                if style == 'labeled':
+                    # c5: positioning belongs in the heading, never an
+                    # unlabeled body row or an invented “problem”.
+                    self.assertEqual(rows, [])
+                else:
+                    self.assertEqual(rows[0]['text'], text)
+                    self.assertEqual(rows[0]['fact_ids'], ['f'])
         pain = '学生难以梳理经历'
         row = format_rows([{'text': '：' + pain, 'fact_ids': ['f']}], {'f': fact('f', pain, kind='context')}, 'labeled')[0]
         self.assertEqual(row['text'], '问题：' + pain)

@@ -1600,10 +1600,11 @@ def _looks_like_role_direction(text: str) -> bool:
     compact = _re.sub(r"\s+", "", text).casefold()
     has_role = any(kw.replace(" ", "").casefold() in compact for kw in ROLE_DIRECTION_KEYWORDS)
     has_role = has_role or bool(_re.search(r"(?:想投|想做|应聘|求职|做)产品(?:相关)?(?:工作|岗位|方向)?", compact))
-    has_intent = any(
-        kw in text
-        for kw in ("想投", "想做", "应聘", "求职", "目标", "岗位", "方向", "校招", "实习")
-    )
+    # A free answer about “设计取舍 / 虚拟求职者” is evidence, not a
+    # new career direction. In particular 求职者 must not match 求职 intent.
+    if _re.match(r"关于[「“]", text):
+        return False
+    has_intent = bool(_re.search(r"想投|想做|应聘|求职(?!者)|目标|岗位|方向|校招|实习", text))
     return has_role and (has_intent or len(text) <= 16)
 
 
@@ -2546,8 +2547,10 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             return _plan_card_update({'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True})
         if choice.get('bullet_style') in {'plain', 'labeled'}:
             selected['bullet_style'] = choice['bullet_style']
+            selected['bullet_style_source'] = 'user'
         elif style_edit(text):
             selected['bullet_style'] = style_edit(text)
+            selected['bullet_style_source'] = 'user'
         return await building_node({**state, 'confirmed_plan': accept_profile(selected), 'pending_plan': {}, 'plan_required': False}, llm,
                                    plan_confirmation=True)
     plan = select_plan(card) if card else state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
@@ -2566,7 +2569,7 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
                 alternative, _ = edit_plan(select_plan(card, i), text, state.get('collected_info') or {})
                 baseline = {row['item_id']: row for row in edited['experience_plan']}
                 alternatives.append({**{key: alternative[key] for key in ('label', 'positioning', 'thesis', 'section_order',
-                                     'profile_statement', 'profile_statement_source', 'profile_statement_fact_ids', 'bullet_style') if key in alternative},
+                                     'profile_statement', 'profile_statement_source', 'profile_statement_fact_ids', 'bullet_style', 'bullet_style_source') if key in alternative},
                                      'experience_plan': [row for row in alternative['experience_plan'] if row != baseline[row['item_id']]]})
             return _plan_card_update({'pending_plan': {'recommended': edited, 'alternatives': alternatives},
                                       'confirmed_plan': {}, 'plan_required': True})

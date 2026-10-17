@@ -21,6 +21,8 @@ from app.services.llm_compat import label_run, without_thinking
 from app.services.resume_facts import new_fact, normalize_fact_store
 from app.services.resume_field_hygiene import is_project_status
 
+from app.services.product_pains import product_pain, recover_product_pains
+
 logger = logging.getLogger(__name__)
 
 _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch：
@@ -37,6 +39,7 @@ JD、示例、助手建议、计划要做的事情不能变成已完成事实。
 没有后台权限、不是负责人、选题由他人定、他人给文案、没有数据或不知道播放量都标 status_limit，约束措辞，不是成果。按子句最近的明确主体归属；「我还做过」无新主体时接续最近经历，海报不表示校园经历。
 用户一次列出多个PR、多个奖项时必须逐条收录，不得只收第一条。数字及其单位（人/次/个/条）保留，不能把「20次」解释为「20次调用/请求」。
 半句话中已经说清的团队规模、本人分工等分别抽取；未完成的尾巴不影响前面的事实，不猜缺失内容。
+产品现有方案的痛点（填空繁琐、复制粘贴、无法编辑、不懂结构等）逐条抽取为 context，归属本项目；工具不知道什么不等于用户不知道，也不是写作指令。本人分工、产品决策、上线状态分开抽取，不混成一条。
 不要返回整份 collected_info，不要添加未知字段。"""
 
 
@@ -466,7 +469,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if not text or not quote or normalize_text(quote) not in normalize_text(evidence):
             result["rejected"].append({"text": text, "reason": "source_quote_not_in_candidate_message"})
             return None
-        if (non_fact(text) or non_fact(quote)) and not constraint_only(quote):
+        if (non_fact(text) or non_fact(quote)) and not constraint_only(quote) and not product_pain(quote):
             result.setdefault("metadata_context", []).append(quote)
             return None
         if skill_declaration(quote):
@@ -474,7 +477,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if naming_answer == "refused":
             return None
         context_clauses = [part for part in re.split(r"[，,。；;\n]", evidence) if quote in part]
-        if context_clauses and all(non_fact(part) for part in context_clauses) and not constraint_only(quote):
+        if context_clauses and all(non_fact(part) for part in context_clauses) and not constraint_only(quote) and not product_pain(quote):
             result.setdefault("metadata_context", []).extend(context_clauses)
             return None
         if _quote_has_unquoted_limit(evidence, quote):
@@ -483,7 +486,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if (errors := lexical_fact_errors(text, quote)):
             result["rejected"].append({"text": text, "reason": errors})
             return None
-        fact = new_fact(text, kind="status_limit" if constraint_only(quote) else raw.get("kind", "context"), quote=quote,
+        fact = new_fact(text, kind="context" if product_pain(quote) else "status_limit" if constraint_only(quote) else raw.get("kind", "context"), quote=quote,
                         source="chat", turn_id=turn_id)
         if _is_large_rewrite(text, quote):
             semantic_pairs.append({"id": fact["id"], "text": text, "source_quotes": [quote]})
@@ -537,7 +540,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 if raw_item.get('section') != 'education' and personal_header(quote):
                     result.setdefault('metadata_context', []).append(quote)
                     continue
-                if (non_fact(quote) or non_fact(str(fragment.get("text") or ""))) and not constraint_only(quote):
+                if (non_fact(quote) or non_fact(str(fragment.get("text") or ""))) and not constraint_only(quote) and not product_pain(quote):
                     if quote and quote in evidence:
                         result.setdefault("metadata_context", []).append(quote)
                     continue
@@ -808,6 +811,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 fact = new_fact(value, kind="context", quote=value, turn_id=turn_id)
                 fact["field"] = field
                 owner["facts"].append(fact)
+    recover_product_pains(result, coverage_evidence, outline, turn_id)
     _cover_dropped_clauses(result, coverage_evidence, turn_id, lexical_fact_errors, normalize_text,
                            followup_target=None if ambiguous_owner else target, outline=outline)
     # A literal answer to the one naming question updates the existing identity,

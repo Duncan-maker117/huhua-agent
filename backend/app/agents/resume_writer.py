@@ -17,7 +17,7 @@ from pydantic import BaseModel, ValidationError
 from app.services.error_codes import ChatTurnError, MATERIAL_RETRY_MESSAGE, UPSTREAM, raise_model_failure
 from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill, writing_structure
 from app.config import get_settings
-from app.services.writing_style import LABEL, format_rows, independent_labeled_row, row_label
+from app.services.writing_style import LABEL, format_rows, independent_labeled_row, row_label, effective_style
 from app.schemas.writer import (IGNORED_EXTRA_SINK, REPAIRED_FIELD_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
                                 LABELED_SEMANTICS, LABELED_SELECTION, RepairOutput, StructurePlan, WriterDraft)
 from app.services.fact_guard import guard_bullets, strip_absence, validate_skill_groups
@@ -162,8 +162,9 @@ async def _metric_retention(writers, items, treatment, caps, model) -> set:
 
 
 def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
-                           missing: Mapping[str, Sequence[str]], caps: Mapping[str, int]) -> None:
-    """确定性兜底：把事实原句补成最后一条；满额时替换该条目信息量最小的 bullet。"""
+                           missing: Mapping[str, Sequence[str]], caps: Mapping[str, int], *,
+                           merge_at_capacity: bool = False) -> None:
+    """补回量化事实；最终复核满额时只合并，不能挤掉已通过校验的动作。"""
     from app.schemas.writer import WrittenBullet
     for item_id, fact_ids in missing.items():
         written, cap = writers[item_id], caps[item_id]
@@ -191,7 +192,7 @@ def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple
                 continue
             if len(bullets) >= cap:
                 removable = [b for b in bullets if not any(_numeric_fact(by_id.get(ref, {})) for ref in b.fact_ids)]
-                if removable:
+                if removable and not merge_at_capacity:
                     bullets.remove(min(removable, key=lambda b: han_length(b.text)))
                     bullets.append(WrittenBullet(text=text, fact_ids=[fid]))
                 else:
@@ -202,6 +203,48 @@ def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple
             else:
                 bullets.append(WrittenBullet(text=text, fact_ids=[fid]))
         written.bullets = bullets
+
+
+async def _restore_final_metrics(output, meta, items, treatment, caps, allowed, model, *, excluded=()) -> dict:
+    """Recheck the delivered plain body after polish/contract/coverage/dedup.
+
+    Earlier metric repair is provisional: a later supported rewrite can still
+    omit a quantity. Merge source-backed missing claims within the same cap.
+    """
+    from app.schemas.writer import WrittenBullet, WrittenItem
+    writers, targets = {}, {}
+    for section in SECTIONS:
+        field = 'polished_bullets' if section == 'projects' else 'bullets'
+        for item in output.get(section) or []:
+            iid = item.get('item_id')
+            if iid not in allowed or iid in excluded or item.get('hidden') or iid not in items:
+                continue
+            records = meta.get('bullets', {}).get(iid, [])
+            writers[iid] = WrittenItem(item_id=iid, section=section, bullets=[
+                WrittenBullet(text=text, fact_ids=records[i].get('fact_ids', []) if i < len(records) else [])
+                for i, text in enumerate(item.get(field) or [])])
+            targets[iid] = (item, field, records)
+    retained = await _metric_retention(writers, items, treatment, caps, model)
+    missing = _missing_metric_facts(writers, items, treatment, caps, retained)
+    # The final fallback uses active fact text, but still checks quantities,
+    # ownership and item-wide limits before publishing it without a model.
+    for iid, ids in list(missing.items()):
+        facts = items[iid][1]['facts']
+        lookup = {f['id']: f for f in facts}
+        checks = await guard_bullets([{'id': fid, 'text': strip_absence(lookup[fid]['text']),
+                                      'fact_ids': [fid]} for fid in ids], facts, lexical_only=True)
+        missing[iid] = [r['id'] for r in checks if r['verdict'] == 'pass']
+        if not missing[iid]:
+            del missing[iid]
+    _append_metric_bullets(writers, items, missing, caps, merge_at_capacity=True)
+    for iid in missing:
+        item, field, records = targets[iid]
+        item[field] = [b.text for b in writers[iid].bullets]
+        meta.setdefault('bullets', {})[iid] = [{
+            **({k: v for k, v in records[i].items() if k != 'coverage_fact_ids'} if i < len(records) else {}),
+            'fact_ids': b.fact_ids, 'text_hash': _hash(b.text),
+        } for i, b in enumerate(writers[iid].bullets)]
+    return missing
 
 
 class WriterOutputShapeError(ValueError):
@@ -763,14 +806,17 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
     requirements.extend({"req_id": req, "status": "gap", "fact_ids": [], "angle": ""}
                         for req in ordered_reqs if req not in seen_reqs)
     experience, seen_items = [], set()
+    labeled = plan.bullet_style == 'labeled' and writing_structure(role_profile.get('role_family', 'other'))['bullet_style'] == 'labeled'
     for row in plan.experience_plan:
         if row.item_id not in items or row.item_id in seen_items:
             continue
         seen_items.add(row.item_id)
-        cap = {"lead": 3, "keep": 2, "brief": 1, "backup": 0}[row.treatment]
+        structured_project = labeled and items[row.item_id][0] == 'projects'
+        cap = {"lead": 4 if structured_project else 3, "keep": 4 if structured_project else 2, "brief": 1, "backup": 0}[row.treatment]
         experience.append({"item_id": row.item_id, "treatment": row.treatment,
                            "reason": row.reason, "target_bullets": min(row.target_bullets, cap)})
-    experience.extend({"item_id": item_id, "treatment": "keep", "reason": "", "target_bullets": 2}
+    experience.extend({"item_id": item_id, "treatment": "keep", "reason": "",
+                       "target_bullets": 4 if labeled and items[item_id][0] == 'projects' else 2}
                       for item_id in items if item_id not in seen_items)
     order = list(dict.fromkeys(section for section in plan.section_order if section in ALL_SECTIONS))
     order.extend(section for section in ALL_SECTIONS if section not in order)
@@ -1220,7 +1266,10 @@ async def _run_resume_writer(
     allowed, bullet_targets = _scope_targets(scope, targets, current, items)
     model = structured_llm or llm
     role_family = role_profile.get("role_family", "other")
-    bullet_style = (previous_plan or {}).get("bullet_style") or writing_structure(role_family)["bullet_style"]
+    style_plan = previous_plan or meta.get('confirmed_plan') or meta.get('match_plan') or {}
+    bullet_style = effective_style(role_family, style_plan)
+    if previous_plan:
+        previous_plan = {**previous_plan, "bullet_style": bullet_style}
     effective_constraints = normalize_session_constraints(
         constraints, seniority=role_profile.get("seniority", "unknown"))
     capacity = writer_capacity_budget(effective_constraints)
@@ -1265,6 +1314,13 @@ async def _run_resume_writer(
             raw = {"recommended": {**plan.model_dump(), "label": "事实保守型"}, "alternatives": []}
         for option in [raw["recommended"], *raw.get("alternatives", [])]:
             option["bullet_style"] = bullet_style
+            if style_plan.get('bullet_style_source') == 'user':
+                option['bullet_style_source'] = 'user'
+            if bullet_style == 'labeled' and writing_structure(role_family)['bullet_style'] == 'labeled':
+                for entry in option.get('experience_plan', []):
+                    if (entry.get('treatment') in {'lead', 'keep'}
+                            and items.get(entry.get('item_id'), ('',))[0] == 'projects'):
+                        entry['target_bullets'] = 4
         card = await validate_structure_plan(raw, source, role_profile, items, facts, llm=model, diagnostic=diagnostic)
         return {"structure_plan": card, "writer_diagnostic": diagnostic}
     reused_plan = (MatchPlan.model_validate({key: previous_plan[key] for key in MatchPlan.model_fields
@@ -1280,6 +1336,13 @@ async def _run_resume_writer(
         writer_diagnostic["plan_reused"] = True
 
     call_options = {'retry_failures': primary_call}
+    slot_assignments = {}
+    slot_contract = ''
+    if bullet_style == 'labeled' and writing_structure(role_family)['bullet_style'] == 'labeled' and scope != 'bullet':
+        from app.services.labeled_writer import classify_items, WRITE_CONTRACT as SLOT_WRITE_CONTRACT
+        slot_assignments = await classify_items(items, allowed, _call, model, role_family, writer_diagnostic)
+        payload['labeled_slots'] = slot_assignments
+        slot_contract = '\n' + SLOT_WRITE_CONTRACT
 
     try:
         async with asyncio.timeout(None if primary_call else WRITER_TIMEOUT_SECONDS):
@@ -1287,10 +1350,10 @@ async def _run_resume_writer(
                 plan = reused_plan
                 selected_payload = dict(previous_plan) if phase == "write" else reused_plan.model_dump()
                 draft = await _call(llm, WriterDraft, {**payload, "match_plan": selected_payload},
-                                    _WRITE_CONTRACT, role_family, retry_state=writer_diagnostic, **call_options)
+                                    _WRITE_CONTRACT + slot_contract, role_family, retry_state=writer_diagnostic, **call_options)
             elif mode == "one_pass":
                 combined = await _call(llm, OnePassOutput, payload,
-                                       _ONE_PASS_CONTRACT, role_family,
+                                       _ONE_PASS_CONTRACT + slot_contract, role_family,
                                        retry_state=writer_diagnostic, **call_options)
                 plan, draft = combined.match_plan, combined.writer
             else:
@@ -1298,7 +1361,7 @@ async def _run_resume_writer(
                                    role_family, retry_state=writer_diagnostic, retry_failures=primary_call)
                 stage = "write"
                 draft = await _call(llm, WriterDraft, {**payload, "match_plan": plan.model_dump()},
-                                    _WRITE_CONTRACT, role_family,
+                                    _WRITE_CONTRACT + slot_contract, role_family,
                                     retry_state=writer_diagnostic, **call_options)
     except Exception as error:
         # Only a failed primary model task aborts the turn: extraction, primary
@@ -1321,7 +1384,13 @@ async def _run_resume_writer(
             schema = OnePassOutput if stage == "one_pass" else MatchPlan if stage == "plan" else WriterDraft
             writer_diagnostic.update(_safe_validation_errors(error, schema))
     plan.bullet_style = bullet_style
+    if slot_assignments and phase != 'write':
+        for entry in plan.experience_plan:
+            if entry.item_id in slot_assignments and entry.treatment in {'lead', 'keep'}:
+                entry.target_bullets = 4
     match_plan = _validate_plan(plan, source, role_profile, items, facts)
+    if style_plan.get('bullet_style_source') == 'user':
+        match_plan['bullet_style_source'] = 'user'
     if writer_diagnostic.get("status") == "model_fallback" and phase != "write":
         for row in match_plan["experience_plan"]:
             if row.get("treatment") == "backup":
@@ -1362,9 +1431,11 @@ async def _run_resume_writer(
                 if item_id not in items:
                     item["hidden"] = True
     writers = {}
+    model_slot_rows = {}
     for row in draft.items:
         if row.item_id in allowed and row.item_id in items and items[row.item_id][0] == row.section and row.item_id not in writers:
             writers[row.item_id] = row
+            model_slot_rows[row.item_id] = [b.model_dump() for b in row.bullets]
     if scope == "whole":
         for item_id, (section, item) in items.items():
             if item_id in allowed and item_id not in writers:
@@ -1540,7 +1611,9 @@ async def _run_resume_writer(
             item["hidden"] = False
     if scope != "bullet" and writing_structure(role_family)["bullet_style"] == "labeled":
         from app.services.project_heading import apply_project_headings
-        await apply_project_headings(writers, indexed_output, items, facts, meta, model)
+        await apply_project_headings(writers, indexed_output, items, facts, meta, model,
+                                     call=_call if slot_assignments else None, writer_model=llm,
+                                     role_family=role_family, diagnostic=writer_diagnostic)
     omitted = []
     omitted_ids = {row.item_id for row in draft.omitted
                    if row.item_id in allowed and row.item_id in indexed_output
@@ -1738,6 +1811,56 @@ async def _run_resume_writer(
                                          constraints=effective_constraints)
     from app.services.resume_dedup import deduplicate_resume
     deduplicate_resume(output, meta, item_ids=allowed)
+    if scope in {'whole', 'item'}:
+        final_metrics = await _restore_final_metrics(
+            output, meta, items, treatment, target_caps, allowed, model,
+            excluded=set(slot_assignments) | set(withheld))
+        if final_metrics:
+            writer_diagnostic['final_metric_restored'] = final_metrics
+            restored_count += sum(len(ids) for ids in final_metrics.values())
+            output, meta, _ = preserve_item_limits(output, meta, collected_info,
+                item_ids=list(final_metrics), constraints=effective_constraints)
+    # Last structural gate: coverage recovery, polish, compression and limit
+    # preservation must not reintroduce raw, mixed or unlabeled project rows.
+    if slot_assignments:
+        indexed_output = {item['item_id']: (section, item) for section in SECTIONS for item in output.get(section, [])}
+        from app.services.labeled_writer import finish_rows
+        for item_id, assignments in slot_assignments.items():
+            pair = indexed_output.get(item_id)
+            if not pair or pair[1].get('hidden') or item_id in withheld:
+                continue
+            item = pair[1]
+            rows = [b.model_dump() for b in writers[item_id].bullets] if item_id in writers else []
+            rows.extend({**record, 'text': text} for text, record in zip(
+                item.get('polished_bullets', []), meta.get('bullets', {}).get(item_id, [])))
+            rows = await finish_rows(rows, assignments, target_caps[item_id], item_id, facts,
+                item.get('name', ''), _call, model, llm, role_family, writer_diagnostic,
+                heading_texts=[item.get(key, '') for key in ('name', 'role', 'project_type', 'positioning')],
+                model_rows=model_slot_rows.get(item_id, []))
+            item['polished_bullets'] = [row['text'] for row in rows]
+            if not rows:
+                item['description'] = ''
+            else:
+                # A successful rewrite replaces this item's previous delivery
+                # warning. Keep all unrelated review notes untouched.
+                item_name = item.get('name') or item_id
+                stale_slot = re.compile(r'^「' + re.escape(item_name)
+                    + r'」的(?:问题|决策|迭代|技术|现状|、)+素材未能形成通过事实校验的正文，原事实保留在核对页。$')
+                stale_item = f'方案中保留的「{item_name}」未能形成通过事实校验的正文，请在核对页检查这段经历。'
+                if 'verification_notes' in output:
+                    output['verification_notes'] = [note for note in output['verification_notes']
+                        if not (isinstance(note, str) and (stale_slot.fullmatch(note) or note == stale_item))]
+            meta.setdefault('bullets', {})[item_id] = [{
+                'fact_ids': row['fact_ids'], 'coverage_fact_ids': row['coverage_fact_ids'],
+                'slot': row['slot'], 'text_hash': _hash(row['text'])} for row in rows]
+            failed_slots = [key.rsplit(':', 1)[-1] for key in writer_diagnostic.get('slot_undelivered', [])
+                            if key.startswith(item_id + ':')]
+            if failed_slots:
+                notice = f'「{item.get("name") or item_id}」的{"、".join(failed_slots)}素材未能形成通过事实校验的正文，原事实保留在核对页。'
+                if notice not in output.setdefault('verification_notes', []):
+                    output['verification_notes'].append(notice)
+                changes.append(notice)
+        meta['labeled_slots'] = slot_assignments
     await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
     coverage = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
     coverage["restored"] = restored_count
@@ -1760,6 +1883,7 @@ async def _run_resume_writer(
             writer_diagnostic.setdefault('undelivered_items', []).append(item_id)
     if coverage["restored"]:
         writer_diagnostic["coverage_restored"] = coverage["restored"]
+    if coverage["restored"] or slot_assignments:
         changed_items = [{"section": section, "item_id": item["item_id"]}
                          for section in SECTIONS for index, item in enumerate(output.get(section, []))
                          if item.get("item_id") and (item != before_items.get(item["item_id"])

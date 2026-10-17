@@ -334,10 +334,11 @@ class LabeledWriterTests(unittest.IsolatedAsyncioTestCase):
                         {'text': t, 'fact_ids': f} for t, f in zip(texts, refs)]}]}
                 return SimpleNamespace(ainvoke=invoke)
         result = await run_resume_writer(source, {'role_family': 'ai_pm'}, Model(), phase='write', previous_plan={
-            'bullet_style': 'labeled', 'experience_plan': [{'item_id': 'p', 'treatment': 'lead', 'target_bullets': 3}]})
+            'bullet_style': 'labeled', 'experience_plan': [{'item_id': 'p', 'treatment': 'lead', 'target_bullets': 4}]})
         self.assertTrue(captured)
         body = result['resume_data']['projects'][0]['polished_bullets']
-        self.assertLessEqual(len(body), 3)
+        self.assertLessEqual(len(body), 4)
+        self.assertTrue(any(line.startswith('问题：') for line in body))
         decision_rows = [t for t in body if t.startswith('决策：')]
         self.assertTrue(decision_rows, body)
         self.assertFalse(any(t in str(decision_rows) for t in ('独立完成', 'Cursor', 'API')))

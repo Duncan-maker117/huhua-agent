@@ -94,6 +94,20 @@ def format_rows(rows: list[dict], facts: dict, style: str, *, role_family: str =
         if style == 'labeled' and label:
             row['text'] = f'{label}：{row["text"]}'
     if structured:
+        # Presentation-only paths (including an explicit style switch) cannot
+        # leak unlabeled text or a second copy of the title's project nature.
+        # Ambiguous/uncited prose needs the writer's guarded slot repair.
+        from app.services.labeled_writer import SLOTS, rule_slot
+        kept = []
+        for row in rows:
+            slots = {rule_slot(facts[fid]) for fid in row.get('fact_ids', []) if fid in facts}
+            if slots and slots <= {'标题性质', '不用'}:
+                continue
+            if not LABEL.match(row['text']) and len(slots) == 1 and next(iter(slots)) in SLOTS:
+                row['text'] = next(iter(slots)) + '：' + row['text']
+            if LABEL.match(row['text']):
+                kept.append(row)
+        rows = kept
         # 同标签最多合并三个短句；只连接已校验表述，不补因果或删事实。
         merged = []
         for row in rows:
@@ -134,3 +148,13 @@ def restyle_resume(data: dict, meta: dict, facts: dict, style: str, *, role_fami
             {**row['record'], 'fact_ids': row['fact_ids'], 'coverage_fact_ids': row['coverage_fact_ids'],
              'text_hash': hashlib.sha256(row['text'].encode()).hexdigest()} for row in rows]
     return data, meta
+
+
+def effective_style(role_family: str, plan: dict | None = None) -> str:
+    """Only an explicit user selection may override a labeled handbook."""
+    from app.agents.career_prompt import writing_structure
+    plan = plan or {}
+    default = writing_structure(role_family)['bullet_style']
+    if default == 'labeled' and plan.get('bullet_style_source') != 'user':
+        return default
+    return plan.get('bullet_style') or default

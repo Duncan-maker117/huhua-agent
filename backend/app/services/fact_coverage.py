@@ -140,6 +140,13 @@ async def cite_entailed_facts(data: dict, meta: dict, collected: dict, llm, *, i
                 previous = set(record.get("coverage_fact_ids") or []) & facts.keys()
                 record["coverage_fact_ids"] = []
                 for fid, fact in facts.items():
+                    # The final slot gate already proved the complete normalized
+                    # fact against this exact body/hash. Generic prose cleaning
+                    # drops product pains containing 不知道; it must not erase
+                    # that proof on the last coverage audit.
+                    if fid in previous and record.get('slot') and fid in record['fact_ids']:
+                        record['coverage_fact_ids'].append(fid)
+                        continue
                     text = resume_bullet(strip_absence(fact["text"]))
                     if fact.get("field") or not text or constraint_only(fact.get("source_quote") or fact["text"]):
                         continue

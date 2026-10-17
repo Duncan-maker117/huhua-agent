@@ -38,6 +38,8 @@ class PlanModel:
             async def ainvoke(self, messages):
                 model.calls.append(schema.__name__)
                 payload = json.loads(messages[-1].content)
+                if schema.__name__ == 'FactSlots':
+                    return {'assignments': [{'fact_id': f['id'], 'slot': '不用'} for f in payload['facts']]}
                 if schema.__name__ == 'SemanticBatch':
                     model.batches.append(payload)
                     if model.semantic_error:

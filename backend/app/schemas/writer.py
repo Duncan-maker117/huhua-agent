@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 LABELED_SEMANTICS = """labeled 标签按事实含义选用，缺少素材就省略：
 问题 = 谁在什么场景遇到什么痛点、现有方案有什么不足，可带一句产品定位。
 决策（含关键决策/设计）= 产品或方案层面的取舍、设计选择；如接入 MCP 让用户用自己的 AI、先体验后登录。
-独立完成、全流程、用了哪些工具/API 都不是决策；本人独立完成归标题性质（个人项目/独立开发）或现状行。
+独立完成、全流程、用了哪些工具/API 都不是决策；本人独立完成归标题性质（个人项目/独立开发），不得单独放现状行。
 迭代 = 发现什么问题 → 改了什么 → 如何验证（评测/回归/对比）；只写已有环节，不补原因或结果；有数字的评测证据优先放这里。
 技术 / 现状 = 技术栈、上线状态、可访问性、使用人数等，保留数字的单位与对象。
 """
@@ -23,6 +23,15 @@ class WriterSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class FactSlot(WriterSchema):
+    fact_id: str
+    slot: Literal['问题', '决策', '迭代', '技术', '现状', '标题性质', '不用']
+
+
+class FactSlots(WriterSchema):
+    assignments: list[FactSlot]
+
+
 class RequirementMatch(WriterSchema):
     req_id: str
     status: Literal["direct", "transferable", "gap"]
@@ -34,7 +43,7 @@ class ExperiencePlan(WriterSchema):
     item_id: str
     treatment: Literal["lead", "keep", "brief", "backup"]
     reason: str = ""
-    target_bullets: int = Field(default=1, ge=0, le=3)
+    target_bullets: int = Field(default=1, ge=0, le=4)
 
 
 class ImprovementTarget(WriterSchema):

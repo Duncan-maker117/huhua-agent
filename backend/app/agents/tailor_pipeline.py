@@ -29,8 +29,10 @@ def constraints_for_turn(state: dict, message: str) -> dict:
     if re.search(r'缺失信息.{0,8}省略|不留.{0,4}待补', instruction):
         overrides['omit_missing'] = True
     from app.services.candidate_language import non_fact
+    from app.services.product_pains import product_pain
     rules = [clause.strip() for clause in re.split(r'[。；;\n]', instruction)
-             if non_fact(clause.strip()) and re.search(r'润色|生成|保留|不要|不能|不写成|突出', clause)]
+             if non_fact(clause.strip()) and not product_pain(clause)
+             and re.search(r'润色|生成|保留|不要|不能|不写成|突出', clause)]
     if rules:
         overrides['writing_rules'] = list(dict.fromkeys([*(state.get('session_constraints') or {}).get('writing_rules', []), *rules]))[-30:]
     if re.search(r'保留[^。；;\n]{0,30}(?:限定|限制|参与程度|分工|测试环境)', instruction):

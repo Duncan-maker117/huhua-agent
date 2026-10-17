@@ -47,7 +47,9 @@ class MCPV2ProtocolTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(guide['structure']['bullet_style'], 'labeled')
         self.assertEqual(guide['structure']['labels'], ['问题', '决策', '迭代'])
         self.assertIn('取舍', guide['structure']['label_meanings']['决策'])
-        self.assertIn('调整', guide['structure']['label_meanings']['迭代'])
+        # 标签含义取自岗位手册「成稿结构」，与网页端写稿同源。
+        self.assertIn('修改', guide['structure']['label_meanings']['迭代'])
+        self.assertIn('不是决策', guide['structure']['label_meanings']['决策'])
         self.assertIn('评测', guide['screening_criteria'])
         self.assertIn('数字必须来自档案事实', ' '.join(guide['expression_rules']))
         self.assertNotIn('untrusted_text', guide)

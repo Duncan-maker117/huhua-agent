@@ -51,6 +51,12 @@ def writing_guide(role='general'):
     resolved = normalize_role(role)
     text = (PLAYBOOKS / f'{resolved}.md').read_text(encoding='utf-8')
     structure_text = _section(text, '成稿结构')
+    # 手册里「- 标签：含义」行优先，和网页端写稿用的是同一份定义；「技术 / 现状」拆给两个标签。
+    meanings = {}
+    for names, meaning in re.findall(r'(?m)^- ([^：:\n]{1,12})[：:]\s*(.+)$', structure_text or ''):
+        for name in re.split(r'\s*/\s*', names.strip()):
+            if name in LABEL_MEANINGS:
+                meanings[name] = meaning.strip()
     fields = dict(re.findall(r'^- (\w+): (.+)$', structure_text, re.M))
     labels = [word.strip() for word in fields.get('labels', '场景, 行动, 产出').split(',')]
     optional = [word.strip() for word in fields.get('optional_labels', '').split(',') if word.strip()]
@@ -58,7 +64,7 @@ def writing_guide(role='general'):
         'bullet_style': fields.get('bullet_style', 'labeled'),
         'title': [word.strip() for word in fields.get('title', 'name | positioning | project_type | period').split('|')],
         'labels': labels, 'optional_labels': optional,
-        'label_meanings': {label: LABEL_MEANINGS[label] for label in labels + optional},
+        'label_meanings': {label: meanings.get(label) or LABEL_MEANINGS[label] for label in labels + optional},
         'rows': fields.get('rows', '2-4'),
         'source': f'role-playbooks/{resolved}.md#成稿结构' if fields else 'mcp_common_structure',
         'guidance': structure_text or '本岗位手册尚无机器可读成稿结构，使用 MCP 通用标签结构；无素材的标签省略，不编造因果、数字或成果。',

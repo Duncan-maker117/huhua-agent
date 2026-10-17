@@ -95,6 +95,7 @@ def measure_rendered_pages(
     constraints: Mapping[str, Any],
     *,
     pdf_bytes: bytes | None = None,
+    include_diagnostics: bool = False,
 ) -> dict[str, Any]:
     """Select the loosest one-page layout, then bind the final measurement.
 
@@ -120,7 +121,8 @@ def measure_rendered_pages(
             if pdf_bytes is None or density != original_density:
                 from app.services.resume_pdf import measure_resume_pdf_layout
 
-                layout = measure_resume_pdf_layout(normalized['template_id'], candidate, normalized['page_limit'])
+                options = {'include_diagnostics': True} if include_diagnostics else {}
+                layout = measure_resume_pdf_layout(normalized['template_id'], candidate, normalized['page_limit'], **options)
                 pages = layout['pages']
             else:
                 import pdfplumber

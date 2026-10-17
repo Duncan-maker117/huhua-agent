@@ -43,7 +43,7 @@ def count_resume_pdf_pages(template_id: str, data: dict) -> int:
     return _render(template_id, data, lambda document: len(document.pages))
 
 
-def measure_resume_pdf_layout(template_id: str, data: dict, page_limit: int) -> dict:
+def measure_resume_pdf_layout(template_id: str, data: dict, page_limit: int, *, include_diagnostics=False) -> dict:
     """Measure text lines on overflow pages in the final export layout (CSS px)."""
     def finish(document):
         from weasyprint.formatting_structure.boxes import LineBox
@@ -58,12 +58,17 @@ def measure_resume_pdf_layout(template_id: str, data: dict, page_limit: int) -> 
             lines.append(len({round(line.position_y, 2) for line in text_lines}))
             page_heights.append(box.height)
         overflow = sum(heights[page_limit:])
-        return {'pages': len(document.pages), 'overflow_height_px': round(overflow, 2),
+        result = {'pages': len(document.pages), 'overflow_height_px': round(overflow, 2),
                 'overflow_lines': sum(lines[page_limit:]),
                 'overflow_page_ratio': round(sum(height / page_height for height, page_height
                                                  in zip(heights[page_limit:], page_heights[page_limit:])), 4),
                 'last_page_content_height_px': round(heights[-1], 2),
                 'page_content_height_px': round(page_heights[-1], 2)}
+        if include_diagnostics:
+            # 仅 MCP 请求字段诊断时遍历行框，网页端原有测量行为不变。
+            from app.mcp.diagnostics import layout_diagnostics
+            result['diagnostics'] = layout_diagnostics(document, data)
+        return result
 
     return _render(template_id, data, finish)
 

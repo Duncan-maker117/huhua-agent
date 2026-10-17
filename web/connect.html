@@ -37,7 +37,7 @@
     <section class="connect-hero" aria-labelledby="connect-title">
       <p class="eyebrow"><span class="brand-dot" aria-hidden="true"></span>MCP 接入</p>
       <h1 id="connect-title">把胡话简历，<br>接进你的 AI 助手。</h1>
-      <p class="connect-lead">Claude Code / Cursor / Codex 通过 MCP 读取你的档案、起草简历。<br>助手提交的新信息先进收件箱，你在网页确认后才入档。</p>
+      <p class="connect-lead">Claude Code / Cursor / Codex 读取你的档案，按岗位写法起草，<br>再套进和网页同一套固定模板：真实测页数、看预览、导出 PDF / Word。</p>
     </section>
 
     <ol class="connect-steps">
@@ -127,9 +127,16 @@
             <article class="mcp-task">
               <div class="mcp-task-heading"><h3>按 JD 改简历</h3><button id="copy-task-tailor" type="button" aria-label="复制按 JD 改简历示例">复制</button></div>
               <p id="mcp-task-tailor" class="mcp-task-example">用胡话简历里我的档案，按这份 JD 改一版简历，并导出 PDF：&lt;粘贴 JD&gt;</p>
-              <p class="mcp-task-note">只用已确认档案事实，逐条带出处，先测页数再导出。</p>
+              <p class="mcp-task-note">先取岗位写法，只用已确认档案事实、逐条带出处；按固定模板测页数、看预览，再导出。</p>
               <p class="mcp-task-prompt">Claude Code：<code>/mcp__huhua__tailor_resume_for_jd</code></p>
               <p id="copy-task-tailor-status" class="copy-status" role="status" aria-live="polite"></p>
+            </article>
+            <article class="mcp-task">
+              <div class="mcp-task-heading"><h3>调到一页</h3><button id="copy-task-fit" type="button" aria-label="复制调到一页示例">复制</button></div>
+              <p id="mcp-task-fit" class="mcp-task-example">把我在胡话简历里最新的那份简历调到正好一页，给我看预览</p>
+              <p class="mcp-task-note">逐条测出每句占几行、缩几个字能省一行，只压缩措辞，不增删事实。</p>
+              <p class="mcp-task-prompt">Claude Code：<code>/mcp__huhua__fit_to_one_page</code></p>
+              <p id="copy-task-fit-status" class="copy-status" role="status" aria-live="polite"></p>
             </article>
             <article class="mcp-task">
               <div class="mcp-task-heading"><h3>把项目记进档案</h3><button id="copy-task-project" type="button" aria-label="复制把项目记进档案示例">复制</button></div>
@@ -162,7 +169,7 @@
       </details>
     </section>
 
-    <p class="connect-privacy">助手提交的新信息只进收件箱，需你在「我的档案 → 信息确认」点确认才会入档。</p>
+    <p class="connect-privacy">助手提交的新信息只进收件箱，需你在「我的档案 → 信息确认」点确认才会入档。给助手看的预览图一律隐去联系方式，导出文件时才由服务端填入。</p>
   </main>
 
   <footer class="site-footer"><div class="container footer-inner"><a class="brand" href="/"><span class="brand-dot" aria-hidden="true"></span>胡话简历</a><nav aria-label="页脚导航"><a href="/#features">产品</a><a href="/chat">使用</a><a href="/#privacy">隐私说明</a></nav><p>© 胡话简历</p></div></footer>

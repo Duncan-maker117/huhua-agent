@@ -137,7 +137,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(model.calls, [])
 
     async def test_role_default_and_explicit_style_toggle_never_plans(self):
-        for family, expected in [('ai_pm', 'plain'), ('pm', 'plain'), ('backend', 'plain')]:
+        for family, expected in [('ai_pm', 'labeled'), ('pm', 'plain'), ('backend', 'plain')]:
             result = await self.planned(family=family)
             self.assertEqual(result['structure_plan']['recommended']['bullet_style'], expected)
         state = {**graph._init_state(), 'collected_info': evidence(),
@@ -160,11 +160,11 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_labeled_order_reason_and_positive_status_survive_writer(self):
         plan = select_plan((await self.planned())['structure_plan'])
-        plan['bullet_style'] = 'labeled'  # Opt-in on the plan card; plain is the default.
+        plan['bullet_style'] = 'labeled'  # 方案卡显式确认标签写法。
         result = await run_resume_writer(evidence(), {'role_family': 'ai_pm'},
             PlanModel([('WriterDraft', draft())]), phase='write', previous_plan=plan)
         bullets = result['resume_data']['projects'][0]['polished_bullets']
-        self.assertEqual([b.split('：')[0] for b in bullets], ['问题', '关键决策', '现状'])
+        self.assertEqual([b.split('：')[0] for b in bullets], ['问题', '决策', '现状'])
         self.assertIn('，避免把外部调研当成个人经历', bullets[1])
         self.assertIn('演示版使用本地数据与模拟模型', bullets[2])
         self.assertEqual(result['resume_meta']['bullets']['p1'][1]['fact_ids'], ['f2', 'f3'])
@@ -176,9 +176,9 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             {'text': '结果：选择将个人事实与外部调研分开存储', 'fact_ids': ['f2']}]}]}
         result = await run_resume_writer(collected, {'role_family': 'ai_pm'},
             PlanModel([('OnePassOutput', {'match_plan': {}, 'writer': output})]), mode='one_pass')
-        # Plain is the default: a label the model invents is stripped.
+        # AI 产品岗默认标签写法，但错误的“结果”标签仍被纠正。
         self.assertEqual(result['resume_data']['projects'][0]['polished_bullets'],
-                         ['选择将个人事实与外部调研分开存储'])
+                         ['决策：选择将个人事实与外部调研分开存储'])
         from app.services.writing_style import row_label
         self.assertEqual(row_label({'text': '课程项目', 'fact_ids': ['c']},
                                    {'c': fact('c', '课程项目', 'context')}), '')
@@ -202,7 +202,7 @@ class WritingUpgradeTest(unittest.IsolatedAsyncioTestCase):
             {'item_id': 'p1', 'section': 'projects', 'bullets': [
                 {'text': combined, 'fact_ids': ['f2', reason['id']]}]}]}})])
         written = await run_resume_writer(updated, {'role_family': 'ai_pm'}, writer)
-        self.assertEqual(written['resume_data']['projects'][0]['polished_bullets'], [combined])
+        self.assertEqual(written['resume_data']['projects'][0]['polished_bullets'], ['决策：' + combined])
         self.assertIn(reason['id'], written['resume_meta']['bullets']['p1'][0]['fact_ids'])
         again = compose_interviewer_reply({**state, 'collected_info': updated})
         self.assertFalse(any('这样做是为了解决什么' in q['q'] for q in again['questions']))

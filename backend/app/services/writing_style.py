@@ -7,9 +7,9 @@ import re
 
 DECISION = re.compile(r'决定|选择|改为|改成|分开|加入|先.{1,30}再')
 REASON = re.compile(r'为了|为了解决|避免|防止|因为|以便|目的是|原因是|为的是')
-LABEL = re.compile(r'^(问题|关键决策|设计|迭代|结果|现状)[：:]\s*')
+LABEL = re.compile(r'^(问题与设计|问题|关键决策|决策|技术|设计|迭代|结果|现状)[：:]\s*')
 PROBLEM = r'问题|痛点|困难|错误|失败|不一致|不准|混|污染|耗时|重复|难|手动|无法|不能|不存在|把.{1,20}当|场景|需求|需要|希望'
-STATUS = re.compile(r'本地|原型|演示版|模拟模型|模拟数据|已上线|已部署|闭环')
+STATUS = re.compile(r'本地|原型|演示版|模拟模型|模拟数据|已上线|已部署|公网|公开访问|闭环')
 
 
 def fact_text(fact: dict) -> str:
@@ -55,20 +55,50 @@ def independent_labeled_row(row: dict, facts: dict) -> bool:
     return row_label(row, facts) in {'问题', '现状'}
 
 
-def format_rows(rows: list[dict], facts: dict, style: str) -> list[dict]:
+def format_rows(rows: list[dict], facts: dict, style: str, *, role_family: str = "") -> list[dict]:
     """Presentation only: no new claim, citation or causal connection is added."""
     rows = deepcopy(rows)
+    from app.agents.career_prompt import writing_structure
+    structured = style == 'labeled' and writing_structure(role_family)['bullet_style'] == 'labeled'
     for row in rows:
         row['text'] = LABEL.sub('', row['text'])
-        if style == 'labeled' and (label := row_label(row, facts)):
+        label = row_label(row, facts)
+        if structured:
+            cited = [facts[fid] for fid in row.get('fact_ids', []) if fid in facts]
+            corpus = ' '.join(fact_text(f) for f in cited)
+            if re.search(r'对比|比较|回放|断言|调整|改进|换模型|调参数', corpus) and re.search(r'对比|比较|回放|断言|调整|改进|更换|换模型|调参', row['text']):
+                label = '迭代'
+            elif label in {'设计', '关键决策'}:
+                label = '决策'
+            elif re.search(r'公网|上线|公开访问', row['text']) and re.search(r'公网|上线|公开访问', corpus):
+                label = '现状'
+            elif not label and any(f.get('kind') == 'method_tool' for f in cited):
+                label = '技术'
+        if style == 'labeled' and label:
             row['text'] = f'{label}：{row["text"]}'
+    if structured:
+        # 同标签最多合并三个短句；只连接已校验表述，不补因果或删事实。
+        merged = []
+        for row in rows:
+            label = LABEL.match(row['text'])
+            clauses = len(re.split(r'[；;。]', row['text'].rstrip('。；;')))
+            same = next((other for other in merged if label and other['text'].startswith(label[0])
+                         and len(re.split(r'[；;。]', other['text'].rstrip('。；;'))) + clauses <= 3), None)
+            if same is None:
+                merged.append(row)
+            else:
+                same['text'] = same['text'].rstrip('。；;') + '；' + LABEL.sub('', row['text']).rstrip('。；;')
+                same['fact_ids'] = list(dict.fromkeys([*same.get('fact_ids', []), *row.get('fact_ids', [])]))
+                same['coverage_fact_ids'] = list(dict.fromkeys([*same.get('coverage_fact_ids', []), *row.get('coverage_fact_ids', [])]))
+        rows = merged
     if style == 'labeled':
-        rank = {'问题': 0, '关键决策': 1, '设计': 1, '迭代': 2, '结果': 2, '现状': 2}
-        rows.sort(key=lambda row: rank.get(row_label(row, facts), 1))
+        rank = ({'问题': 0, '关键决策': 1, '决策': 1, '设计': 1, '迭代': 2, '结果': 2, '技术': 3, '现状': 4}
+                if structured else {'问题': 0, '关键决策': 1, '设计': 1, '迭代': 2, '结果': 2, '现状': 2})
+        rows.sort(key=lambda row: rank.get(LABEL.match(row['text'])[1] if LABEL.match(row['text']) else '', 1))
     return rows
 
 
-def restyle_resume(data: dict, meta: dict, facts: dict, style: str) -> tuple[dict, dict]:
+def restyle_resume(data: dict, meta: dict, facts: dict, style: str, *, role_family: str = "") -> tuple[dict, dict]:
     data, meta = deepcopy(data), deepcopy(meta)
     for item in data.get('projects') or []:
         records = (meta.get('bullets') or {}).get(item.get('item_id')) or []
@@ -79,9 +109,11 @@ def restyle_resume(data: dict, meta: dict, facts: dict, style: str) -> tuple[dic
             # Stale citation bindings cannot classify the current sentence.
             valid = record.get('text_hash') == hashlib.sha256(text.encode()).hexdigest()
             rows.append({'text': text, 'fact_ids': record.get('fact_ids', []) if valid else [],
+                         'coverage_fact_ids': record.get('coverage_fact_ids', []) if valid else [],
                          'record': record if valid else {}})
-        rows = format_rows(rows, facts, style)
+        rows = format_rows(rows, facts, style, role_family=role_family)
         item['polished_bullets'] = [row['text'] for row in rows]
         meta.setdefault('bullets', {})[item['item_id']] = [
-            {**row['record'], 'text_hash': hashlib.sha256(row['text'].encode()).hexdigest()} for row in rows]
+            {**row['record'], 'fact_ids': row['fact_ids'], 'coverage_fact_ids': row['coverage_fact_ids'],
+             'text_hash': hashlib.sha256(row['text'].encode()).hexdigest()} for row in rows]
     return data, meta

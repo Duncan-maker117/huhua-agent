@@ -227,7 +227,7 @@ class IntakeUnitTest(unittest.TestCase):
             self.assertIsNone(intake_guidance(state))
         self.assertFalse(state["collected_info"].get("basic_info", {}).get("phone"))
 
-    def test_experiences_merge_identity_and_summary_is_not_a_fact(self):
+    def test_experiences_merge_identity_and_summary_is_sourced_fact(self):
         state = state_with_experiences()
         payload = {
             "kind": "experiences",
@@ -259,7 +259,7 @@ class IntakeUnitTest(unittest.TestCase):
         item = state["collected_info"]["projects"][0]
         self.assertEqual(item["item_id"], "p0")
         self.assertEqual(item["end_date"], "至今")
-        self.assertNotIn("需要抽取的原话", str(item["facts"]))
+        self.assertEqual(len([f for f in item["facts"] if f.get("text") == "需要抽取的原话" and not f.get("field")]), 1)
         self.assertIn("需要抽取的原话", item["raw_notes"])
         self.assertTrue(
             all(f["turn_id"] == "form" for f in item["facts"] if f.get("field"))
@@ -598,7 +598,7 @@ class IntakeFlowTest(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-    async def test_summary_uses_extraction_and_full_skip_writes_immediately(self):
+    async def test_summary_is_direct_fact_and_full_skip_writes_immediately(self):
         state = await self.turn(FIRST)
         item = build_workspace(state)["guidance"]["items"][0]
         with patch.object(
@@ -619,9 +619,9 @@ class IntakeFlowTest(unittest.IsolatedAsyncioTestCase):
                     ],
                 },
             )
-        self.assertTrue(
-            any("通过对话帮助学生整理经历" in c.args[0] for c in extract.call_args_list)
-        )
+        extract.assert_not_called()
+        self.assertTrue(any(f.get("text") == "通过对话帮助学生整理经历" and f.get("question_id") == "summary"
+                            for f in state["collected_info"]["projects"][0]["facts"]))
         self.assertEqual(len(state["collected_info"]["projects"]), 1)
         state = await self.turn("跳过")
         self.assertFalse(state.get("pending_plan"))

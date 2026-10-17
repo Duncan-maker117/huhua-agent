@@ -1,0 +1,1049 @@
+{
+  "provenance": "Read-only after-b14c replay; selected fields copied verbatim, including the delivered fifth aipm turn.",
+  "tech": {
+    "input": "以下都是虚构测试材料，请帮我做一份面向 Java 后端开发的中文简历，材料已经给全，先直接生成，再告诉我哪些地方值得补充。姓名林泽，邮箱 linze@example.invalid。海城理工大学，计算机科学与技术，本科，2022.09—2026.06。目标岗位 JD：Java 后端开发校招，要求 Java、Spring Boot、MySQL、Redis，理解事务与缓存，能协作排查问题。2025.07—2025.09 在云舟科技做后端开发实习生，参与订单服务，团队 4 人；我负责订单查询接口和参数校验，用 Spring Boot 和 MySQL；在导师指导下给订单列表加了 Redis 缓存；在测试环境对一个慢查询加了联合索引，平均耗时由约 420ms 降到约 170ms，没做线上压测；编写了 12 条接口测试用例，并跟前端同学联调。课程项目叫校园二手交易系统，2025.03—2025.06，3 人组队，我负责商品发布和搜索接口，用 Spring Boot、MySQL；登录模块是另一位同学写的；部署在实验室服务器，只给班里演示，没有真实用户。会用 Java、Git，了解 Redis，不会 Kubernetes。无奖项。请保留参与程度和测试环境限制，不写成负责整个系统，也不要编造数据。",
+    "plan": {
+      "bullet_style": "plain",
+      "requirements": [
+        {
+          "req_id": "r1",
+          "status": "direct",
+          "fact_ids": [
+            "f_b4d68f28361e4a4cb12da1752c9cd968"
+          ],
+          "angle": "实习与课程项目均用 Java + Spring Boot 写接口"
+        },
+        {
+          "req_id": "r2",
+          "status": "direct",
+          "fact_ids": [
+            "f_b4d68f28361e4a4cb12da1752c9cd968"
+          ],
+          "angle": "基于 Spring Boot 开发订单查询接口与商品发布/搜索接口"
+        },
+        {
+          "req_id": "r3",
+          "status": "direct",
+          "fact_ids": [
+            "f_b4d68f28361e4a4cb12da1752c9cd968"
+          ],
+          "angle": "MySQL 上做慢查询联合索引优化，测试环境 420ms→170ms"
+        },
+        {
+          "req_id": "r4",
+          "status": "direct",
+          "fact_ids": [
+            "f_b4d68f28361e4a4cb12da1752c9cd968"
+          ],
+          "angle": "在导师指导下为订单列表加 Redis 缓存"
+        },
+        {
+          "req_id": "r5",
+          "status": "transferable",
+          "fact_ids": [
+            "f_b4d68f28361e4a4cb12da1752c9cd968"
+          ],
+          "angle": "缓存：有实际加 Redis 缓存的场景；事务：材料中无事务处理事实，不写，面试口述准备"
+        },
+        {
+          "req_id": "r6",
+          "status": "direct",
+          "fact_ids": [
+            "f_b4d68f28361e4a4cb12da1752c9cd968"
+          ],
+          "angle": "与前端同学联调、编写接口测试用例"
+        },
+        {
+          "req_id": "r7",
+          "status": "direct",
+          "fact_ids": [
+            "f_256038b6e43e4d6ba14308c4fc348364",
+            "f_e079b3038a2a453da0bd2741f138abe6"
+          ],
+          "angle": "2026.06 本科毕业，符合校招窗口"
+        }
+      ],
+      "experience_plan": [
+        {
+          "item_id": "fa3a2176-c8b7-4a54-a54f-c99154dc8964",
+          "treatment": "keep",
+          "reason": "课程项目，直接对上 Spring Boot + MySQL 与接口开发：负责商品发布和搜索接口，可证明独立写接口的能力；但无真实用户、仅实验室演示，且登录模块非本人所写，因此排在实习之后作第二证据，不展开到 3 条。",
+          "target_bullets": 2
+        }
+      ],
+      "section_order": [
+        "education",
+        "work_experience",
+        "projects",
+        "skills",
+        "campus",
+        "open_source",
+        "awards",
+        "certificates"
+      ],
+      "summary_angle": "一句话点明 Java/Spring Boot 接口开发 + MySQL 索引优化 + Redis 缓存三处真实使用，均来自实习与课程项目，不写未发生的线上指标。",
+      "questions": [
+        {
+          "q": "订单查询接口和商品搜索接口，你各自写了几个接口、涉及几张表？有没有自己设计过表结构或写过联表/分页 SQL？",
+          "why": "JD 看重「自己实现了什么」和 MySQL 使用，接口数与表设计是最直接的证据。",
+          "improves": {
+            "item_id": "fa3a2176-c8b7-4a54-a54f-c99154dc8964",
+            "req_id": "r3"
+          },
+          "options": [
+            "只写接口逻辑，表是现成的",
+            "自己设计过 1–2 张表",
+            "写过联表/分页查询 SQL"
+          ],
+          "value": 5
+        },
+        {
+          "q": "订单列表加 Redis 缓存时，缓存 key 怎么设计、过期时间怎么定？有没有考虑过缓存和数据库不一致怎么处理？",
+          "why": "JD 明确要求「理解事务与缓存」，有具体设计细节才能把这条从「加了个缓存」升级成工程能力证据。",
+          "improves": {
+            "item_id": "fa3a2176-c8b7-4a54-a54f-c99154dc8964",
+            "req_id": "r5"
+          },
+          "options": [
+            "只加了缓存，没考虑一致性",
+            "设了过期时间",
+            "考虑过更新时删缓存/双写"
+          ],
+          "value": 5
+        },
+        {
+          "q": "那个慢查询是怎么定位的（EXPLAIN？慢日志？），联合索引建在哪几个字段上、顺序怎么定的？",
+          "why": "「定位问题 + 索引设计」是区分 CRUD 和工程能力的关键，也是面试必问。",
+          "improves": {
+            "item_id": "fa3a2176-c8b7-4a54-a54f-c99154dc8964",
+            "req_id": "r3"
+          },
+          "options": [
+            "用 EXPLAIN 看的执行计划",
+            "看慢查询日志发现的",
+            "导师指出后我加的索引"
+          ],
+          "value": 4
+        }
+      ],
+      "thesis": "",
+      "profile_statement": "",
+      "positioning": "",
+      "label": "实习主线型（实习 lead + 课程项目 keep）"
+    },
+    "experiences": [
+      {
+        "name": "校园二手交易系统",
+        "kind": "项目",
+        "role": "",
+        "item_id": "fa3a2176-c8b7-4a54-a54f-c99154dc8964",
+        "hidden": false,
+        "period": "2025.03 — 2025.06",
+        "bullets": [
+          "负责商品发布和搜索接口",
+          "登录模块是另一位同学写的",
+          "课程项目叫校园二手交易系统",
+          "没有真实用户"
+        ],
+        "missing": [
+          "你的职责与分工"
+        ]
+      }
+    ]
+  },
+  "aipm": [
+    {
+      "action": "initial",
+      "input": "我想投AI产品经理实习。我自己做了一个AI简历助手，叫胡话简历，从需求到开发都是我一个人做的，现在已经上线了，能通过对话帮学生挖经历写简历。",
+      "reply": "已记下，右侧草稿会同步更新。\n\n**我的建议**：先补「对话怎么挖经历」这一环，也就是你当时怎么判断它问得对不对、依据什么去改，这部分最能对上 AI 产品岗。",
+      "stage": "COLLECTING",
+      "revision": "ff7ea84e10611eea4c40efccd0587ee412d0edcfbe64e878dd65258aee4e97bb",
+      "status": "ok",
+      "sse_done": true,
+      "resume_data": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": "",
+          "objective": "AI产品经理实习",
+          "gender": "",
+          "age": "",
+          "birthday": "",
+          "hometown": "",
+          "political": "",
+          "ethnicity": "",
+          "height": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "projects": [
+          {
+            "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+            "name": "胡话简历",
+            "role": "独立完成胡话简历从需求到开发的全流程",
+            "start_date": "",
+            "end_date": "",
+            "description": "独立完成胡话简历从需求到开发的全流程\n做了一款AI简历助手，名为胡话简历\n胡话简历已上线\n胡话简历能通过对话帮学生挖掘经历并撰写简历"
+          }
+        ],
+        "campus": [],
+        "open_source": [],
+        "awards": [],
+        "skills": [],
+        "certificates": [],
+        "self_evaluation": "",
+        "resume_strategy": {
+          "mode": "capability",
+          "industry": "",
+          "target_role": "AI产品经理实习",
+          "recruiter_priorities": [
+            "AI产品经理实习"
+          ],
+          "section_order": [
+            "基本信息",
+            "工作与实习经历",
+            "项目经历",
+            "教育经历",
+            "技能"
+          ]
+        },
+        "verification_notes": []
+      },
+      "workspace": {
+        "guidance": {
+          "kind": "intake_experiences",
+          "title": "经历清单",
+          "items": [
+            {
+              "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+              "name": "胡话简历",
+              "type": "项目",
+              "start": "",
+              "end": "",
+              "role": "",
+              "summary": "我自己做了一个AI简历助手，叫胡话简历"
+            }
+          ],
+          "turn_id": "4febc2b2c42ba2e8"
+        },
+        "tailor": {
+          "resume_meta": {
+            "bullets": {}
+          }
+        }
+      }
+    },
+    {
+      "action": "experiences",
+      "input": "经历清单：胡话简历，项目，2026-08 至今，独立开发者，现在已经上线了",
+      "reply": "这段是主要经历，我先问几个最影响分量的点。",
+      "stage": "COLLECTING",
+      "revision": "63cddaa09cdc7ae9019585e0241a356a8d6f14a8a59e7e4d7b9960c8688a21e6",
+      "status": "ok",
+      "sse_done": true,
+      "resume_data": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": "",
+          "objective": "AI产品经理实习",
+          "gender": "",
+          "age": "",
+          "birthday": "",
+          "hometown": "",
+          "political": "",
+          "ethnicity": "",
+          "height": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "projects": [
+          {
+            "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+            "name": "胡话简历",
+            "role": "独立开发者",
+            "start_date": "2026-08",
+            "end_date": "至今",
+            "description": "独立完成胡话简历从需求到开发的全流程\n做了一款AI简历助手，名为胡话简历\n胡话简历已上线\n胡话简历能通过对话帮学生挖掘经历并撰写简历\n现在已经上线了"
+          }
+        ],
+        "campus": [],
+        "open_source": [],
+        "awards": [],
+        "skills": [],
+        "certificates": [],
+        "self_evaluation": "",
+        "resume_strategy": {
+          "mode": "capability",
+          "industry": "",
+          "target_role": "AI产品经理实习",
+          "recruiter_priorities": [
+            "AI产品经理实习"
+          ],
+          "section_order": [
+            "基本信息",
+            "工作与实习经历",
+            "项目经历",
+            "教育经历",
+            "技能"
+          ]
+        },
+        "verification_notes": []
+      },
+      "workspace": {
+        "guidance": {
+          "kind": "ask_user",
+          "turn_id": "0c64e65c-3546-4c59-a37c-f3c82d720489",
+          "title": "补充问题",
+          "questions": [
+            {
+              "id": "badcase",
+              "prompt": "效果不好时你怎么发现、怎么改的？",
+              "kind": "text",
+              "options": [],
+              "allow_other": false,
+              "placeholder": "例如：它总问重复的问题/挖不出细节，我把提问拆成几步、加了追问规则……"
+            },
+            {
+              "id": "eval",
+              "prompt": "你怎么判断它问得好不好？",
+              "kind": "text",
+              "options": [],
+              "allow_other": false,
+              "placeholder": "例如：拿自己的经历试、找同学试、对着同一段经历看好坏、列过典型失败情况……"
+            },
+            {
+              "id": "links",
+              "prompt": "现在能访问吗？有链接或仓库吗？",
+              "kind": "text",
+              "options": [],
+              "allow_other": false,
+              "placeholder": "例如：有公开网址；或只有自己能打开；GitHub 仓库私有的"
+            }
+          ],
+          "subject": "胡话简历"
+        },
+        "tailor": {
+          "resume_meta": {
+            "bullets": {}
+          }
+        }
+      }
+    },
+    {
+      "action": "answers_1",
+      "input": "关于「胡话简历」：效果不好时你怎么发现、怎么改的：换模型或调参数；你怎么判断它问得好不好：对比过不同提示词或方案、做了五个虚拟求职者的对话回放，用71条断言自动检查成稿；现在能访问吗？有链接或仓库吗：不知道",
+      "reply": "好的，按当前材料写好这一版主要是展示项目能力；基础信息卡填完后，我就按“AI 产品经理实习”出正式稿，右侧可预览并下载 PDF/Word。",
+      "stage": "COLLECTING",
+      "revision": "16eaa0f537352131be124fafc3f377e1c8c937f190913e189a43c0591dcf2e06",
+      "status": "ok",
+      "sse_done": true,
+      "resume_data": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": "",
+          "objective": "AI产品经理实习",
+          "gender": "",
+          "age": "",
+          "birthday": "",
+          "hometown": "",
+          "political": "",
+          "ethnicity": "",
+          "height": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "projects": [
+          {
+            "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+            "name": "胡话简历",
+            "role": "独立开发者",
+            "start_date": "2026-08",
+            "end_date": "至今",
+            "description": "独立完成胡话简历从需求到开发的全流程\n做了一款AI简历助手，名为胡话简历\n胡话简历已上线\n胡话简历能通过对话帮学生挖掘经历并撰写简历\n现在已经上线了\n换模型或调参数\n对比过不同提示词或方案；做了五个虚拟求职者的对话回放，用71条断言自动检查成稿"
+          }
+        ],
+        "campus": [],
+        "open_source": [],
+        "awards": [],
+        "skills": [],
+        "certificates": [],
+        "self_evaluation": "",
+        "resume_strategy": {
+          "mode": "capability",
+          "industry": "",
+          "target_role": "AI产品经理实习",
+          "recruiter_priorities": [
+            "AI产品经理实习"
+          ],
+          "section_order": [
+            "基本信息",
+            "工作与实习经历",
+            "项目经历",
+            "教育经历",
+            "技能"
+          ]
+        },
+        "verification_notes": []
+      },
+      "workspace": {
+        "guidance": {
+          "kind": "intake_basics",
+          "title": "基本信息",
+          "values": {
+            "name": "",
+            "location": "",
+            "availability": "",
+            "school": "",
+            "major": "",
+            "degree": "",
+            "graduation": ""
+          },
+          "turn_id": "e3f993db29cb707e"
+        },
+        "tailor": {
+          "resume_meta": {
+            "bullets": {}
+          }
+        }
+      }
+    },
+    {
+      "action": "basics",
+      "input": "跳过基本信息，继续。",
+      "reply": "先定这份简历的方案。选「按推荐写」或备选方案后开始成稿，也可以直接说想怎么改。",
+      "stage": "BUILDING",
+      "revision": "16eaa0f537352131be124fafc3f377e1c8c937f190913e189a43c0591dcf2e06",
+      "status": "ok",
+      "sse_done": true,
+      "resume_data": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": "",
+          "objective": "AI产品经理实习",
+          "gender": "",
+          "age": "",
+          "birthday": "",
+          "hometown": "",
+          "political": "",
+          "ethnicity": "",
+          "height": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "projects": [
+          {
+            "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+            "name": "胡话简历",
+            "role": "独立开发者",
+            "start_date": "2026-08",
+            "end_date": "至今",
+            "description": "独立完成胡话简历从需求到开发的全流程\n做了一款AI简历助手，名为胡话简历\n胡话简历已上线\n胡话简历能通过对话帮学生挖掘经历并撰写简历\n现在已经上线了\n换模型或调参数\n对比过不同提示词或方案；做了五个虚拟求职者的对话回放，用71条断言自动检查成稿"
+          }
+        ],
+        "campus": [],
+        "open_source": [],
+        "awards": [],
+        "skills": [],
+        "certificates": [],
+        "self_evaluation": "",
+        "resume_strategy": {
+          "mode": "capability",
+          "industry": "",
+          "target_role": "AI产品经理实习",
+          "recruiter_priorities": [
+            "AI产品经理实习"
+          ],
+          "section_order": [
+            "基本信息",
+            "工作与实习经历",
+            "项目经历",
+            "教育经历",
+            "技能"
+          ]
+        },
+        "verification_notes": []
+      },
+      "workspace": {
+        "guidance": {
+          "kind": "structure_plan",
+          "title": "定方案",
+          "question": "选好方案后开始写首稿",
+          "structure_plan": {
+            "recommended": {
+              "bullet_style": "labeled",
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_6e325da24e2044579d5a8dd8d803f16e"
+                  ],
+                  "angle": "效果不好时换模型或调参数，体现对模型能力边界的处理"
+                },
+                {
+                  "req_id": "r2",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_726021f4977e4c7592d5f795c2480bd6",
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_7f62e3882d3549c49d17e632b4fb7762"
+                  ],
+                  "angle": "从学生写简历的问题出发，定义对话式挖掘经历的产品形态，独立完成需求到开发"
+                },
+                {
+                  "req_id": "r3",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_dbd0d95448584efd8530c4654e57bd7d"
+                  ],
+                  "angle": "五个虚拟求职者对话回放 + 71 条断言自动检查成稿，对比不同提示词或方案"
+                },
+                {
+                  "req_id": "r4",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_0509b65cd5464c4d96f60f27ed7254d6"
+                  ],
+                  "angle": "独立完成需求到开发全流程，产品已上线"
+                },
+                {
+                  "req_id": "r5",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                  "treatment": "lead",
+                  "reason": "唯一一段经历，且直接命中「从用户问题到方案的链路」（对话挖经历→成稿）、「动手能力」（独立完成需求到开发并上线）、「评测意识」（五个虚拟求职者回放 + 71 条断言）、「AI 能力边界判断」（换模型或调参数）。全部素材集中在这里，必须展开。",
+                  "target_bullets": 3,
+                  "name": "胡话简历"
+                }
+              ],
+              "section_order": [
+                "projects"
+              ],
+              "summary_angle": "一句话说清「独立做完并上线一个 AI 产品 + 自己设计了验证方式」，不写泛泛的 AI 热情。",
+              "questions": [
+                {
+                  "q": "「胡话简历」现在有多少人用过、大概多少次对话？有没有人反馈过哪里好用/哪里不好用？",
+                  "why": "补上「数据与结果」这条唯一缺口，有数字就能把上线这条从定性升级为可核对结果。",
+                  "improves": {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "req_id": "r5"
+                  },
+                  "options": [
+                    "有具体用户数/对话次数，可以给数字",
+                    "只有少量同学试用，没有统计",
+                    "有用户反馈但没有量化"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "「换模型或调参数」具体是哪个环节效果不好？换了什么模型、调了什么参数，改完之后有没有变好、你怎么看出来的？",
+                  "why": "这是「AI 能力边界判断」的核心证据，现在只有动作没有问题和结果，补上就能写成完整的「问题→取舍→结果」。",
+                  "improves": {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "req_id": "r1"
+                  },
+                  "options": [
+                    "对话追问不够深，换了模型后追问质量变好",
+                    "成稿格式/事实越界，调提示词和参数后改善",
+                    "记不清具体环节，只记得试过几种"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "71 条断言检查的是什么？跑一次是自动跑还是手动看结果？五个虚拟求职者是按什么维度设计的？",
+                  "why": "决定这条能写成「自动检查」还是「人工核对」，也决定能不能写「覆盖哪几类场景」。",
+                  "improves": {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "req_id": "r3"
+                  },
+                  "options": [
+                    "脚本自动跑，输出通过/失败",
+                    "手动逐条核对",
+                    "断言覆盖事实不越界、格式、追问完整性等几类"
+                  ],
+                  "value": 4
+                }
+              ],
+              "thesis": "只有一段经历，但这段经历同时覆盖了 AI 产品经理最看重的三件事：独立把 AI 简历助手从需求做到上线、用换模型/调参数处理效果问题、用五个虚拟求职者回放 + 71 条断言检查成稿。主线就是把「一个人做完一个 AI 产品并自己验证它」讲透。",
+              "profile_statement_fact_ids": [
+                "f_15b806bbf1f043bda64a27d5ddcb4884",
+                "f_7f62e3882d3549c49d17e632b4fb7762",
+                "f_0509b65cd5464c4d96f60f27ed7254d6",
+                "f_726021f4977e4c7592d5f795c2480bd6",
+                "f_2315e6f839b044ada8e5bd7307a6d210",
+                "f_26a7a5f1707c4bd0ab09cd92405a42ef",
+                "f_33e3683b1e504b9c8752cc53c134e40e",
+                "f_2abf3161e1dd44e2a140715065da6772",
+                "f_2818a76d503d45818bd7fdac26158fe3",
+                "f_036f03af1ab2485aba8832396f443e36",
+                "f_6e325da24e2044579d5a8dd8d803f16e",
+                "f_dbd0d95448584efd8530c4654e57bd7d"
+              ],
+              "profile_statement": "独立开发并上线 AI 简历助手「胡话简历」，通过对话帮学生挖掘经历、撰写简历；用虚拟求职者对话回放与断言检查成稿质量。",
+              "positioning": "",
+              "label": "AI 产品全链路型"
+            },
+            "alternatives": [
+              {
+                "label": "评测方法突出型",
+                "positioning": "",
+                "profile_statement": "独立开发并上线 AI 简历助手「胡话简历」；用五个虚拟求职者的对话回放与 71 条断言检查成稿，对比不同提示词与方案。",
+                "bullet_style": "labeled",
+                "thesis": "把「五个虚拟求职者对话回放 + 71 条断言」提到最前面当主线：学生简历里几乎没人写评测，这是最能把你和普通 PM 区分开的证据，其余内容围绕它展开。",
+                "section_order": [
+                  "projects"
+                ],
+                "profile_statement_fact_ids": [
+                  "f_15b806bbf1f043bda64a27d5ddcb4884",
+                  "f_7f62e3882d3549c49d17e632b4fb7762",
+                  "f_0509b65cd5464c4d96f60f27ed7254d6",
+                  "f_726021f4977e4c7592d5f795c2480bd6",
+                  "f_2315e6f839b044ada8e5bd7307a6d210",
+                  "f_26a7a5f1707c4bd0ab09cd92405a42ef",
+                  "f_33e3683b1e504b9c8752cc53c134e40e",
+                  "f_2abf3161e1dd44e2a140715065da6772",
+                  "f_2818a76d503d45818bd7fdac26158fe3",
+                  "f_036f03af1ab2485aba8832396f443e36",
+                  "f_6e325da24e2044579d5a8dd8d803f16e",
+                  "f_dbd0d95448584efd8530c4654e57bd7d"
+                ],
+                "experience_plan": [
+                  {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "treatment": "lead",
+                    "reason": "「胡话简历」记录了「从需求到开发都是我一个人做的」；可对应岗位的「对 AI 能力边界的判断」。",
+                    "target_bullets": 3,
+                    "name": "胡话简历"
+                  }
+                ]
+              }
+            ]
+          },
+          "allow_free_text": true,
+          "options": [
+            {
+              "label": "按推荐写",
+              "value": "按推荐写"
+            },
+            {
+              "label": "用备选：评测方法突出型",
+              "value": "用备选：评测方法突出型"
+            }
+          ],
+          "turn_id": "8b9ea6b86ed9279b"
+        },
+        "tailor": {
+          "resume_meta": {
+            "bullets": {}
+          }
+        }
+      }
+    },
+    {
+      "action": "basics_confirm",
+      "input": "按推荐写",
+      "reply": "已按已有事实更新右侧待核对草稿。\n\n按推荐方案开写前，还有两处细节能明显提高这份材料的价值，也想先确认一下。",
+      "stage": "EVALUATING",
+      "revision": "c7d62ded2db1fdc25e64e4b891234e84471b7b08f669a0beb67d5a409321006a",
+      "status": "ok",
+      "sse_done": true,
+      "resume_data": {
+        "basic_info": {
+          "name": "",
+          "phone": "",
+          "email": "",
+          "location": "",
+          "objective": "AI产品经理实习",
+          "gender": "",
+          "age": "",
+          "birthday": "",
+          "hometown": "",
+          "political": "",
+          "ethnicity": "",
+          "height": ""
+        },
+        "education": [],
+        "work_experience": [],
+        "projects": [
+          {
+            "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+            "name": "胡话简历",
+            "role": "独立开发者",
+            "start_date": "2026-08",
+            "end_date": "至今",
+            "description": "独立完成胡话简历从需求到开发的全流程\n完成一款AI简历助手，名为胡话简历\n已上线\n能通过对话帮学生挖掘经历并撰写简历\n现在已经上线\n换模型或调参数\n对比过不同提示词或方案；完成五个虚拟求职者的对话回放，用71条断言自动检查成稿",
+            "polished_bullets": [
+              "决策：独立完成「胡话简历」从需求到开发的全流程，已上线；产品通过对话帮助学生挖掘经历并撰写简历。",
+              "迭代：独立完成从需求到开发的全流程，产品已上线；效果不好时换模型或调参数。",
+              "迭代：评测：对比不同提示词或方案；用五个虚拟求职者的对话回放，以 71 条断言自动检查成稿。"
+            ],
+            "hidden": false,
+            "project_type": "个人项目",
+            "positioning": "面向学生、以对话挖掘经历并生成简历的 AI 简历助手"
+          }
+        ],
+        "campus": [],
+        "open_source": [],
+        "awards": [],
+        "skills": [],
+        "certificates": [],
+        "self_evaluation": "",
+        "resume_strategy": {
+          "mode": "capability",
+          "industry": "",
+          "target_role": "AI产品经理实习",
+          "recruiter_priorities": [
+            "AI产品经理实习"
+          ],
+          "section_order": [
+            "基本信息",
+            "工作与实习经历",
+            "项目经历",
+            "教育经历",
+            "技能"
+          ]
+        },
+        "verification_notes": [],
+        "sections": [
+          {
+            "id": "projects",
+            "kind": "projects",
+            "title": "项目经历",
+            "content": ""
+          },
+          {
+            "id": "education",
+            "kind": "education",
+            "title": "教育背景",
+            "content": ""
+          },
+          {
+            "id": "work_experience",
+            "kind": "work_experience",
+            "title": "实习经历",
+            "content": ""
+          },
+          {
+            "id": "campus",
+            "kind": "campus",
+            "title": "校园经历",
+            "content": ""
+          },
+          {
+            "id": "open_source",
+            "kind": "open_source",
+            "title": "开源贡献",
+            "content": ""
+          },
+          {
+            "id": "awards",
+            "kind": "awards",
+            "title": "竞赛荣誉",
+            "content": ""
+          },
+          {
+            "id": "skills",
+            "kind": "skills",
+            "title": "技能证书",
+            "content": ""
+          },
+          {
+            "id": "certificates",
+            "kind": "certificates",
+            "title": "证书",
+            "content": ""
+          },
+          {
+            "id": "self_evaluation",
+            "kind": "self_evaluation",
+            "title": "自我评价",
+            "content": ""
+          }
+        ],
+        "skill_groups": {},
+        "summary": "独立开发并上线 AI 简历助手「胡话简历」，通过对话帮学生挖掘经历、撰写简历；用虚拟求职者对话回放与断言检查成稿质量。"
+      },
+      "workspace": {
+        "guidance": {
+          "kind": "ask_user",
+          "turn_id": "4f79e97d-f336-47ac-8582-551c4690a64b",
+          "title": "补充问题",
+          "questions": [
+            {
+              "id": "usage",
+              "prompt": "上线后有多少人用过、有无反馈？",
+              "kind": "single",
+              "options": [
+                "有具体用户数/对话次数，我可以给数字",
+                "只有少量同学试用，没有统计",
+                "有用户反馈但没有量化",
+                "基本还没人用",
+                "不知道 / 没有"
+              ],
+              "allow_other": true,
+              "placeholder": ""
+            },
+            {
+              "id": "assert_scope",
+              "prompt": "71 条断言具体在检查什么？",
+              "kind": "single",
+              "options": [
+                "事实不越界、不加数字",
+                "成稿格式与结构完整",
+                "追问是否覆盖关键维度",
+                "以上几类都有",
+                "不知道 / 没有"
+              ],
+              "allow_other": true,
+              "placeholder": ""
+            },
+            {
+              "id": "assert_run",
+              "prompt": "这套检查怎么跑起来的？",
+              "kind": "single",
+              "options": [
+                "脚本自动跑，输出通过/失败",
+                "手动逐条核对",
+                "两者都有"
+              ],
+              "allow_other": true,
+              "placeholder": ""
+            }
+          ],
+          "subject": "胡话简历"
+        },
+        "tailor": {
+          "resume_meta": {
+            "writer_diagnostic": {
+              "status": "model_completed",
+              "mode": "one_pass",
+              "schema_retry_count": 0,
+              "plan_reused": true,
+              "metric_repair": "attempted",
+              "positioning_rejected_reason": "",
+              "positioning_source": "model",
+              "positioning_fallback_reason": ""
+            },
+            "confirmed_plan": {
+              "bullet_style": "labeled",
+              "requirements": [
+                {
+                  "req_id": "r1",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_6e325da24e2044579d5a8dd8d803f16e"
+                  ],
+                  "angle": "效果不好时换模型或调参数，体现对模型能力边界的处理"
+                },
+                {
+                  "req_id": "r2",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_726021f4977e4c7592d5f795c2480bd6",
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_7f62e3882d3549c49d17e632b4fb7762"
+                  ],
+                  "angle": "从学生写简历的问题出发，定义对话式挖掘经历的产品形态，独立完成需求到开发"
+                },
+                {
+                  "req_id": "r3",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_dbd0d95448584efd8530c4654e57bd7d"
+                  ],
+                  "angle": "五个虚拟求职者对话回放 + 71 条断言自动检查成稿，对比不同提示词或方案"
+                },
+                {
+                  "req_id": "r4",
+                  "status": "direct",
+                  "fact_ids": [
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_0509b65cd5464c4d96f60f27ed7254d6"
+                  ],
+                  "angle": "独立完成需求到开发全流程，产品已上线"
+                },
+                {
+                  "req_id": "r5",
+                  "status": "gap",
+                  "fact_ids": [],
+                  "angle": ""
+                }
+              ],
+              "experience_plan": [
+                {
+                  "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                  "treatment": "lead",
+                  "reason": "唯一一段经历，且直接命中「从用户问题到方案的链路」（对话挖经历→成稿）、「动手能力」（独立完成需求到开发并上线）、「评测意识」（五个虚拟求职者回放 + 71 条断言）、「AI 能力边界判断」（换模型或调参数）。全部素材集中在这里，必须展开。",
+                  "target_bullets": 3
+                }
+              ],
+              "section_order": [
+                "projects",
+                "education",
+                "work_experience",
+                "campus",
+                "open_source",
+                "awards",
+                "skills",
+                "certificates"
+              ],
+              "summary_angle": "一句话说清「独立做完并上线一个 AI 产品 + 自己设计了验证方式」，不写泛泛的 AI 热情。",
+              "questions": [
+                {
+                  "q": "「胡话简历」现在有多少人用过、大概多少次对话？有没有人反馈过哪里好用/哪里不好用？",
+                  "why": "补上「数据与结果」这条唯一缺口，有数字就能把上线这条从定性升级为可核对结果。",
+                  "improves": {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "req_id": "r5"
+                  },
+                  "options": [
+                    "有具体用户数/对话次数，可以给数字",
+                    "只有少量同学试用，没有统计",
+                    "有用户反馈但没有量化"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "「换模型或调参数」具体是哪个环节效果不好？换了什么模型、调了什么参数，改完之后有没有变好、你怎么看出来的？",
+                  "why": "这是「AI 能力边界判断」的核心证据，现在只有动作没有问题和结果，补上就能写成完整的「问题→取舍→结果」。",
+                  "improves": {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "req_id": "r1"
+                  },
+                  "options": [
+                    "对话追问不够深，换了模型后追问质量变好",
+                    "成稿格式/事实越界，调提示词和参数后改善",
+                    "记不清具体环节，只记得试过几种"
+                  ],
+                  "value": 5
+                },
+                {
+                  "q": "71 条断言检查的是什么？跑一次是自动跑还是手动看结果？五个虚拟求职者是按什么维度设计的？",
+                  "why": "决定这条能写成「自动检查」还是「人工核对」，也决定能不能写「覆盖哪几类场景」。",
+                  "improves": {
+                    "item_id": "84dfe733-55d6-48c0-8b71-90581fd10f5a",
+                    "req_id": "r3"
+                  },
+                  "options": [
+                    "脚本自动跑，输出通过/失败",
+                    "手动逐条核对",
+                    "断言覆盖事实不越界、格式、追问完整性等几类"
+                  ],
+                  "value": 4
+                }
+              ],
+              "thesis": "只有一段经历，但这段经历同时覆盖了 AI 产品经理最看重的三件事：独立把 AI 简历助手从需求做到上线、用换模型/调参数处理效果问题、用五个虚拟求职者回放 + 71 条断言检查成稿。主线就是把「一个人做完一个 AI 产品并自己验证它」讲透。",
+              "profile_statement_source": "confirmed",
+              "profile_statement_fact_ids": [
+                "f_15b806bbf1f043bda64a27d5ddcb4884",
+                "f_7f62e3882d3549c49d17e632b4fb7762",
+                "f_0509b65cd5464c4d96f60f27ed7254d6",
+                "f_726021f4977e4c7592d5f795c2480bd6",
+                "f_2315e6f839b044ada8e5bd7307a6d210",
+                "f_26a7a5f1707c4bd0ab09cd92405a42ef",
+                "f_33e3683b1e504b9c8752cc53c134e40e",
+                "f_2abf3161e1dd44e2a140715065da6772",
+                "f_2818a76d503d45818bd7fdac26158fe3",
+                "f_036f03af1ab2485aba8832396f443e36",
+                "f_6e325da24e2044579d5a8dd8d803f16e",
+                "f_dbd0d95448584efd8530c4654e57bd7d"
+              ],
+              "profile_statement": "独立开发并上线 AI 简历助手「胡话简历」，通过对话帮学生挖掘经历、撰写简历；用虚拟求职者对话回放与断言检查成稿质量。",
+              "positioning": "",
+              "label": "AI 产品全链路型"
+            },
+            "bullets": {
+              "84dfe733-55d6-48c0-8b71-90581fd10f5a": [
+                {
+                  "fact_ids": [
+                    "f_7f62e3882d3549c49d17e632b4fb7762",
+                    "f_726021f4977e4c7592d5f795c2480bd6",
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_0509b65cd5464c4d96f60f27ed7254d6"
+                  ],
+                  "req_ids": [],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "polish": {
+                    "rewritten": true,
+                    "reasons": [
+                      "narrative_opening"
+                    ],
+                    "method": "writer"
+                  },
+                  "text_hash": "cea36beeca85aad6a9243807a759826a6cdc08279fb8bd9a365d61d5a1b35259",
+                  "coverage_fact_ids": [
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_7f62e3882d3549c49d17e632b4fb7762",
+                    "f_0509b65cd5464c4d96f60f27ed7254d6",
+                    "f_726021f4977e4c7592d5f795c2480bd6"
+                  ]
+                },
+                {
+                  "fact_ids": [
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_0509b65cd5464c4d96f60f27ed7254d6",
+                    "f_6e325da24e2044579d5a8dd8d803f16e"
+                  ],
+                  "req_ids": [
+                    "r1",
+                    "r4"
+                  ],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "polish": {
+                    "rewritten": false,
+                    "reasons": [],
+                    "method": "unchanged"
+                  },
+                  "text_hash": "9cdaf3115784a67fc2a3d9e00e7c5b5152fbcee5095cfca5c0e90a88cf06eb6c",
+                  "coverage_fact_ids": [
+                    "f_15b806bbf1f043bda64a27d5ddcb4884",
+                    "f_0509b65cd5464c4d96f60f27ed7254d6",
+                    "f_6e325da24e2044579d5a8dd8d803f16e"
+                  ]
+                },
+                {
+                  "fact_ids": [
+                    "f_dbd0d95448584efd8530c4654e57bd7d"
+                  ],
+                  "req_ids": [
+                    "r3"
+                  ],
+                  "flags": [],
+                  "needs_metric": false,
+                  "metric_question": "",
+                  "polish": {
+                    "rewritten": false,
+                    "reasons": [],
+                    "method": "unchanged"
+                  },
+                  "text_hash": "4580c667216dcf94a88d71176bcd885e3bc3becbf743a4ebb2392e41b974b37f",
+                  "coverage_fact_ids": [
+                    "f_dbd0d95448584efd8530c4654e57bd7d"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

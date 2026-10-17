@@ -158,6 +158,23 @@ def literal_item_name(text: str, section: str) -> str:
     return ""
 
 
+_MONTH_VALUE = r"(?:19|20)\d{2}[年./-]\d{1,2}月?"
+_DATE_ONLY = re.compile(r"^(?:(?:项目)?(?:时间|日期)(?:为|是|[:：])?\s*)?" + _MONTH_VALUE
+                        + r"(?:\s*(?:—|–|-|~|～|至|到)\s*(?:" + _MONTH_VALUE + r"|至今)|\s*至今)?[。\s]*$")
+
+
+def date_only(text: str) -> bool:
+    """年月/时间字段属于标题；数量、耗时和有动作的日期句不是日期字段。"""
+    return bool(_DATE_ONLY.fullmatch(str(text or "").strip()))
+
+
+def without_date_clauses(text: str) -> str:
+    """写稿前仅清理日期字段，保留口语以便后续润色门控识别。"""
+    pieces = re.split(r"([，,。；;\n])", str(text or ""))
+    return ''.join(pieces[i] + (pieces[i + 1] if i + 1 < len(pieces) else '')
+                   for i in range(0, len(pieces), 2) if not date_only(pieces[i])).rstrip('，,；;\n')
+
+
 def resume_bullet(text: str, *, name: str = "", role: str = "") -> str:
     """Deletion-only fallback: strip speech, questions and header echoes, retain limits."""
     clauses, separators = [], []
@@ -165,7 +182,7 @@ def resume_bullet(text: str, *, name: str = "", role: str = "") -> str:
     for index in range(0, len(pieces), 2):
         clause = pieces[index]
         clause = clause.strip(" -•\t")
-        if not clause or _NON_FACT.search(clause) or constraint_only(clause):
+        if not clause or date_only(clause) or _NON_FACT.search(clause) or constraint_only(clause):
             continue
         clause = re.sub(r"^(?:(?:大学|在校|上学|读书)(?:的)?(?:时候|时)|毕业后|当时|那时候|然后|但是|而且|目前|补充[:：])*", "", clause)
         clause = re.sub(r"^大[一二三四](?=在)", "", clause)

@@ -193,7 +193,9 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
                 x
                 for x in [
                     proj.get("name"),
-                    proj.get("role"),
+                    proj.get("positioning"),
+                    proj.get("project_type"),
+                    proj.get("role") if not proj.get("project_type") else None,
                     f"{proj.get('start_date', '')}—{proj.get('end_date', '')}".strip(
                         "—"
                     ),

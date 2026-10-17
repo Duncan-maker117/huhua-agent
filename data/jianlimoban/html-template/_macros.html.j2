@@ -55,10 +55,10 @@
 {%- endif -%}
 {%- endmacro %}
 
-{#- 项目标题行：名称 ｜ 角色 ｜ 时间，一行；日期靠右。 -#}
+{#- 项目标题行：名称 ｜ 可选定位 ｜ 性质（旧稿仍显示角色）；日期靠右，沿用原视觉。 -#}
 {% macro project_head(p, index) -%}
 <div class="item-header project-head">
-  <span class="item-title"><span data-field-path="/projects/{{ index }}/name">{{ p.name }}</span>{% if p.role %} ｜ <span class="item-role" data-field-path="/projects/{{ index }}/role">{{ p.role }}</span>{% endif %}</span>
+  <span class="item-title"><span data-field-path="/projects/{{ index }}/name">{{ p.name }}</span>{% if p.positioning %} ｜ <span data-field-path="/projects/{{ index }}/positioning">{{ p.positioning }}</span>{% endif %}{% if p.project_type %} ｜ <span data-field-path="/projects/{{ index }}/project_type">{{ p.project_type }}</span>{% elif p.role %} ｜ <span class="item-role" data-field-path="/projects/{{ index }}/role">{{ p.role }}</span>{% endif %}</span>
   {{ date_range(p, 'projects', index) }}
 </div>
 {%- endmacro %}

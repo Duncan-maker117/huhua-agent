@@ -351,7 +351,7 @@ async def _retain_compressed_body(before: dict, meta: dict, revised: dict, actio
     return data, metadata, 'accepted'
 
 
-async def apply_deterministic_update(state: dict, base_data: dict, instruction: str = '', *, dedupe: bool = False) -> dict:
+async def apply_deterministic_update(state: dict, base_data: dict, instruction: str = '', *, dedupe: bool = False, repair_dates: bool = False) -> dict:
     """Save a field-only edit (education, format) without calling the writer.
 
     Only an executed edit plan opts into generated-prose cleanup. Read-only
@@ -362,6 +362,11 @@ async def apply_deterministic_update(state: dict, base_data: dict, instruction: 
     data = deepcopy(current)
     data['education'] = deepcopy(base_data.get('education') or current.get('education') or [])
     meta = deepcopy(state.get('resume_meta') or {})
+    if repair_dates:
+        from app.services.delivery_date_repair import repair_delivery_dates
+        await repair_delivery_dates(data, meta, state.get('collected_info') or {},
+                                    state.get('confirmed_plan') or state.get('match_plan') or meta.get('match_plan') or {},
+                                    ((state.get('jd_info') or {}).get('role_profile') or {}).get('role_family', ''))
     if dedupe:
         from app.services.resume_dedup import changed_bullet_items, deduplicate_resume
         from app.services.fact_coverage import ensure_fact_coverage

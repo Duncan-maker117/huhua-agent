@@ -134,6 +134,13 @@ def _write_field(target: dict, field: str, value: str, message: HumanMessage):
             old["status"] = "superseded"
     fact = new_fact(value, kind="role" if field in {"role", "title"} else "context",
                     quote=value, turn_id=message.id or "", source_name="用户本人填写")
+    labels = {"name": "名称", "company": "名称", "school": "学校", "major": "专业", "degree": "学历",
+              "start_date": "开始时间", "end_date": "结束时间", "role": "角色", "title": "角色",
+              "intake_type": "经历类型", "location": "城市", "availability": "可实习时间"}
+    provenance = {"question_id": field, "question_prompt": labels.get(field, field),
+                  "answer_value": value, "item_id": target.get("item_id", "")}
+    fact.update(provenance)
+    fact["sources"][0].update(provenance)
     target["facts"].append({**fact, "field": field})
     target[field] = value
 
@@ -188,8 +195,12 @@ def apply_submission(state: dict, submission: dict, message: HumanMessage) -> di
             for source, field in (("name", FACT_LABELS[section]), ("start", "start_date"),
                                   ("end", "end_date"), ("role", "title" if section in {"work_experience", "internship"} else "role")):
                 _write_field(target, field, row.get(source, ""), message)
-            # 简介只保留原话，之后由现有抽取器处理，不直接升级为 bullet。
+            # 简介也是用户确认的原话；事实与写稿分离，不能依赖模型恰好再次抽中。
+            from app.services.answer_facts import append_answer
+            _write_field(target, "intake_type", row["type"], message)
             if row.get("summary"):
+                append_answer(target, row["summary"], message=message, question_id="summary",
+                              prompt="一句话简介", kind="action")
                 target["intake_summary"] = row["summary"]
                 target["raw_notes"] = list(dict.fromkeys([*target.get("raw_notes", []), row["summary"]]))
     return {"collected_info": collected, "intake_progress": progress}

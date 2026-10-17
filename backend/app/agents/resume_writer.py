@@ -15,7 +15,7 @@ from langchain_core.output_parsers.openai_tools import PydanticToolsParser
 from pydantic import BaseModel, ValidationError
 
 from app.services.error_codes import ChatTurnError, MATERIAL_RETRY_MESSAGE, UPSTREAM, raise_model_failure
-from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
+from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill, writing_structure
 from app.config import get_settings
 from app.services.writing_style import LABEL, format_rows, independent_labeled_row, row_label
 from app.schemas.writer import (IGNORED_EXTRA_SINK, REPAIRED_FIELD_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
@@ -35,7 +35,7 @@ from app.services.resume_sections import DEFAULT_SECTIONS
 SECTIONS = ("projects", "work_experience", "campus", "open_source", "awards")
 ALL_SECTIONS = ("education", "work_experience", "projects", "campus", "open_source", "awards", "skills", "certificates")
 HEADER_FIELDS = {"name", "company", "school", "role", "title", "start_date", "end_date",
-                 "duration", "degree", "major", "summary", "pr", "level", "date", "link"}
+                 "duration", "degree", "major", "summary", "pr", "level", "date", "link", "intake_type"}
 WRITER_TIMEOUT_SECONDS = 60
 SKILL_HEADINGS = {"技术", "技术栈", "编程语言", "开发工具", "开发与工具", "前端", "后端", "数据库", "框架", "工具",
                   "AI 工具", "AI工具", "AI与数据", "数据分析", "分析工具", "产品工具", "产品与设计",
@@ -50,7 +50,7 @@ recommended 和每个备选的 profile_statement 必填：由 thesis 改写为�
 按 JD 相关性给每段经历 lead/keep/brief/backup 和具体的用户可读 reason：点名这段工作怎样对应哪条 JD、或为何不适合本版，不用套话。lead最多3条、keep最多2条、brief1条、backup0条。
 直接命中 JD 核心职责/要求或 job_context 中公司关注点的经历，即使只有一条事实也至少 brief，不得 backup；backup 只给与本岗位无关的经历。
 reason、thesis 等面向用户的文本用要求原文或岗位信号原文，不写 r1/r2/s2 等内部编号；编号仅用于结构化引用字段。
-section_order 支持 education/work_experience/projects/campus/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 一律输出 plain；只有用户在方案卡选择「问题-决策-结果」写法时才是 labeled。
+section_order 支持 education/work_experience/projects/campus/open_source/awards/skills/certificates；只引用输入已有 item_id/fact_id。备选包含 label/profile_statement/bullet_style/thesis/section_order，experience_plan 只列相对推荐的差异。bullet_style 默认遵循岗位手册「成稿结构」与输入 bullet_style；用户已明确选择时优先尊重用户。
 requirements/questions 沿用匹配计划，最多3个问题。用户给出的结构取舍必须遵守。严格输出 StructurePlan。"""
 _WRITE_CONTRACT = """依据 match_plan 写 ResumeData 的 items，不新增经历、工具、数字或成果。保留数量的原单位及对象（人/次/个/条）；「20次」不得改成「20次调用/请求」。开源贡献必须用仓库名作标题，每个PR及其本人贡献、结果都要保留；教育与竞赛荣誉按结构字段保留，不能压成一句。
 开源 PR 号在标题行，bullet 不重复 PR 号前缀；summary 是页头定位句，自我评价只保留用户真正提供的自评。
@@ -73,7 +73,7 @@ writer 必须依据同一个 match_plan 写目标 items，每条 bullet 引用�
 保留数量原单位及对象（人/次/个/条），「20次」不得改成「20次调用/请求」。开源贡献每个PR的本人贡献与结果都要保留，标题用仓库名；教育与竞赛荣誉按结构字段保留，不能压成一句。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；每条 active 事实须由正文或结构字段覆盖；因方案或篇幅无法展示的事实必须明确列为备用并说明原因。
-writer.items 必须是数组，每项只含 item_id、section、title、bullets；title 是含 name/role 的对象；
+writer.items 必须是数组，每项只含 item_id、section、title、bullets；title 含 name/role，可含定位 positioning 及其 fact_ids；
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
@@ -82,6 +82,7 @@ plain 写法的一条 bullet = 问题/场景+本人动作与方法+结果或产�
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
 _STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；「问题：」只复述资料中的问题本身，不添加频率（常/经常/总是）、程度或后果（如「无法使用」「影响体验」），标签须与内容一致：描述问题的句子不能标为「结果」；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
+_STYLE_CONTRACT += "\n结构化答案的 question_prompt 仅解释回答语境，只有 answer_value/source_quote 是本人确认的事实，不将题干中的推测当成经历。\n岗位成稿结构为 labeled 时，每段 2–4 行，每行 1–3 个短句，用分号串联；无素材的行省略。允许概括、重组、合并多条事实；禁止新增数字、实体、动作、因果、程度或状态。title.positioning 是本经历的一句产品定位，须有 title.fact_ids；名称和性质由事实确定，不输出占位符。"
 _PROSE_CONTRACT = """所有经历正文（projects/work_experience/campus/open_source/awards，实习已合并至 work_experience）都要改写为简历语言，动词开头，去第一人称、时间铺垫和口语。组织/参与经历与担任职务合并在标题和角色，不重复成 bullet。排除自评、计划、提问（如认为能力尚浅、想知道适合什么岗位、认为可以接单）。不把「运用可画完成」升级为「独立设计」；独立性与动作必须分别有原文支持。"""
 _PROSE_CONTRACT += "status_limit 中的后台权限、账号负责人、选题决定权、文案来源和数据缺失只约束措辞，不单独成 bullet 或备用条目；据此禁止升级为负责、运营账号、策划选题、独立完成或增长成果。"
 _WRITE_CONTRACT += '\n' + _PROSE_CONTRACT
@@ -110,7 +111,7 @@ def _numeric_fact(fact: dict) -> bool:
 
 
 def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
-                          treatment: Mapping[str, str], caps: Mapping[str, int]) -> dict[str, list[str]]:
+                          treatment: Mapping[str, str], caps: Mapping[str, int], retained=()) -> dict[str, list[str]]:
     """Quantified facts need visible text as well as citations, regardless of kind."""
     missing: dict[str, list[str]] = {}
     for item_id, written in writers.items():
@@ -123,6 +124,8 @@ def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[
         lookup = {fact['id']: fact for fact in items[item_id][1].get('facts') or []}
         lost = []
         for fid in wanted:
+            if (item_id, fid) in retained:
+                continue
             covering = [bullet for bullet in written.bullets[:caps[item_id]]
                         if text_covered(strip_absence(lookup[fid]['text']), [bullet.text])]
             if covering:
@@ -133,6 +136,28 @@ def _missing_metric_facts(writers: Mapping[str, Any], items: Mapping[str, tuple[
         if lost:
             missing[item_id] = lost
     return missing
+
+
+async def _metric_retention(writers, items, treatment, caps, model) -> set:
+    """量化补回也按事实单元核验，避免同义改写触发原句替换并挤掉其他动作。"""
+    from app.services.fact_guard import extract_numbers, lexical_fact_errors, verify_semantics
+    missing = _missing_metric_facts(writers, items, treatment, caps)
+    pairs, owners = [], {}
+    for item_id, identifiers in missing.items():
+        facts = {f['id']: f for f in items[item_id][1]['facts']}
+        for fid in identifiers:
+            text = facts[fid]['text']
+            for bullet in writers[item_id].bullets[:caps[item_id]]:
+                if fid not in bullet.fact_ids or extract_numbers(text) - extract_numbers(bullet.text):
+                    continue
+                if any(e.startswith('unsupported_quantity_unit:') for e in lexical_fact_errors(text, bullet.text)):
+                    continue
+                key = f'metric_retention_{len(pairs)}'
+                pairs.append({'id': key, 'text': text, 'source_quotes': [bullet.text],
+                              'claim_kind': 'compression_retention'})
+                owners[key] = (item_id, fid)
+    decisions = await verify_semantics(pairs, model, run_name='metric_retention') if pairs else {}
+    return {owners[key] for key, decision in decisions.items() if decision.get('verdict') == 'pass'}
 
 
 def _append_metric_bullets(writers: Mapping[str, Any], items: Mapping[str, tuple[str, dict]],
@@ -759,7 +784,7 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
             continue
         questions.append(row.model_dump())
     from app.services.structure_plan import readable_plan
-    return readable_plan({"bullet_style": plan.bullet_style or "plain", "requirements": requirements, "experience_plan": experience,
+    return readable_plan({"bullet_style": plan.bullet_style or writing_structure(role_profile.get("role_family", "other"))["bullet_style"], "requirements": requirements, "experience_plan": experience,
             "section_order": order, "summary_angle": plan.summary_angle,
             "questions": questions}, role_profile)
 
@@ -801,7 +826,8 @@ def _bare_phase(text: str, name: str = "") -> bool:
 
 def _body_fact(fact: dict) -> bool:
     from app.services.resume_field_hygiene import positive_role
-    return (fact.get("field") not in HEADER_FIELDS
+    from app.services.candidate_language import date_only
+    return (fact.get("field") not in HEADER_FIELDS and not date_only(fact.get("text", ""))
             and not (fact.get('kind') == 'role' and positive_role(fact.get('text', '')))
             and not constraint_only(fact.get('source_quote') or fact.get('text', '')))
 
@@ -924,8 +950,8 @@ async def _guard_and_repair(candidates: list[dict], facts: dict, source: dict,
             originals[row["id"]] = {key: deepcopy(row[key]) for key in (
                 "text", "fact_ids", "req_ids", "flags", "needs_metric", "metric_question")}
         refs = list(dict.fromkeys(proposal.fact_ids))
-        if proposal.text.strip() and refs and all(fid in facts and facts[fid]["item_id"] == row["item_id"]
-                                                   and _body_fact(facts[fid]) for fid in refs):
+        if (proposal.text.strip() and refs and all(fid in facts and facts[fid]["item_id"] == row["item_id"] for fid in refs)
+                and any(_body_fact(facts[fid]) for fid in refs)):
             if proposal.text.strip() != row["text"]:
                 row.pop("polish_reasons", None)
             repaired.append({"id": row["id"], "item_id": row["item_id"], "text": proposal.text,
@@ -1193,7 +1219,7 @@ async def _run_resume_writer(
     allowed, bullet_targets = _scope_targets(scope, targets, current, items)
     model = structured_llm or llm
     role_family = role_profile.get("role_family", "other")
-    bullet_style = (previous_plan or {}).get("bullet_style") or "plain"
+    bullet_style = (previous_plan or {}).get("bullet_style") or writing_structure(role_family)["bullet_style"]
     effective_constraints = normalize_session_constraints(
         constraints, seniority=role_profile.get("seniority", "unknown"))
     capacity = writer_capacity_budget(effective_constraints)
@@ -1236,6 +1262,8 @@ async def _run_resume_writer(
             elif _tool_arguments_not_object(error):
                 diagnostic['schema_failure_reason_code'] = 'tool_arguments_not_object'
             raw = {"recommended": {**plan.model_dump(), "label": "事实保守型"}, "alternatives": []}
+        for option in [raw["recommended"], *raw.get("alternatives", [])]:
+            option["bullet_style"] = bullet_style
         card = await validate_structure_plan(raw, source, role_profile, items, facts, llm=model, diagnostic=diagnostic)
         return {"structure_plan": card, "writer_diagnostic": diagnostic}
     reused_plan = (MatchPlan.model_validate({key: previous_plan[key] for key in MatchPlan.model_fields
@@ -1357,9 +1385,15 @@ async def _run_resume_writer(
         for item_id in allowed:
             if target_caps[item_id] == 0 and item_id not in writers:
                 writers[item_id] = WrittenItem(item_id=item_id, section=items[item_id][0])
+    from app.services.candidate_language import without_date_clauses
+    for written in writers.values():
+        for bullet in written.bullets:
+            bullet.text = without_date_clauses(bullet.text)
+        written.bullets = [bullet for bullet in written.bullets if bullet.text]
     if scope in {"whole", "item"} and writers:
         # 量化成果是页面上最硬的证据：lead/keep 条目必须引用；缺失带清单修复一次，仍缺则确定性补条。
-        lost = _missing_metric_facts(writers, items, treatment, target_caps)
+        retained = await _metric_retention(writers, items, treatment, target_caps, model)
+        lost = _missing_metric_facts(writers, items, treatment, target_caps, retained)
         if lost and writer_diagnostic.get("status") == "model_completed":
             try:
                 async with asyncio.timeout(WRITER_TIMEOUT_SECONDS):
@@ -1376,7 +1410,8 @@ async def _run_resume_writer(
                 writer_diagnostic["metric_repair"] = "attempted"
             except Exception as error:
                 writer_diagnostic["metric_repair"] = "failed:" + _safe_error_type(error)
-            lost = _missing_metric_facts(writers, items, treatment, target_caps)
+            retained = await _metric_retention(writers, items, treatment, target_caps, model)
+            lost = _missing_metric_facts(writers, items, treatment, target_caps, retained)
         if lost:
             _append_metric_bullets(writers, items, lost, target_caps)
             writer_diagnostic["metric_appended"] = sum(len(v) for v in lost.values())
@@ -1398,8 +1433,8 @@ async def _run_resume_writer(
                 continue
             refs = list(dict.fromkeys(bullet.fact_ids))
             reasons = []
-            if not refs or any(fid not in facts or facts[fid]["item_id"] != item_id
-                               or not _body_fact(facts[fid]) for fid in refs):
+            if (not refs or any(fid not in facts or facts[fid]["item_id"] != item_id for fid in refs)
+                    or not any(_body_fact(facts.get(fid, {})) for fid in refs)):
                 reasons.append("unknown_or_cross_item_fact_id")
             candidate_rows.append({"id": f"b{len(candidate_rows)}", "item_id": item_id,
                                    "section": written.section, "field": field, "bullet_index": bullet_index,
@@ -1471,7 +1506,7 @@ async def _run_resume_writer(
                     role_profile=role_profile, modes=contract_modes, instruction=instruction,
                     model=model, llm=llm, role_family=role_family, source=source, report=contract_report)
         if section == "projects":
-            rows = format_rows(rows, facts, bullet_style)
+            rows = format_rows(rows, facts, bullet_style, role_family=role_family)
         if not rows:
             if scope == "whole" or (scope != "bullet" and target_caps[item_id] == 0):
                 field = "polished_bullets" if section == "projects" else "bullets"
@@ -1502,6 +1537,9 @@ async def _run_resume_writer(
             metadata[item_id] = [{**{key: row[key] for key in ("fact_ids", "req_ids", "flags", "needs_metric", "metric_question", "polish") if key in row},
                                   "text_hash": _hash(row["text"])} for row in rows]
             item["hidden"] = False
+    if scope != "bullet" and writing_structure(role_family)["bullet_style"] == "labeled":
+        from app.services.project_heading import apply_project_headings
+        await apply_project_headings(writers, indexed_output, items, facts, meta, model)
     omitted = []
     omitted_ids = {row.item_id for row in draft.omitted
                    if row.item_id in allowed and row.item_id in indexed_output
@@ -1688,6 +1726,8 @@ async def _run_resume_writer(
         rows = [{**record, "text": text, "item_id": item_id} for text, record in
                 zip(item.get(field) or [], meta.get("bullets", {}).get(item_id, []))]
         rows = _without_near_duplicate_rows(rows, facts, bullet_style if section == "projects" else "plain")
+        if section == "projects":
+            rows = format_rows(rows, facts, bullet_style, role_family=role_family)
         item[field] = [row["text"] for row in rows]
         meta.setdefault("bullets", {})[item_id] = [{**{key: value for key, value in row.items()
                                                      if key not in {"id", "text", "item_id"}},
@@ -1702,6 +1742,21 @@ async def _run_resume_writer(
     coverage["restored"] = restored_count
     if notice := coverage_notice(coverage):
         changes.insert(0, notice)
+    # A selected experience that cannot be written is a delivery failure, not
+    # an ordinary backup fact. Surface it in both the receipt and review pane.
+    for item_id, status in treatment.items():
+        if status not in {'lead', 'keep'} or item_id not in allowed or item_id not in indexed_output:
+            continue
+        section, item = indexed_output[item_id]
+        field = 'polished_bullets' if section == 'projects' else 'bullets'
+        if item.get('hidden') or not item.get(field):
+            name = item.get('company') or item.get('name') or item_id
+            notice = f'方案中保留的「{name}」未能形成通过事实校验的正文，请在核对页检查这段经历。'
+            changes.insert(0, notice)
+            notes = output.setdefault('verification_notes', [])
+            if notice not in notes:
+                notes.append(notice)
+            writer_diagnostic.setdefault('undelivered_items', []).append(item_id)
     if coverage["restored"]:
         writer_diagnostic["coverage_restored"] = coverage["restored"]
         changed_items = [{"section": section, "item_id": item["item_id"]}

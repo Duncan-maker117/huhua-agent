@@ -259,7 +259,7 @@ class ToolStreamTest(unittest.IsolatedAsyncioTestCase):
              patch('app.agents.tailor_pipeline.measure_rendered_pages', return_value={'status': 'rendered', 'pages': 1, 'page_limit': 1, 'within_page_limit': True}):
             result = await graph.structure_plan_node(current, style_fixture.PlanModel([('WriterDraft', style_fixture.draft())]))
         bullets = result['resume_data']['projects'][0]['polished_bullets']
-        self.assertEqual([line.split('：')[0] for line in bullets], ['问题', '关键决策', '现状'])
+        self.assertEqual([line.split('：')[0] for line in bullets], ['问题', '决策', '现状'])
         self.assertEqual(result['resume_meta']['confirmed_plan']['bullet_style'], 'labeled')
         self.assertFalse(result['pending_plan'])
 

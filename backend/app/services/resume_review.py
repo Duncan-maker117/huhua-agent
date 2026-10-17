@@ -49,6 +49,10 @@ def resume_to_text(data: dict) -> str:
         for item in items:
             title = item.get("company") or item.get("name") or item.get("school") or "[待填写]"
             detail = item.get("title") or item.get("role") or ' · '.join(part for part in (item.get('major'), item.get('degree'), item.get('pr'), item.get('summary'), item.get('level')) if part) or ""
+            if key == 'projects' and (item.get('positioning') or item.get('project_type')):
+                title = ' ｜ '.join(part for part in (title, item.get('positioning'), item.get('project_type')) if part)
+                if item.get('project_type'):
+                    detail = ''
             if key != 'awards':
                 lines.append(contribution_title(item) if key == 'open_source' else " · ".join(part for part in (title, detail) if part))
             dates = ' — '.join(str(item.get(k) or '') for k in ('start_date', 'end_date')).strip(' —')

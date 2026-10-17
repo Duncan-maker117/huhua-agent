@@ -123,7 +123,6 @@ def _general_action_covered(general: str, specific: str) -> bool:
 async def cite_entailed_facts(data: dict, meta: dict, collected: dict, llm, *, item_ids=()) -> None:
     """Reverse-check what each cited bullet actually conveys, never trust overcitation."""
     from app.services import fact_guard
-    from app.agents.fact_extractor import _bigrams
     source = active_facts_for_writer(collected)
     allowed, pairs, pending = set(item_ids), [], {}
     for source_section in FACT_SECTIONS:
@@ -146,12 +145,8 @@ async def cite_entailed_facts(data: dict, meta: dict, collected: dict, llm, *, i
                         continue
                     if fid in previous or text_covered(text, [value]):
                         record["coverage_fact_ids"].append(fid)
-                    elif fid in record["fact_ids"] and not lexical_fact_errors(text, value):
-                        # Only uncertain near-paraphrases go to the semantic
-                        # channel. Unrelated overcited responsibilities stay missing.
-                        grams = _bigrams(normalize_text(text))
-                        if len(record["fact_ids"]) > 1 and len(grams & _bigrams(normalize_text(value))) / max(1, len(grams)) < .65:
-                            continue
+                    elif fid in record["fact_ids"] and not (extract_numeric_set(text) - extract_numeric_set(value)):
+                        # 每条引用独立反向核验动作/对象/状态；字面重合不能证明或否定覆盖。
                         identifier = f"coverage{len(pairs)}"
                         pairs.append({"id": identifier, "text": text, "source_quotes": [value]})
                         pending[identifier] = (record, fid)

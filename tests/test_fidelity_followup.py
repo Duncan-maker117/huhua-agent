@@ -39,7 +39,12 @@ class FidelityFollowupTests(unittest.IsolatedAsyncioTestCase):
             'item_id': 'work', 'section': 'work_experience', 'bullets': [
                 {'text': '采购实验配件与测量器材，采购对接3家客户及散客',
                  'fact_ids': [fact['id'] for fact in facts]}]}]}})])
-        with patch('app.services.fact_guard.verify_semantics', semantic_stub):
+        async def coverage_semantic(rows, *args, **kwargs):
+            # 反向覆盖改为逐事实语义核验，桩不能把未表达的行政职责一律批准。
+            if kwargs.get('run_name') == 'coverage_entailment':
+                return {row['id']: {'verdict': 'pass' if text_covered(row['text'], row['source_quotes']) else 'fail'} for row in rows}
+            return await semantic_stub(rows, *args, **kwargs)
+        with patch('app.services.fact_guard.verify_semantics', coverage_semantic):
             result = await run_resume_writer(source, {}, model)
         bullets = result['resume_data']['work_experience'][0]['bullets']
         for text in WORK_FACTS:

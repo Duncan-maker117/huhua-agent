@@ -904,12 +904,16 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
     # when they lack the first-person/action pattern used by the generic fallback.
     for clause in re.split(r"[，,。；;\n]", evidence):
         clause = clause.strip()
+        from app.services.experience_subjects import subject_span
+        span = subject_span(clause, evidence)
+        literal_work = (span and span['section'] in {'work_experience', 'internship'}
+                        and re.search(r'参与|负责|团队|用|指导|索引|联调|压测|编写', clause))
         if constraint_only(clause) and not _clause_covered(normalize_text(clause), [normalize_text(q) for q in quotes]):
             clauses.append(clause)
         elif (clause and not non_fact(clause) and not skill_declaration(clause)
                 and not _PLAN_OR_NEGATED.search(clause) and not _INSTRUCTION.search(clause)
-                and _clause_subject(clause, evidence)[0] in {"projects", "campus"}
-                and (coursework_evidence(clause) or re.search(r"完成|拍摄|排版|海报|使用|做了", clause))
+                and (literal_work or (_clause_subject(clause, evidence)[0] in {"projects", "campus"}
+                     and (coursework_evidence(clause) or re.search(r"完成|拍摄|排版|海报|使用|做了", clause))))
                 and not _clause_covered(normalize_text(clause), [normalize_text(q) for q in quotes])
                 and clause not in clauses):
             clauses.append(clause)

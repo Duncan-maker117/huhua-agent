@@ -59,6 +59,8 @@ class WorkItem(BaseModel):
 
 
 class ProjectItem(BaseModel):
+    positioning: str = Field(default="", exclude_if=lambda value: not value)
+    project_type: str = Field(default="", exclude_if=lambda value: not value)
     item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     name: str = ""
     role: str = ""

@@ -4,7 +4,7 @@ These spans constrain ownership; they do not interpret duties as new subjects.
 """
 import re
 
-from app.services.candidate_language import safe_item_name
+from app.services.candidate_language import literal_employment, literal_item_name, non_fact, safe_item_name
 
 
 _LABELS = {
@@ -58,7 +58,26 @@ def explicit_subject_spans(text: str) -> list[dict]:
             continue
         spans.append({'start': marker.start(), 'end': end, 'section': section,
                       'name': name, 'fields': fields})
-    return spans
+    # Prose also establishes an identity before model facts are routed. Without
+    # this, omitting a whole employer in extraction leaves its duties ownerless.
+    # Stop at sentence boundaries or another literal subject, including when
+    # two experiences share one semicolon-delimited sentence.
+    for sentence in re.finditer(r'[^。！？!?\n]+', text):
+        subjects = []
+        for clause in re.finditer(r'[^，,；;]+', sentence[0]):
+            head = clause[0].strip()
+            employment = literal_employment(head)
+            if employment[0] or literal_item_name(head, 'projects'):
+                subjects.append((sentence.start() + clause.start(), head, employment))
+        for index, (start, head, (company, title)) in enumerate(subjects):
+            if (not company or non_fact(head) or re.search(r'同学|朋友|他|她|(?:没|未|不曾|不)在', head)
+                    or any(s['start'] <= start < s['end'] for s in spans)):
+                continue
+            end = subjects[index + 1][0] if index + 1 < len(subjects) else sentence.end()
+            spans.append({'start': start, 'end': end,
+                          'section': 'internship' if '实习' in title else 'work_experience',
+                          'name': company, 'fields': {'title': title}})
+    return sorted(spans, key=lambda span: span['start'])
 
 
 def subject_span(quote: str, evidence: str) -> dict | None:

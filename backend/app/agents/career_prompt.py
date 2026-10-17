@@ -134,3 +134,11 @@ def pick_followup(role_family: str, facts_text: str = "") -> str:
         if not cue or not re.search(cue, facts_text or ""):
             return question
     return questions[0]
+
+
+def writing_structure(role_family: str) -> dict:
+    """岗位手册固定小节是默认结构的唯一来源，不修改其他岗位的写法。"""
+    text = load_skill("role-playbooks/" + ROLE_PLAYBOOKS.get((role_family or "other").replace("-", "_"), "general.md"))
+    section = re.search(r"## 成稿结构\s*\n(.*?)(?=\n## |\Z)", text, re.S)
+    fields = dict(re.findall(r"^- ([a-z_]+): (.+)$", section[1], re.M)) if section else {}
+    return {**fields, "bullet_style": "labeled" if fields.get("bullet_style") == "labeled" else "plain"}

@@ -72,6 +72,8 @@ class StructurePlan(WriterSchema):
 class WrittenTitle(WriterSchema):
     name: str = ""
     role: str = ""
+    positioning: str = ""
+    fact_ids: list[str] = Field(default_factory=list)
 
 
 class WrittenBullet(WriterSchema):

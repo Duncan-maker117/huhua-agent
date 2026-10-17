@@ -92,10 +92,10 @@ def question_dimension(identifier: str = "", prompt: str = "") -> str:
         ("problem", r"problem|pain[_-]?point|问题定义|解决谁|什么问题"),
         ("decision", r"decision|tradeoff|关键决策|为什么|为何|取舍"),
         ("iteration", r"iteration|badcase|bad_case|迭代|效果不好|怎么改|失败"),
-        ("evaluation", r"evaluation|evaluate|评测|验证|怎么判断|好不好|测试集|基线"),
+        ("evaluation", r"\beval\b|evaluation|evaluate|评测|评估|验证|怎么判断|好不好|测试集|基线"),
         ("tech_stack", r"tech[_-]?stack|technology|技术栈|哪些工具|什么技术|怎么实现"),
         ("status", r"status|launch|上线|现状|什么状态|做到哪|跑通|原型"),
-        ("links", r"links?|url|链接|网址|能访问"),
+        ("links", r"links?|url|链接|网址|能访问|仓库"),
         ("dates", r"dates?|period|时间|日期|何时"),
         ("name", r"name|名称|名字"),
     ):

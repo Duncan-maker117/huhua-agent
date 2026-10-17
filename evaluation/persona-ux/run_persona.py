@@ -25,7 +25,9 @@ ROOT = HERE.parents[1]
 MATERIALS = ROOT / "evaluation" / "persona-ux-2026-10-15"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "backend"))
 checks = import_module("evaluation.persona-ux.checks")
+aipm = import_module("evaluation.persona-ux.aipm")
 
 
 def timestamp():
@@ -140,7 +142,7 @@ class GuestClient:
         # Frontend send(): [文件: filename]\ntext\n\n---\n\nuser text.
         return f"[文件: {result['filename']}]\n{result['text']}"
 
-    def turn(self, action, text, *, kind="fixture", trigger_action=None):
+    def turn(self, action, text, *, kind="fixture", trigger_action=None, answers=None, intake=None):
         started = time.monotonic()
         record = {"action": action, "trigger_action": trigger_action or action, "kind": kind,
                   "input": text, "reply": "", "resume_data": {}, "workspace": {},
@@ -148,6 +150,8 @@ class GuestClient:
         stream = {"reply": "", "meta": {}, "done": False, "errors": []}
         try:
             payload = {"messages": [{"role": "user", "content": text}], "session_id": self.session_id, "task": "auto"}
+            payload.update({key: value for key, value in {"answers": answers, "intake": intake}.items() if value is not None})
+            record.update({key: value for key, value in {"answers": answers, "intake": intake}.items() if value is not None})
             with self.open("/api/chat/stream", payload) as response:
                 read_sse(response, stream)
             if stream["errors"]:
@@ -197,16 +201,19 @@ def save_turn(directory, index, record):
 
 def run_replay(base, output, personas, *, with_recovery=False, timeout=300, materials=MATERIALS):
     base = local_base(base)
-    if not personas or len(set(personas)) != len(personas) or any(p not in checks.PERSONAS for p in personas):
+    if not personas or len(set(personas)) != len(personas) or any(p not in (*checks.PERSONAS, "aipm") for p in personas):
         raise ValueError("Personas must be a nonempty unique selection")
     fixture_bytes = (materials / "fixtures.json").read_bytes()
-    fixtures = json.loads(fixture_bytes)
+    fixtures = {**json.loads(fixture_bytes), "aipm": aipm.FIXTURE}
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     run = {"schema_version": 1, "run_id": output.name, "started_at": timestamp(), "base": base,
            "fixture_sha256": hashlib.sha256(fixture_bytes).hexdigest(), "with_recovery": with_recovery,
            "confirmation_contract": "workspace.guidance.options[label=按推荐写].value → /api/chat/stream, task=auto",
            "personas": {}}
+    if "aipm" in personas:
+        run["aipm_synthetic_placeholder"] = True
+        run["aipm_fixture_sha256"] = hashlib.sha256(Path(aipm.__file__).read_bytes()).hexdigest()
     started = time.monotonic()
     write_json(output / "run.json", run)
     for persona in personas:
@@ -218,10 +225,15 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
         client = GuestClient(base, timeout)
         try:
             client.start()
+            if persona == "aipm":
+                for turn in aipm.replay(client):
+                    record["turns"].append(turn)
+                    save_turn(directory, len(record["turns"]), turn)
             attachment = client.upload(materials / "design-material.txt") if persona == "design" else ""
-            for action, text in fixture_actions(fixtures[persona], with_recovery):
+            for action, text in ([] if persona == "aipm" else fixture_actions(fixtures[persona], with_recovery)):
+                extra = {}
                 content = attachment + "\n\n---\n\n" + text if action == "initial" and attachment else text
-                turn = client.turn(action, content)
+                turn = client.turn(action, content, **extra)
                 record["turns"].append(turn)
                 save_turn(directory, len(record["turns"]), turn)
                 if turn["status"] != "ok":
@@ -240,7 +252,7 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
         finally:
             client.cookies.clear()
         record["elapsed_seconds"] = round(time.monotonic() - persona_started, 3)
-        record["checks"] = checks.evaluate_persona(persona, record["turns"], with_recovery=with_recovery)
+        record["checks"] = (aipm if persona == "aipm" else checks).evaluate_persona(persona, record["turns"], with_recovery=with_recovery)
         if record["error"]:
             completion = next(c for c in record["checks"] if c["id"].endswith("common.rounds_complete"))
             completion["status"] = "fail"

@@ -34,8 +34,7 @@ TECH = {'id': 'tech_stack', 'prompt': '产品是用什么搭出来的？', 'kind
 MORE = [
     {'id': 'evaluation', 'prompt': '怎么判断效果好不好？', 'kind': 'multi',
      'options': ['对比过不同提示词或方案', '没有比较过'], 'allow_other': True},
-    {'id': 'iteration', 'prompt': '开发中效果不好时怎么改？', 'kind': 'single',
-     'options': ['换模型或调参数', '没有改过'], 'allow_other': True},
+    {'id': 'decision', 'prompt': '关键产品决策是什么？', 'kind': 'text'},
     {'id': 'status', 'prompt': '上线的具体形态是什么？', 'kind': 'single',
      'options': ['公网可访问的链接', '只在本地'], 'allow_other': True},
 ]
@@ -78,12 +77,12 @@ class AipmModel(FlowModel):
                 output = {'items': [{'item_id': project['item_id'], 'section': 'projects',
                     'title': {'positioning': '面向学生的对话式简历助手', 'fact_ids': refs('通过对话')},
                     'bullets': [
-                        {'text': '决策：借助 Cursor / Claude Code 开发；直接调用大模型 API。',
-                         'fact_ids': refs('Cursor', 'API', '独立开发者')},
-                        {'text': '迭代：比较方案与提示词；以 71 条断言核查成稿，回放 5 个虚拟求职者对话；更换模型或调参。',
-                         'fact_ids': refs('对比过', '五个', '换模型')},
-                        {'text': '现状：已上线；通过链接可在公网访问。' + ('用户数达到1000。' if self.invented else ''),
-                         'fact_ids': refs('上线', '公网')},
+                        {'text': '决策：先通过对话补充学生经历，再依据确认的事实成稿。',
+                         'fact_ids': refs('先让学生')},
+                        {'text': '迭代：比较方案与提示词；以 71 条断言核查成稿，回放 5 个虚拟求职者对话。',
+                         'fact_ids': refs('对比过', '五个')},
+                        {'text': '现状：已上线，通过链接可在公网访问；借助 Cursor / Claude Code 开发，直接调用大模型 API。' + ('用户数达到1000。' if self.invented else ''),
+                         'fact_ids': refs('上线', '公网', 'Cursor', 'API')},
                     ]}]}
                 return output if schema.__name__ == 'WriterDraft' else {'match_plan': {}, 'writer': output}
             raise AssertionError(schema.__name__)

@@ -314,7 +314,8 @@ class IntakeUnitTest(unittest.TestCase):
             context = deepen_context(state)
             self.assertIn("评测方式", str(context))
             self.assertIn("AI 产品经理", context["playbook"])
-            self.assertNotIn("adoption", context["dimensions"])
+            self.assertIn("可选", context["dimensions"]["adoption"])
+            self.assertIn("个人开发项目不必问用户数", context["instruction"])
             self.assertFalse(
                 validate_card(
                     {"subject": "不相关经历", "questions": QUESTIONS}, state, "bad"

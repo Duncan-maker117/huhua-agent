@@ -14,7 +14,9 @@ async def apply_project_headings(writers, indexed_output, items, facts, meta, mo
         source = items[item_id][1]
         corpus = "\n".join(f.get("source_quote") or f["text"] for f in source.get("facts", []))
         # 不从目标岗位推断身份，也不把团队中的独立动作推断成个人项目。
-        nature = ("个人项目" if re.search(r"个人项目|独立开发者|我一个人|自己一个人", corpus) and not re.search(r"团队|小组|队友", corpus)
+        personal = (source.get('role') in {'个人开发', '独立开发'}
+                    or re.search(r"个人(?:开发)?项目|独立开发者|我一个人|自己一个人", corpus))
+        nature = ("个人项目" if personal and not re.search(r"团队|小组|队友", corpus)
                   else "课程项目" if re.search(r"课程项目|课程小组|课设", corpus) else "")
         if nature:
             item["project_type"] = nature

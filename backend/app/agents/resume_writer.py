@@ -19,7 +19,7 @@ from app.agents.career_prompt import ROLE_PLAYBOOKS, career_messages, load_skill
 from app.config import get_settings
 from app.services.writing_style import LABEL, format_rows, independent_labeled_row, row_label
 from app.schemas.writer import (IGNORED_EXTRA_SINK, REPAIRED_FIELD_SINK, LENIENT_SCHEMAS, MatchPlan, OnePassOutput,
-                                RepairOutput, StructurePlan, WriterDraft)
+                                LABELED_SEMANTICS, LABELED_SELECTION, RepairOutput, StructurePlan, WriterDraft)
 from app.services.fact_guard import guard_bullets, strip_absence, validate_skill_groups
 from app.services.speculative import SpeculativeScope
 from app.services.llm_compat import label_run, with_structured_output
@@ -81,7 +81,8 @@ plain 写法的一条 bullet = 问题/场景+本人动作与方法+结果或产�
 模型 title 只供定位，最终标题来自已确认数据；summary 有事实时必须给 summary_fact_ids。
 不要输出两个并列顶层对象，也不要只输出 MatchPlan 或 WriterDraft。"""
 _COMPRESSION_ACTION_CONTRACT = """shorten_bullet/merge_bullets 后的每条 bullet 必须仍表达并引用至少一个主语为本人的 action/method_tool/deliverable 类 active fact；仅引用成果、背景、维护者/队友/团队的动作不合格。压缩不能删掉本人贡献只留下别人的动作，无法满足时保留原句。"""
-_STYLE_CONTRACT = '''bullet_style=labeled 时，项目每段通常2–3条，依次「问题：」「关键决策：/设计：」「迭代：/结果：/现状：」。只有对应事实才写标签，事实少可少于2条，不凑数。这个写法允许问题引用 context 单独成条，现状引用明确的正向状态单独成条；「问题：」只复述资料中的问题本身，不添加频率（常/经常/总是）、程度或后果（如「无法使用」「影响体验」），标签须与内容一致：描述问题的句子不能标为「结果」；其他 bullet 仍需动作/方法/产出/结果事实。每个决策有已知原因时合写「动作，原因」，并同时引用决策与原因 context 的 fact_ids；原因未知不可补造。不要把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则、同一事实不重复，不输出任何占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
+_STYLE_CONTRACT = '''bullet_style=labeled 时，每段 2–4 行且不超过 match_plan 的 target_bullets，每行 1–3 个短句；事实少可少于2行，不凑数。问题可引用 context 单独成行，现状可引用明确正向状态单独成行；其他行仍需动作/方法/产出/结果事实。问题只复述资料中的痛点，不添加频率、程度或后果；决策有已知原因时合写并同时引用决策与原因的 fact_ids，原因未知不可补造，不把原因 context 单独写为问题。bullet_style=plain 使用普通无标签写法。标签后的内容遵守全部事实规则，同一事实不重复，不输出占位符。已确认的 profile_statement 是用户认可的正文，不另写或改写 summary。'''
+_STYLE_CONTRACT += '\n' + LABELED_SEMANTICS + LABELED_SELECTION
 _STYLE_CONTRACT += "\n结构化答案的 question_prompt 仅解释回答语境，只有 answer_value/source_quote 是本人确认的事实，不将题干中的推测当成经历。\n岗位成稿结构为 labeled 时，每段 2–4 行，每行 1–3 个短句，用分号串联；无素材的行省略。允许概括、重组、合并多条事实；禁止新增数字、实体、动作、因果、程度或状态。title.positioning 是本经历的一句产品定位，须有 title.fact_ids；名称和性质由事实确定，不输出占位符。"
 _PROSE_CONTRACT = """所有经历正文（projects/work_experience/campus/open_source/awards，实习已合并至 work_experience）都要改写为简历语言，动词开头，去第一人称、时间铺垫和口语。组织/参与经历与担任职务合并在标题和角色，不重复成 bullet。排除自评、计划、提问（如认为能力尚浅、想知道适合什么岗位、认为可以接单）。不把「运用可画完成」升级为「独立设计」；独立性与动作必须分别有原文支持。"""
 _PROSE_CONTRACT += "status_limit 中的后台权限、账号负责人、选题决定权、文案来源和数据缺失只约束措辞，不单独成 bullet 或备用条目；据此禁止升级为负责、运营账号、策划选题、独立完成或增长成果。"

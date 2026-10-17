@@ -254,7 +254,7 @@ def intake_update(state: dict) -> dict:
         progress["basics"] = "deferred"
     if not progress.get("basics"):
         stage = "basics"
-    elif not target_known(state):
+    elif not target_known(state) and not rows:
         stage = "target"
     elif not rows or (not progress.get("experiences") and not all(_skeleton(s, i) for s, i in rows)):
         stage = "experiences"
@@ -313,7 +313,8 @@ def intake_guidance(state: dict) -> dict | None:
             k: v for k, v in basics_values(state.get("collected_info") or {}).items() if v}}
         card = {"kind": "intake_basics", "title": "确认基本信息" if state.get("intake_account") else "基本信息", "values": values}
     else:
-        items = [{"item_id": item.get("item_id") or "", "name": item.get(FACT_LABELS[section]) or "",
+        from app.services.candidate_language import placeholder_name
+        items = [{"item_id": item.get("item_id") or "", "name": "" if placeholder_name(item.get(FACT_LABELS[section], "")) else item.get(FACT_LABELS[section]) or "",
                   "type": experience_type(section, item), "start": month_value(field_value(item, "start_date")),
                   "end": month_value(field_value(item, "end_date") or field_value(item, "date")),
                   "role": role_value(item),
@@ -331,7 +332,15 @@ def deepen_context(state: dict) -> dict:
     from app.services.ask_user import question_dimension
     update = intake_update(state)
     current = current_experience(state)
-    context = {**update, "instruction": "表单可跳过，任何自由文本照常抽取。target 阶段只在正文开放询问岗位方向，不出问题卡。"}
+    from app.services.followup_context import latest_followup
+    asked_target = any(re.search(r"岗位|方向|想投", latest_followup(str(m.content)))
+                       for m in state.get("messages") or [] if isinstance(m, AIMessage))
+    context = {**update, "instruction": "表单可跳过，任何自由文本照常抽取。岗位方向是可选信息，有经历就继续经历清单与深挖，不等待方向。"}
+    if not target_known(state):
+        context["instruction"] += (" 已在正文问过岗位方向，不再追问。" if asked_target else
+                                   " 本轮可在正文顺带问一次目标岗位，不出方向问题卡，不阻塞经历收集。")
+        if update['intake_stage'] == 'target' and not asked_target:
+            context['instruction'] += ' target 阶段只在正文开放询问岗位方向，不出问题卡。'
     if not current:
         context["instruction"] += " 当前尚未到深挖，或深挖已经结束，不调用 ask_user；有表单时简短说明即可。"
         return context
@@ -339,7 +348,8 @@ def deepen_context(state: dict) -> dict:
     family = str(((state.get("jd_info") or {}).get("role_profile") or {}).get("role_family") or "other").replace("-", "_")
     if family == "ai_pm":
         dimensions = {"problem": "问题定义", "my_work": "本人分工", "decision": "关键产品决策", "iteration": "badcase 与迭代",
-                      "evaluation": "评测方式", "tech_stack": "技术栈", "status": "现状", "links": "链接"}
+                      "evaluation": "评测方式", "tech_stack": "技术栈", "status": "现状", "links": "链接",
+                      "adoption": "使用人数（可选，个人项目不强制追问）"}
     else:
         dimensions = {}
         for index, question in enumerate(playbook_followups(family)):

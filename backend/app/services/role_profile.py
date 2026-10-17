@@ -23,7 +23,7 @@ _ROLE_PATTERNS = (
     ),
     (
         "pm",
-        r"产品(?:经理|助理|策划|运营经理)|(?:策略|b\s*端|c\s*端)产品|\bproduct\s+manager\b|\bpm\b",
+        r"产品(?:经理|助理|策划|运营经理)|(?:想投|想做|应聘|求职|做)产品|(?:策略|b\s*端|c\s*端)产品|\bproduct\s+manager\b|\bpm\b",
     ),
     ("data", r"数据(?:分析|运营)|商业分析|\b(?:data|business)\s+analyst\b|\bbi\b"),
     ("algorithm", r"算法|机器学习|深度学习|\b(?:nlp|cv|machine\s+learning)\b"),

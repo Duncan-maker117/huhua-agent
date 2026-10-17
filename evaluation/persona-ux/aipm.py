@@ -79,6 +79,15 @@ def delivered(turn):
         for records in [(meta.get('bullets') or {}).get(project.get('item_id'), [])])
 
 
+def free_text_answer(reply, values):
+    """A reply without a card is still a question; never invent its answer."""
+    from app.services.followup_context import latest_followup
+    from app.services.ask_user import question_dimension
+    question = latest_followup(reply or '')
+    value = values.get(question_dimension('', question)) if question else None
+    return '；'.join(value) if isinstance(value, list) else value or '不知道'
+
+
 def replay(client):
     """Follow actual cards until a verified draft, with a bounded intake budget."""
     turn = client.turn('initial', FIRST)
@@ -101,9 +110,9 @@ def replay(client):
                 raise ValueError('Pending plan has no recommended confirmation option')
             action, text, extra = 'plan_confirm', option, {'kind': 'confirmation', 'trigger_action': turn['action']}
         else:
-            action = {'ask_user': 'answers', 'intake_experiences': 'experiences', 'intake_basics': 'basics'}.get(kind, 'continue')
+            action = {'ask_user': 'answers', 'intake_experiences': 'experiences', 'intake_basics': 'basics'}.get(kind, 'free_answer')
             step = {'ask_user': FIXTURE['answers_1'], 'intake_experiences': FIXTURE['experiences'],
-                    'intake_basics': FIXTURE['basics']}.get(kind, '继续')
+                    'intake_basics': FIXTURE['basics']}.get(kind, free_text_answer(turn.get('reply'), VALUES))
             text, extra = submission(step, workspace)
         counts[action] = counts.get(action, 0) + 1
         if counts[action] > 1 or action == 'answers':
@@ -142,6 +151,11 @@ def submitted_values(turns):
     for previous, turn in zip(turns, turns[1:]):
         guidance = (previous.get('workspace') or {}).get('guidance') or {}
         if guidance.get('kind') != 'ask_user':
+            # Free-text replies are actual submissions too. Only accept the
+            # answer this isolated bank gives to that preceding body question.
+            expected = free_text_answer(previous.get('reply'), VALUES)
+            if expected != '不知道' and turn.get('input') == expected:
+                values.extend(re.split('[；;]', expected))
             continue
         answers = turn.get('answers')
         if answers:

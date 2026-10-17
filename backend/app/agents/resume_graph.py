@@ -270,10 +270,11 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
                 values = [fact["text"] for fact in facts if fact.get("field") == field and fact.get("status", "active") == "active"]
                 item[field] = values[-1] if values else ""
             from app.services.resume_field_hygiene import role_body, sourced_role
+            from app.services.candidate_language import without_wording_constraints
             body = [cleaned for fact in facts if fact.get("status", "active") == "active"
                     and (not fact.get("field") or fact.get('field') in {'role', 'title'})
-                    if (cleaned := _strip_absence(role_body(fact['text']) if fact.get('field') in {'role', 'title'}
-                                                 else fact['text']))]
+                    if (cleaned := without_wording_constraints(_strip_absence(
+                        role_body(fact['text']) if fact.get('field') in {'role', 'title'} else fact['text'])))]
             item["description"] = "\n".join(body)
             item["bullets"] = body
             field = 'title' if 'company' in item else 'role'
@@ -1580,7 +1581,11 @@ ROLE_DIRECTION_KEYWORDS = [
 
 
 def _extract_role_direction_keywords(text: str) -> list[str]:
-    found = [kw for kw in ROLE_DIRECTION_KEYWORDS if kw in text]
+    compact = _re.sub(r"\s+", "", text).casefold()
+    found = list(dict.fromkeys(kw.replace(" ", "") for kw in ROLE_DIRECTION_KEYWORDS
+                              if kw.replace(" ", "").casefold() in compact))
+    if not found and _re.search(r"(?:想投|想做|应聘|求职|做)产品(?:相关)?(?:工作|岗位|方向)?", compact):
+        found = ["产品经理"]
     if found:
         return found[:4]
     cleaned = text.strip(" 。,.，")
@@ -1590,12 +1595,14 @@ def _extract_role_direction_keywords(text: str) -> list[str]:
 def _looks_like_role_direction(text: str) -> bool:
     """无 JD 场景的确定性兜底：短句岗位方向直接进入能力展示模式。"""
     text = text.strip()
-    if not text or _has_jd_text(text) or _has_personal_features(text):
+    if not text or _has_jd_text(text) or _has_personal_features(text) or _re.search(r"怎么样|怎么看|是什么", text):
         return False
-    has_role = any(kw in text for kw in ROLE_DIRECTION_KEYWORDS)
+    compact = _re.sub(r"\s+", "", text).casefold()
+    has_role = any(kw.replace(" ", "").casefold() in compact for kw in ROLE_DIRECTION_KEYWORDS)
+    has_role = has_role or bool(_re.search(r"(?:想投|想做|应聘|求职|做)产品(?:相关)?(?:工作|岗位|方向)?", compact))
     has_intent = any(
         kw in text
-        for kw in ("想投", "应聘", "求职", "目标", "岗位", "方向", "校招", "实习")
+        for kw in ("想投", "想做", "应聘", "求职", "目标", "岗位", "方向", "校招", "实习")
     )
     return has_role and (has_intent or len(text) <= 16)
 
@@ -1623,7 +1630,12 @@ def _direction_profile_update(state: dict, message: str, collected: dict | None 
         direction = direction or "、".join(state.get("jd_keywords") or [])
     if not direction:
         return {}
-    profile = role_profile_from_direction(direction)
+    # The conversational product shorthand uses the AI-product handbook;
+    # retain the user's original direction, and do not manufacture JD evidence.
+    compact_direction = _re.sub(r"\s+", "", direction)
+    handbook_direction = ("AI产品" if _re.fullmatch(
+        r"(?:我)?(?:想投|想做|做)?产品(?:相关)?(?:工作|岗位|方向)?[。！!]*", compact_direction) else direction)
+    profile = role_profile_from_direction(handbook_direction)
     info = {"role_profile": profile, "role_direction": direction}
     return {
         "jd_info": info, "jd_skipped": True, "jd_keywords": [direction],

@@ -5,11 +5,24 @@ from copy import deepcopy
 import hashlib
 import re
 
-DECISION = re.compile(r'决定|选择|改为|改成|分开|加入|先.{1,30}再')
+DECISION = re.compile(r'决定|选择|改为|改成|分开|加入|先.{1,30}再|先体验后登录|'
+                      r'(?:接入|开放|提供).{0,40}(?:用户|使用者|调用方).{0,30}(?:使用|调用|选择|用|操作)|'
+                      r'(?:设计|采用).{0,30}(?:产品方案|交互流程|权限边界)')
 REASON = re.compile(r'为了|为了解决|避免|防止|因为|以便|目的是|原因是|为的是')
 LABEL = re.compile(r'^(问题与设计|问题|关键决策|决策|技术|设计|迭代|结果|现状)[：:]\s*')
-PROBLEM = r'问题|痛点|困难|错误|失败|不一致|不准|混|污染|耗时|重复|难|手动|无法|不能|不存在|把.{1,20}当|场景|需求|需要|希望'
-STATUS = re.compile(r'本地|原型|演示版|模拟模型|模拟数据|已上线|已部署|公网|公开访问|闭环')
+PROBLEM = r'问题|痛点|困难|错误|失败|不一致|不准|混|污染|耗时|重复|繁琐|繁杂|难|手动|无法|不能|不存在|把.{1,20}当|场景|需求|需要|希望'
+STATUS = re.compile(r'本地|原型|演示版|模拟模型|模拟数据|已(?:经)?上线|已部署|公网|公开访问|闭环')
+EVALUATION = re.compile(r'评测|回归|验证|对比|比较|回放|断言|调整|改进|修复|更换|换模型|调参')
+OWNERSHIP = re.compile(r'独立完成|独立开发|个人开发|个人项目|从需求到开发|全流程')
+USAGE = re.compile(r'(?:\d+|[一二两三四五六七八九十百]+)\s*人.{0,8}(?:使用|在用|用过|试用)|(?:使用|用户|在用|试用).{0,8}\d+\s*人')
+
+
+def _solution_choice(text: str) -> bool:
+    # A tool list / ownership claim is not a product choice. A supported
+    # purpose or tradeoff can still turn a tool integration into a decision.
+    tool_only = re.search(r'工具|API|Cursor|Claude Code|技术栈', text, re.I)
+    purpose = re.search(r'用户|使用者|调用方|为了|避免|放弃|而不|先.{1,30}再', text)
+    return bool(DECISION.search(text) and (not tool_only or purpose))
 
 
 def fact_text(fact: dict) -> str:
@@ -36,7 +49,7 @@ def row_label(row: dict, facts: dict) -> str:
             kinds <= {'status_limit', 'context', 'deliverable', 'result_qualitative'}
             or re.match(r'(?:完成本地|演示版使用)', text)):
         return '现状'
-    if kinds & {'action', 'deliverable'} and DECISION.search(corpus) and DECISION.search(text):
+    if kinds & {'action', 'deliverable', 'method_tool'} and _solution_choice(corpus) and _solution_choice(text):
         return '关键决策'
     if kinds & {'action', 'deliverable'} and re.search(r'迭代|调整|修复|改进', text):
         return '迭代'
@@ -61,19 +74,23 @@ def format_rows(rows: list[dict], facts: dict, style: str, *, role_family: str =
     from app.agents.career_prompt import writing_structure
     structured = style == 'labeled' and writing_structure(role_family)['bullet_style'] == 'labeled'
     for row in rows:
-        row['text'] = LABEL.sub('', row['text'])
+        # A missing/stripped model label must not leave a dangling colon.
+        row['text'] = LABEL.sub('', row['text'].strip()).lstrip('：: ').strip()
         label = row_label(row, facts)
-        if structured:
+        if style == 'labeled':
             cited = [facts[fid] for fid in row.get('fact_ids', []) if fid in facts]
             corpus = ' '.join(fact_text(f) for f in cited)
-            if re.search(r'对比|比较|回放|断言|调整|改进|换模型|调参数', corpus) and re.search(r'对比|比较|回放|断言|调整|改进|更换|换模型|调参', row['text']):
+            if EVALUATION.search(corpus) and EVALUATION.search(row['text']):
                 label = '迭代'
-            elif label in {'设计', '关键决策'}:
-                label = '决策'
-            elif re.search(r'公网|上线|公开访问', row['text']) and re.search(r'公网|上线|公开访问', corpus):
+            elif label == '关键决策':
+                label = '决策' if structured else '关键决策'
+            elif (STATUS.search(row['text']) and STATUS.search(corpus)
+                  or USAGE.search(row['text']) and USAGE.search(corpus)):
                 label = '现状'
-            elif not label and any(f.get('kind') == 'method_tool' for f in cited):
+            elif label == '设计' or any(f.get('kind') == 'method_tool' for f in cited) and not label:
                 label = '技术'
+            elif OWNERSHIP.search(row['text']) and OWNERSHIP.search(corpus) and not label:
+                label = '现状'
         if style == 'labeled' and label:
             row['text'] = f'{label}：{row["text"]}'
     if structured:

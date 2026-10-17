@@ -412,8 +412,13 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         instruction=turn_instruction(instruction), scope=scope, targets=targets,
         previous_plan=confirmed or (state.get('resume_meta') or {}).get('match_plan') or state.get('match_plan') or None,
         **kwargs)
+    # Only an explicit collecting projection is known to be a preview. Older
+    # editor/imported drafts can legitimately lack writer metadata and retain
+    # JD_INPUT; absence of citations alone must not erase their saved choices.
+    preview_only = (state.get('stage') == 'COLLECTING'
+                    and not (state.get('resume_meta') or {}).get('bullets'))
     if ((written.get('writer_diagnostic') or {}).get('status') == 'model_fallback'
-            and _has_visible_experience_body(state.get('resume_data') or {})):
+            and not preview_only and _has_visible_experience_body(state.get('resume_data') or {})):
         # Keep valid prior prose without undoing confirmed corrections/removals.
         # The failed writer's plan never authorizes compression or hiding.
         from app.services.resume_versions import document_diff

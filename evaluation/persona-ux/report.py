@@ -9,6 +9,7 @@ import sys
 HERE = Path(__file__).resolve().parent
 if str(HERE.parents[1]) not in sys.path:
     sys.path.insert(0, str(HERE.parents[1]))
+sys.path.insert(0, str(HERE.parents[1] / 'backend'))
 checks = import_module("evaluation.persona-ux.checks")
 
 
@@ -27,7 +28,11 @@ def cell(value):
 
 
 def result_index(run):
-    result = {row["id"]: row for row in checks.evaluate_run(run)}
+    result = {}
+    for persona, record in run['personas'].items():
+        evaluator = import_module(f'evaluation.persona-ux.{persona}') if persona in {'aipm', 'aipm_real'} else checks
+        for row in evaluator.evaluate_persona(persona, record.get('turns') or [], with_recovery=run.get('with_recovery', False)):
+            result[row['id']] = {**row, 'label': row.get('label', row['id'])}
     for persona, record in run["personas"].items():
         if record.get("error"):
             row = result[f"{persona}.common.rounds_complete"]

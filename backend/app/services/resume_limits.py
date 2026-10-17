@@ -119,6 +119,7 @@ def _limit_key(text: str) -> str:
     text = re.sub(r"尚未|并未|还未|没有", "未", normalize_text(text)).strip("。；;.,，")
     text = text.replace('对一个', '对').replace('加了', '加')
     text = re.sub(r'(?:没(?:有)?|未)(?:做|进行|开展)?线上压测', '未做线上压测', text)
+    text = re.sub(r'(?:仅|只)(?:面向|给)(?:班级|班里|全班)(?:进行)?演示', '只给班里演示', text)
     return re.sub(r'是(.{1,12}(?:同学|同事|成员|队友))写的', r'由\1编写', text)
 
 
@@ -126,6 +127,11 @@ def _already_visible(clause: str, texts: Sequence[str]) -> bool:
     key = _limit_key(clause)
     if key and any(key in _limit_key(text) for text in texts):
         return True
+    # Deployment and demo audience are separate units. Preserve the literal
+    # "only" boundary, but do not append the already expressed location again.
+    parts = [c.strip() for c in _CLAUSE_BREAK.split(clause) if c.strip()]
+    if len(parts) > 1:
+        return all(_already_visible(part, texts) for part in parts)
     # 正文已换说法写出同一动作（如「对一个慢查询加了联合索引」→「定位慢查询并添加联合索引」）
     # 时不再原句追加；否定、边界类限定不走这条近似判断。
     if not re.search(r"没|未|不|无|非|仅|只|由|指导", clause):
@@ -215,6 +221,8 @@ def preserve_item_limits(data: dict, meta: dict, collected_info: dict, *,
             phase = _phase_label(quotes)
             explicit = bool((constraints or {}).get('preserve_explicit_limits'))
             def clean_body(text):
+                from app.services.candidate_language import without_wording_constraints
+                text = without_wording_constraints(text)
                 # Team/stage belong in the header; pure denials constrain the
                 # guard. Neither is a bullet's result or a skill declaration.
                 def clean_parenthesis(match):
@@ -359,6 +367,14 @@ def _integrate_required_limits(item, field, metadata, facts, constraints, author
                 targets = [i for i in candidates if not scoped_numbers or scoped_numbers & set(re.findall(r'\d+', bullets[i]))]
             for target in targets:
                 addition = clause
+                if demo_scope:
+                    addition = '，'.join(c for c in _CLAUSE_BREAK.split(clause)
+                                        if c.strip() and not _already_visible(c.strip(), bullets))
+                    if _limit_key(addition) == '只给班里演示':
+                        # Add the missing exclusivity to the existing audience
+                        # phrase instead of repeating the demo in another clause.
+                        bullets[target] = re.sub(r'(?<!仅)(?<!只)面向(?:班级|班里|全班)演示',
+                                                 lambda m: '仅' + m[0], bullets[target])
                 if metric_scope:
                     markers = list(dict.fromkeys(_METRIC_SCOPE.findall(clause)))
                     missing = [value for value in markers if value not in bullets[target]]

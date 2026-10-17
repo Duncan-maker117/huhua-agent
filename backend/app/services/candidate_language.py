@@ -83,6 +83,17 @@ def constraint_only(text: str) -> bool:
     return bool(clauses) and all(only_limit(part) for part in clauses)
 
 
+def without_wording_constraints(text: str) -> str:
+    """Remove ownership/data disclaimers from prose, keeping adjacent actions."""
+    text = re.sub(r'[（(]([^（）()]+)[）)]',
+                  lambda m: '' if constraint_only(m[1]) else m[0], str(text or ''))
+    pieces = re.split(r"([，,。；;\n])", str(text or ""))
+    if not any(constraint_only(pieces[i]) for i in range(0, len(pieces), 2)):
+        return text
+    return ''.join(pieces[i] + (pieces[i + 1] if i + 1 < len(pieces) else '')
+                   for i in range(0, len(pieces), 2) if not constraint_only(pieces[i])).strip('，,。；;\n ')
+
+
 def placeholder_name(value: str) -> bool:
     return value in PLACEHOLDER_NAMES.values() or value in {"课程作业（待补名称）", "个人练习（待补名称）"}
 

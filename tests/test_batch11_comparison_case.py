@@ -201,7 +201,8 @@ class MixedInputTest(unittest.TestCase):
         result, meta, _ = preserve_item_limits(data, {}, collected, item_ids=['p1', 'p2', 'c1'])
         p1, p2 = result['projects']
         self.assertIn('代码与模型接口主要由其他成员实现', str(p1))
-        self.assertIn('不是负责人', str(p1))
+        self.assertNotIn('不是负责人', str(p1))  # 约束保留于事实，不进入任何正文/预览。
+        self.assertIn('不是负责人', str(collected))
         for limit in ('离线', '课堂'):
             self.assertIn(limit, p1['polished_bullets'][1])
         self.assertIn('未上线', p1['role'])

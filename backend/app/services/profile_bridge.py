@@ -243,6 +243,22 @@ def sanitize_fact_history(state, *, original=None):
                 live = replacement.get('text', '')
                 if target in {normalized(live), normalized(resume_bullet(live))}:
                     continue
+                # A corrected fact can be a clause inside a longer sourced
+                # bullet. The old quote may include its action and qualifiers,
+                # so whole-line fuzzy matching would erase the valid new value.
+                old = normalized(fact.get('text') or '')
+                new = normalized(live)
+                # Compare complete numbers: 170 -> 190 must not treat an
+                # unrelated 17 (or 1700) elsewhere as the obsolete value.
+                old_tokens, new_tokens = (re.findall(r"\d+|\D", value) for value in (old, new))
+                removed = [''.join(old_tokens[a:b]) for op, a, b, _, _ in
+                           SequenceMatcher(None, old_tokens, new_tokens, autojunk=False).get_opcodes()
+                           if op in {'replace', 'delete'} and old_tokens[a:b]]
+                if (new and new in target and removed and old not in target
+                        and not any(re.search((r'(?<!\d)' if part[0].isdigit() else '') + re.escape(part)
+                                              + (r'(?!\d)' if part[-1].isdigit() else ''), target.replace(new, ''))
+                                    for part in removed)):
+                    continue
             # Dates and scalar identity fields are scoped to their original slot;
             # all prose fields can contain literal or near-literal copies.
             if field not in {"description", "raw_description", "bullets", "polished_bullets", "highlights", "self_evaluation", "personal_summary"}:

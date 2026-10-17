@@ -6,6 +6,19 @@ from typing import Any, Literal, get_args, get_origin
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+LABELED_SEMANTICS = """labeled 标签按事实含义选用，缺少素材就省略：
+问题 = 谁在什么场景遇到什么痛点、现有方案有什么不足，可带一句产品定位。
+决策（含关键决策/设计）= 产品或方案层面的取舍、设计选择；如接入 MCP 让用户用自己的 AI、先体验后登录。
+独立完成、全流程、用了哪些工具/API 都不是决策；本人独立完成归标题性质（个人项目/独立开发）或现状行。
+迭代 = 发现什么问题 → 改了什么 → 如何验证（评测/回归/对比）；只写已有环节，不补原因或结果；有数字的评测证据优先放这里。
+技术 / 现状 = 技术栈、上线状态、可访问性、使用人数等，保留数字的单位与对象。
+"""
+LABELED_SELECTION = """仅在 labeled 写法中：带数字或可验证的评测/验证证据、上线状态和可访问性是高价值事实；
+有空余行数时不得被泛泛描述挤掉；行数达到上限时先合并相关事实，仍须舍弃则舍弃信息量最低的句子。
+单个选项短语改写成动作只能使用该短语的意思，不能补出原因或结果；只有选项词拼接、信息量低的一行可并入其他行或省略，不单独凑数。
+"""
+
+
 class WriterSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -71,13 +84,13 @@ class StructurePlan(WriterSchema):
 
 class WrittenTitle(WriterSchema):
     name: str = ""
-    role: str = ""
-    positioning: str = ""
+    role: str = Field(default="", description="本人已确认的角色；独立完成类事实用于标题性质（个人项目/独立开发），不占决策行")
+    positioning: str = Field(default="", description="由本经历事实概括的一句产品定位，须引用 fact_ids，不照抄岗位目标")
     fact_ids: list[str] = Field(default_factory=list)
 
 
 class WrittenBullet(WriterSchema):
-    text: str
+    text: str = Field(description="plain 沿用无标签简历动作写法。\n" + LABELED_SEMANTICS)
     fact_ids: list[str] = Field(default_factory=list)
     req_ids: list[str] = Field(default_factory=list)
     flags: list[str] = Field(default_factory=list)
@@ -89,7 +102,7 @@ class WrittenItem(WriterSchema):
     item_id: str
     section: Literal["projects", "work_experience", "campus", "open_source", "awards"]
     title: WrittenTitle = Field(default_factory=WrittenTitle)
-    bullets: list[WrittenBullet] = Field(default_factory=list)
+    bullets: list[WrittenBullet] = Field(default_factory=list, description=LABELED_SELECTION)
 
 
 class OmittedItem(WriterSchema):
@@ -98,6 +111,15 @@ class OmittedItem(WriterSchema):
 
 
 class WriterDraft(WriterSchema):
+    @model_validator(mode="before")
+    @classmethod
+    def reject_misplaced_item(cls, data: Any) -> Any:
+        # Leniency may drop commentary, never an entire WrittenItem passed as
+        # the root object. Reject before extra="ignore" erases its evidence.
+        if isinstance(data, dict) and "items" not in data and {"item_id", "section", "bullets"} <= data.keys():
+            raise ValueError("WrittenItem must be inside WriterDraft.items")
+        return data
+
     objective: str = ""
     summary: str = ""
     summary_fact_ids: list[str] = Field(default_factory=list)
@@ -192,7 +214,7 @@ class LenientWrittenBullet(_DropsExtra, WrittenBullet):
 class LenientWrittenItem(_DropsExtra, WrittenItem):
     model_config = _LENIENT
     title: LenientWrittenTitle = Field(default_factory=LenientWrittenTitle)
-    bullets: list[LenientWrittenBullet] = Field(default_factory=list)
+    bullets: list[LenientWrittenBullet] = Field(default_factory=list, description=LABELED_SELECTION)
 
 
 class LenientRequirementMatch(_DropsExtra, RequirementMatch):

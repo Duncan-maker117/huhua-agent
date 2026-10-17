@@ -240,7 +240,8 @@ class FollowupQuestionTest(unittest.TestCase):
         self.assertEqual(latest_followup(notice), "")
         state = {"collected_info": store(), "messages": [HumanMessage(content=ANSWER), AIMessage(content=question), AIMessage(content=notice)]}
         guidance = build_workspace(state, {})["guidance"]
-        self.assertIsNone(guidance)  # 归属解析保留，正文不再生成卡片。
+        self.assertEqual(guidance['kind'], 'intake_experiences')  # 有经历即继续收集，不阻塞于未知方向。
+        self.assertNotIn('questions', guidance)  # 正文归属解析仍不生成问题卡。
         self.assertIn(QUESTION, graph._latest_previous_assistant(state["messages"] + [HumanMessage(content="换个说法")]))
 
     def test_question_target_requires_unique_context_and_expires(self):

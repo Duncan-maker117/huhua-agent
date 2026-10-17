@@ -58,6 +58,21 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.text, (ROOT / 'web/index.html').read_text())
         self.assertIn('id="chat-pane"', response.text)
 
+    async def test_connect_serves_token_page(self):
+        response = await self.client.get('/connect')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.text, (ROOT / 'web/connect.html').read_text())
+        self.assertIn('id="token-form"', response.text)
+        self.assertEqual(response.headers['cache-control'], 'no-cache')
+        parser = ResourceParser()
+        parser.feed(response.text)
+        for resource in parser.resources:
+            with self.subTest(resource=resource):
+                parsed = urlsplit(resource)
+                self.assertFalse(parsed.scheme or parsed.netloc)
+                self.assertEqual(parsed.query, 'v=20261017-home4')
+                self.assertEqual((await self.client.get(resource)).status_code, 200)
+
     async def test_legacy_session_redirect_preserves_raw_query(self):
         for query in ('session=x', 'session=', 'session=a%2Fb&panel=profile&x=a+b&x=%26'):
             with self.subTest(query=query):
@@ -84,10 +99,10 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
                 parsed = urlsplit(resource)
                 self.assertFalse(parsed.scheme or parsed.netloc)
                 self.assertTrue(parsed.path.startswith('/static/'))
-                self.assertEqual(parsed.query, 'v=20261016-ui2')
+                self.assertEqual(parsed.query, 'v=20261017-home4')
                 self.assertTrue((ROOT / 'web' / parsed.path.removeprefix('/static/')).is_file())
         self.assertNotIn('tailwind', (ROOT / 'web/home.html').read_text())
-        response = await self.client.get('/static/home.css?v=20261016-ui2')
+        response = await self.client.get('/static/home.css?v=20261017-home4')
         self.assertEqual(response.status_code, 200)
 
     async def test_mcp_three_steps_and_copyable_tasks(self):
@@ -97,7 +112,7 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(steps.count('<li>'), 3)
         for label in ('登录后生成令牌', '复制接入命令', '在助手里直接说任务'):
             self.assertIn(label, steps)
-        self.assertIn('href="/chat?panel=connect"', steps)
+        self.assertIn('href="/connect"', steps)
         self.assertIn('id="mcp-command"', steps)
         self.assertIn('接入后可以这样用', card)
         for key, title in (('tailor', '按 JD 改简历'), ('project', '把项目记进档案'), ('check', '检查简历依据')):
@@ -114,11 +129,11 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
         text = (await self.client.get('/')).text
         parser = ResourceParser()
         parser.feed(text)
-        for key in ('nav-mcp', 'nav-mcp-mobile'):
-            self.assertEqual(parser.links[key], '/chat?panel=connect')
+        self.assertEqual(parser.links['nav-mcp'], '/connect')
+        self.assertEqual(parser.links['nav-account-mobile'], '/chat?panel=profile')
         self.assertEqual(parser.links['nav-account'], '/chat?panel=profile')
         self.assertEqual(parser.links['nav-workspace'], '/chat')
-        self.assertIn('>登录/注册</a>', text)
+        self.assertIn('data-auth-open>登录</a>', text)
         self.assertIn('role="tablist"', text)
         self.assertEqual(text.count('role="tab"'), 2)
         self.assertEqual(text.count('role="tabpanel"'), 2)
@@ -134,11 +149,22 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_resume_returns_to_chat(self):
         parser = ResourceParser()
-        parser.feed((await self.client.get('/resume')).text)
+        html = (await self.client.get('/resume')).text
+        parser.feed(html)
         self.assertEqual(parser.links['back-to-chat'], '/chat')
+        self.assertIn('<a class="header-brand" href="/">胡话简历</a>', html)
 
 
 class HomeDomTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
+    def test_home_auth_and_connect_controllers(self):
+        # 全量入口通过 unittest 收集此类，再执行新增的 DOM 回归。
+        for name in ('home_auth.dom.js', 'connect.dom.js'):
+            with self.subTest(controller=name):
+                result = subprocess.run(['node', str(Path(__file__).with_name(name))],
+                                        capture_output=True, text=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     @unittest.skipUnless(shutil.which('node'), 'node is not installed')
     def test_home_copy_navigation_and_menu(self):
         result = subprocess.run(['node', str(Path(__file__).with_name('home.dom.js'))],

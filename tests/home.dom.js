@@ -1,9 +1,9 @@
 const assert = require('node:assert/strict');
-const {fixture, tick} = require('./resume_embedded.dom.js');
+const {authFixture, response, tick} = require('./home_auth.dom.js');
 const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '../web/home.html'), 'utf8');
 
 async function checkNavigation(authenticated, failed = false) {
-  const f = fixture('home.html'), $ = id => f.ids.get(id), copied = [], events = {};
+  const f = authFixture('home.html'), $ = id => f.ids.get(id), copied = [], events = {};
   f.context.location.origin = 'https://preview.example.test';
   f.context.location.hash = '#privacy';
   f.document.addEventListener = (type, fn) => { events[type] = fn; };
@@ -13,8 +13,8 @@ async function checkNavigation(authenticated, failed = false) {
     $('mcp-task-' + key).textContent = text;
     return {key, text};
   });
-  $('nav-account').textContent = '登录/注册';
-  $('nav-account-mobile').textContent = '登录/注册';
+  $('nav-account').textContent = '登录';
+  $('nav-account-mobile').textContent = '登录';
   $('nav-workspace-label').textContent = '开始写简历';
   let menuOpen = false;
   $('site-nav').classList.toggle = (_, open) => { menuOpen = open; };
@@ -23,14 +23,14 @@ async function checkNavigation(authenticated, failed = false) {
     assert.equal(options.credentials, 'same-origin');
     assert.equal(options.cache, 'no-store');
     if (failed) throw new Error('offline');
-    return {ok: true, json: async () => ({authenticated})};
+    return response({authenticated, login_available: true});
   };
   f.context.navigator = {clipboard: {writeText: async value => copied.push(value)}};
-  f.run('home.js'); await tick();
-  assert.equal($('nav-account').textContent, authenticated && !failed ? '我的档案' : '登录/注册');
+  f.run('home-auth.js'); f.run('home.js'); await f.window.HuhuaHomeAuth.ready; await tick();
+  assert.equal($('nav-account').textContent, authenticated && !failed ? '我的档案' : '登录');
   assert.equal($('nav-workspace-label').textContent, authenticated && !failed ? '进入工作台' : '开始写简历');
   assert.equal($('privacy').open, true);
-  assert.equal($('nav-account-mobile').textContent, authenticated && !failed ? '我的档案' : '登录/注册');
+  assert.equal($('nav-account-mobile').textContent, authenticated && !failed ? '我的档案' : '登录');
   const chat = $('preview-tab-chat'), editor = $('preview-tab-editor');
   const checkPreview = (name, caption) => {
     for (const key of ['chat', 'editor']) {
@@ -87,6 +87,15 @@ async function checkNavigation(authenticated, failed = false) {
   await $('menu-toggle').click();
   for (const fn of $('site-nav').handlers.click) fn({target: {closest: () => ({})}});
   assert.equal(menuOpen, false);
+  if (!authenticated && !failed) {
+    f.context.fetch = async url => response(url.endsWith('/start') ? {sent: true} : {authenticated: true, login_available: true});
+    await $('nav-account').click();
+    $('auth-email').value = 'synthetic@example.test'; await f.emit($('auth-form'), 'submit');
+    $('auth-code').value = '123456'; await f.emit($('auth-form'), 'submit');
+    assert.equal($('nav-account').textContent, '我的档案', '首页登录后无需刷新更新导航');
+    assert.equal($('nav-account-mobile').textContent, '我的档案');
+    assert.equal($('nav-workspace-label').textContent, '进入工作台');
+  }
 }
 (async () => {
   await checkNavigation(false);

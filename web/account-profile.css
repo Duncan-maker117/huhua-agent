@@ -37,6 +37,23 @@
 .profile-field input:focus, .profile-field textarea:focus, .profile-field select:focus { border-color: #8d74e8; box-shadow: 0 0 0 3px rgba(84, 35, 231, .12); outline: none; }
 .profile-field textarea { min-height: 94px; resize: vertical; }
 #profile-drawer :focus-visible { outline: 2px solid #5423e7; outline-offset: 2px; }
+/* Login state: a centered window instead of the side drawer. */
+#profile-overlay.is-login { display: grid; place-items: center; padding: 16px; }
+#profile-overlay.is-login .profile-backdrop { background: rgba(33, 23, 52, .4); backdrop-filter: blur(3px); }
+#profile-overlay.is-login #profile-drawer { position: relative; inset: auto; width: min(440px, 100%); max-height: calc(100dvh - 32px); padding: 40px 34px 30px; border: 1px solid #e6e2ee; border-radius: 22px; box-shadow: 0 30px 80px rgba(36, 16, 66, .24); animation: profile-login-in .22s ease-out; }
+@keyframes profile-login-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+#profile-overlay.is-login #profile-drawer h1 { font-size: 24px; letter-spacing: -.01em; }
+#profile-overlay.is-login #btn-close-profile { position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; min-height: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: #645e72; font-size: 0; }
+#profile-overlay.is-login #btn-close-profile::before { content: "×"; font-size: 24px; font-weight: 400; line-height: 38px; }
+#profile-overlay.is-login #btn-close-profile:hover { background: #f1ecff; color: #3c00bd; }
+#profile-overlay.is-login .profile-status { margin: 8px 0 14px !important; }
+#profile-overlay.is-login .profile-form { gap: 14px; margin-top: 22px; }
+#profile-overlay.is-login .profile-field input { min-height: 46px; font-size: 15px; }
+#profile-overlay.is-login .profile-form button, #profile-overlay.is-login .profile-code-step button { align-self: stretch; width: 100%; min-height: 46px; font-size: 14px; }
+#profile-overlay.is-login .profile-code-step { display: flex; flex-direction: column; gap: 12px; }
+#profile-overlay.is-login .profile-code-step[hidden] { display: none !important; }
+#profile-overlay.is-login input[autocomplete="one-time-code"] { font: 500 20px/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .45em; text-align: center; }
+@media (prefers-reduced-motion: reduce) { #profile-overlay.is-login #profile-drawer { animation: none; } }
 @media (max-width: 640px) { #profile-drawer { padding: 18px; } #chat-pane > header { padding-inline: 12px; gap: 6px; } #chat-pane > header > div:last-child { gap: 5px; } #chat-pane > header button.header-button, #chat-pane > header .account-entry { padding-inline: 8px; font-size: 12px; } #chat-pane > header > div:first-child > span { font-size: 16px; letter-spacing: 0; } }
 
 .profile-code-step { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-top: 15px; border-top: 1px solid #ece8f2; }

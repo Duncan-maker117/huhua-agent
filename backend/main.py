@@ -314,3 +314,7 @@ if os.path.exists(WEB_DIR):
     @app.get("/resume")
     async def resume_page():
         return FileResponse(os.path.join(WEB_DIR, "resume.html"), headers={"Cache-Control": "no-cache"})
+
+    @app.get("/connect")
+    async def connect_page():
+        return FileResponse(os.path.join(WEB_DIR, "connect.html"), headers={"Cache-Control": "no-cache"})

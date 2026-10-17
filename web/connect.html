@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCP 接入 — 胡话简历</title>
+  <meta name="description" content="生成胡话简历 MCP 令牌，把你的档案和简历接进 Claude Code、Cursor、Codex。">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/static/icons/favicon.ico?v=20261017-home4" sizes="32x32">
+  <link rel="icon" href="/static/icons/favicon.svg?v=20261017-home4" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png?v=20261017-home4">
+  <link rel="stylesheet" href="/static/site-chrome.css?v=20261017-home4">
+  <link rel="stylesheet" href="/static/home.css?v=20261017-home4">
+</head>
+<body class="connect-page">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="胡话简历首页"><span class="brand-dot" aria-hidden="true"></span>胡话简历</a>
+      <nav id="site-nav" class="site-nav" aria-label="本页导航">
+        <a href="#step-token">生成令牌</a>
+        <a href="#step-config">接入配置</a>
+        <a href="#step-use">使用示例</a>
+        <a id="nav-home-mobile" class="mobile-account" href="/">回到首页</a>
+        <a id="nav-account-mobile" class="mobile-account" href="/chat?panel=profile" data-auth-open>登录</a>
+      </nav>
+      <div class="nav-actions">
+        <a id="nav-mcp" class="nav-btn nav-btn-soft nav-mcp" href="/connect" aria-current="page">MCP 接入</a>
+        <a id="nav-account" class="nav-btn nav-btn-outline nav-account" href="/chat?panel=profile" data-auth-open>登录</a>
+        <a id="nav-workspace" class="nav-btn nav-btn-solid" href="/chat"><span id="nav-workspace-label" class="desktop-label">开始写简历</span><span id="nav-mobile-label" class="mobile-label">开始</span></a>
+        <button id="menu-toggle" class="menu-toggle" type="button" aria-controls="site-nav" aria-expanded="false" aria-label="打开导航菜单"><span aria-hidden="true"></span><span aria-hidden="true"></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="container connect-main">
+    <section class="connect-hero" aria-labelledby="connect-title">
+      <p class="eyebrow"><span class="brand-dot" aria-hidden="true"></span>MCP 接入</p>
+      <h1 id="connect-title">把胡话简历，<br>接进你的 AI 助手。</h1>
+      <p class="connect-lead">Claude Code / Cursor / Codex 通过 MCP 读取你的档案、起草简历。<br>助手提交的新信息先进收件箱，你在网页确认后才入档。</p>
+    </section>
+
+    <ol class="connect-steps">
+      <!-- Step 1: token. JS shows exactly one of the three states below. -->
+      <li id="step-token" class="connect-step" aria-labelledby="step-token-title">
+        <span class="step-number" aria-hidden="true">01</span>
+        <div class="connect-step-body">
+          <h2 id="step-token-title">生成个人令牌</h2>
+
+          <div id="connect-state-loading" class="connect-state">
+            <p class="connect-muted">正在确认登录状态…</p>
+          </div>
+
+          <div id="connect-state-guest" class="connect-state connect-guest" hidden>
+            <p>令牌和你的账号绑定，先用邮箱验证码登录。</p>
+            <button id="connect-login" class="button" type="button" data-auth-open>登录后生成令牌</button>
+          </div>
+
+          <div id="connect-state-unavailable" class="connect-state" hidden>
+            <p id="connect-unavailable-message" class="connect-muted">登录服务暂时不可用，请稍后再试。</p>
+            <button id="connect-retry" class="button button-outline button-small" type="button">重新检查</button>
+          </div>
+
+          <form id="token-form" class="connect-state token-form" hidden>
+            <div class="token-form-row">
+              <label class="auth-field" for="token-name"><span>令牌名称</span><input id="token-name" name="name" maxlength="80" value="我的 AI 助手" required></label>
+              <label class="auth-field" for="token-days"><span>有效期</span>
+                <select id="token-days" name="days">
+                  <option value="30">30 天</option>
+                  <option value="90" selected>90 天</option>
+                  <option value="180">180 天</option>
+                  <option value="365">365 天</option>
+                </select>
+              </label>
+            </div>
+            <fieldset class="scope-group">
+              <legend>允许助手做什么</legend>
+              <label class="scope-chip"><input type="checkbox" name="scope" value="profile:read" checked><span>读取档案</span></label>
+              <label class="scope-chip"><input type="checkbox" name="scope" value="profile:propose" checked><span>提交待确认建议</span></label>
+              <label class="scope-chip"><input type="checkbox" name="scope" value="resume:read" checked><span>读取简历</span></label>
+              <label class="scope-chip"><input type="checkbox" name="scope" value="resume:write" checked><span>保存简历草稿</span></label>
+              <label class="scope-chip"><input type="checkbox" name="scope" value="resume:export" checked><span>导出简历</span></label>
+              <label class="scope-chip scope-sensitive"><input type="checkbox" name="scope" value="profile:contacts"><span>包含联系方式</span></label>
+            </fieldset>
+            <p class="connect-muted scope-note">默认不给联系方式：助手看不到你的电话和邮箱，导出时由服务端填入。</p>
+            <button id="token-submit" class="button" type="submit">生成令牌</button>
+          </form>
+
+          <section id="token-once" class="token-once" hidden aria-labelledby="token-once-title">
+            <h3 id="token-once-title">令牌只显示这一次</h3>
+            <p class="connect-muted">离开或刷新页面后无法再次查看，请现在复制保存。</p>
+            <div class="token-value">
+              <code id="token-value"></code>
+              <button id="copy-token" class="copy-button" type="button">复制令牌</button>
+            </div>
+            <button id="token-dismiss" class="text-link" type="button">我已保存，隐藏令牌</button>
+          </section>
+
+          <p id="connect-status" class="connect-status" role="status" aria-live="polite"></p>
+        </div>
+      </li>
+
+      <!-- Step 2: config. Placeholder until a token is generated, then JS fills the real token. -->
+      <li id="step-config" class="connect-step" aria-labelledby="step-config-title">
+        <span class="step-number" aria-hidden="true">02</span>
+        <div class="connect-step-body">
+          <h2 id="step-config-title">复制接入配置</h2>
+          <div class="config-tabs" role="tablist" aria-label="选择你的 AI 助手">
+            <button id="config-tab-claude" type="button" role="tab" aria-selected="true" aria-controls="config-panel" tabindex="0">Claude Code</button>
+            <button id="config-tab-cursor" type="button" role="tab" aria-selected="false" aria-controls="config-panel" tabindex="-1">Cursor</button>
+            <button id="config-tab-codex" type="button" role="tab" aria-selected="false" aria-controls="config-panel" tabindex="-1">Codex</button>
+          </div>
+          <div id="config-panel" class="command-card" role="tabpanel" aria-labelledby="config-tab-claude">
+            <div class="command-header"><span id="config-label">在终端运行</span><button id="copy-config" type="button">复制</button></div>
+            <pre><code id="config-text">claude mcp add --transport http huhua https://resume.yikuaibanz.cn/mcp --header "Authorization: Bearer &lt;你的令牌&gt;"</code></pre>
+          </div>
+          <p id="config-hint" class="connect-muted">生成令牌后，这里会自动填入真实令牌。</p>
+          <p id="copy-config-status" class="connect-status" role="status" aria-live="polite"></p>
+        </div>
+      </li>
+
+      <li id="step-use" class="connect-step" aria-labelledby="step-use-title">
+        <span class="step-number" aria-hidden="true">03</span>
+        <div class="connect-step-body">
+          <h2 id="step-use-title">在助手里直接说任务</h2>
+          <div class="mcp-tasks">
+            <article class="mcp-task">
+              <div class="mcp-task-heading"><h3>按 JD 改简历</h3><button id="copy-task-tailor" type="button" aria-label="复制按 JD 改简历示例">复制</button></div>
+              <p id="mcp-task-tailor" class="mcp-task-example">用胡话简历里我的档案，按这份 JD 改一版简历，并导出 PDF：&lt;粘贴 JD&gt;</p>
+              <p class="mcp-task-note">只用已确认档案事实，逐条带出处，先测页数再导出。</p>
+              <p class="mcp-task-prompt">Claude Code：<code>/mcp__huhua__tailor_resume_for_jd</code></p>
+              <p id="copy-task-tailor-status" class="copy-status" role="status" aria-live="polite"></p>
+            </article>
+            <article class="mcp-task">
+              <div class="mcp-task-heading"><h3>把项目记进档案</h3><button id="copy-task-project" type="button" aria-label="复制把项目记进档案示例">复制</button></div>
+              <p id="mcp-task-project" class="mcp-task-example">读一下这个仓库，把我负责的部分整理成建议，提交到胡话简历档案</p>
+              <p class="mcp-task-note">只提交为待确认建议，需你在网页「我的档案 → 信息确认」确认后才入档。</p>
+              <p class="mcp-task-prompt">Claude Code：<code>/mcp__huhua__log_project_to_profile</code></p>
+              <p id="copy-task-project-status" class="copy-status" role="status" aria-live="polite"></p>
+            </article>
+            <article class="mcp-task">
+              <div class="mcp-task-heading"><h3>检查简历依据</h3><button id="copy-task-check" type="button" aria-label="复制检查简历依据示例">复制</button></div>
+              <p id="mcp-task-check" class="mcp-task-example">检查这份简历里哪些说法在我的胡话简历档案里找不到依据</p>
+              <p class="mcp-task-note">逐条对照档案事实，标出没有出处的句子。</p>
+              <p id="copy-task-check-status" class="copy-status" role="status" aria-live="polite"></p>
+            </article>
+          </div>
+        </div>
+      </li>
+    </ol>
+
+    <!-- Signed-in only. JS renders rows into #token-list / #call-list. -->
+    <section id="connect-manage" class="connect-manage" hidden aria-labelledby="manage-title">
+      <div class="manage-head"><h2 id="manage-title">已有令牌</h2><p class="connect-muted">吊销后，用这个令牌的助手会立刻失去访问。</p></div>
+      <ul id="token-list" class="token-list"></ul>
+      <p id="token-empty" class="connect-muted" hidden>还没有令牌。</p>
+      <details class="call-log">
+        <summary>最近调用</summary>
+        <p class="connect-muted">最多显示最近 50 次，只记录时间、令牌、工具、耗时和结果码；服务重启后清空。</p>
+        <ol id="call-list" class="call-list"></ol>
+        <p id="call-empty" class="connect-muted" hidden>尚无调用记录。</p>
+      </details>
+    </section>
+
+    <p class="connect-privacy">助手提交的新信息只进收件箱，需你在「我的档案 → 信息确认」点确认才会入档。</p>
+  </main>
+
+  <footer class="site-footer"><div class="container footer-inner"><a class="brand" href="/"><span class="brand-dot" aria-hidden="true"></span>胡话简历</a><nav aria-label="页脚导航"><a href="/#features">产品</a><a href="/chat">使用</a><a href="/#privacy">隐私说明</a></nav><p>© 胡话简历</p></div></footer>
+
+  <dialog id="auth-dialog" class="auth-dialog" aria-labelledby="auth-title" aria-describedby="auth-lead">
+    <form id="auth-form" class="auth-card" novalidate>
+      <button id="auth-close" class="auth-close" type="button" aria-label="关闭登录窗口">×</button>
+      <p class="eyebrow"><span class="brand-dot" aria-hidden="true"></span>胡话简历</p>
+      <h2 id="auth-title">登录，留住你说过的经历。</h2>
+      <p id="auth-lead" class="auth-lead">邮箱验证码登录，不用设密码。登录后可以导出简历、保留对话、生成 MCP 令牌。</p>
+      <div id="auth-fields">
+        <label class="auth-field" for="auth-email"><span>邮箱</span><input id="auth-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="你的常用邮箱" required></label>
+        <div id="auth-code-step" class="auth-code-step" hidden>
+          <label class="auth-field" for="auth-code"><span>验证码</span><input id="auth-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="······"></label>
+          <p id="auth-destination" class="auth-hint"></p>
+        </div>
+      </div>
+      <p id="auth-status" class="auth-status" role="status" aria-live="polite"></p>
+      <div class="auth-actions">
+        <button id="auth-submit" class="button" type="submit">发送验证码</button>
+        <button id="auth-resend" class="auth-resend" type="button" hidden>重新发送</button>
+      </div>
+      <p class="auth-note">不登录也能先聊天、改简历、看模板。</p>
+    </form>
+  </dialog>
+  <script src="/static/home-auth.js?v=20261017-home4" defer></script>
+  <script src="/static/site-nav.js?v=20261017-home4" defer></script>
+  <script src="/static/connect.js?v=20261017-home4" defer></script>
+</body>
+</html>

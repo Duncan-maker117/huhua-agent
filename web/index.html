@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261013-ui"/>
-<link rel="stylesheet" href="/static/account-profile.css?v=20261016-ui2"/>
-<script src="/static/account-profile.js?v=20261016-ui2"></script>
+<link rel="stylesheet" href="/static/account-profile.css?v=20261017-home4"/>
+<script src="/static/account-profile.js?v=20261017-home4"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -72,11 +72,11 @@
       <nav class="hidden md:flex gap-6 items-center">
         <a class="app-nav-link is-current" href="/chat" aria-current="page">对话</a>
         <a class="app-nav-link" href="/resume">模板</a>
-        <a id="btn-ai-assistant" class="app-nav-link" href="/chat?panel=connect" aria-expanded="false">AI 助手</a>
+        <a id="btn-ai-assistant" class="app-nav-link" href="/connect">MCP</a>
       </nav>
     </div>
     <div class="flex items-center gap-2">
-      <button id="btn-ai-assistant-mobile" type="button" class="account-entry mobile-ai-entry" aria-expanded="false">AI 助手</button>
+      <a id="btn-ai-assistant-mobile" class="account-entry mobile-ai-entry" href="/connect">MCP</a>
       <button id="btn-account-profile" type="button" class="account-entry" aria-expanded="false">个人档案</button>
       <button id="btn-history" type="button" class="header-button" aria-controls="conversation-drawer" aria-expanded="false">历史对话</button>
       <button id="btn-new-chat" type="button" class="header-button">新对话</button>
@@ -208,15 +208,6 @@
         </div>
       </div>
       <div id="composer-links" class="mt-2.5 flex justify-center gap-8 text-[11px] font-medium">
-        <a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
-          <span class="ui-icon text-sm" data-icon="keyboard_command_key" aria-hidden="true"></span> 快捷键
-        </a>
-        <a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
-          <span class="ui-icon text-sm" data-icon="help" aria-hidden="true"></span> 指南
-        </a>
-        <a class="hover:text-primary transition-colors flex items-center gap-1" href="/resume">
-          <span class="ui-icon text-sm" data-icon="bolt" aria-hidden="true"></span> 模板
-        </a>
         <a id="btn-gen-resume" class="hidden hover:text-primary text-primary transition-colors flex items-center gap-1" target="_blank" rel="noopener">
           <span class="ui-icon text-sm" data-icon="description" aria-hidden="true"></span> 生成简历预览
         </a>

@@ -72,6 +72,8 @@
   }
   function syncAccountPresentation() {
     if (opener) opener.textContent = account.authenticated ? '我的档案' : '登录账号';
+    // Signing in is a centered window; the signed-in profile keeps the side drawer.
+    overlay?.classList.toggle('is-login', !account.authenticated || Boolean(pendingClaim));
     const heading = document.getElementById('profile-heading');
     if (heading) heading.textContent = profileView === 'connections' ? '连接 AI 助手' : account.authenticated ? '个人档案' : '登录账号';
     const retentionNotice = document.getElementById('data-retention-notice');
@@ -549,11 +551,6 @@
     const head = node('header'); const title = node('h1', '登录账号'); title.id = 'profile-heading'; const dismiss = button('关闭', close); dismiss.id = 'btn-close-profile'; head.append(title, dismiss);
     status = node('p', '', 'profile-status'); status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite'); content = node('div'); content.id = 'profile-content'; drawer.append(head, status, content); overlay.append(backdrop, drawer); document.body.append(overlay);
     opener.setAttribute('aria-controls', 'profile-drawer'); opener.addEventListener('click', () => open());
-    for (const id of ['btn-ai-assistant', 'btn-ai-assistant-mobile']) {
-      const entry = document.getElementById(id);
-      entry?.setAttribute('aria-controls', 'profile-drawer');
-      entry?.addEventListener('click', event => { event.preventDefault(); return open('', 'connect', entry); });
-    }
     document.addEventListener('keydown', event => {
       if (overlay.hidden) return;
       if (event.key === 'Escape') { close(); return; }

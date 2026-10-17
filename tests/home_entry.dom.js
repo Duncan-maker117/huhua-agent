@@ -42,7 +42,17 @@ async function checkPanel(panel, authenticated, claim = false, trigger = '') {
   if (!trigger) vm.runInNewContext(entry, f.context);
   for (const fn of handlers.DOMContentLoaded) fn();
   await tick(); await tick();
-  if (trigger) await f.ids.get(trigger).click();
+  if (trigger) {
+    const link = f.ids.get(trigger);
+    let prevented = false;
+    for (const fn of link.handlers.click || []) await fn({preventDefault() { prevented = true; }});
+    assert.equal(prevented, false, 'MCP 入口保留浏览器原生跳转');
+    assert.equal(link.tagName, 'A');
+    assert.ok(html.includes('id="' + trigger + '"') && new RegExp('id="' + trigger + '"[^>]*href="/connect"').test(html));
+    assert.equal(f.ids.get('profile-overlay').hidden, true, '新入口不打开旧抽屉');
+    assert.equal(link.attributes['aria-controls'], undefined);
+    return;
+  }
   assert.equal(f.ids.get('profile-overlay').hidden, false);
   const all = () => descendants(f.ids.get('profile-content'));
   if (!authenticated) {
@@ -70,11 +80,6 @@ async function checkPanel(panel, authenticated, claim = false, trigger = '') {
     assert.ok(!all().some(n => n.textContent.includes('次修订')));
     assert.ok(!calls.includes('/api/profile'));
     assert.ok(!calls.includes('/api/account/mcp/inbox'));
-    if (trigger) {
-      await f.ids.get('btn-close-profile').click();
-      assert.equal(f.document.activeElement, f.ids.get(trigger));
-      assert.equal(f.ids.get(trigger).attributes['aria-expanded'], 'false');
-    }
   }
   else assert.ok(all().some(n => n.textContent === '已有信息'));
 }

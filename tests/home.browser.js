@@ -12,7 +12,7 @@ async (page) => {
     const path = url.slice(origin.length).split('?')[0];
     if (path === '/') return route.fulfill({path: 'web/home.html'});
     if (path.startsWith('/static/')) return route.fulfill({path: 'web/' + path.slice(8)});
-    if (path === '/api/account/me') return route.fulfill({json: {authenticated}});
+    if (path === '/api/account/me') return route.fulfill({json: {authenticated, login_available: true}});
     return route.fulfill({status: 404, body: ''});
   });
   await page.addInitScript(() => {
@@ -34,7 +34,7 @@ async (page) => {
   await page.evaluate(() => Promise.all([...document.images].filter(img => img.loading !== 'lazy').map(img => img.decode())));
   check(await page.locator('h1').innerText() === '把聊过的经历，\n写成一页真实的简历。', '方案 A 标题');
   check(await page.locator('#nav-mcp').isVisible(), '桌面 MCP 入口可见');
-  check(await page.locator('#nav-mcp').getAttribute('href') === '/chat?panel=connect', 'MCP 入口链接');
+  check(await page.locator('#nav-mcp').getAttribute('href') === '/connect', 'MCP 入口链接');
   check(await page.locator('#preview-panel-chat').isVisible(), '默认对话展示');
   await page.locator('#preview-tab-editor').click();
   check(await page.locator('#preview-panel-editor').isVisible(), '点击编辑标签切换图片');
@@ -71,7 +71,7 @@ async (page) => {
   await page.locator('#mcp').screenshot({path: '/private/tmp/huhua-ui2-mcp-mobile.png'});
   await page.locator('#menu-toggle').click();
   check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'true', '移动导航展开');
-  check(await page.locator('#nav-mcp-mobile').isVisible(), '移动端 MCP 入口可达');
+  check(await page.locator('#nav-mcp').isVisible(), '移动端 MCP 入口可达');
   await page.keyboard.press('Escape');
   check(await page.locator('#menu-toggle').getAttribute('aria-expanded') === 'false', 'Escape 关闭菜单');
   const crops = await page.locator('.template-image').evaluateAll(nodes => nodes.map(node => ({

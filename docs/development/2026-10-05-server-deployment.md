@@ -21,7 +21,14 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-16 第十二批：模型故障中止 + 条目内去重（最新）
+## 2026-10-17 第十三批 UI：三页结构 + 统一顶栏 + 登录弹窗 + MCP 接入页（最新）
+
+- 镜像 `huhua-agent:20261017-1`（sha256:c464719a…），基于 `20261016-4`，只覆盖 `backend/main.py`（新增 `GET /connect`）与 16 个前端文件，外加顶栏统一后的 `web/comparison.html/.css`（对比页其余文件与数据沿用基础镜像，仍未入库）。代码 `6dcf2b0`。
+- 首页 / `/connect` / 对比页共用 `site-chrome.css` + `site-nav.js`：中间为本页章节 + 阅读进度短线，右上角 MCP 接入 / 登录 / 开始写简历；首页登录改弹窗（`home-auth.js`）；`/connect` 生成/吊销 MCP 令牌；聊天页「MCP」入口、删快捷键行、未登录登录改居中窗口；编辑页 logo 回首页。
+- 无新依赖、无 schema 变更。演练 `REHEARSAL_OK`（4 个账号 get_profile 正常）。容器测试 1698 项全过（skip 36）。备份 `/opt/huhua-backups/pre-20261017-1/`；回滚拷回 `deploy/compose.env.pre-20261017-1`（指向 20261016-4）后 `compose up -d --no-build --no-deps --wait app`。
+- 线上验收：`/`、`/connect`、`/chat`、`/resume`、`/static/comparison.html`、`results.json`、新 JS/CSS 200，`/mcp` 401，日志无异常；浏览器内首页登录弹窗与 `/connect` 正常。真实邮箱登录与线上生成令牌待用户验收。
+
+## 2026-10-16 第十二批：模型故障中止 + 条目内去重（历史）
 
 - 镜像 `huhua-agent:20261016-4`（sha256:4ba35b20…），基于 `20261016-3`，只替换 `backend/app`、`main.py`、`backend/scripts`，代码 `bf96f3d`。抽取/主写作连接错误、超时、空响应改为可重试 `E-MODEL-*`（保留原消息与旧稿，不再拼原文兜底项目）；writer/修改/更正写回时条目内去重同一指标与重复动作子句。
 - 无新依赖、无 schema 变更。演练 `REHEARSAL_OK`。容器测试 1696 项全过（skip 35）。备份 `/opt/huhua-backups/pre-20261016-4/`；回滚拷回 `deploy/compose.env.pre-20261016-4`（指向 20261016-3）后 `compose up -d --no-build --no-deps --wait app`。

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 import logging
@@ -17,6 +16,7 @@ from app.services import web_research as web
 from .providers import configured_providers, public_url
 from .storage import Store, today
 from .company import matches, official_score, supported_paraphrase, evidence_field
+from . import clustering
 from .extraction import (
     CompanyExtraction,
     JobExtraction,
@@ -314,6 +314,7 @@ class JobIntel:
         return result
 
     async def sample_jobs(self, direction, *, on_progress=None):
+        started = time.monotonic()
         try:
             web._search_query("", direction)
         except web.WebResearchError:
@@ -398,34 +399,21 @@ class JobIntel:
                     "status": "insufficient",
                     "message": f"核对并去重后只有 {len(jobs)} 条真实岗位，暂不生成画像。",
                 }
-            groups = {}
             company_keys = {job["url"]: company_key(job) for job in jobs}
             company_count = len(set(company_keys.values()))
-            for field in ("responsibilities", "skills", "bonuses", "requirements"):
-                counts = defaultdict(dict)
-                companies = defaultdict(set)
-                labels = {}
-                for job in jobs:
-                    for item in job[field]:
-                        label = re.sub(r"\s+", "", item["text"]).casefold()
-                        labels.setdefault(label, item["text"])
-                        counts[label][job["url"]] = item["quote"]
-                        companies[label].add(company_keys[job["url"]])
-                groups[field] = [
-                    {
-                        "text": labels[label],
-                        "count": len(companies[label]),
-                        "total": company_count,
-                        "urls": list(sources),
-                        "evidence": [
-                            {"url": url, "quote": quote}
-                            for url, quote in sources.items()
-                        ],
-                    }
-                    for label, sources in sorted(
-                        counts.items(), key=lambda item: -len(companies[item[0]])
-                    )
-                ][:12]
+            entries = clustering.collect_items(jobs)
+            groups = clustering.aggregate(entries, company_count)
+            merge_status = "fallback"
+            try:
+                # Reserve time for returning the unmerged profile even when
+                # earlier providers used most of the overall sampling budget.
+                budget = min(CALL_TIMEOUT, 15, max(0, SAMPLE_TIMEOUT - (time.monotonic() - started) - 0.25))
+                async with asyncio.timeout(budget), slots():
+                    classes = await clustering.merge(self.llm, entries)
+                groups = clustering.aggregate(entries, company_count, classes)
+                merge_status = "merged"
+            except Exception as error:
+                logger.info("job_intel_merge_fallback error_type=%s", type(error).__name__)
             return {
                 "status": "ok",
                 "profile": {
@@ -436,6 +424,7 @@ class JobIntel:
                     "sample_note": f"仅基于 {len(jobs)} 条岗位" if len(jobs) < 5 else "",
                     "company_count": company_count,
                     "frequency_basis": "company",
+                    "merge_status": merge_status,
                     "weighting_note": "频次按公司统计，同一公司对同一项最多计 1 次；公司未知时按域名归组，来源保留全部去重岗位。",
                     "fetched_at": now(),
                     **groups,

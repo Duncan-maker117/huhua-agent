@@ -39,9 +39,28 @@
       if (Number.isInteger(value?.count) && Number.isInteger(total)) {
         li.append(node('span', `${value.count}/${total}`, 'intel-count'));
       }
+      const members = list(value?.members).map(text).filter(Boolean);
+      if (members.length && (members.length > 1 || members[0] !== value.text)) {
+        li.append(node('span', members.join(' / '), 'intel-members'));
+      }
       ul.append(li);
     }
     parent.append(ul);
+  }
+  function profileItems(parent, values, profile) {
+    const rows = [...list(values)].sort((a, b) => (b?.count || 0) - (a?.count || 0));
+    const total = profile.frequency_basis === 'company' ? profile.company_count : profile.sample_count;
+    const visible = [], more = [];
+    for (const row of rows) {
+      if (visible.length >= 6 || (profile.sample_count >= 6 && row?.count === 1)) more.push(row);
+      else visible.push(row);
+    }
+    items(parent, visible, total);
+    if (more.length) {
+      const details = node('details', undefined, 'intel-more');
+      details.append(node('summary', `其他（${more.length} 项）`));
+      items(details, more, total); parent.append(details);
+    }
   }
   function render(parent, info = {}) {
     const job = info.job_card;
@@ -76,7 +95,7 @@
       if (profile.weighting_note) card.append(node('p', text(profile.weighting_note), 'intel-meta'));
       for (const [key, title] of [['responsibilities', '高频职责'], ['skills', '高频技能'], ['bonuses', '加分项']]) {
         const group = node('section', undefined, 'intel-group'); group.append(node('h4', title));
-        items(group, profile[key], profile.frequency_basis === 'company' ? profile.company_count : profile.sample_count); card.append(group);
+        profileItems(group, profile[key], profile); card.append(group);
       }
       const details = node('details', undefined, 'intel-sources'); details.append(node('summary', '岗位来源'));
       const ul = node('ul', undefined, 'intel-list');

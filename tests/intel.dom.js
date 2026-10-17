@@ -75,6 +75,37 @@ for (const n of [3, 4]) {
 }
 context.window.renderIntelFixture({role_profile: {...profile, low_sample: false}});
 assert.ok(!finds('intel-title')[0].textContent.includes('仅基于'));
+// Default view: at most six classes, descending frequency; overflow and
+// singletons (>= six sampled jobs) are available in a closed details element.
+const many = Array.from({length: 9}, (_, i) => ({text: `技能${i}`, count: i + 1,
+  members: i === 8 ? ['剪映', 'PR', 'AE', '<img onerror=alert(1)>'] : [`技能${i}`]}));
+context.window.renderIntelFixture({role_profile: {...profile, sample_count: 10, skills: many, responsibilities: []}});
+let skillGroup = finds('intel-group')[1];
+let visible = skillGroup.children.find(el => el.tagName === 'UL').children;
+assert.equal(visible.length, 6);
+assert.deepEqual(visible.map(li => li.children.find(el => el.className === 'intel-count').textContent), ['9/10', '8/10', '7/10', '6/10', '5/10', '4/10']);
+let more = finds('intel-more')[0];
+assert.equal(more.tagName, 'DETAILS');
+assert.equal(Boolean(more.open), false);
+assert.equal(more.children[0].textContent, '其他（3 项）');
+assert.equal(more.children[1].children.length, 3);
+assert.equal(finds('intel-members')[0].tagName, 'SPAN');
+assert.equal(finds('intel-members')[0].textContent, '剪映 / PR / AE / <img onerror=alert(1)>');
+assert.ok(!all(panel).some(el => el.tagName === 'IMG'));
+// Even with fewer than six classes, all singleton classes fold at six jobs.
+for (const n of [5, 6, 10]) {
+  context.window.renderIntelFixture({role_profile: {...profile, sample_count: n, company_count: 2, frequency_basis: 'company',
+    skills: [{text: '甲', count: 1}, {text: '乙', count: 2}, {text: '丙', count: 1}], responsibilities: []}});
+  skillGroup = finds('intel-group')[1];
+  visible = skillGroup.children.find(el => el.tagName === 'UL').children;
+  assert.equal(visible.length, n >= 6 ? 1 : 3);
+  assert.equal(finds('intel-more').length, n >= 6 ? 1 : 0);
+  if (n >= 6) assert.equal(finds('intel-more')[0].children[0].textContent, '其他（2 项）');
+  assert.ok(finds('intel-count').some(el => el.textContent === '1/2'));
+}
+context.window.renderIntelFixture({role_profile: {...profile, skills: [{text: '甲', count: 1}, {text: '乙', count: 1}], responsibilities: []}});
+assert.equal(finds('intel-group')[1].children[1].children.length, 0);
+assert.equal(finds('intel-more')[0].children[0].textContent, '其他（2 项）');
 context.window.renderIntelFixture({company: {name: '美团', source: 'company_search', description: {text: '本地生活服务', url: 'https://baike.baidu.com/item/x', source_type: '百科'}}});
 assert.ok(finds('intel-source').some(el => el.textContent.includes('百科')));
 console.log('intel DOM checks passed');

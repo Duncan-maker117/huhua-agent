@@ -137,6 +137,39 @@ def role_profile_from_direction(direction: str) -> dict:
     return profile.model_dump()
 
 
+def direction_focus(info: dict, direction: str) -> str:
+    """Describe what to look for, never assert that the candidate has it."""
+    profile = info.get("role_profile") or {}
+    if (profile.get("source") == "market_sample"
+            and profile.get("status") not in {"pending", "failed"}
+            and profile.get("direction", direction) == direction):
+        # Prefer concrete skills, then duties; one-off items are not high frequency.
+        labels = []
+        for field in ("skills", "responsibilities"):
+            rows = [row for row in profile.get(field, []) if isinstance(row, dict)
+                    and isinstance(row.get("count"), int) and row["count"] >= 2
+                    and isinstance(row.get("text"), str) and row["text"].strip()]
+            for row in sorted(rows, key=lambda row: -row["count"]):
+                if row["text"] not in labels:
+                    labels.append(row["text"])
+        if labels:
+            focus = " / ".join(labels[:2])
+            return f"我会优先找能体现 {focus} 实战能力的经历。"
+    # Reload trusted screening priorities: pending/failed market payloads are
+    # not ready evidence, and role keywords themselves are not capabilities.
+    signals = role_profile_from_direction(direction)["core_signals"][:2]
+    spoken = {
+        "技术栈与 JD 对得上": "实际用过的语言、框架或数据库",
+        "自己实现了什么": "自己实现过的模块或接口",
+        "技术栈匹配": "实际用过的前端技术",
+        "自己负责的页面/组件/工程能力": "自己实现过的页面或组件",
+        "相关性第一": "与目标岗位相关的工作",
+        "本人贡献": "你在其中具体做了什么",
+    }
+    focus = "，以及".join(spoken.get(item["signal"], item["signal"]) for item in signals)
+    return f"我会按岗位手册的筛选重点，先了解{focus}，再找对应的真实经历。"
+
+
 def validate_jd_role_profile(value: object, jd_text: str) -> dict:
     """Keep only JD-backed entries, preserving valid peers of malformed entries.
 

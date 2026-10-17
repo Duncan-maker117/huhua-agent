@@ -101,6 +101,7 @@ GROUPS = {
 GENERIC_TITLE = re.compile(r"^(?:职位详情|岗位详情|招聘|招聘页面|招聘详情|职位招聘|招聘职位|Job\s*Details?|Position\s*Details?|Careers?)$", re.I)
 ROLE_WORDS = re.compile(r"经理|工程师|实习|专员|助理|设计师|分析师|运营|开发|销售|研究员|顾问|负责人|产品|算法|测试|编辑|教师|护士|会计|\b(?:manager|engineer|intern|designer|analyst|developer)\b", re.I)
 SITE_TITLE = re.compile(r"大学|就业|指导|中心|处|招聘网")
+ORGANIZATION_TITLE = re.compile(r"(?:公司|集团|研究院|研究所|学院|大学|协会|事务所|基金会|医院|银行|中心|Co\.?\s*,?\s*Ltd\.?|Inc\.?|Corporation|University)\s*$", re.I)
 MARKDOWN_ESCAPE = re.compile(r"\\([" + re.escape(string.punctuation) + r"])")
 TENANT_DOMAINS = ("jobs.feishu.cn", "recruitment.feishu.cn", "zhiye.com", "mokahr.com",
                   "hotjob.cn", "hotjob.com", "feishu.cn")
@@ -154,11 +155,13 @@ def section(line):
     return "", ""
 
 
-def usable_title(title):
+def usable_title(title, company=""):
     title = clean_line(title)
     # Site suffixes do not turn a generic page title into a job name.
     main = re.split(r"[|｜_—]|\s+-\s+", title)[0].strip()
     return bool(main and not GENERIC_TITLE.fullmatch(main)
+                and not (company and normalized_job_title(main) == normalized_job_title(company))
+                and not ORGANIZATION_TITLE.search(main)
                 and not (SITE_TITLE.search(main) and not ROLE_WORDS.search(main)))
 
 
@@ -177,12 +180,12 @@ def evidence_items(values, content):
 
 def job_card(value: JobExtraction, page: dict) -> dict:
     text = unescape_markdown(page["content"])
-    fallback = simple_job(page)
     # 头字段也要求有原文字面证据，抽取器不能补猜公司或薪资。
     result = {}
     for key in ("company", "job_title", "location", "salary"):
         field = unescape_markdown(getattr(value, key)).strip()
         result[key] = field[:240] if field in text + "\n" + unescape_markdown(page["title"]) else ""
+    fallback = simple_job(page, known_company=result["company"])
     result.update(
         {
             key: evidence_items(getattr(value, key), text)
@@ -193,8 +196,8 @@ def job_card(value: JobExtraction, page: dict) -> dict:
         result["company"] = fallback.company
     if fallback.company_inferred_from and result["company"] == fallback.company:
         result["company_inferred_from"] = fallback.company_inferred_from
-    if not usable_title(result["job_title"]):
-        result["job_title"] = fallback.job_title
+    if not usable_title(result["job_title"], result["company"]):
+        result["job_title"] = fallback.job_title if usable_title(fallback.job_title, result["company"]) else ""
     # Even a model can misplace headings and preferred qualifications. Route
     # evidence by its actual section in the source, never by generated labels.
     for field in ("responsibilities", "skills", "requirements", "bonuses"):
@@ -223,7 +226,7 @@ def job_card(value: JobExtraction, page: dict) -> dict:
     }
 
 
-def simple_job(page):
+def simple_job(page, *, known_company=""):
     # Explicit labels first; domain/site inference remains labelled, never translated.
     text = unescape_markdown(page["content"])
 
@@ -231,20 +234,23 @@ def simple_job(page):
         match = re.search(rf"(?:^|\n)\s*(?:{labels})\s*[:：]\s*([^\n]+)", text)
         return match.group(1).strip()[:200] if match else ""
 
-    title = field("岗位|职位|岗位名称|职位名称") or unescape_markdown(page["title"])
-    if not usable_title(title):
-        title = ""
-        for line in text.splitlines()[:15]:
-            candidate = clean_line(line)
-            if (2 <= len(candidate) <= 80 and usable_title(candidate)
-                    and not section(candidate)[0] and not re.search(r"[:：。；]|https?://", candidate)
-                    and ROLE_WORDS.search(candidate)):
-                title = candidate
-                break
     company = field("公司|公司名称|部门\\s*[/／]\\s*公司")
     inferred_from = ""
     if not company:
         company, inferred_from = inferred_company(page)
+    title_company = known_company or company
+    title = field("岗位|职位|岗位名称|职位名称") or unescape_markdown(page["title"])
+    if not usable_title(title, title_company):
+        title = ""
+        for line in text.splitlines()[:15]:
+            candidate = clean_line(line)
+            if section(candidate)[0]:
+                break  # A duty such as "后端开发" is not a missing job heading.
+            if (2 <= len(candidate) <= 80 and usable_title(candidate, title_company)
+                    and not re.search(r"[:：。；]|https?://", candidate)
+                    and ROLE_WORDS.search(candidate)):
+                title = candidate
+                break
     groups = {key: [] for key in ("requirements", "responsibilities", "bonuses")}
     mode = ""
     for line in text.splitlines():

@@ -94,7 +94,9 @@ class SampleCorrectionsTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(profile["skills"][1]["urls"]), 2)
         self.assertEqual(provider.search.await_count, 3)
         self.assertTrue(all(call.kwargs["count"] == 10 for call in provider.search.call_args_list))
-        self.assertEqual([len(json.loads(call[-1].content)["sources"]) for call in model.calls], [5, 5])
+        self.assertEqual([len(json.loads(call[-1].content)["sources"]) for call in model.calls
+                          if "sources" in json.loads(call[-1].content)], [5, 5])
+        self.assertEqual(len(model.calls), 3)  # two extractions and one merge
         provider.fetch.assert_not_awaited()
 
     def test_recruitment_subdomains_and_company_owned_site_are_labelled(self):

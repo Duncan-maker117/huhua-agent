@@ -441,8 +441,11 @@ class IntelTest(unittest.IsolatedAsyncioTestCase):
             self.assertIn("lang:zh", call.args[0])
             self.assertIn("after", call.kwargs)
         # 提炼按 5 条一批并发，合计覆盖全部来源。
-        self.assertEqual(sum(len(json.loads(call[-1].content)["sources"]) for call in model.calls), 7)
-        self.assertTrue(all(len(json.loads(call[-1].content)["sources"]) <= 5 for call in model.calls))
+        extractions = [json.loads(call[-1].content)["sources"] for call in model.calls
+                       if "sources" in json.loads(call[-1].content)]
+        self.assertEqual(sum(len(sources) for sources in extractions), 7)
+        self.assertTrue(all(len(sources) <= 5 for sources in extractions))
+        self.assertEqual(len(model.calls), len(extractions) + 1)  # one bounded merge
         self.assertIn("requirements", profile)
 
     async def test_cache_hits_and_expiry_and_session_limits(self):

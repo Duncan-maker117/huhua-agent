@@ -1745,8 +1745,25 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.services.intake import intake_update
     result = await _jd_input_turn(state, llm)
     result.update(await enrich_direction({**state, **result}, llm))
+    # Enrichment may synchronously find a cached, ready profile. Use it in this
+    # reply, without waiting for a newly scheduled background sample.
+    for message in result.get("messages", []):
+        if message.additional_kwargs.get("direction_intro"):
+            message.content = _direction_intro({**state, **result})
     result.update(intake_update({**state, **result}))
     return result
+
+
+def _direction_intro(state):
+    from app.services.role_profile import direction_focus
+
+    info = state.get("jd_info") or {}
+    direction = info.get("role_direction") or "、".join(state.get("jd_keywords") or [])
+    return (
+        f"好，先按「{direction}」做能力展示型简历。\n\n"
+        f"{direction_focus(info, direction)}\n\n"
+        "可以一次把所有经历和材料贴进来：旧简历、截图、项目、实习、课程作品、比赛列表都可以。"
+    )
 
 
 async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
@@ -1780,19 +1797,15 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     if _looks_like_role_direction(last_human):
         jd_keywords = _extract_role_direction_keywords(last_human)
         resume_strategy = build_resume_strategy(jd_keywords=jd_keywords, has_jd=False)
-        priorities = "、".join(resume_strategy.get("recruiter_priorities", [])[:4])
-        reply = (
-            f"好，先按「{'、'.join(jd_keywords)}」做能力展示型简历。\n\n"
-            f"我会优先证明：{priorities}。\n\n"
-            "可以一次把所有经历和材料贴进来：旧简历、截图、项目、实习、课程作品、比赛列表都可以。"
-        )
+        direction_update = _direction_profile_update(state, last_human)
+        reply = _direction_intro({**state, "jd_keywords": jd_keywords, **direction_update})
         return {
-            "messages": [AIMessage(content=reply)],
+            "messages": [AIMessage(content=reply, additional_kwargs={"direction_intro": True})],
             "stage": "COLLECTING",
             "jd_skipped": True,
             "jd_keywords": jd_keywords,
             "resume_strategy": resume_strategy,
-            **_direction_profile_update(state, last_human),
+            **direction_update,
         }
 
     # 先跑 Triage
@@ -1862,12 +1875,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
             update.update(_direction_profile_update(
                 {**state, "jd_keywords": decision.jd_keywords}, last_human,
             ))
-            priorities = "、".join(resume_strategy.get("recruiter_priorities", [])[:4])
-            reply = (
-                f"好，收到。岗位方向：{'、'.join(decision.jd_keywords)}。\n\n"
-                f"我会按「能力展示型简历」来做，优先证明：{priorities}。\n\n"
-                f"现在告诉我你的经历——做过什么工作、项目、或者平时有什么习惯跟这个方向相关的都行。"
-            )
+            reply = _direction_intro({**state, **update})
         else:
             # 跳过了但没给方向，下一轮 LIGHT_MODE_ASK
             sys_msg = SystemMessage(content=_get_stage_system("LIGHT_MODE_ASK", state))
@@ -1877,7 +1885,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
             update["messages"] = [response]
             update["stage"] = "JD_INPUT"
             return update
-        update["messages"] = [AIMessage(content=reply)]
+        update["messages"] = [AIMessage(content=reply, additional_kwargs={"direction_intro": True})]
         return update
 
     # 分支 3：用户回复太模糊 → 问清楚

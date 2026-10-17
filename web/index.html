@@ -193,8 +193,10 @@
             </div>
             <div class="flex items-center justify-between pt-1 px-1">
               <div class="web-research-actions">
+                <span id="web-tool-actions" hidden>
                 <button id="web-read-toggle" class="web-tool-toggle" type="button" aria-controls="web-research-panel" aria-expanded="false">读招聘链接</button>
                 <button id="web-search-toggle" class="web-tool-toggle" type="button" aria-controls="web-research-panel" aria-expanded="false">查公司岗位</button>
+                </span>
                 <label class="composer-attach p-2 hover:bg-surface-container rounded-full transition-colors text-on-surface-variant cursor-pointer" title="上传文件（PDF/DOCX/TXT/MD/JPG/PNG；图片由视觉模型识别）">
                   <span class="ui-icon text-lg" data-icon="attach_file" aria-hidden="true"></span>
                   <input id="file-input" type="file" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.jpg,.jpeg,.png" multiple/>
@@ -398,7 +400,7 @@ function setSendButtonMode(mode) {
   }
 }
 
-async function send(text, {quickReply = false, webTool = null, keepDraft = false} = {}) {
+async function send(text, {quickReply = false, webTool = null, keepDraft = false, answers = null, plan_choice = null} = {}) {
   if (window.HuhuaAccount?.claimPending()) return false;
   // 流式中忽略新发送，避免孤儿 fetch（旧 controller 被覆盖就再也 abort 不了）
   if (currentController) return false;
@@ -493,7 +495,7 @@ async function send(text, {quickReply = false, webTool = null, keepDraft = false
     const res = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}) }),
+      body: JSON.stringify({ messages: [{role: 'user', content: fullContent}], session_id: submittedSession, turn_id: submittedTurn.id, task: submittedTask, ...(webTool ? {web_tool:webTool} : {}), ...(answers ? {answers} : {}), ...(plan_choice ? {plan_choice} : {}) }),
       signal: currentController.signal
     });
     acceptTurn(res.ok);
@@ -1097,7 +1099,7 @@ window.HuhuaWebResearch?.init({
 });
 window.HuhuaResumeActions?.init({session: () => SESSION_ID, data: () => canvasState.data, template: () => canvasState.templateId, refresh: refreshCanvas});
 window.HuhuaWorkspace?.init({
-  sendChoice: value => send(value, {quickReply: true}),
+  sendChoice: (value, payload = {}) => send(value, {...payload, quickReply: true}),
   fillInput(value) {
     inputEl.value = inputEl.value.trim() ? inputEl.value.trimEnd() + '\n' + value : value;
     autoResize();

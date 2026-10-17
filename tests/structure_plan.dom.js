@@ -44,12 +44,15 @@ function all(node) { return [node, ...node.children.flatMap(all)]; }
   const recommended = nodes.find(row => row.tagName === 'button' && row.textContent === '按推荐写');
   await recommended.handlers.click();
   await recommended.handlers.click();
-  assert.deepEqual(sent, ['按推荐写']);
+  assert.deepEqual(sent, ['按推荐写，写法：问题-决策-结果']);
   context.window.fixture({guidance: {...guidance, turn_id: 'new-card'}}, async value => {sent.push(value); return true;});
   await all(dock).find(row => row.tagName === 'button' && row.textContent.startsWith('用备选')).handlers.click();
-  assert.deepEqual(sent, ['按推荐写', '用备选：均衡型']);
+  assert.deepEqual(sent, ['按推荐写，写法：问题-决策-结果', '用备选：均衡型，写法：问题-决策-结果']);
   context.window.fixture({guidance: {...guidance, turn_id: 'style-card'}}, async value => {sent.push(value); return true;});
   await all(dock).find(row => row.tagName === 'button' && row.textContent === '普通').handlers.click();
-  assert.deepEqual(sent, ['按推荐写', '用备选：均衡型', '写法：普通']);
+  assert.deepEqual(sent, ['按推荐写，写法：问题-决策-结果', '用备选：均衡型，写法：问题-决策-结果']);
+  assert.equal(all(dock).find(row => row.textContent === '普通').attributes['aria-pressed'], 'true');
+  await all(dock).find(row => row.textContent === '按推荐写').handlers.click();
+  assert.equal(sent.at(-1), '按推荐写，写法：普通');
   console.log('structure plan DOM checks passed');
 })().catch(error => {console.error(error); process.exitCode = 1;});

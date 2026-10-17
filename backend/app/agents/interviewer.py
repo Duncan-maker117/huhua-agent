@@ -7,6 +7,7 @@ import hashlib
 import re
 
 from app.services.resume_facts import active_facts_for_writer
+from app.services.ask_user import is_closed
 
 
 MAX_QUESTIONS = 3
@@ -116,7 +117,7 @@ def education_question(state: dict) -> tuple[str, list]:
     if not note:
         return "", asked
     question_id = "education_full_name"
-    if question_id in _asked_ids(asked):
+    if question_id in _asked_ids(asked) or is_closed(state, "", question_id, note):
         return "", asked
     asked.append({"question_id": question_id, "status": "asked", "q": note})
     return note, asked
@@ -139,7 +140,7 @@ def _question_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
         if not q or item_id not in known or (req_id and req_id not in valid_reqs):
             continue
         identifier = _question_id(q, item_id, req_id)
-        if identifier in already:
+        if identifier in already or is_closed(state, item_id, identifier, q):
             continue
         if re.search(r"职责|分工|独立完成|团队协作|一个人", q) and _item_has_role(
             state.get("collected_info") or {}, item_id
@@ -178,7 +179,7 @@ def _reason_candidates(state: dict, plan: dict, data: dict, already: set[str]) -
             q = (f'「{name}」的决策「{decision.strip()[:30]}」：这样做是为了解决什么？' if decision.strip()
                  else f'「{name}」的决策：这样做是为了解决什么？')
             identifier = _question_id(q, iid, '')
-            if identifier in already:
+            if identifier in already or is_closed(state, iid, identifier, q):
                 continue
             path, label = _question_location(iid, '', known[iid], plan, state.get('resume_meta') or {})
             candidates.append({'question_id': identifier, 'q': q, 'why': '补充决策原因，说明为什么这样设计。',
@@ -236,7 +237,7 @@ def _playbook_candidates(state: dict, plan: dict, profile: dict, data: dict, alr
                 continue
             q = f"{name}：{question}"
             identifier = _question_id(q, item_id, "")
-            if identifier in already or identifier in taken:
+            if identifier in already or identifier in taken or is_closed(state, item_id, identifier, q):
                 continue
             path, label = _question_location(item_id, "", known[item_id], plan, state.get("resume_meta") or {})
             rows.append({"question_id": identifier, "q": q, "why": "岗位手册里这一类经历最常被追问的信号",
@@ -396,3 +397,15 @@ def open_questions(state: dict) -> list[dict]:
     except Exception:
         return []
     return [row for row in rows if status.get(row["question_id"]) == "asked"][:MAX_QUESTIONS]
+
+
+def question_candidates(state: dict) -> list[dict]:
+    """提供候选，不记录已问，不直接发布；模型决定是否以及怎样提问。"""
+    plan = state.get("match_plan") or {}
+    profile = (state.get("jd_info") or {}).get("role_profile") or {}
+    data = state.get("resume_data") or {}
+    already = _asked_ids(state.get("asked_questions") or [])
+    rows = _reason_candidates(state, plan, data, already)
+    rows += _question_candidates(state, plan, profile, data, already)
+    rows += _playbook_candidates(state, plan, profile, data, already, {row["question_id"] for row in rows}, 4)
+    return sorted(rows, key=lambda row: -row["value"])[:4]

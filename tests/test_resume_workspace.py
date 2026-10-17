@@ -13,7 +13,9 @@ from langchain_core.messages import AIMessage, HumanMessage
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 
 from app.api import chat, resume
-from app.services.resume_workspace import _question_options, _reply_question, bounded_web_sources, build_workspace
+from app.services.followup_context import latest_followup
+from app.services.ask_user import validate_card
+from app.services.resume_workspace import _question_options, bounded_web_sources, build_workspace
 
 
 class WorkspaceProjectionTest(unittest.TestCase):
@@ -35,10 +37,8 @@ class WorkspaceProjectionTest(unittest.TestCase):
 
     def test_initial_guidance_allows_no_jd(self):
         view = build_workspace({}, {})
-        self.assertEqual(len(view["guidance"]["options"]), 3)
-        self.assertTrue(view["guidance"]["allow_free_text"])
-        self.assertEqual(view["guidance"]["options"][-1]["value"], "我想从零开始聊自己的经历。")
-        self.assertNotIn("没有 JD", str(view["guidance"]["options"]))
+        self.assertIsNone(view['guidance'])
+        self.assertEqual(view['focus'], 'jd')
 
     def test_projection_is_read_only_and_never_uses_assistant_as_candidate(self):
         values = {"collected_info": self.data, "messages": [AIMessage(content="建议编写高并发架构，效率提高 99%。")]}
@@ -62,11 +62,12 @@ class WorkspaceProjectionTest(unittest.TestCase):
         self.assertNotEqual(first, build_workspace({}, self.data)["resume"]["version"])
 
     def test_guidance_follows_named_project_not_first_missing_date(self):
-        self.data["projects"].insert(0, {"name": "旧项目", "role": "负责实现", "polished_bullets": ["本地验证。"]})
-        values = {"messages": [HumanMessage(content="补充 PDF 工具的使用情况：一直在用"), AIMessage(content="已更新右侧简历。") ]}
+        self.data['projects'].insert(0, {'name': '旧项目', 'polished_bullets': ['本地验证。']})
+        card = validate_card({'subject': 'PDF 工具', 'questions': [{'id': 'status', 'prompt': '现在什么状态？', 'kind': 'single', 'options': ['本地演示', '已上线']}]}, {}, 'turn')
+        values = {'messages': [AIMessage(content='补充一点。', additional_kwargs={'ask_user': card})]}
         view = build_workspace(values, self.data)
-        self.assertIn("PDF 工具", view["guidance"]["question"])
-        self.assertNotIn("旧项目", view["guidance"]["question"])
+        self.assertEqual(view['guidance']['subject'], 'PDF 工具')
+        self.assertNotIn('旧项目', str(view['guidance']))
 
     def test_skill_groups_match_editor_display_after_deletion(self):
         self.data["skills"] = ["Python", "Java"]
@@ -76,21 +77,18 @@ class WorkspaceProjectionTest(unittest.TestCase):
     def test_explicit_question_has_specific_choices_but_no_fact_mutation(self):
         values = {"messages": [HumanMessage(content="这个怎么说"), AIMessage(content="**我的建议**\n保留本地演示的边界。\n\n**需要你补充**\n「PDF 工具」具体是怎么实现的？")]}
         view = build_workspace(values, self.data)
-        self.assertEqual(view["guidance"]["question"], "「PDF 工具」具体是怎么实现的？")
-        self.assertEqual(view["guidance"]["options"][0]["label"], "AI 编程工具辅助")
-        self.assertIn("PDF 工具", view["guidance"]["options"][0]["value"])
+        self.assertIsNone(view["guidance"])
         self.assertEqual(view["suggestions"][0]["detail"], "保留本地演示的边界。")
         self.assertNotIn("具体工具", str(view["experiences"]))
 
     def test_old_question_does_not_return_after_next_user_turn(self):
         values = {"messages": [AIMessage(content="**需要你补充**\n请说旧问题？"), HumanMessage(content="我已经补充了") ]}
-        self.assertNotEqual(build_workspace(values, self.data)["guidance"]["question"], "请说旧问题？")
+        self.assertIsNone(build_workspace(values, self.data)["guidance"])
 
     def test_free_text_fallback_for_unknown_question(self):
         values = {"messages": [HumanMessage(content="细节"), AIMessage(content="**需要你补充**\n你当时为什么删掉推荐学习功能？")]}
         view = build_workspace(values, self.data)
-        self.assertEqual(view["guidance"]["options"], [])
-        self.assertTrue(view["guidance"]["allow_free_text"])
+        self.assertIsNone(view["guidance"])
 
     def test_natural_next_step_overrides_missing_role_without_changing_facts(self):
         self.data["projects"][0]["role"] = ""
@@ -98,11 +96,8 @@ class WorkspaceProjectionTest(unittest.TestCase):
         question = "还想补充什么，还是先生成草稿？"
         values = {"messages": [HumanMessage(content="这些就是我的材料"), AIMessage(content="已经整理了你的资料。\n\n" + question)]}
         guidance = build_workspace(values, self.data)["guidance"]
-        self.assertEqual(guidance["question"], question)
-        self.assertEqual(guidance["kind"], "next_action")
-        self.assertEqual([option["label"] for option in guidance["options"]], ["先生成草稿", "继续补充"])
+        self.assertIsNone(guidance)
         self.assertEqual(self.data, before)
-        self.assertIn("缺失信息保留待核对", guidance["options"][0]["value"])
 
     def test_detailed_and_compound_questions_do_not_get_canned_scope_options(self):
         for question in (
@@ -115,13 +110,11 @@ class WorkspaceProjectionTest(unittest.TestCase):
             with self.subTest(question=question):
                 values = {"messages": [HumanMessage(content="补充"), AIMessage(content=question)]}
                 guidance = build_workspace(values, self.data)["guidance"]
-                self.assertEqual(guidance["question"], question)
-                self.assertEqual(guidance["options"], [])
-                self.assertTrue(guidance["allow_free_text"])
+                self.assertIsNone(guidance)
 
     def test_consecutive_questions_stay_compound_instead_of_selecting_one(self):
         reply = "已整理。\n你是独立完成的吗？\n有没有真实用户使用？"
-        question = _reply_question(reply)
+        question = latest_followup(reply)
         self.assertIn("独立", question)
         self.assertIn("用户", question)
         self.assertEqual(_question_options(question, "PDF 工具"), [])
@@ -131,18 +124,18 @@ class WorkspaceProjectionTest(unittest.TestCase):
         self.assertIn("已上线", options)
         self.assertNotIn("先生成草稿", options)
 
-    def test_reply_question_asks_first_of_a_numbered_list_without_target_suffix(self):
+    def test_latest_followup_asks_first_of_a_numbered_list_without_target_suffix(self):
         reply = ("已更新。\n\n**想让它更强，回答任意一个就行**：\n"
                  "1. 改完之后还会推荐不存在的店吗？（会改进：示例项目 第 1 条）\n"
                  "2. 有没有拿几个例子试过？（会改进：示例项目 第 1 条）\n"
                  "3. 你怎么判断做得好不好？（会改进：示例项目 第 2 条）")
-        self.assertEqual(_reply_question(reply), "改完之后还会推荐不存在的店吗？")
-        self.assertEqual(_reply_question("好的。\n\n**需要你补充**：你本人负责哪一步？"), "你本人负责哪一步？")
+        self.assertEqual(latest_followup(reply), "改完之后还会推荐不存在的店吗？")
+        self.assertEqual(latest_followup("好的。\n\n**需要你补充**：你本人负责哪一步？"), "你本人负责哪一步？")
 
-    def test_reply_question_ignores_examples_quotes_and_code(self):
+    def test_latest_followup_ignores_examples_quotes_and_code(self):
         reply = '你具体负责哪部分？\n\n> 是否上线？\n\n例如：有没有实际使用？\n\n```text\n怎么实现的？\n```\n\n“是否跑通？”'
-        self.assertEqual(_reply_question(reply), "你具体负责哪部分？")
-        self.assertEqual(_reply_question("请核对项目日期。"), "请核对项目日期")
+        self.assertEqual(latest_followup(reply), "你具体负责哪部分？")
+        self.assertEqual(latest_followup("请核对项目日期。"), "请核对项目日期")
 
     def test_description_can_already_state_role_without_filling_role_field(self):
         for description in ("独立开发者，完成页面拆分。", "我独立完成了页面拆分。", "我是独立开发者，工具仅供自己使用。", "在小组中，我负责测试和反馈整理。"):
@@ -151,7 +144,7 @@ class WorkspaceProjectionTest(unittest.TestCase):
                 view = build_workspace({}, self.data)
                 self.assertNotIn("你的职责与分工", view["experiences"]["items"][0]["missing"])
                 self.assertEqual(view["experiences"]["items"][0]["role"], "")
-                self.assertNotIn("独立完成", [option["label"] for option in view["guidance"]["options"]])
+                self.assertIsNone(view["guidance"])
                 self.assertEqual(self.data["projects"][0]["role"], "")
 
     def test_negated_or_other_persons_ownership_does_not_fill_missing_role(self):
@@ -163,9 +156,7 @@ class WorkspaceProjectionTest(unittest.TestCase):
     def test_unnamed_current_turn_does_not_select_last_of_many_experiences(self):
         self.data["projects"].append({"name": "访谈整理器", "description": "整理访谈笔记。"})
         guidance = build_workspace({"messages": [HumanMessage(content="继续"), AIMessage(content="已整理当前资料。") ]}, self.data)["guidance"]
-        self.assertNotIn("访谈整理器", guidance["question"])
-        self.assertNotIn("PDF 工具", guidance["question"])
-        self.assertEqual([option["label"] for option in guidance["options"]], ["先生成草稿", "继续补充"])
+        self.assertIsNone(guidance)
 
     def test_completed_material_or_draft_intent_does_not_backtrack_to_missing_role(self):
         self.data["projects"][0]["role"] = ""
@@ -174,16 +165,17 @@ class WorkspaceProjectionTest(unittest.TestCase):
                 guidance = build_workspace({"messages": [HumanMessage(content=request), AIMessage(content="已收到。") ]}, self.data)["guidance"]
                 self.assertEqual([option["label"] for option in guidance["options"]], ["先生成草稿", "继续补充"])
         guidance = build_workspace({"messages": [HumanMessage(content="先别生成简历，我想补充细节") ]}, self.data)["guidance"]
-        self.assertNotEqual(guidance["kind"], "next_action")
+        self.assertIsNone(guidance)
 
     def test_repeated_question_has_a_new_turn_identity_but_refresh_is_stable(self):
-        values = {"messages": [HumanMessage(content="补充"), AIMessage(content="是怎么实现的？")]}
-        first = build_workspace(values, self.data)["guidance"]
-        self.assertEqual(first, build_workspace(values, self.data)["guidance"])
-        values["messages"] += [HumanMessage(content="请再问一次"), AIMessage(content="是怎么实现的？")]
-        second = build_workspace(values, self.data)["guidance"]
-        self.assertEqual(first["question"], second["question"])
-        self.assertNotEqual(first["turn_id"], second["turn_id"])
+        args = {'questions': [{'id': 'status', 'prompt': '现在什么状态？', 'kind': 'single', 'options': ['原型', '上线']}]}
+        def values(turn):
+            return {'messages': [AIMessage(content='补充一点。', additional_kwargs={'ask_user': validate_card(args, {}, turn)})]}
+        first = build_workspace(values('one'), self.data)['guidance']
+        self.assertEqual(first, build_workspace(values('one'), self.data)['guidance'])
+        second = build_workspace(values('two'), self.data)['guidance']
+        self.assertEqual(first['questions'], second['questions'])
+        self.assertNotEqual(first['turn_id'], second['turn_id'])
 
     def test_imported_skills_certificates_and_verification_notes_are_visible(self):
         self.data.update(certificates=["虚构比赛二等奖"], verification_notes=["PDF 工具日期在两份文件中不同，待本人核对。"])
@@ -216,7 +208,8 @@ class WorkspaceProjectionTest(unittest.TestCase):
 
     def test_role_answers_only_confirm_the_selected_contribution_scope(self):
         self.data["projects"][0]["role"] = ""
-        options = build_workspace({}, self.data)["guidance"]["options"]
+        self.assertIsNone(build_workspace({}, self.data)["guidance"])
+        options = [{"label": label, "value": value} for label, value in _question_options("是你独立完成，还是团队协作？", "PDF 工具")]
         by_label = {option["label"]: option["value"] for option in options}
         self.assertEqual(by_label["独立完成"], "在「PDF 工具」里，我是独立完成的。")
         self.assertEqual(by_label["团队中负责一部分"], "在「PDF 工具」里，我只负责团队中的一部分工作。")
@@ -264,30 +257,24 @@ class WorkspaceProjectionTest(unittest.TestCase):
             states.append(({"messages": [HumanMessage(content="补充"), AIMessage(content="**需要你补充**\n" + question)]}, self.data))
         for state, data in states:
             view = build_workspace(state, data)
-            self.assertTrue(view["guidance"]["allow_free_text"])
-            for option in view["guidance"]["options"]:
-                with self.subTest(question=view["guidance"]["question"], label=option["label"]):
-                    self.assertTrue(option["value"].endswith("。"), option)
-                    self.assertNotRegex(option["value"], r"[:：]$|具体负责[:：]|具体是[:：]|补充是[:：]|待填写|待填入|填写这里|具体工具和我的工作是")
+            self.assertIsNone(view["guidance"])
 
     def test_deliverable_choice_does_not_add_a_specific_artifact(self):
-        self.data["projects"][0]["polished_bullets"] = []
-        options = {option["label"]: option["value"] for option in build_workspace({}, self.data)["guidance"]["options"]}
-        self.assertEqual(options["功能 / 工具"], "「PDF 工具」做出了功能或工具。")
-        self.assertEqual(options["文档 / 原型"], "「PDF 工具」交付了文档或原型。")
-        self.assertEqual(options["还在进行"], "「PDF 工具」还在进行中。")
+        self.data['projects'][0]['polished_bullets'] = []
+        before = copy.deepcopy(self.data)
+        view = build_workspace({}, self.data)
+        self.assertIsNone(view['guidance'])
+        self.assertIn('具体动作与交付物', view['experiences']['items'][0]['missing'])
+        self.assertEqual(self.data, before)
 
     def test_explicit_question_options_stay_with_the_named_project(self):
         self.data["projects"].append({"name": "访谈整理器", "role": "负责实现", "description": "整理访谈笔记。"})
         values = {"messages": [HumanMessage(content="继续补充访谈整理器"), AIMessage(content="**需要你补充**\n「PDF 工具」是怎么实现的？")]}
-        options = build_workspace(values, self.data)["guidance"]["options"]
-        self.assertTrue(all("PDF 工具" in option["value"] for option in options))
-        self.assertTrue(all("访谈整理器" not in option["value"] for option in options))
+        self.assertIsNone(build_workspace(values, self.data)['guidance'])
 
     def test_quoted_phrase_is_not_invented_project_name(self):
         values = {"messages": [HumanMessage(content="补充"), AIMessage(content="**需要你补充**\n关于「本地演示」：有没有给真实用户实际使用？")]}
-        choices = build_workspace(values, self.data)["guidance"]["options"]
-        self.assertTrue(all("在「本地演示」" not in option["value"] for option in choices))
+        self.assertIsNone(build_workspace(values, self.data)["guidance"])
 
     def test_review_projects_read_only_results(self):
         values = {"messages": [HumanMessage(content="检查简历", additional_kwargs={"career_material_type": "review"}), AIMessage(content="请核对项目日期。") ]}

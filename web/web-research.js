@@ -36,6 +36,7 @@
     $('web-research-status').classList.toggle('error', error);
   };
   function sync() {
+    if (active && !capabilities[active]) active = '';
     $('web-read-toggle').setAttribute('aria-expanded', String(active === 'read_url'));
     $('web-search-toggle').setAttribute('aria-expanded', String(active === 'search'));
     $('web-read-panel').hidden = active !== 'read_url';
@@ -43,7 +44,10 @@
     $('web-research-panel').hidden = !active;
     $('web-read-submit').disabled = busy || !capabilities.read_url;
     $('web-search-submit').disabled = busy || !capabilities.search;
-    $('web-search-toggle').textContent = capabilities.search ? '查公司岗位' : '查公司岗位（未开通）';
+    $('web-read-toggle').hidden = !capabilities.read_url;
+    $('web-search-toggle').hidden = !capabilities.search;
+    $('web-search-toggle').textContent = '查公司岗位';
+    if ($('web-tool-actions')) $('web-tool-actions').hidden = !capabilities.read_url && !capabilities.search;
     for (const id of ['web-read-url', 'web-search-company', 'web-search-role']) $(id).disabled = busy;
     syncUsageNotice();
   }

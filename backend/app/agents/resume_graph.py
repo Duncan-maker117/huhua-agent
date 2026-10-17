@@ -84,6 +84,8 @@ class ResumeState(TypedDict):
     resume_versions: list[dict]  # Last ten document snapshots; never fact-master snapshots.
     session_constraints: dict
     match_plan: dict
+    closed_questions: list[dict]  # 按经历与维度永久关闭
+    plan_choice: dict  # 本轮结构化方案确认
     pending_plan: dict
     confirmed_plan: dict
     plan_required: bool
@@ -133,6 +135,8 @@ def _init_state() -> ResumeState:
         "resume_versions": [],
         "session_constraints": {},
         "match_plan": {},
+        "closed_questions": [],
+        "plan_choice": {},
         "pending_plan": {},
         "confirmed_plan": {},
         "plan_required": True,
@@ -1046,11 +1050,12 @@ def _bind_followup_target(previous: dict, collected: dict, reply: str, *, focus_
     """Only a named item, an explicit interviewer target or a unique fact update owns a question."""
     from app.agents.fact_extractor import fact_item_outline
     from app.services.fact_guard import normalize_text
-    from app.services.resume_workspace import _question_kind, _reply_question
+    from app.services.resume_workspace import _question_kind
+    from app.services.followup_context import latest_followup
 
     result = copy.deepcopy(collected)
     result.pop("followup_target", None)
-    question = _reply_question(reply)
+    question = latest_followup(reply)
     if not question or _question_kind(question) == "next_action":
         return result
     if _re.search(r"还做过|还有.{0,8}(?:项目|经历)|(?:其他|别的|另外|新).{0,4}(?:项目|经历|工作|实习)", question):
@@ -1077,6 +1082,16 @@ def _bind_followup_target(previous: dict, collected: dict, reply: str, *, focus_
 
 
 def _finish_followup_turn(state: dict, result: dict) -> dict:
+    # 工具轮不删改模型正文，也不追加缺字段问句；工具参数单独校验。
+    if any(m.additional_kwargs.get("ask_user_enabled") for m in result.get("messages") or [] if isinstance(m, AIMessage)):
+        # 不碰展示正文；仍给下一轮短答案保留可确定的事实归属。
+        previous = state.get("collected_info") or {}
+        collected = result.get("collected_info", previous)
+        reply = _latest_previous_assistant(result.get("messages") or [])
+        updated = _bind_followup_target(previous, collected, reply)
+        if updated != collected:
+            result["collected_info"] = updated
+        return result
     if _no_more_questions(state):
         result["messages"] = [message.model_copy(update={"content": _one_followup_question(
             _re.sub(r"(?m)^.*(?:需要你补充|请你?补充|待你补充).*$", "", message.content), asked=True)})
@@ -1087,7 +1102,7 @@ def _finish_followup_turn(state: dict, result: dict) -> dict:
         result["collected_info"] = collected
         return result
     if result.get("messages"):
-        from app.services.resume_workspace import _reply_question
+        from app.services.followup_context import latest_followup
         asked = False
         messages = []
         for message in result["messages"]:
@@ -1109,8 +1124,11 @@ def _finish_followup_turn(state: dict, result: dict) -> dict:
         latest = _latest_human_text(state)
         fresh_detail = bool(latest and collected != previous and result.get("stage") != "EVALUATING"
                             and not _re.search(r"没有更多|就这些|先这样|没有了|暂时没有", latest))
-        question = _reply_question(reply)
+        question = latest_followup(reply)
         has_question = bool(_re.search(r"[？?]|需要你补充|请你?补充|待你补充|能否|麻烦你", reply))
+        from app.services.ask_user import is_closed
+        missing = [(section, item) for section, item in missing
+                   if not is_closed(state, item.get("item_id") or item.get(FACT_LABELS[section], ""), "name", "名称")]
         if missing and not has_question and not fresh_detail:
             collected = copy.deepcopy(collected)
             section, candidate = missing[0]
@@ -1121,14 +1139,14 @@ def _finish_followup_turn(state: dict, result: dict) -> dict:
             question = f"「{item[FACT_LABELS[section]]}」的{field}是什么？"
             result["messages"] = [*result["messages"], AIMessage(content="\n\n需要你补充：" + question)]
             reply += "\n\n需要你补充：" + question
-            from app.services.resume_workspace import _reply_question
+            from app.services.followup_context import latest_followup
             collected["followup_target"] = {"item_id": item["item_id"], "section": section,
-                                             "asked_hash": _hash_text(_reply_question(reply)), "question_kind": "name"}
+                                             "asked_hash": _hash_text(latest_followup(reply)), "question_kind": "name"}
             result["collected_info"] = collected
         # The interviewer may already have supplied the target before returning.
-        from app.services.resume_workspace import _reply_question
+        from app.services.followup_context import latest_followup
         target = collected.get("followup_target") or {}
-        focus = [target["item_id"]] if target.get("asked_hash") == _hash_text(_reply_question(reply)) else []
+        focus = [target["item_id"]] if target.get("asked_hash") == _hash_text(latest_followup(reply)) else []
         if not focus and has_question:
             from app.agents.fact_extractor import _subject_hint, fact_item_outline
             section = _subject_hint(question)[0]
@@ -1198,10 +1216,10 @@ def _notice_messages(collected: dict, latest_human: str) -> list:
     return [AIMessage(content=notice)] if notice else []  # 保留开头的空行：流式拼接时与上一条回复分段
 
 
-async def _collection_reply(llm, messages: list, collected: dict, latest_human: str) -> AIMessage:
+async def _collection_reply(llm, messages: list, collected: dict, latest_human: str, state: dict | None = None) -> AIMessage:
     from app.agents.public_reply import EmptyPublicReplyError
     notice = unrecorded_notice(collected, latest_human)
-    kwargs = {"single_question": True}
+    kwargs = {"ask_state": state, "single_question": state is None}
     if "这句我没记下来" in notice:
         from app.agents.fact_extractor import fact_item_outline
         recorded = any(fact.get("source_quote") and fact["source_quote"] in latest_human
@@ -1209,9 +1227,9 @@ async def _collection_reply(llm, messages: list, collected: dict, latest_human: 
 
         def receipt(text):
             if recorded:
-                return _one_followup_question(_re.sub(r"(?<!部分)已记下", "部分已记下", text))
+                return _re.sub(r"(?<!部分)已记下", "部分已记下", text)
             text = _re.sub(r"(?:部分)?已记下，右侧草稿会同步更新", "这轮还有内容需要确认", text)
-            return _one_followup_question(_re.sub(r"(?:部分)?已记下", "这轮还有内容需要确认", text))
+            return _re.sub(r"(?:部分)?已记下", "这轮还有内容需要确认", text)
 
         kwargs["transform"] = receipt
     try:
@@ -1261,8 +1279,8 @@ async def _extract_info_from_message(
     normalized = normalize_fact_store(current)
     previous_reply = _previous_assistant.get()
     if previous_reply and normalized.get("followup_target"):
-        from app.services.resume_workspace import _reply_question
-        if normalized["followup_target"].get("asked_hash") != _hash_text(_reply_question(previous_reply)):
+        from app.services.followup_context import latest_followup
+        if normalized["followup_target"].get("asked_hash") != _hash_text(latest_followup(previous_reply)):
             normalized.pop("followup_target", None)
     try:
         patch = await extract_facts_patch(
@@ -1820,7 +1838,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
             # 跳过了但没给方向，下一轮 LIGHT_MODE_ASK
             sys_msg = SystemMessage(content=_get_stage_system("LIGHT_MODE_ASK", state))
             response = await stream_public_reply(
-                llm, [sys_msg, _stage_context(state)] + messages
+                llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
             )
             update["messages"] = [response]
             update["stage"] = "JD_INPUT"
@@ -1832,7 +1850,7 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if action == TriageAction.ASK_CLARIFY:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_CLARIFY", state))
         response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages
+            llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
         )
         return {"messages": [response]}
 
@@ -1840,14 +1858,14 @@ async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if action == TriageAction.LIGHT_MODE_ASK:
         sys_msg = SystemMessage(content=_get_stage_system("LIGHT_MODE_ASK", state))
         response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages
+            llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
         )
         return {"messages": [response]}
 
     # 默认：继续 ASK_JD
     sys_msg = SystemMessage(content=_get_stage_system("JD_INPUT", state))
     response = await stream_public_reply(
-        llm, [sys_msg, _stage_context(state)] + messages
+        llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
     )
     return {"messages": [response]}
 
@@ -1878,9 +1896,9 @@ async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         ))
     result["candidate_history_reconciled"] = True
     latest = result.get("collected_info", collected)
-    from app.services.resume_workspace import _reply_question
+    from app.services.followup_context import latest_followup
     reply = "\n\n".join(m.content for m in result.get("messages", []) if isinstance(m.content, str))
-    if latest_message and result.get("messages") and result.get("stage") != "BUILDING" and not _reply_question(reply):
+    if latest_message and result.get("messages") and result.get("stage") != "BUILDING" and not latest_followup(reply) and not any(m.additional_kwargs.get("ask_user_enabled") for m in result["messages"]):
         from app.agents.interviewer import education_question
         note, asked = education_question({**state, **result, "messages": state.get("messages") or []})
         current_reply = result["messages"][-1]
@@ -1902,7 +1920,14 @@ def _latest_previous_assistant(messages: list) -> str:
         if isinstance(message, HumanMessage) and replies:
             break
         if isinstance(message, AIMessage) and isinstance(message.content, str):
-            replies.append(message.content)
+            text = message.content
+            if card := message.additional_kwargs.get("ask_user"):
+                subject = f"「{card['subject']}」" if card.get('subject') else ''
+                questions = card.get('questions') or []
+                text += '\n\n' + '\n'.join(
+                    (f"{index}. " if len(questions) > 1 else '') + subject + row['prompt']
+                    for index, row in enumerate(questions, 1))
+            replies.append(text)
     return "\n\n".join(reversed(replies))
 
 
@@ -2145,7 +2170,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             )
         )
         response = await _collection_reply(
-            llm, [sys_msg, _stage_context(reply_state)] + messages, collected, last_human
+            llm, [sys_msg, _stage_context(reply_state)] + messages, collected, last_human, reply_state
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -2154,7 +2179,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     if action == TriageAction.ASK_EXPERIENCE:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_ASK_EXP", state))
         response = await _collection_reply(
-            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human
+            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human, state
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -2163,7 +2188,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     if action == TriageAction.SUGGEST_PROJECT:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_SUGGEST", state))
         response = await _collection_reply(
-            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human
+            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human, state
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -2190,7 +2215,7 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     # 兜底：按 ASK_EXP 走
     sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_ASK_EXP", state))
     response = await _collection_reply(
-        llm, [sys_msg, _stage_context(state)] + messages, collected, last_human
+        llm, [sys_msg, _stage_context(state)] + messages, collected, last_human, state
     )
     base_update["messages"] = [response, *_notice_messages(collected, last_human)]
     return base_update
@@ -2365,31 +2390,34 @@ def _writer_reply(result: dict) -> str:
 
 
 def _interview_suffix(state: dict, result: dict) -> tuple[str, list]:
-    if _no_more_questions(state):
-        summary = result.get('plan_summary')
-        return ('\n\n**这版的思路**：' + summary if summary else ''), state.get("asked_questions") or []
-    from app.agents.interviewer import compose_interviewer_reply, education_question
-    if (result.get("writer_diagnostic") or {}).get("status") == "model_fallback":
-        note, asked = education_question({**state, **result})
-        return (("\n\n" + note) if note else ""), asked
-    composed = compose_interviewer_reply(
-        {**state, **result}, match_plan=result.get('match_plan'),
-        version_number=len(result.get('resume_versions') or state.get('resume_versions') or []) + 1)
-    text = composed.get('text') or ''
-    questions = composed.get('questions') or []
-    targets = {row.get('improves', {}).get('item_id') for row in questions}
-    from app.services.resume_workspace import _reply_question
-    if (len(targets) == 1 and None not in targets and '' not in targets
-            and _reply_question(text) in {row.get('q') for row in questions}):
-        result['collected_info'] = _bind_followup_target(
-            state.get('collected_info') or {}, result.get('collected_info') or state.get('collected_info') or {},
-            text, focus_ids=targets)
-    marker = '**这版的思路**'
-    if marker in text:
-        return '\n\n' + text[text.index(marker):], composed.get('asked_questions') or []
-    if result.get('plan_summary'):
-        return '\n\n' + marker + '：' + result['plan_summary'], composed.get('asked_questions') or []
-    return '', composed.get('asked_questions') or state.get('asked_questions') or []
+    """确定性方案说明，不再自行出题。"""
+    summary = result.get('plan_summary')
+    if not summary and not _no_more_questions(state):
+        from app.services.structure_plan import plan_summary
+        confirmed = result.get('confirmed_plan') or state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan')
+        if confirmed:
+            summary = plan_summary(confirmed, result.get('collected_info') or state.get('collected_info') or {}, (state.get('jd_info') or {}).get('role_profile'))
+    return ('\n\n**这版的思路**：' + summary if summary else ''), state.get('asked_questions') or []
+
+
+async def _model_followup(state: dict, result: dict, llm) -> AIMessage:
+    """写作回执保持确定性；后续补充题交给同一个公开回复工具协议。"""
+    prefix, _ = _interview_suffix(state, result)
+    working = {**state, **result}
+    from app.agents.interviewer import question_candidates
+    if (_no_more_questions(working) or working.get('pending_plan')
+            or not callable(getattr(llm, 'bind_tools', None)) or not question_candidates(working)):
+        return AIMessage(content=prefix)
+    try:
+        response = await stream_public_reply(llm, [
+            SystemMessage(content=career_system(None, "草稿已处理完。只在有价值时询问补充信息；调用工具时只写一句过渡，不重写简历，不承诺保存。")),
+            _stage_context(working), *state.get('messages', [])[-6:],
+        ], ask_state=working, publish=False, timeout=30)
+        lead = '' if response.additional_kwargs.get('ask_user') else prefix
+        return response.model_copy(update={'content': lead + ('\n\n' + response.content if response.content else '')})
+    except Exception:
+        logger.warning("补充问题生成失败，保留写作回执")
+        return AIMessage(content=prefix)
 
 
 async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:
@@ -2400,10 +2428,13 @@ async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmatio
     result = await _write_resume_update(state, llm)
     if result.pop('plan_card', False):
         return _finish_followup_turn(state, _plan_card_update(result))
-    suffix, asked = _interview_suffix(state, result)
+    followup = await _model_followup(state, result, llm)
     notice = unrecorded_notice(result.get('collected_info') or state.get('collected_info'), _latest_human_text(state))
-    result.update(messages=[AIMessage(content=_writer_reply(result) + suffix + notice)], stage='EVALUATING',
-                  resume_draft=resume_to_text(result['resume_data']), asked_questions=asked)
+    receipt = _writer_reply(result)
+    if followup.additional_kwargs.get('ask_user'):
+        receipt = receipt.split('\n\n', 1)[0]
+    result.update(messages=[followup.model_copy(update={'content': receipt + followup.content + notice})], stage='EVALUATING',
+                  resume_draft=resume_to_text(result['resume_data']))
     return _finish_followup_turn(state, result)
 
 
@@ -2417,7 +2448,8 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.services.structure_plan import plan_action, select_plan, edit_plan, apply_plan_structure, profile_edit, style_edit, accept_profile
     text = _latest_human_text(state)
     card = state.get('pending_plan') or {}
-    action, index = plan_action(text, card)
+    choice = state.get('plan_choice') or {}
+    action, index = plan_action(choice.get('option') or text, card)
     if receipt := _stale_plan_confirmation(state):
         return receipt
     if _has_jd_text(text) and _jd_decode_allowed(text, state):
@@ -2428,6 +2460,10 @@ async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         selected = select_plan(card, index if action == 'confirm' else 0)
         if selected is None:
             return _plan_card_update({'pending_plan': card, 'confirmed_plan': {}, 'plan_required': True})
+        if choice.get('bullet_style') in {'plain', 'labeled'}:
+            selected['bullet_style'] = choice['bullet_style']
+        elif style_edit(text):
+            selected['bullet_style'] = style_edit(text)
         return await building_node({**state, 'confirmed_plan': accept_profile(selected), 'pending_plan': {}, 'plan_required': False}, llm,
                                    plan_confirmation=True)
     plan = select_plan(card) if card else state.get('confirmed_plan') or (state.get('resume_meta') or {}).get('confirmed_plan') or {}
@@ -2809,17 +2845,17 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             reply = '这轮没有完成你点名的修改。\n\n本次修改：\n' + '\n'.join('· ' + line for line in report)
         elif '本轮没有形成可保存的正文修改' in reply:
             reply = reply.replace('本轮没有形成可保存的正文修改，当前草稿保留。', '已完成你点名的修改。')
-    suffix, asked = _interview_suffix({**state, **direction, 'collected_info': updated}, result)
-    if suffix:
-        reply += suffix
-        result['asked_questions'] = asked
+    followup = await _model_followup({**state, **direction, 'collected_info': updated}, result, llm)
+    if followup.additional_kwargs.get('ask_user'):
+        reply = reply.split('\n\n', 1)[0]
+    reply += followup.content
     reply += unrecorded_notice(updated, text)
     if is_advice(text):
         from app.agents.wording_advice import wording_advice
         reply += '\n\n' + await wording_advice({**state, **result, 'collected_info': updated}, text, llm)
     return {**direction, **result, 'stage': 'EVALUATING',
             'resume_draft': resume_to_text(result['resume_data']),
-            'messages': [AIMessage(content=reply)]}
+            'messages': [followup.model_copy(update={'content': reply})]}
 
 
 async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
@@ -2885,6 +2921,8 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
 
 def route_by_stage(state: ResumeState) -> str:
     latest = _latest_human_text(state)
+    if state.get('plan_choice') and state.get('pending_plan'):
+        return 'structure_plan'
     if requests_fabrication(latest):
         return 'jd_input'
     from app.services.resume_delivery import delivery_requested
@@ -3099,7 +3137,7 @@ def get_graph(llm: ChatOpenAI) -> Any:
 
 async def stream_agent(
     messages: list[dict], session_id: str, llm: ChatOpenAI, task: str = "auto",
-    web_sources: list[dict] | None = None,
+    web_sources: list[dict] | None = None, *, answers: dict | None = None, plan_choice: dict | None = None,
 ):
     """Repair cancelled checkpoints and bind final writeback to literal edit scope."""
     from app.services.chat_turns import current_turn
@@ -3129,7 +3167,7 @@ async def stream_agent(
                 version['resume_meta'].setdefault('bullets', {})[item_id] = copy.deepcopy(records)
         return {**values, **version, 'resume_draft': resume_to_text(data)}
 
-    source = _stream_agent_impl(messages, session_id, llm, task, web_sources, protect_final=protect_final)
+    source = _stream_agent_impl(messages, session_id, llm, task, web_sources, protect_final=protect_final, answers=answers, plan_choice=plan_choice)
     try:
         async for chunk in source:
             if turn:
@@ -3161,6 +3199,7 @@ async def stream_agent(
 async def _stream_agent_impl(
     messages: list[dict], session_id: str, llm: ChatOpenAI, task: str = "auto",
     web_sources: list[dict] | None = None, *, protect_final=lambda values: values,
+    answers: dict | None = None, plan_choice: dict | None = None,
 ):
     """Stream only public graph-node replies, never internal model tokens."""
     graph = get_graph(llm)
@@ -3199,6 +3238,9 @@ async def _stream_agent_impl(
     if callable(getattr(graph, 'aget_state', None)):
         initial_snapshot = await graph.aget_state(config)
         initial_values = (initial_snapshot.values if initial_snapshot else {}) or {}
+    from app.services.ask_user import close_answers
+    input_state["closed_questions"] = close_answers(initial_values, last_msg["content"], answers)
+    input_state["plan_choice"] = plan_choice or {}
     if get_settings().LLM_PLAN_CONFIRM:
         from app.agents.tailor_pipeline import _has_visible_experience_body
         if not initial_values.get('messages') and not _has_visible_experience_body(initial_values.get('resume_data') or {}):

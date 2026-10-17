@@ -759,7 +759,7 @@ def _validate_plan(plan: MatchPlan, source: dict, role_profile: dict, items: dic
             continue
         questions.append(row.model_dump())
     from app.services.structure_plan import readable_plan
-    return readable_plan({"bullet_style": "plain", "requirements": requirements, "experience_plan": experience,
+    return readable_plan({"bullet_style": plan.bullet_style or "plain", "requirements": requirements, "experience_plan": experience,
             "section_order": order, "summary_angle": plan.summary_angle,
             "questions": questions}, role_profile)
 

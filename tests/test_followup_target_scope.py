@@ -16,7 +16,7 @@ from app.schemas.facts import FACT_SECTIONS
 from app.services.candidate_language import PLACEHOLDER_NAMES
 from app.services.error_codes import ChatTurnError
 from app.services.resume_facts import new_fact
-from app.services.resume_workspace import _reply_question
+from app.services.followup_context import latest_followup
 
 
 INTRO = '我在青桥读书协会宣传部担任副部长，组织图书馆活动、海报设计和文字宣传。目前毕业一年做采购和行政工作。还有哪些岗位适合我？'
@@ -32,7 +32,7 @@ def targeted():
             'work_experience': [{'item_id': 'work', 'company': PLACEHOLDER_NAMES['work_experience'],
                                  'facts': [new_fact('毕业后从事采购和行政')]}],
             'followup_target': {'item_id': 'work', 'section': 'work_experience',
-                                'asked_hash': graph._hash_text(_reply_question(NAME_QUESTION))}}
+                                'asked_hash': graph._hash_text(latest_followup(NAME_QUESTION))}}
 
 
 def wrong_patch(text, *, explicit=False, whole=False):
@@ -62,7 +62,7 @@ class FollowupTargetScopeTest(unittest.IsolatedAsyncioTestCase):
         replies = []
         for text in (TOOLS, POSTERS, COURSE, PRACTICE):
             data['followup_target'] = {'item_id': work_id, 'section': 'work_experience',
-                                       'asked_hash': graph._hash_text(_reply_question(NAME_QUESTION))}
+                                       'asked_hash': graph._hash_text(latest_followup(NAME_QUESTION))}
             before = copy.deepcopy(data)
             data = await self.extract(text, data)
             result = graph._finish_followup_turn({'collected_info': before, 'messages': [HumanMessage(content=text)]},

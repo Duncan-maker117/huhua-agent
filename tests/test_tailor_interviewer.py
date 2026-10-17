@@ -127,11 +127,10 @@ class TailorInterviewerTest(unittest.TestCase):
         values["asked_questions"] = first["asked_questions"]
         canonical = current["resume_data"]
         shown = tailor_metadata(values, canonical)["questions"]
-        self.assertEqual(len(shown), 3)
-        self.assertTrue(all(row["question_id"] and row["options"] for row in shown))
+        self.assertEqual(shown, [])  # 候选交给模型，不再独立显示第二种问题卡。
         values["asked_questions"] = record_interview_answer(
-            first["asked_questions"], shown[0]["question_id"], "有，用于周会讨论")["asked_questions"]
-        self.assertEqual(len(tailor_metadata(values, canonical)["questions"]), 2)
+            first["asked_questions"], first["questions"][0]["question_id"], "有，用于周会讨论")["asked_questions"]
+        self.assertEqual(tailor_metadata(values, canonical)["questions"], [])
 
 
 if __name__ == "__main__":

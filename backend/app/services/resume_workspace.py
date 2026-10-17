@@ -93,66 +93,6 @@ def _guidance(question: str, why: str, options: list[tuple[str, str]], title="�
     }
 
 
-def _reply_question(reply: str) -> str:
-    """Read the latest direct question, including natural next-step prompts.
-
-    Only the current public reply is supplied. Ignore code, block quotations
-    and illustrative interview questions; compound questions remain compound
-    so the option classifier can leave them as free text.
-    """
-    cleaned = re.sub(r"```[\s\S]*?```", "", reply)
-    # Coverage notices are receipts, including when appended on the same line.
-    cleaned = re.sub(r"这句(?:我没|没有)记下来[^\n]*|「[^」\n]*」后面还没说完[^\n]*", "", cleaned)
-    groups, current = [], []
-    numbered = []  # Parallel to groups: each numbered list item is its own question.
-    current_item = False
-    explicit_section = False
-    for raw in cleaned.splitlines():
-        line = raw.strip()
-        item = bool(re.match(r"\d+[.)、]\s*", line))
-        if not line or line.startswith(">") or (item and current):
-            if current:
-                groups.append(" ".join(current))
-                numbered.append(current_item)
-                current = []
-            if not line or line.startswith(">"):
-                continue
-        if not current:
-            current_item = item
-        line = re.sub(r"^(?:#{1,6}\s*|[-*+]\s+|\d+[.)、]\s*)", "", line).strip(" *")
-        header = re.match(r"(?:【)?(?:需要你补充|请你补充|待你补充)(?:】)?\**\s*[:：]?\s*(.*)", line)
-        if header:
-            explicit_section = True
-            line = header.group(1).strip(" *")
-            if not line:
-                continue
-        elif raw.lstrip().startswith(("#", "**", "【")) and not re.search(r"[？?]", line):
-            explicit_section = False
-        if re.match(r"(?:例如|比如|示例|举例|面试官.{0,6}问|常见问题|可以这样问)", line) or re.match(r'^[“"].*[”"]$', line):
-            continue
-        # The final sentence is normally addressed to the user; earlier prose
-        # explains the analysis rather than requesting another fact.
-        sentence = re.split(r"[。！!]\s*", line.rstrip("。！!"))[-1].strip()
-        asks = bool(re.search(r"[？?]", sentence))
-        next_step = bool(re.search(r"(?:还想|还有|是否|要不要|你想|接下来|可以|还是).{0,45}(?:补充|生成|整理|草稿)", sentence))
-        direct_request = bool(re.match(r"(?:请|能否|麻烦你|你可以).{0,25}(?:补充|说明|描述|选择|核对)", sentence))
-        if sentence and (asks or next_step or direct_request or explicit_section):
-            current.append(sentence)
-        elif current:
-            groups.append(" ".join(current))
-            numbered.append(current_item)
-            current = []
-    if current:
-        groups.append(" ".join(current))
-        numbered.append(current_item)
-    if not groups:
-        return ""
-    # A trailing numbered list is ordered by value: ask its first question.
-    last = len(groups) - 1
-    while last > 0 and numbered[last] and numbered[last - 1]:
-        last -= 1
-    return re.sub(r"\s*[（(]会改进[:：][^）)]*[）)]\s*$", "", groups[last])[:300]
-
 
 def _next_step_options() -> list[tuple[str, str]]:
     return [("先生成草稿", "请按已有真实资料生成简历草稿，缺失信息保留待核对提示。"),
@@ -325,70 +265,27 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
         focus = "experiences"
 
     suggestions = []
-    if not items:
-        guidance = _guidance(
-            "先从哪一段经历开始？", "选一类，再说清你做了什么；零散描述也可以。",
-            [("项目 / 课程作品", "我想先整理一个项目或课程作品。"), ("实习 / 工作", "我想先整理一段实习或工作经历。"), ("校园 / 日常工具", "我想先整理校园经历或做过的日常工具。")],
-        )
-        if not jd and not values.get("jd_skipped") and not has_data:
-            guidance = _guidance(
-                "你想先提供岗位，还是从自己的经历开始？", "有 JD 可以按岗位整理；没有也能先写通用简历。",
-                [("我有 JD", "我有 JD，想先分析目标岗位。"), ("先整理已有简历", "我想先整理已有简历。"), ("从零聊经历", "我想从零开始聊自己的经历。")],
-                "先选一个起点",
-            )
-    else:
-        # Follow the experience being discussed, rather than repeatedly pulling
-        # the user back to the first item that happens to lack dates.
-        mentioned = [item for item in items if item["name"].casefold() in request.casefold()]
-        incomplete = max(mentioned, key=lambda item: len(item["name"])) if mentioned else items[0] if len(items) == 1 else None
-        name = incomplete["name"] if incomplete else ""
-        if incomplete is None:
-            guidance = _guidance("接下来先整理当前草稿，还是继续补充经历？", "可以直接说明要补充哪段经历，不会替你选择。", _next_step_options(), "选择下一步")
-        elif "你的职责与分工" in incomplete["missing"]:
-            guidance = _guidance(
-                f"「{name}」是你独立完成，还是团队协作？",
-                "这会决定简历里的职责表述。只选择符合真实情况的项，也可以直接写分工。",
-                _question_options("是你独立完成，还是团队协作？", name),
-            )
-        elif not incomplete["bullets"]:
-            guidance = _guidance(
-                f"「{name}」最后做出了什么？", "讲一个具体动作和交付物即可，没有效果数字也可以。",
-                [("功能 / 工具", f"「{name}」做出了功能或工具。"), ("文档 / 原型", f"「{name}」交付了文档或原型。"), ("还在进行", f"「{name}」还在进行中。")],
-            )
-        else:
-            guidance = _guidance(
-                f"关于「{name}」，下一步想补充什么？", "补充的事实会更新右侧草稿；也可以直接指出某句怎么改。",
-                [("补充细节", f"我想继续补充「{name}」的细节。"), ("更正已有内容", f"我想更正「{name}」的已有内容。"), ("先整理当前草稿", "请按已有真实资料整理当前简历草稿，缺失信息保留待核对提示。")],
-            )
-        if incomplete:
-            suggestions.append({"title": "完善当前经历", "detail": f"可以核对「{name}」的动作和产出；没有量化结果时保留真实的定性描述。"})
-
-    # The model can ask a more specific question. Keep its context instead of
-    # covering it with a generic missing-field question and unrelated choices.
-    explicit_question = _reply_question(reply)
-    if not explicit_question and _wants_draft(request) and (items or has_data):
+    # 正文问句不再投影成卡；只有模型工具结果负责补充问题。
+    from app.services.ask_user import pending_card, is_closed
+    for item in items:
+        item["missing"] = [field for field in item["missing"]
+                           if not is_closed(values, item.get("item_id") or item["name"], prompt=field)]
+    guidance = None
+    if _wants_draft(request) and (items or has_data):
         if stage == "EVALUATING" and has_data:
-            guidance = _guidance(
-                "先核对当前草稿，还是导出？", "草稿已在右侧，可以直接核对，也可以在编辑页局部修改。",
-                [("核对当前草稿", "请核对简历。"), ("导出当前版本", "导出当前版本"),
-                 ("继续补充", "我想继续补充或更正当前草稿。")], "草稿已就绪",
-            )
+            guidance = _guidance("先核对当前草稿，还是导出？", "草稿已在右侧，可以核对或局部修改。",
+                                 [("核对当前草稿", "请核对简历。"), ("导出当前版本", "导出当前版本"),
+                                  ("继续补充", "我想继续补充或更正当前草稿。")], "草稿已就绪")
         else:
-            guidance = _guidance("先生成当前草稿，还是继续补充？", "已有信息会用于草稿，未核实的内容仍保留待核对提示。", _next_step_options(), "选择下一步")
-    if explicit_question:
-        named = re.search(r"[「『]([^」』]+)[」』]", explicit_question)
-        known_names = {item["name"] for item in items}
-        subject = named.group(1) if named and named.group(1) in known_names else (items[-1]["name"] if len(items) == 1 else "")
-        kind = _question_kind(explicit_question)
-        options = _question_options(explicit_question, subject)
-        guidance = _guidance(explicit_question,
-            "选择下一步，也可以直接输入你的安排。" if kind == "next_action" else "选择符合实际情况的答案，也可以直接输入具体情况。" if options else "在下方直接回答即可，不必套用固定选项。",
-            options, "选择下一步" if kind == "next_action" else "接着当前问题")
-    guidance["kind"] = _question_kind(guidance["question"])
-    guidance["turn_id"] = hashlib.sha256(f"{len(values.get('messages') or [])}:{request}:{reply}".encode()).hexdigest()[:16]
+            guidance = _guidance("先生成当前草稿，还是继续补充？", "只使用已有真实材料。", _next_step_options(), "选择下一步")
+    if guidance:
+        guidance.update(kind="next_action", turn_id=hashlib.sha256(
+            f"{len(values.get('messages') or [])}:{request}:{reply}".encode()).hexdigest()[:16])
+    guidance = pending_card(values) or guidance
     if values.get('pending_plan'):
         from app.services.structure_plan import plan_guidance
-        guidance = {**plan_guidance(values['pending_plan'], facts, (values.get('jd_info') or {}).get('role_profile')), 'turn_id': guidance['turn_id']}
+        guidance = {**plan_guidance(values['pending_plan'], facts, (values.get('jd_info') or {}).get('role_profile')),
+                    'turn_id': hashlib.sha256(str(values['pending_plan']).encode()).hexdigest()[:16]}
 
     advice = re.search(r"(?:\*\*|#{1,3}\s*|【)我的建议(?:\*\*|】)?\s*[:：]?\s*([\s\S]*?)(?=(?:\*\*|#{1,3}\s*|【)需要你补充|$)", reply)
     if advice and advice.group(1).strip():
@@ -432,15 +329,8 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
 
 
 def _open_questions(values: dict, canonical: dict, plan: dict, meta: dict) -> list:
-    """Interviewer questions already asked and still open (answered/closed ones are dropped)."""
-    if values.get('pending_plan'):
-        return []
-    from app.agents.interviewer import open_questions
-    try:
-        return copy.deepcopy(open_questions({**values, 'resume_data': canonical, 'match_plan': plan,
-                                             'resume_meta': meta}))
-    except Exception:
-        return []
+    """旧 interviewer 仅作为模型候选，界面不再另出一组问题。"""
+    return []
 
 
 def tailor_metadata(values: dict, canonical: dict) -> dict:

@@ -212,3 +212,36 @@ main, #chat-pane, #chat-body, #messages, #composer-wrap { min-height: 0; min-wid
   .header-button { height: 30px; }
   .app-nav-link.is-current::after { display: none; }
 }
+/* 第十四批：模型 ask_user 问题卡（翻页，一次一题） */
+.ask-card { position: relative; }
+.ask-card [hidden] { display: none !important; }
+.ask-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ask-card-label { flex: 1; min-width: 0; color: #5423e7; font-size: 11.5px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ask-card-progress { color: #8a8398; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.ask-card-nav { display: flex; gap: 2px; }
+.ask-card-nav button { width: 26px; height: 26px; border-radius: 8px; color: #474255; font-size: 0; transition: background-color .15s; }
+.ask-card-nav button::before { font-size: 15px; line-height: 26px; }
+.ask-card-prev::before { content: "‹" / ""; }
+.ask-card-next::before { content: "›" / ""; }
+.ask-card-nav button:hover:not(:disabled) { background: #f1ecff; color: #3c00bd; }
+.ask-card-nav button:disabled { color: #cfc9da; cursor: default; }
+.ask-card-prompt { font-size: 14px; line-height: 1.6; font-weight: 650; color: #1d1a26; }
+.ask-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.ask-option { max-width: 100%; padding: 6px 12px; border: 1px solid #dcd0f7; border-radius: 999px; font-size: 12.5px; line-height: 1.45; color: #3c00bd; background: #fff; transition: background-color .15s, border-color .15s, color .15s; }
+.ask-option:hover { background: #f1ecff; border-color: #b9a4f0; }
+.ask-option[aria-pressed="true"] { background: #5423e7; border-color: #5423e7; color: #fff; }
+.ask-option[aria-pressed="true"]:hover { background: #3c00bd; border-color: #3c00bd; }
+.ask-option[aria-pressed="true"]::before { content: "✓ " / ""; }
+.ask-other { border-style: dashed; }
+.ask-other[aria-pressed="true"] { border-style: solid; }
+.ask-text, .ask-other-input { display: block; width: 100%; margin-top: 10px; padding: 8px 11px; border: 1px solid #dcd0f7; border-radius: 10px; font: inherit; font-size: 13px; line-height: 1.55; color: #1d1a26; background: #fbfaff; resize: vertical; transition: border-color .15s, background-color .15s; }
+.ask-text { min-height: 58px; }
+.ask-text:focus, .ask-other-input:focus { outline: none; border-color: #5423e7; background: #fff; box-shadow: 0 0 0 3px rgba(84, 35, 231, .12); }
+.ask-page-actions { display: flex; gap: 14px; margin-top: 12px; padding-right: 76px; min-height: 30px; align-items: center; }
+.ask-skip, .ask-unknown { font-size: 12px; color: #8a8398; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; transition: color .15s, text-decoration-color .15s; }
+.ask-skip:hover, .ask-unknown:hover { color: #474255; text-decoration-color: currentColor; }
+.ask-skip[aria-pressed="true"], .ask-unknown[aria-pressed="true"] { color: #3c00bd; text-decoration-color: currentColor; }
+.ask-submit { position: absolute; right: 0; bottom: 0; height: 30px; padding: 0 16px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: #fff; background: #1d1a26; transition: background-color .15s; }
+.ask-submit:hover { background: #3c00bd; }
+#guidance-dock:has(.ask-card) { max-height: min(320px, 40dvh); }
+@media (max-width: 640px) { .ask-card-prompt { font-size: 13px; } }

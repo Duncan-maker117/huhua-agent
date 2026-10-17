@@ -373,11 +373,15 @@ async def chat_stream(request: Request):
                         await prepare_graph_context(owner, session_id, get_graph(llm))
                     # Keep automatic requests compatible with existing callers;
                     # an explicit task applies only to this submitted turn.
-                        stream = (
-                            stream_agent(messages, session_id, llm)
-                            if req.task == "auto"
-                            else stream_agent(messages, session_id, llm, task=req.task)
-                        )
+                        choices = {}
+                        if req.answers is not None:
+                            choices['answers'] = req.answers.model_dump()
+                        if req.plan_choice is not None:
+                            choices['plan_choice'] = req.plan_choice.model_dump()
+                        if req.task != "auto":
+                            choices['task'] = req.task
+                        stream = stream_agent(messages, session_id, llm, **choices)
+
                     generation_started = time.monotonic()
                     async with model_slot():
                         async for token in stream:

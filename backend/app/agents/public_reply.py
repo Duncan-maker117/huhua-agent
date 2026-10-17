@@ -11,7 +11,8 @@ import re
 from typing import Callable
 from uuid import uuid4
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.utils.function_calling import convert_to_openai_tool
 from langgraph.config import get_config, get_stream_writer
 
 from app.services.llm_compat import label_run
@@ -45,6 +46,8 @@ async def stream_public_reply(
     llm, messages: list, *, suffix: str = "", timeout: float | None = None,
     transform: Callable[[str], str] | None = None,
     single_question: bool = False,
+    ask_state: dict | None = None,
+    publish: bool = True,
 ) -> AIMessage:
     """Stream an explicitly public call and return its completed checkpoint text.
 
@@ -54,6 +57,15 @@ async def stream_public_reply(
     failure is closed with a clear interruption notice, not retried into an
     already visible response.
     """
+    from app.services.ask_user import AskUser, question_context, validate_card
+    enabled = ask_state is not None and callable(getattr(llm, "bind_tools", None))
+    if enabled:
+        messages = [*messages, SystemMessage(content=question_context(ask_state))]
+        if not ask_state.get("pending_plan"):
+            tool = convert_to_openai_tool(AskUser)
+            tool['function'].update(name='ask_user', description='用结构化问题卡收集用户补充信息。')
+            llm = llm.bind_tools([tool], tool_choice="auto")
+        single_question = False
     messages = redact_model_messages(messages)
     llm = label_run(llm, "public_reply")
     reply_id = str(uuid4())
@@ -63,10 +75,25 @@ async def stream_public_reply(
     except (RuntimeError, KeyError):
         writer = None
         node = ""
+    if not publish:
+        writer = None
     parts: list[str] = []
     contact_text = ContactTokenStream()
     question_tail: list[str] = []
     asked = False
+    tool_parts: dict = {}
+    completed_tools: list = []
+
+    def collect_tools(message):
+        # OpenAI 兼容流按 index 拼接名称与 JSON；不要提前解析未完成的参数。
+        chunks = getattr(message, "tool_call_chunks", None)
+        if chunks:
+            for chunk in chunks:
+                entry = tool_parts.setdefault(chunk.get("index", 0), {"name": "", "args": ""})
+                entry["name"] += chunk.get("name") or ""
+                entry["args"] += chunk.get("args") or ""
+        else:
+            completed_tools.extend(getattr(message, "tool_calls", None) or [])
 
     def emit(text: str) -> None:
         if not text:
@@ -99,11 +126,13 @@ async def stream_public_reply(
         stream = getattr(llm, "astream", None)
         if not callable(stream):
             response = await llm.ainvoke(messages)
+            collect_tools(response)
             emit_public(contact_text.feed(_public_text(response.content)))
             return
         iterator = stream(messages)
         try:
             async for chunk in iterator:
+                collect_tools(chunk)
                 emit_public(contact_text.feed(_public_text(chunk.content)))
         finally:
             close = getattr(iterator, "aclose", None)
@@ -118,7 +147,7 @@ async def stream_public_reply(
         if question_tail:
             emit("".join(part for part in re.split(r"(?<=[。！？!?])", "".join(question_tail))
                          if not re.search(r"[？?]", part)))
-        if not "".join(parts).strip():
+        if not "".join(parts).strip() and not (tool_parts or completed_tools):
             raise EmptyPublicReplyError("Empty public reply")
     except Exception as exc:
         emit(contact_text.finish())
@@ -134,8 +163,16 @@ async def stream_public_reply(
         parts = [transform("".join(parts))]
         if writer is not None:
             writer({"type": PUBLIC_REPLY_EVENT, "node": node, "reply_id": reply_id, "content": parts[0]})
+    card = {}
+    if enabled and not interrupted:
+        for call in [*tool_parts.values(), *completed_tools]:
+            if call.get("name") == "ask_user":
+                card = validate_card(call.get("args"), ask_state, reply_id)
+                break
     return AIMessage(
         content="".join(parts),
         id=reply_id,
-        additional_kwargs={"public_reply_interrupted": interrupted},
+        additional_kwargs={"public_reply_interrupted": interrupted,
+                           **({"ask_user_enabled": True} if enabled else {}),
+                           **({"ask_user": card} if card else {})},
     )

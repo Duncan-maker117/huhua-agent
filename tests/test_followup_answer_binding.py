@@ -14,7 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from app.agents import resume_graph as graph  # noqa: E402
 from app.agents.fact_extractor import extract_facts_patch  # noqa: E402
 from app.services.resume_facts import new_fact  # noqa: E402
-from app.services.resume_workspace import _reply_question, build_workspace  # noqa: E402
+from app.services.followup_context import latest_followup
+from app.services.resume_workspace import build_workspace  # noqa: E402
 
 
 QUESTION = "采购对接的是几家客户或供应商？考勤和办公用品管理覆盖多少人？有具体范围，这段才不空。"
@@ -30,7 +31,7 @@ def store():
 def targeted_store():
     data = store()
     data["followup_target"] = {"item_id": "work-1", "section": "work_experience",
-                               "asked_hash": graph._hash_text(_reply_question("需要你补充：" + QUESTION))}
+                               "asked_hash": graph._hash_text(latest_followup("需要你补充：" + QUESTION))}
     return data
 
 
@@ -232,16 +233,14 @@ class FollowupQuestionTest(unittest.TestCase):
         question = "需要你补充：" + QUESTION
         notice = f"这句我没记下来：「{CLAUSES[0]}」，能换个说法吗？\n「包括」后面还没说完，可以补充一下吗？"
         for separator in ("\n\n", " "):
-            parsed = _reply_question(question + separator + notice)
+            parsed = latest_followup(question + separator + notice)
             self.assertIn("采购", parsed)
             self.assertNotIn("没记下来", parsed)
             self.assertNotIn("后面还没说完", parsed)
-        self.assertEqual(_reply_question(notice), "")
+        self.assertEqual(latest_followup(notice), "")
         state = {"collected_info": store(), "messages": [HumanMessage(content=ANSWER), AIMessage(content=question), AIMessage(content=notice)]}
         guidance = build_workspace(state, {})["guidance"]
-        self.assertEqual(guidance["title"], "接着当前问题")
-        self.assertIn("采购", guidance["question"])
-        self.assertNotIn("没记下来", guidance["question"])
+        self.assertIsNone(guidance)  # 归属解析保留，正文不再生成卡片。
         self.assertIn(QUESTION, graph._latest_previous_assistant(state["messages"] + [HumanMessage(content="换个说法")]))
 
     def test_question_target_requires_unique_context_and_expires(self):

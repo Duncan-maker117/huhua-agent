@@ -22,6 +22,7 @@
   let webSourceSession = null;
   const answeredGuidance = new Set();
   let choicePending = false;
+  const askDrafts = new Map(), planStyles = new Map();
   function button(text, handler, className = 'workspace-button') {
     const el = node('button', text, className);
     el.type = 'button'; el.addEventListener('click', handler);
@@ -63,9 +64,9 @@
   }
   function guidanceKey() {
     const guidance = workspace.guidance;
-    return JSON.stringify([callbacks.session?.(), guidance?.turn_id, guidance?.question, guidance?.options, guidance?.structure_plan]);
+    return JSON.stringify([callbacks.session?.(), guidance?.turn_id, guidance?.questions, guidance?.question, guidance?.options, guidance?.structure_plan]);
   }
-  async function answer(value, key) {
+  async function answer(value, key, payload = {}) {
     // Claim this question synchronously: double clicks, keyboard repeats and
     // detached old buttons must never enqueue another turn.
     if (streaming || choicePending || answeredGuidance.has(key) || key !== guidanceKey() || !value) return;
@@ -76,7 +77,7 @@
     answeredGuidance.add(key);
     renderGuidance();
     try {
-      if (!await callbacks.sendChoice?.(value)) answeredGuidance.delete(key);
+      if (!await callbacks.sendChoice?.(value, payload)) answeredGuidance.delete(key);
     } catch {
       answeredGuidance.delete(key);
     } finally {
@@ -390,49 +391,109 @@
       panel.append(row);
     });
   }
-  // Follow-up questions the interviewer has put to the user. Any message the user sends closes the ones shown.
-  const closedKey = () => 'huhua_closed_questions:' + (callbacks.session?.() || '');
-  function closedQuestions() {
-    try { const rows = JSON.parse(localStorage.getItem(closedKey()) || '[]'); return new Set(Array.isArray(rows) ? rows : []); }
-    catch (_) { return new Set(); }
-  }
-  function openQuestions() {
-    const closed = closedQuestions();
-    return list(workspace.tailor?.questions).filter(row => row && plain(row.question_id) && plain(row.q) && !closed.has(row.question_id)
-      && list(row.options).some(option => plain(option?.label || option))).slice(0, 3);
-  }
-  function dismissQuestions() {
-    const shown = openQuestions().map(row => row.question_id);
-    if (shown.length) {
-      const closed = closedQuestions(); shown.forEach(id => closed.add(id));
-      try { localStorage.setItem(closedKey(), JSON.stringify([...closed].slice(-60))); } catch (_) { /* The dock only hides; the server keeps no answer state. */ }
-    }
-    renderGuidance();
-  }
-  function renderQuestions(dock, questions) {
-    dock.append(node('p', '想让它更强，回答任意一个就行', 'guidance-label'));
-    for (const row of questions) {
-      const block = node('div', undefined, 'guidance-question-block');
-      block.append(node('h3', row.q, 'guidance-question-text'));
-      const hint = [plain(row.location_label) && '会改进：' + plain(row.location_label), plain(row.why)].filter(Boolean).join(' · ');
-      if (hint) block.append(node('p', hint, 'guidance-why'));
-      const choices = node('div', undefined, 'guidance-options'); choices.setAttribute('aria-label', '选择一个回答，也可以自由输入');
-      for (const option of list(row.options)) {
-        const label = plain(option?.label ?? option), value = plain(option?.value ?? option) || label;
-        if (!label) continue;
-        const chip = button(label, () => { if (!streaming && !choicePending) answerQuestion(row, value); }, 'guidance-option');
-        chip.dataset.questionId = row.question_id;
-        choices.append(chip);
+  // 已答状态以服务端 checkpoint 为准；本地只抑制当前发送与重复点击。
+  function dismissQuestions() { renderGuidance(); }
+  function buildAskSubmission(guidance, drafts) {
+    const items = list(guidance.questions).map(question => {
+      const draft = drafts[question.id] || {};
+      let value = question.kind === 'multi' ? [...(draft.selected || [])] : question.kind === 'single' ? (draft.selected?.[0] || '') : (draft.text || '').trim();
+      if (draft.other && (draft.otherText || '').trim()) {
+        const other = draft.otherText.trim();
+        value = question.kind === 'multi' ? [...value, other] : other;
       }
-      block.append(choices); dock.append(block);
-    }
-    const hint = node('p', '点击即发送完整的回答，也可以直接在下方输入。', 'guidance-hint'); hint.setAttribute('role', 'status'); dock.append(hint);
+      const empty = Array.isArray(value) ? !value.length : !value;
+      return {id: question.id, value: draft.skipped || draft.unknown ? (question.kind === 'multi' ? [] : '') : value,
+        skipped: Boolean(draft.skipped || (empty && !draft.unknown)), unknown: Boolean(draft.unknown)};
+    });
+    const message = items.map((item, index) => {
+      const value = item.unknown ? '不知道' : item.skipped ? '跳过' : Array.isArray(item.value) ? item.value.join('、') : item.value;
+      return plain(guidance.questions[index].prompt).replace(/[？?：:]$/, '') + '：' + value;
+    }).join('；');
+    return {message: (guidance.subject ? '关于「' + guidance.subject + '」：' : '') + message,
+      answers: {turn_id: guidance.turn_id, items}};
   }
-  async function answerQuestion(row, value) {
-    choicePending = true; renderGuidance();
-    try { await callbacks.sendChoice?.(`关于「${plain(row.q)}」：${value}`); }
-    catch (_) { /* send() keeps the turn recoverable. */ }
-    finally { choicePending = false; renderGuidance(); }
+  function renderAskCard(dock, guidance, key) {
+    const questions = list(guidance.questions);
+    if (!questions.length) return;
+    if (!askDrafts.has(key)) askDrafts.set(key, {page: 0, answers: {}});
+    const draft = askDrafts.get(key);
+    const card = node('section', undefined, 'ask-card'); card.setAttribute('aria-label', '补充问题');
+    const progress = node('p', '', 'ask-card-progress');
+    const pages = [], prev = button('上一题', () => move(-1), 'ask-card-prev'), next = button('下一题', () => move(1), 'ask-card-next');
+    function show(focus = false) {
+      pages.forEach((page, index) => { page.hidden = index !== draft.page; });
+      progress.textContent = `${draft.page + 1} / ${questions.length}`;
+      prev.disabled = draft.page === 0; next.disabled = draft.page === questions.length - 1;
+      if (focus) pages[draft.page].querySelector('button,textarea,input')?.focus();
+    }
+    function move(delta) { draft.page = Math.max(0, Math.min(questions.length - 1, draft.page + delta)); show(true); }
+    function submit() {
+      const value = buildAskSubmission(guidance, draft.answers);
+      return answer(value.message, key, {answers: value.answers});
+    }
+    const head = node('div', undefined, 'ask-card-head'), nav = node('div', undefined, 'ask-card-nav');
+    head.append(node('p', plain(guidance.subject) ? '补充「' + guidance.subject + '」' : (guidance.title || '补充问题'), 'ask-card-label'), progress);
+    nav.append(prev, next); nav.hidden = questions.length < 2; head.append(nav); card.append(head);
+    questions.forEach(question => {
+      const page = node('div', undefined, 'ask-card-page'); page.dataset.questionId = question.id;
+      page.append(node('h3', question.prompt, 'ask-card-prompt'));
+      const state = draft.answers[question.id] ||= {selected: []};
+      const options = [], choices = node('div', undefined, 'ask-options');
+      function clearClose() { state.skipped = false; state.unknown = false; }
+      function sync() {
+        for (const [button, value] of options) button.setAttribute('aria-pressed', String(value === null ? !!state.other : state.selected.includes(value)));
+        if (otherInput) otherInput.hidden = !state.other;
+        skip.setAttribute('aria-pressed', String(!!state.skipped)); unknown.setAttribute('aria-pressed', String(!!state.unknown));
+      }
+      let otherInput;
+      if (question.kind === 'text') {
+        const input = node('textarea', undefined, 'ask-text'); input.placeholder = question.placeholder || ''; input.value = state.text || '';
+        input.setAttribute('aria-label', question.prompt);
+        input.addEventListener('input', () => { clearClose(); state.text = input.value; sync(); }); page.append(input);
+      } else {
+        for (const value of list(question.options)) {
+          const option = button(value, () => {
+            clearClose();
+            if (question.kind === 'single') {
+              state.selected = state.selected.includes(value) ? [] : [value]; state.other = false;
+            } else state.selected = state.selected.includes(value) ? state.selected.filter(item => item !== value) : [...state.selected, value];
+            sync(); if (question.kind === 'single' && state.selected.length) move(1);
+          }, 'ask-option');
+          options.push([option, value]); choices.append(option);
+        }
+        if (question.allow_other) {
+          const other = button('其他', () => {
+            clearClose(); state.other = !state.other; if (question.kind === 'single') state.selected = [];
+            sync(); if (state.other) otherInput.focus();
+          }, 'ask-option ask-other');
+          otherInput = node('input', undefined, 'ask-other-input'); otherInput.type = 'text'; otherInput.value = state.otherText || '';
+          otherInput.setAttribute('aria-label', '其他答案');
+          otherInput.addEventListener('input', () => { clearClose(); state.otherText = otherInput.value; sync(); });
+          options.push([other, null]); choices.append(other);
+        }
+        page.append(choices); if (otherInput) page.append(otherInput);
+      }
+      function close(kind) {
+        state.selected = []; state.text = ''; state.other = false; state.otherText = '';
+        state.skipped = kind === 'skipped'; state.unknown = kind === 'unknown';
+        for (const input of page.querySelectorAll('textarea,input')) input.value = '';
+        sync(); move(1);
+      }
+      const skip = button('跳过这题', () => close('skipped'), 'ask-skip');
+      const unknown = button('不知道', () => close('unknown'), 'ask-unknown');
+      const actions = node('div', undefined, 'ask-page-actions'); actions.append(skip, unknown);
+      page.append(actions); sync(); pages.push(page); card.append(page);
+    });
+    card.append(button('提交', submit, 'ask-submit'));
+    card.addEventListener('keydown', event => {
+      if (event.isComposing) return;
+      // 按钮上的 Enter 保留原生点击（选中该项），只在输入框里回车提交。
+      if (event.key === 'Enter' && !['TEXTAREA', 'BUTTON'].includes(event.target.tagName)) { event.preventDefault(); submit(); }
+      else if (['ArrowLeft', 'ArrowRight'].includes(event.key) && !['TEXTAREA', 'INPUT'].includes(event.target.tagName)) {
+        event.preventDefault(); move(event.key === 'ArrowLeft' ? -1 : 1);
+      }
+    });
+    show(); dock.append(card);
   }
   function renderGuidance() {
     const dock = $('guidance-dock'); dock.replaceChildren();
@@ -443,10 +504,9 @@
       if (!dock.hidden) renderStructurePlan(dock, guidance, key);
       return;
     }
-    const questions = openQuestions();
-    if (questions.length) {
-      dock.hidden = streaming || choicePending;
-      if (!dock.hidden) renderQuestions(dock, questions);
+    if (guidance?.kind === 'ask_user') {
+      dock.hidden = streaming || choicePending || answeredGuidance.has(key);
+      if (!dock.hidden) renderAskCard(dock, guidance, key);
       return;
     }
     dock.hidden = streaming || choicePending || answeredGuidance.has(key) || !guidance || !plain(guidance.question);
@@ -478,11 +538,17 @@
     }
     dock.append(node('p', '定方案', 'guidance-label'), node('h2', '推荐：' + card.recommended.label));
     content(dock, card.recommended);
+    if (!planStyles.has(key)) planStyles.set(key, card.recommended.bullet_style || 'plain');
+    const styleButtons = [];
     const styles = node('div', undefined, 'guidance-options');
     styles.append(node('span', '写法：'));
     for (const [value, label] of [['labeled', '问题-决策-结果'], ['plain', '普通']]) {
-      const choice = button(label, () => answer('写法：' + label, key), 'guidance-option');
-      choice.setAttribute('aria-pressed', String((card.recommended.bullet_style || 'plain') === value));
+      const choice = button(label, () => {
+        planStyles.set(key, value);
+        styleButtons.forEach(([button, style]) => button.setAttribute('aria-pressed', String(style === value)));
+      }, 'guidance-option');
+      styleButtons.push([choice, value]);
+      choice.setAttribute('aria-pressed', String(planStyles.get(key) === value));
       styles.append(choice);
     }
     dock.append(styles);
@@ -494,7 +560,11 @@
       dock.append(details);
     }
     const choices = node('div', undefined, 'guidance-options');
-    for (const option of list(guidance.options)) choices.append(button(option.label, () => answer(option.value, key), 'guidance-option'));
+    for (const option of list(guidance.options)) choices.append(button(option.label, () => {
+      const bullet_style = planStyles.get(key);
+      return answer(option.value + '，写法：' + (bullet_style === 'labeled' ? '问题-决策-结果' : '普通'), key,
+        {plan_choice: {option: option.value, bullet_style}});
+    }, 'guidance-option'));
     dock.append(choices, node('p', '也可以直接说想怎么改', 'guidance-hint'));
   }
   function renderTabs() {
@@ -553,6 +623,7 @@
     updateStatus();
   }
   function reset() {
+    askDrafts.clear(); planStyles.clear(); answeredGuidance.clear();
     webSourceSession = null;
     resumeData = null; workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
     paintedVersion = null; status = ''; streaming = false; interactedDuringTurn = false; paintedDuringTurn = false;
@@ -607,7 +678,7 @@
       }
     });
   }
-  window.HuhuaWorkspace = {refresh: () => callbacks.refresh?.(), dismissQuestions, init, update, reset, setWebSources, commitWebSources, setStreaming, canvasResult, openTab, setMobileOpen,
+  window.HuhuaWorkspace = {buildAskSubmission, refresh: () => callbacks.refresh?.(), dismissQuestions, init, update, reset, setWebSources, commitWebSources, setStreaming, canvasResult, openTab, setMobileOpen,
     setStage(value) {stage = value; if (!hasWorkspace) active = value === 'EXPORT' ? 'resume' : tabs.find(([, , id]) => id === value)?.[0] || 'jd'; renderTabs();},
     canvasError() {status = '预览同步失败，请刷新重试；当前内容已保留'; updateStatus();},
   };

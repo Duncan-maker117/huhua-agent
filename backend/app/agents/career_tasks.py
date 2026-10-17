@@ -53,6 +53,7 @@ async def run_resume_review(
                 json.dumps(payload, ensure_ascii=False),
                 REVIEW_CONTRACT,
             ),
+            ask_state=state,
             timeout=get_settings().LLM_REVIEW_TIMEOUT_SECONDS,
             suffix=(
                 "\n\n本次为文字与内容检查；导出文件排版、实际招聘系统解析尚未验证。修改建议尚未写入简历。"

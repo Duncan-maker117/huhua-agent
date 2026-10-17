@@ -2,6 +2,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.services.ask_user import Answers, PlanChoice
+
 
 class Message(BaseModel):
     role: str  # "user" | "assistant"
@@ -33,7 +35,10 @@ class SearchJobContext(BaseModel):
         return self
 
 
+
 class ChatRequest(BaseModel):
+    answers: Answers | None = None
+    plan_choice: PlanChoice | None = None
     messages: list[Message]
     session_id: str | None = None
     turn_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r'^[A-Za-z0-9_-]+$')

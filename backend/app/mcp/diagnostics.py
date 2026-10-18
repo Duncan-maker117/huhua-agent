@@ -8,6 +8,25 @@ ITEM_GROUPS = {'education', 'work_experience', 'projects', 'campus', 'open_sourc
 BULLET_PATH = re.compile(r'^/(?:work_experience|projects|campus|open_source|awards)/\d+/(?:polished_bullets|bullets)/\d+$')
 
 
+def section_diagnostics(data):
+    """仅提示显式自定义栏目；不猜测经历成熟度，也不改写标题或内容。"""
+    from app.mcp.writing_guide import STANDARD_SECTIONS, SECTION_RULES
+
+    result = []
+    titles = [(f'/sections/{index}/title', row['title']) for index, row in enumerate(data.get('sections') or [])]
+    if data.get('sections') is None and data.get('experience_section_title'):
+        titles.append(('/experience_section_title', data['experience_section_title']))
+    for path, title in titles:
+        if title.strip() and title.strip() not in STANDARD_SECTIONS:
+            result.append({'path': path, 'code': 'nonstandard_section_title', 'severity': 'advisory',
+                           'message': SECTION_RULES[0] + '建议栏目：' + ' / '.join(STANDARD_SECTIONS)})
+    for index, row in enumerate(data.get('sections') or []):
+        if row['kind'] == 'custom':
+            result.append({'path': f'/sections/{index}', 'code': 'custom_section_review', 'severity': 'advisory',
+                           'message': '请核对自定义栏目是否有足够的已完成内容。' + SECTION_RULES[1]})
+    return result
+
+
 def _value(data, path):
     value = data
     for part in path.lstrip('/').split('/'):

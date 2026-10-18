@@ -983,6 +983,7 @@
       const active = item.dataset.templateId === template.id;
       item.classList.toggle('active', active);
       item.setAttribute('aria-pressed', String(active));
+      if (active) item.scrollIntoView({block: 'nearest', inline: 'nearest'});
     }
     renderPreview();
   }

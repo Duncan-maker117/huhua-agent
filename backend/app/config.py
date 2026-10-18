@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     MODEL_MAX_CONCURRENT: int = Field(default=3, gt=0)
     ACCOUNT_DAILY_TURN_LIMIT: int = Field(default=80, gt=0)
     ARCHIVE_POLL_SECONDS: float = Field(default=10.0, gt=0)
+    PDF_CJK_FONT_DIR: str = str(PROJECT_DIR / "data" / "fonts")
+    # 未安装优化字体时仍可能需要 40 秒；超时必须覆盖原字体回退。
+    MCP_PREVIEW_TIMEOUT_SECONDS: float = Field(default=90.0, gt=0)
+    MCP_PREVIEW_QUEUE_TIMEOUT_SECONDS: float = Field(default=300.0, gt=0)
+    MCP_TEMPLATE_PREVIEW_DIR: str = str(PROJECT_DIR / "data" / "template_previews")
     # 数据库
     DATABASE_URL: str = f"sqlite:///{BACKEND_DIR / 'data' / 'huhua.db'}"
     CHECKPOINT_DB_PATH: str = str(BACKEND_DIR / "data" / "checkpoints.sqlite3")

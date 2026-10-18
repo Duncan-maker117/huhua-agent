@@ -448,14 +448,16 @@
         ['phone', '手机（选填）', 'tel'], ['email', '邮箱（选填）', 'email'],
       ];
       const existing = node('div', undefined, 'intake-existing-fields'); existing.hidden = true;
-      if (guidance.missing_fields) {
+      const hasExisting = guidance.missing_fields && definitions.some(([name]) =>
+        !guidance.missing_fields.includes(name) && String(draft[name] || '').trim());
+      if (hasExisting) {
         const summary = node('div', undefined, 'intake-profile-summary');
         summary.append(node('span', definitions.filter(([name]) => draft[name]).map(([name, label]) => label + '：' + draft[name]).join('｜')));
         summary.append(button('改', () => { existing.hidden = !existing.hidden; }, 'intake-edit-existing'));
         form.append(summary);
       }
       for (const [name, label, type, options] of definitions) {
-        const parent = guidance.missing_fields && !guidance.missing_fields.includes(name) ? existing : form;
+        const parent = hasExisting && !guidance.missing_fields.includes(name) ? existing : form;
         const input = field(parent, draft, name, label, type, options);
         if (name === 'availability') input.placeholder = '找实习再填，全职可留空';
       }

@@ -416,3 +416,20 @@
 - 当前验证：新增 16 项回归。指定离线全量 1977 项（1975 通过、2 项原有私有样例跳过），0 失败/错误，82.605s；Ruff、JS 语法、DOM 和 diff 检查通过。日志系统临时目录 `huhua-b16b-tests.D6Vry7bb1j`，完整路径见修复说明。
 - 未完成/接手：本地规格 E 无阻塞。下一步由整合任务合并 A–D，再由 Claude 做视觉；真实模型/外部 AI 导出/在线 MCP 尚未验收，不得以离线桩代表线上效果。未启动或访问 8833/8834、未调用真实模型。
 - 文件与说明：新增 `backend/app/services/profile_memory.py`、`backend/app/schemas/profile_import.py`，接入 api/profile、profile_archivist、mcp/server、web/account-profile、connect；完整文件、根因及测试在 `evaluation/persona-ux/batch16b-fix-notes.md`。本 mmr 仅追加，原交接完整保留。
+
+## 2026-10-19 第十七批 m：MCP 体验与网页小修（batch17m）
+
+- 已完成：模板列表返回配置 origin 的总画廊/逐模板链接，`/resume?template=` 选中并滚动；测量/预览统一固定联系方式占位，中文说明要求留空手机邮箱、导出服务端填入；12 行 instructions 覆盖五条使用流程和原安全边界；writing guide 标准栏目规则，save/export 返回非改写式栏目诊断；游客/空档案不再显示空摘要及“改”。
+- 预览：本机七套含淡青平行均可渲染，未复现原部署端超时；补独立子进程 15 秒超时杀死回收、最多 2 并发，工具及模板资源返回安全超时与网页回退提示。导出渲染/联系方式填充和既有权限/限流保持原行为。固定占位是保守预算，超长联系方式/额外链接仍需核对最终导出页数。
+- 验证：指定离线全量 **2008 项，2006 通过、2 跳过、0 失败/错误，100.518s**；MCP 定向 63 项通过，DOM / Ruff / JS 语法 / diff 检查通过。新增 12 项及增量 DOM/协议断言，覆盖七模板真实 PNG、无额外 scope、超时进程回收、隐私、栏目不改写、链接与空表单。日志 `/tmp/huhua-b17m-full-tests-final.log`。
+- 失败与决策：旧 spy 改到新预览入口；联系方式占位多一行，单字临界分页测试移除一条填充行，仍严格断言 2 页→1 页；SDK 资源错误改用 ResourceError，避免隐藏超时原因。完整说明：`evaluation/persona-ux/batch17m-fix-notes.md`。
+- 接手边界：未访问 8833/8834，未调用真实模型，未改 dist，未 commit/push/部署。未验证真实 Codex 自动审批或线上超时根因；下一步如需线上验收须另行授权部署。本节仅追加，未重写既有交接。
+
+
+## 第十七批 r · 2026-10-19：PDF CJK 子集与预览超时（本地，未提交/部署）
+
+- 在 batch17m / HEAD 0a35e35 的 m 未提交改动上继续；其余 m 文件与两份只读源 TTC 的 SHA-256 不变。使用标准字符集构建 SC Regular/Bold CFF 子集（合计 7.18 MiB），保留原轮廓及完整系统字体回退；新增 scripts/prepare_pdf_fonts.py、PDF 固定字体资源白名单。未采用近似转 TTF 或 full_fonts。
+- 指定 Noto CJK + 强制 fontTools 的本机 3 次中位数：t001 3.093s → 0.688s、299495 → 125407 字节；七模板 0.581–0.852s。144 DPI 七模板与独立罕见字/繁体/假名/符号、400/700 探针均零像素差、文字一致、无缺字；完整字体回退仍慢（探针 3.016s）。这是 macOS arm64 实测，不是生产 4 核 Linux 达标证据。
+- 预览执行超时 Settings 默认90s，公共画廊排队默认300s，并发仍2；私人请求满槽仍503。同模板合并并发miss、异常不缓存；构建公共PNG并校验源码/字体/图片指纹，七图首次读取34ms、热缓存0.31ms。单张预览3次中位数1.034s；无预生成资源七张并发4.610s、7/7完成。
+- 新增11项回归；指定全量2019项，2017通过、2项原有私有样例跳过、0失败/错误，104.575s；日志 /tmp/huhua-b17r-full-verified.log。run_tests隔离公共预览目录，避免镜像内预生成PNG绕过旧超时断言；原测试断言未改。Ruff/diff通过。
+- 交付 evaluation/persona-ux/batch17r-fix-notes.md（方案表、Dockerfile.release插入层、上线/回退步骤）及 batch17r/ 下原新PDF/PNG/差异图/实测JSON。下一步在隔离生产镜像构建字体与七图、同4核Linux复测后再发布；发布包须补入两个构建脚本，旧allowlist未包含根scripts。原408ms HTTP500缺少异常证据，未声称已修复。未访问8833/8834、调用真实模型、改dist、commit/push/部署。

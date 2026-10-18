@@ -162,7 +162,9 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
     sources = _sources(working)
     messages = _input_messages(working, sources, privacy)
     emit = emit or (lambda event: None)
-    ctx = {"llm": llm, "sources": sources, "source_id": "current", "privacy": privacy, "reply_id": reply_id}
+    from app.agents.orchestrator_tools import ToolContext
+    # 工具适配器（P1a）按 ToolContext 取业务模型；进度事件由本循环统一发出，不再传 emit 以免重复。
+    ctx = ToolContext(llm=llm, turn_id=reply_id)
     parts, turns = [], []
     final_metadata = {}
     contact_stream = ContactTokenStream()
@@ -261,6 +263,8 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                     if name == "read_jd" and result.get("status") == "ok":
                         source["kind"] = "jd"
                     for event in outcome.events:
+                        if isinstance(event, dict) and event.get("type") == "tool_status" and event.get("status") == "running":
+                            continue  # 本循环在调用前已发出「进行中」
                         if isinstance(event, dict) and event.get("type") in {"tool_status", "workspace", "guidance"}:
                             card = event.get("guidance") or (event.get("workspace") or {}).get("guidance")
                             if isinstance(card, dict) and card.get("kind") == "ask_user":

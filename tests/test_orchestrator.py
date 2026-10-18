@@ -97,21 +97,13 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
         self.settings.AGENT_MODE = "off"
         self.assertEqual(intake_guidance(state())["kind"], "intake_basics")
 
-    async def test_contract_stub_is_explicitly_unavailable_and_does_not_write(self):
-        value = state()
-        original = deepcopy(value)
-        for spec in TOOLS.values():
-            result = await spec.handler(value, None, {})
-            self.assertEqual(result.result["code"], "adapter_not_installed")
-            self.assertTrue(result.stop)
-            self.assertEqual(result.update, {})
-        self.assertEqual(value, original)
-
     async def test_tool_updates_replace_fields_merge_messages_and_survive_final_failure(self):
         received = []
         facts = {"basic_info": {"name": "测试"}}
         async def record(working, args, ctx):
-            self.assertEqual(ctx["sources"][args.source_id]["text"], "原始材料")
+            # 合并后 ctx 为 P1a 的 ToolContext；原文由适配器按 source_id 自取，这里只核对引用的是本轮材料。
+            self.assertEqual(args.source_id, "current")
+            self.assertEqual(working["messages"][-1].content, "原始材料")
             return ToolOutcome({"status": "ok"}, {"collected_info": facts, "closed_questions": []}, [])
         async def draft(working, args, ctx):
             received.append(working)

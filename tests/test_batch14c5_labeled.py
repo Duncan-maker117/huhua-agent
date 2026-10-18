@@ -1,3 +1,4 @@
+import tempfile
 """Frozen c4 facts/inputs, deliberately wrong models; no provider or server."""
 from copy import deepcopy
 import json
@@ -171,7 +172,8 @@ class Batch14c5Tests(unittest.IsolatedAsyncioTestCase):
                     trace = result['writer_diagnostic']['slot_lines'][project['item_id'] + ':' + record['slot']]
                     if trace['final_handling'] != 'deterministic_fallback':
                         self.assertLessEqual(len(re.split('[；;。]', line.rstrip('。；;'))), 3)
-                Path('/private/tmp/huhua-b14c5/' + who + '-stub.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
+                out = Path(tempfile.gettempdir(), 'huhua-b14c5'); out.mkdir(parents=True, exist_ok=True)
+                (out / (who + '-stub.json')).write_text(json.dumps(result, ensure_ascii=False, indent=2))
             self.assertEqual(source, before)
             names = [name for name, _ in model.calls]
             self.assertIn('FactSlots', names)

@@ -1,3 +1,4 @@
+import shutil
 """第十四批 b：阶段、事实来源、真实图/SSE 与 DOM；所有模型为桩。"""
 
 import json
@@ -422,6 +423,8 @@ class IntakeUnitTest(unittest.TestCase):
                 "section_order"
             ],
         )
+
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
 
     def test_dom(self):
         result = subprocess.run(

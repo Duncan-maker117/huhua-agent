@@ -1,3 +1,4 @@
+import tempfile
 """c5 saved facts and separately identified c4 evaluation evidence; offline only."""
 from copy import deepcopy
 import json
@@ -117,7 +118,7 @@ class Batch14c6Tests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn('slot_undelivered', result['writer_diagnostic'])
         self.assertFalse(any('未能形成' in s for s in result['resume_data'].get('verification_notes', [])))
         self.assertIn('另一个需核对事项', result['resume_data']['verification_notes'])
-        output = Path('/private/tmp/huhua-b14c6')
+        output = Path(tempfile.gettempdir(), 'huhua-b14c6')
         output.mkdir(exist_ok=True)
         (output / 'aipm_real-stub.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -130,7 +131,7 @@ class Batch14c6Tests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('Cursor', tech)
         self.assertNotIn('对话', tech)
         self.assertFalse(any('71' in row for row in item['polished_bullets']))
-        output = Path('/private/tmp/huhua-b14c6')
+        output = Path(tempfile.gettempdir(), 'huhua-b14c6')
         output.mkdir(exist_ok=True)
         (output / 'aipm-c5-stub.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
 
@@ -147,7 +148,7 @@ class Batch14c6Tests(unittest.IsolatedAsyncioTestCase):
         self.assertRegex(evaluation, r'5\s*个虚拟求职者')
         self.assertIn('或方案', evaluation)
         self.assertEqual(source, before)
-        output = Path('/private/tmp/huhua-b14c6')
+        output = Path(tempfile.gettempdir(), 'huhua-b14c6')
         output.mkdir(exist_ok=True)
         (output / 'aipm-c4-complete-stub.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
 

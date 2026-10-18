@@ -1,3 +1,4 @@
+import shutil
 """第十四批 a：工具流、永久关闭、历史恢复及实际写作参数，全部用桩。"""
 import asyncio
 import json
@@ -151,6 +152,8 @@ class AskValidationTest(unittest.TestCase):
         state = project_state()
         state['messages'] = [HumanMessage(content='继续'), AIMessage(content='多少人在用？')]
         self.assertIsNone(build_workspace(state)['guidance'])
+
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
 
     def test_frontend_dom_behaviors(self):
         result = subprocess.run(['node', str(ROOT / 'tests/ask_user.dom.js')], capture_output=True, text=True)

@@ -1,3 +1,4 @@
+import tempfile
 """第十四批 c：合成结构化输入走真实图；所有模型/语义返回均为本地桩。"""
 from copy import deepcopy
 from importlib import import_module
@@ -257,8 +258,8 @@ class AipmFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('面向学生的对话式简历助手', html)
         self.assertIn('个人项目', html)
         self.assertFalse(state['resume_meta'].get('guard_fallbacks'))
-        Path('/private/tmp/huhua-b14c-aipm-stub.json').write_text(json.dumps({'synthetic':True, 'turns':self.turns, 'checks':checks}, ensure_ascii=False, indent=2))
-        Path('/private/tmp/huhua-b14c-aipm-preview.html').write_text(html)
+        Path(tempfile.gettempdir(), 'huhua-b14c-aipm-stub.json').write_text(json.dumps({'synthetic':True, 'turns':self.turns, 'checks':checks}, ensure_ascii=False, indent=2))
+        Path(tempfile.gettempdir(), 'huhua-b14c-aipm-preview.html').write_text(html)
 
     async def test_user_plain_choice_is_respected(self):
         state = await self.flow('plain')

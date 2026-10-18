@@ -1,3 +1,4 @@
+import tempfile
 """c6 saved inputs and adverse local writer replies; no service or real model."""
 from copy import deepcopy
 from difflib import SequenceMatcher
@@ -133,7 +134,7 @@ class Batch14c7Tests(unittest.IsolatedAsyncioTestCase):
         corrected = apply_literal_corrections(collected(TECH['01-initial']), result['resume_data'], result['resume_meta'], pairs)['resume_data']
         self.assertIn('12 条', ' '.join(corrected['work_experience'][0]['bullets']))
         self.assertIn('190ms', ' '.join(corrected['work_experience'][0]['bullets']))
-        out = Path('/private/tmp/huhua-b14c7')
+        out = Path(tempfile.gettempdir(), 'huhua-b14c7')
         out.mkdir(exist_ok=True)
         (out / 'tech-stub.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
 

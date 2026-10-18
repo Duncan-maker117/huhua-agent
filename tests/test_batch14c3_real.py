@@ -262,7 +262,7 @@ class RealGraphTests(unittest.IsolatedAsyncioTestCase):
                 return asyncio.run_coroutine_threadsafe(turn(*args, **kwargs), loop).result(timeout=30)
         turns = await asyncio.to_thread(lambda: list(REAL.replay(Client())))
         result = REAL.evaluate_persona('aipm_real', turns)
-        Path('/private/tmp/huhua-b14c3-aipm-real-stub.json').write_text(json.dumps(
+        Path(tempfile.gettempdir(), 'huhua-b14c3-aipm-real-stub.json').write_text(json.dumps(
             {'source': 'authorized real inputs, offline model doubles', 'turns': turns, 'checks': result}, ensure_ascii=False, indent=2))
         self.assertTrue(all(r['status'] == 'pass' for r in result), result)
         self.assertEqual([t['input'] for t in turns[:4]], REAL.FIRST_TURNS)

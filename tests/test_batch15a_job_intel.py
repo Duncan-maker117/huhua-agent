@@ -1,3 +1,4 @@
+import shutil
 """第十五批 a：全部合成资料、MockTransport 和结构化模型桩。"""
 
 import asyncio
@@ -722,6 +723,8 @@ class IntelTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(
             intake_update({**state, **result})["intake_stage"], "target"
         )
+
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
 
     def test_dom_contract_and_deleted_entrypoints(self):
         result = subprocess.run(

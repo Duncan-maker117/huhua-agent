@@ -1,3 +1,4 @@
+import tempfile
 """c3 failures: frozen inputs/state, adverse model doubles, no real providers."""
 import asyncio
 from copy import deepcopy
@@ -42,7 +43,7 @@ def record(action, text, data, reply):
 
 
 def save_evidence(name, value):
-    directory = Path('/private/tmp/huhua-b14c4')
+    directory = Path(tempfile.gettempdir(), 'huhua-b14c4')
     directory.mkdir(parents=True, exist_ok=True)
     (directory / name).write_text(json.dumps(value, ensure_ascii=False, indent=2))
 

@@ -70,7 +70,7 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
             with self.subTest(resource=resource):
                 parsed = urlsplit(resource)
                 self.assertFalse(parsed.scheme or parsed.netloc)
-                self.assertEqual(parsed.query, 'v=20261018-1')
+                self.assertEqual(parsed.query, 'v=20261019-1')
                 self.assertEqual((await self.client.get(resource)).status_code, 200)
 
     async def test_legacy_session_redirect_preserves_raw_query(self):
@@ -99,10 +99,10 @@ class HomePageTests(unittest.IsolatedAsyncioTestCase):
                 parsed = urlsplit(resource)
                 self.assertFalse(parsed.scheme or parsed.netloc)
                 self.assertTrue(parsed.path.startswith('/static/'))
-                self.assertEqual(parsed.query, 'v=20261018-1')
+                self.assertEqual(parsed.query, 'v=20261019-1')
                 self.assertTrue((ROOT / 'web' / parsed.path.removeprefix('/static/')).is_file())
         self.assertNotIn('tailwind', (ROOT / 'web/home.html').read_text())
-        response = await self.client.get('/static/home.css?v=20261018-1')
+        response = await self.client.get('/static/home.css?v=20261019-1')
         self.assertEqual(response.status_code, 200)
 
     async def test_mcp_three_steps_and_copyable_tasks(self):

@@ -195,10 +195,18 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
     if answer_message:
         from app.agents.resume_graph import _intake_saver, _persist_intake
         from app.services.answer_facts import apply_answers, project_answer_fields
-        from app.services.ask_user import close_answers, pending_card
+        from app.services.ask_user import close_answers
         previous = {**working, "messages": working["messages"][:working["messages"].index(answer_message)]}
-        prior_card = pending_card(previous)
-        answered_card = bool(prior_card and prior_card.get("turn_id") == answer_message.additional_kwargs["answers"].get("turn_id"))
+        # 作答在进入编排前已写入关闭记录；重新校验旧卡会因题目已关闭而得到空卡，
+        # 所以按最近助手轮实际展示过的卡片 turn_id 判断本轮是否在答这张卡。
+        shown = []
+        for prior in reversed(previous["messages"]):
+            if isinstance(prior, HumanMessage):
+                break
+            if isinstance(prior, AIMessage) and (prior.additional_kwargs or {}).get("ask_user"):
+                shown.append(prior.additional_kwargs["ask_user"].get("turn_id"))
+        answered_card = bool(not previous.get("pending_plan")
+                             and answer_message.additional_kwargs["answers"].get("turn_id") in shown)
         working["closed_questions"] = close_answers(previous, answer_message.content,
                                                     answer_message.additional_kwargs["answers"])
         update["closed_questions"] = working["closed_questions"]

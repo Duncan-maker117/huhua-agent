@@ -95,6 +95,26 @@ class P2kTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len([e for e in events if e["type"] == "guidance"]), 1)
         self.assertTrue(result["messages"][-1].content)
 
+    async def test_heading_answer_already_closed_before_node_still_counts_as_answering_card(self):
+        # 真实回放：答案的关闭记录在进入编排前已写入，旧卡重新校验会变空卡；仍须识别为答卡并续出深挖卡。
+        from app.services.ask_user import close_answers
+        value = answer_state([question("dates", "这段经历的起止时间？")], ["2026-08 / 至今"])
+        value["jd_info"] = {"role_profile": {"role_family": "ai_pm"}}
+        for store in (value["collected_info"], value["resume_data"]):
+            store["projects"][0].update(name="材料核对", role="开发者")
+        value["messages"][-1].additional_kwargs["answer_card"]["subject"] = "p1"
+        value["messages"][-2].additional_kwargs["ask_user"]["subject"] = "p1"
+        before = {**value, "messages": value["messages"][:-1]}
+        answer = value["messages"][-1]
+        value["closed_questions"] = close_answers(before, answer.content, answer.additional_kwargs["answers"])
+        self.assertTrue(is_closed(value, "p1", "dates", "这段经历的起止时间？"))
+        events = []
+        with patch.object(tools, "_write", AsyncMock()) as writer:
+            result = await loop.run_orchestrator(value, Model([RuntimeError("offline")]), registry=tools.TOOLS, emit=events.append)
+        writer.assert_not_awaited()
+        self.assertEqual(pending_card({**value, **result})["questions"][0]["id"], "problem")
+        self.assertEqual(len([e for e in events if e["type"] == "guidance"]), 1)
+
     async def test_unknown_and_skip_close_one_dimension_until_all_dimensions_close(self):
         value = followup_state()
         value["jd_info"] = {"role_profile": {"role_family": "ai_pm"}}

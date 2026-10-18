@@ -464,3 +464,14 @@
 - 验证：新增 13 项测试；指定全量最终 **2104 项，2102 通过、2 项原有跳过，0 失败/错误，86.197s，退出码 0**。Ruff、7 文件 AST、diff 检查通过，旧断言未修改/放宽。日志 `evaluation/agent-loop-spike/p1d-full-tests.log`（忽略文件），说明 `evaluation/agent-loop-spike/p1d-notes.md`。
 - 失败做法：首版扩展共享 `constraint_only` 导致正文范围被误删，全量出现 14 个失败断言；已恢复旧正文规则并隔离抽取判断，原断言全部通过。新 collecting 桩构造与角色断言按实际契约修正，详见说明。
 - 未完成/接手：真实模型回放与成稿质量未复测；如后续获授权，可运行该 fixture 的 off/loop 隔离回放并核对模型原始输出。本次未访问 8833/8834、未调用真实模型、未改 dist、未 commit/push/部署；测试未写死临时路径。本节仅追加，原交接内容保留。
+
+## 2026-10-19 第十七批第 2 期：P2a 时延与上下文（batch17e）
+
+- 目标/边界：只改 `orchestrator.py` 非 SYSTEM_PROMPT 部分并新增 `orchestrator_context.py`；P2b 适配器/提示词与 P2c runner/旧测试未改。本节仅追加。
+- 已完成：模型专用事实/稿件/岗位/方案摘要；最近 3 个用户轮原文与更早确定性摘要；sources 仅送索引，服务端原文与工具状态完整；固定 system 隐私前缀及 schema 顺序；收尾 `AGENT_FINAL_MODE=thinking|off`；逐次 prompt/completion/reasoning/cache token、phase/mode、耗时日志，不含正文。
+- 关键决策：先脱敏再截断，不摘要当前 thinking 回传；read_profile 选择 ID 保留；关闭收尾思考只作用于强制最终请求，决策仍 thinking；默认暂保留 thinking，待 Claude 实测确定。设置在独立 context 模块读取环境/.env，不越界改 config.py。
+- 验证：现有编排 82/82；新增独立回归 15/15（evaluation/agent-loop-spike/test_p2e_context.py）；指定全量 2104 项，2102 通过、2 项原有跳过、0 失败，89.107s，退出码 0。旧断言原样保留；Ruff/AST/文档命令语法/diff 通过，SYSTEM_PROMPT 字面量与 HEAD 一致。
+- 证据：从 ../huhua-b17b 只读两组完整旧 run 与人物目录；旧 loop 31 份成稿快照工具投影 JSON 字符中位 2413→739，非真实 prompt token 或性能提升证明。原 run 哈希与大小统计在 p2e-context-sizes.json。
+- 失败做法：超大合成 JSON 压力样本曾耗时在既有隐私正则，中断后限制测试数据规模；无分隔长英文被整体识别为邮箱导致新截断断言失败，修正样本分隔后全部通过。未改隐私服务或放宽旧测试。
+- 未完成/接手：读 `evaluation/agent-loop-spike/p2e-notes.md`，先运行独立 15 项与全量命令；Claude 合并 P2b/P2c 后按文档在 8849 用独立数据库串行比较收尾 thinking/off。真实 token ≤6k/≤20k、缓存/时延/质量与最终默认值仍待实测。旧回放的 HTTP 调用计数全为 0，不作为有效成本基线。
+- 当前状态：本地修改待交接，未调用真实模型、未访问 8833/8834、未启动服务、未改 dist、未 commit/push/部署。

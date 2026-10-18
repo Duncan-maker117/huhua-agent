@@ -14,15 +14,17 @@ from langgraph.graph.message import add_messages
 from openai import AsyncOpenAI
 from pydantic import ValidationError
 
+from app.agents.orchestrator_context import OrchestratorSettings, input_context, project_tool_result
 from app.agents.orchestrator_spike import (
-    ModelReply, SpikeProtocolError, TOKEN_FIELDS, thinking_body, validate_history,
+    ModelReply, SpikeProtocolError, TOKEN_FIELDS as SPIKE_TOKEN_FIELDS, thinking_body, validate_history,
 )
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, PUBLIC_REPLY_INTERRUPTED
-from app.services.model_privacy import ContactRedactor, ContactTokenStream, redact_model_messages
+from app.services.model_privacy import CONTACT_PRIVACY_NOTICE, ContactRedactor, ContactTokenStream, redact_model_messages
 
 logger = logging.getLogger(__name__)
 MAX_MODEL_CALLS = 5
 MAX_TOOL_STEPS = 4
+TOKEN_FIELDS = (*SPIKE_TOKEN_FIELDS, "prompt_cache_hit_tokens", "prompt_cache_miss_tokens")
 SYSTEM_PROMPT = """你是「胡话」，胡话简历的简历助手，专治简历里的胡话：把用户的真实经历写成每句有出处、面向目标岗位的简历，不替用户编。
 开场简短说明能做什么，并给一个具体价值示例；邀请用户随便介绍在读什么、做过什么、想投什么。
 开场不索要姓名、手机或邮箱。用户提供任何本人信息（包括自我介绍、粘贴材料、旧简历），先 record_facts。
@@ -52,12 +54,21 @@ _PROGRESS = {
 
 def _safe_json(value, privacy):
     # JSON-shaped media/metadata is still text; opaque-media bypasses do not apply.
-    return privacy.redact(json.dumps(privacy.redact(value), ensure_ascii=False))
+    return privacy.redact(json.dumps(privacy.redact(value), ensure_ascii=False, separators=(",", ":")))
+
+
+def _usage(counts):
+    values = {key: counts.get(key) for key in TOKEN_FIELDS}
+    values["reasoning_tokens"] = (counts.get("completion_tokens_details") or {}).get(
+        "reasoning_tokens", counts.get("reasoning_tokens"))
+    values["prompt_cache_hit_tokens"] = counts.get("prompt_cache_hit_tokens",
+        (counts.get("prompt_tokens_details") or {}).get("cached_tokens"))
+    return {key: value if type(value) is int and value >= 0 else None for key, value in values.items()}
 
 
 class OrchestratorModel:
     def __init__(self, client, *, model, schemas, temperature=0.7, max_tokens=None):
-        self.client, self.model, self.schemas = client, model, schemas
+        self.client, self.model, self.schemas = client, model, deepcopy(schemas)
         self.temperature, self.max_tokens = temperature, max_tokens
 
     async def complete(self, messages, *, mode, allow_tools, on_delta):
@@ -75,9 +86,7 @@ class OrchestratorModel:
             async for chunk in stream:
                 raw = chunk.model_dump(exclude_none=True) if hasattr(chunk, "model_dump") else chunk
                 if counts := raw.get("usage"):
-                    usage = {key: counts.get(key) for key in TOKEN_FIELDS}
-                    usage["reasoning_tokens"] = (counts.get("completion_tokens_details") or {}).get(
-                        "reasoning_tokens", counts.get("reasoning_tokens"))
+                    usage = _usage(counts)
                 for choice in raw.get("choices", []):
                     if choice.get("index", 0) != 0:
                         continue
@@ -107,7 +116,7 @@ class OrchestratorModel:
 def _schemas(registry):
     return [{"type": "function", "function": {
         "name": name, "description": spec.description, "parameters": spec.args_model.model_json_schema(),
-    }} for name, spec in registry.items()]
+    }} for name, spec in sorted(registry.items())]
 
 
 def _sources(state):
@@ -125,14 +134,10 @@ def _sources(state):
 
 
 def _input_messages(state, sources, privacy):
-    history = [{"role": "user" if isinstance(m, HumanMessage) else "assistant", "content": m.content}
-               for m in (state.get("messages") or [])[-16:] if isinstance(m, (HumanMessage, AIMessage))]
-    data = {key: state.get(key) for key in (
-        "jd_info", "collected_info", "resume_data", "profile_summary", "intake_account",
-        "session_constraints", "closed_questions", "pending_plan", "confirmed_plan",
-    )}
-    return [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": _safe_json({
-        "untrusted_data": {"history": history, "sources": sources, "state": data},
+    # Keep the prefix identical with/without contacts; dynamic data follows it.
+    return [{"role": "system", "content": SYSTEM_PROMPT + "\n\n" + CONTACT_PRIVACY_NOTICE},
+            {"role": "user", "content": _safe_json({
+        "untrusted_data": input_context(state, sources, privacy),
     }, privacy)}]
 
 
@@ -157,8 +162,10 @@ def _validate_reply(reply, messages, mode, privacy):
     return message
 
 
-async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeout=90.0):
+async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeout=90.0, final_mode="thinking"):
     """Return one graph update; failed replies retain already validated tool updates."""
+    if final_mode not in {"thinking", "off"}:
+        raise ValueError("final_mode must be thinking or off")
     working, update = deepcopy(state), {}
     privacy, reply_id = ContactRedactor(), str(uuid4())
     sources = _sources(working)
@@ -201,28 +208,33 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
     while len(turns) < MAX_MODEL_CALLS + turns_cap_bonus[0]:
         allow_tools = (not stopped and steps < MAX_TOOL_STEPS and len(turns) < MAX_MODEL_CALLS - 1
                        and not dsml.get("retried"))
+        request_mode = "off" if not allow_tools and final_mode == "off" else mode
         sent = redact_model_messages(messages, privacy)
+        if request_mode == "off":
+            for outbound in sent:
+                outbound.pop("reasoning_content", None)
         for outbound in sent:
             if isinstance(outbound.get("content"), str):
                 outbound["content"] = json.loads(_safe_json(outbound["content"], privacy))
         began = perf_counter()
-        row = {"mode": mode, "usage": dict.fromkeys(TOKEN_FIELDS)}
+        row = {"mode": request_mode, "phase": "decision" if allow_tools else "final",
+               "usage": dict.fromkeys(TOKEN_FIELDS)}
         turns.append(row)
         try:
-            validate_history(sent, mode)
-            reply = await asyncio.wait_for(model.complete(sent, mode=mode, allow_tools=allow_tools,
+            validate_history(sent, request_mode)
+            reply = await asyncio.wait_for(model.complete(sent, mode=request_mode, allow_tools=allow_tools,
                                                           on_delta=delta if not allow_tools else lambda text: None), timeout)
-            row["usage"] = reply.usage
+            row["usage"] = _usage(reply.usage)
             if dsml["buffer"] and not dsml["blocked"]:
                 publish(contact_stream.feed(dsml["buffer"]))
             dsml["buffer"] = ""
-            message = _validate_reply(reply, messages, mode, privacy)
+            message = _validate_reply(reply, messages, request_mode, privacy)
             if not allow_tools and message.get("tool_calls"):
                 raise SpikeProtocolError("tools_requested_after_limit")
         except Exception as exc:
             row.update(error=type(exc).__name__, http_status=getattr(exc, "status_code", None))
             private_error = isinstance(exc, SpikeProtocolError) and str(exc).startswith("contacts_in_")
-            if mode == "thinking" and not retried and not parts and not private_error and (
+            if request_mode == "thinking" and not retried and not parts and not private_error and (
                     isinstance(exc, SpikeProtocolError) or getattr(exc, "status_code", None) == 400) and len(turns) < MAX_MODEL_CALLS:
                 retried, mode = True, "off"
                 for prior in messages:
@@ -321,14 +333,14 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                           "message": label.removeprefix("正在").rstrip("…") + (
                               "：处理完成" if result.get("status") == "ok" else "：已返回结果")})
             messages.append({"role": "tool", "tool_call_id": call["id"],
-                             "content": _safe_json({"untrusted_data": result}, privacy)})
+                             "content": _safe_json({"untrusted_data": project_tool_result(name, result, privacy)}, privacy)})
     publish(contact_stream.finish())
     if status != "completed":
         publish(PUBLIC_REPLY_INTERRUPTED if parts else "这次回复暂未完成，已处理的材料可在工作区核对，请稍后重试。")
     usage = {key: sum(row["usage"][key] for row in turns)
              if turns and all(row["usage"].get(key) is not None for row in turns) else None for key in TOKEN_FIELDS}
     metrics = {"model_calls": len(turns), "tool_steps": steps, "seconds": round(perf_counter() - started, 4),
-               "fallback": retried, "status": status, "usage": usage, "turns": turns}
+               "fallback": retried, "status": status, "usage": usage, "turns": turns, "final_mode": final_mode}
     logger.info("orchestrator_turn %s", json.dumps(metrics))
     final = AIMessage(content="".join(parts), id=reply_id, additional_kwargs={**final_metadata, "orchestrator": metrics})
     update["messages"] = add_messages(update.get("messages") or [], [final])
@@ -348,4 +360,5 @@ async def orchestrator_node(state, llm):
         model = OrchestratorModel(client, model=settings.LLM_MODEL, schemas=_schemas(TOOLS),
                                   temperature=settings.LLM_CHAT_TEMPERATURE, max_tokens=settings.LLM_MAX_TOKENS)
         return await run_orchestrator(state, model, registry=TOOLS, llm=llm, emit=writer,
-                                      timeout=min(90.0, settings.CHAT_TIMEOUT_SECONDS))
+                                      timeout=min(90.0, settings.CHAT_TIMEOUT_SECONDS),
+                                      final_mode=OrchestratorSettings().AGENT_FINAL_MODE)

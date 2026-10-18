@@ -50,7 +50,7 @@ def _adoption_option(option):
 def answer(question):
     # Same c2 dimension/normalized-exact-option rule, with this isolated bank.
     dimension = question_dimension(question['id'], question['prompt'])
-    value = VALUES.get(dimension)
+    value = c2.question_value(question, VALUES, INTAKE)
     values = value if isinstance(value, list) else [value] if value else []
     if question['kind'] != 'text':
         selected = []
@@ -101,7 +101,7 @@ def submission(workspace, reply=''):
     return 'free_answer', c2.free_text_answer(reply, VALUES), {}
 
 
-def replay(client):
+def replay(client, *, agent_mode=None):
     for index, text in enumerate(FIRST_TURNS, 1):
         turn = client.turn(f'initial_{index}', text)
         yield turn
@@ -109,7 +109,8 @@ def replay(client):
             return
     counts = {}
     for round_index in range(MAX_ROUNDS + 1):
-        if turn.get('status') != 'ok' or delivered(turn):
+        if turn.get('status') != 'ok' or (delivered(turn) and (
+                agent_mode != 'loop' or not c2.pending_followup(turn))):
             return
         if round_index == MAX_ROUNDS:
             turn = client.turn('depth_limit_direct', '直接写')

@@ -6,6 +6,7 @@ from http.cookiejar import Cookie
 from importlib import import_module
 import secrets
 from pathlib import Path
+import re
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -101,6 +102,20 @@ def replay(client):
         yield client.turn("confirm", option, kind="confirmation", trigger_action="draft")
 
 
+def import_receipt(turn):
+    checks = import_module("evaluation.persona-ux.checks")
+    reply = turn.get("reply", "")
+    names = {p.get("name") for p in checks.visible_items(turn.get("resume_data") or {}, "projects")}
+    if not all(name in reply and name in names for name in PROJECTS):
+        return False
+    for clause in re.split(r"[。！!？?；;\n]", reply):
+        if re.search(r"未|没有|没能|失败|(?:将|会|准备|打算|可以|建议|是否|要不要).{0,12}(?:导入|选用|选进|写入)", clause):
+            continue
+        if re.search(r"(?:已|已经).{0,30}(?:导入|选用|写入)|选进了(?:稿子|简历)|(?:导入|写入)了", clause):
+            return True
+    return False
+
+
 def evaluate_persona(persona, turns, **_):
     checks = import_module("evaluation.persona-ux.checks")
     first = turns[0] if turns else {}
@@ -110,9 +125,12 @@ def evaluate_persona(persona, turns, **_):
         ("common.rounds_complete", len(turns) >= 3 and all(t.get("status") == "ok" and t.get("sse_done") for t in turns), "status", "至少三轮且 SSE 完整"),
         ("profile.no_basics_form", ((first.get("workspace") or {}).get("guidance") or {}).get("kind") != "intake_basics", "workspace", "已有档案不重填基本信息"),
         ("profile.no_false_unrecorded", all("没记下来" not in t.get("reply", "") for t in turns), "reply", "正常档案请求不误报遗漏"),
-        ("profile.import_receipt", any("导入" in t.get("reply", "") and any(n in t.get("reply", "") for n in PROJECTS) for t in turns), "reply", "导入回执包含经历名称"),
+        ("profile.import_receipt", any(import_receipt(t) for t in turns), "reply", "完成选用回执点名两段经历，且同轮可见数据包含它们"),
         ("profile.draft", all(n in body for n in PROJECTS) and final.get("stage") in {"EVALUATING", "EXPORT"}, "resume_data", "生成稿含档案经历"),
         ("profile.contacts", all(v in body for c, _, f, v in FACTS if c == "basic" and f in {"phone", "email"}), "resume_data", "头部带上联系方式"),
     ]
     return [{"id": persona + "." + identifier, "status": "pass" if ok else "fail", "title": title,
-             "evidence": [checks.evidence(final, path, title)]} for identifier, ok, path, title in cases]
+             "evidence": ([checks.evidence(t, path, t.get('reply', '')) for t in turns
+                           if import_receipt(t)] or [checks.evidence(final, path, final.get('reply', ''))])
+             if identifier == 'profile.import_receipt' else [checks.evidence(final, path, title)]}
+            for identifier, ok, path, title in cases]

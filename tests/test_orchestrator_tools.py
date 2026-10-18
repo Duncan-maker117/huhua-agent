@@ -17,6 +17,7 @@ from app.agents import orchestrator_tools as tools  # noqa: E402
 from app.agents import resume_graph as graph  # noqa: E402
 from app.services.resume_facts import new_fact, normalize_fact_store  # noqa: E402
 from app.services.resume_versions import text_hash  # noqa: E402
+from app.services.resume_review import resume_to_text  # noqa: E402
 
 
 PHONE, EMAIL = "13912345678", "adapter@example.invalid"
@@ -93,6 +94,26 @@ class OrchestratorToolsTest(unittest.IsolatedAsyncioTestCase):
         text = json.dumps(value, ensure_ascii=False, default=str)
         self.assertNotIn(PHONE, text)
         self.assertNotIn(EMAIL, text)
+
+    def test_document_outcome_filters_diagnostics_without_losing_state_or_result(self):
+        for changed, diagnostic, status in ((True, {}, 'ok'), (False, {}, 'unchanged'),
+                                            (True, {'status': 'model_fallback'}, 'partial')):
+            with self.subTest(status=status):
+                data = state_with_draft()['resume_data']
+                update = {'resume_data': data, 'resume_meta': {'version_id': 'v-next'},
+                          'resume_versions': [{'version_id': 'v-old'}], 'page_check': {'pages': 1},
+                          'changed': changed, 'writer_diagnostic': diagnostic, 'version_id': 'v-next',
+                          'change_summary': ['已核对'], 'guard_fallbacks': ['fallback'],
+                          'edit_contract': {'scope': 'whole'}, 'future_diagnostic': {'internal': True}}
+                outcome = tools._document_outcome(deepcopy(update))
+                self.assertEqual(outcome.result['status'], status)
+                for key in ('changed', 'writer_diagnostic', 'version_id', 'change_summary', 'guard_fallbacks', 'edit_contract'):
+                    self.assertEqual(outcome.result[key], update[key])
+                expected = {key: update[key] for key in ('resume_data', 'resume_meta', 'resume_versions',
+                            'page_check', 'version_id', 'change_summary', 'guard_fallbacks')}
+                self.assertEqual(outcome.update, {**expected, 'stage': 'EVALUATING',
+                    'resume_draft': resume_to_text(data)})
+                self.assertNotIn('future_diagnostic', outcome.update)
 
     async def test_registry_and_source_only_strict_parameters(self):
         self.assertEqual(set(tools.TOOLS), {"read_profile", "use_profile_items", "read_jd", "search_company",

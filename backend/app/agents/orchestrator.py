@@ -235,7 +235,8 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         if DSML_MARKER in (message.get("content") or ""):
             # 伪调用不进历史；若收尾轮没有任何正文，再要求一次纯文字回复。
             message["content"] = message["content"].split(DSML_MARKER, 1)[0]
-            if not message.get("tool_calls") and not "".join(parts).strip() and not dsml.get("retried"):
+            if (not message.get("tool_calls") and not message["content"].strip()
+                    and not "".join(parts).strip() and not dsml.get("retried")):
                 dsml.update(retried=True, blocked=False, buffer="")
                 messages.append({"role": "system", "content": "工具调用次数已用完。请直接用文字告诉用户本轮完成了什么、还缺什么、下一步是什么，不要输出任何工具调用或标记。"})
                 turns_cap_bonus[0] += 1
@@ -247,6 +248,9 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                 delta(privacy.redact(message.get("content") or ""))
             elif not parts:
                 delta(privacy.redact(message.get("content") or ""))
+            if dsml["buffer"] and not dsml["blocked"]:
+                publish(contact_stream.feed(dsml["buffer"]))
+                dsml["buffer"] = ""
             if not ("".join(parts)).strip():
                 status = "unavailable"
             break

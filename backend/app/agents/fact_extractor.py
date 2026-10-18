@@ -14,7 +14,7 @@ from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.candidate_language import (
     PLACEHOLDER_NAMES, campus_evidence, coursework_evidence, literal_item_name, placeholder_name,
     non_fact, safe_item_name, safe_major, safe_objective, literal_employment, personal_header,
-    constraint_only, wording_constraint,
+    experience_constraint, wording_constraint,
 )
 from app.services.candidate_skills import canonical_skill_text, declared_skills, skill_declaration
 from app.services.llm_compat import label_run, without_thinking
@@ -118,7 +118,7 @@ def _quote_has_unquoted_limit(message: str, quote: str) -> bool:
     for match in positions:
         clause_start = re.split(r"[，,。；;！？!?\n]", message[:match.start()])[-1]
         clause_end = re.split(r"[，,。；;！？!?\n]", message[match.end():])[0]
-        if constraint_only(clause_start + quote + clause_end) and not constraint_only(quote):
+        if experience_constraint(clause_start + quote + clause_end) and not experience_constraint(quote):
             continue
         prefix = message[:match.start()]
         prefix = re.split(r"[，,。；;！？!?\n]|但是|不过|而是", prefix)[-1]
@@ -144,7 +144,7 @@ _METRIC_CHANGE = re.compile(r'\d[^，,。；;\n]*(?:降到|降至|降低到|降�
 
 def _fact_kind_for_clause(clause: str) -> str:
     """规则判定 kind，不调用模型。"""
-    if _STATUS_CLAUSE.search(clause) or constraint_only(clause):
+    if _STATUS_CLAUSE.search(clause) or experience_constraint(clause):
         return "status_limit"
     if re.search(r"[一二两三四五六七八九十\d]+(?:个)?人(?:的)?(?:团队|小组)", clause):
         return "team"
@@ -469,7 +469,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if not text or not quote or normalize_text(quote) not in normalize_text(evidence):
             result["rejected"].append({"text": text, "reason": "source_quote_not_in_candidate_message"})
             return None
-        if (non_fact(text) or non_fact(quote)) and not constraint_only(quote) and not product_pain(quote):
+        if (non_fact(text) or non_fact(quote)) and not experience_constraint(quote) and not product_pain(quote):
             result.setdefault("metadata_context", []).append(quote)
             return None
         if skill_declaration(quote):
@@ -477,7 +477,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if naming_answer == "refused":
             return None
         context_clauses = [part for part in re.split(r"[，,。；;\n]", evidence) if quote in part]
-        if context_clauses and all(non_fact(part) for part in context_clauses) and not constraint_only(quote) and not product_pain(quote):
+        if context_clauses and all(non_fact(part) for part in context_clauses) and not experience_constraint(quote) and not product_pain(quote):
             result.setdefault("metadata_context", []).extend(context_clauses)
             return None
         if _quote_has_unquoted_limit(evidence, quote):
@@ -486,7 +486,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if (errors := lexical_fact_errors(text, quote)):
             result["rejected"].append({"text": text, "reason": errors})
             return None
-        fact = new_fact(text, kind="context" if product_pain(quote) else "status_limit" if constraint_only(quote) else raw.get("kind", "context"), quote=quote,
+        fact = new_fact(text, kind="context" if product_pain(quote) else "status_limit" if experience_constraint(quote) else raw.get("kind", "context"), quote=quote,
                         source="chat", turn_id=turn_id)
         if _is_large_rewrite(text, quote):
             semantic_pairs.append({"id": fact["id"], "text": text, "source_quotes": [quote]})
@@ -540,7 +540,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 if raw_item.get('section') != 'education' and personal_header(quote):
                     result.setdefault('metadata_context', []).append(quote)
                     continue
-                if (non_fact(quote) or non_fact(str(fragment.get("text") or ""))) and not constraint_only(quote) and not product_pain(quote):
+                if (non_fact(quote) or non_fact(str(fragment.get("text") or ""))) and not experience_constraint(quote) and not product_pain(quote):
                     if quote and quote in evidence:
                         result.setdefault("metadata_context", []).append(quote)
                     continue
@@ -637,7 +637,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
                 if re.fullmatch(r"(?:咖啡店|公司)(?:名|名字|名称)?(?:叫|是|名为).+", fact["source_quote"]):
                     if named := literal_item_name(fact["source_quote"], section):
                         fact["field"], fact["text"] = FACT_LABELS[section], named
-                if raw.get("field") in FACT_FIELDS[section] and not constraint_only(fact["source_quote"]):
+                if raw.get("field") in FACT_FIELDS[section] and not experience_constraint(fact["source_quote"]):
                     fact["field"] = raw["field"]
                 # A concrete responsibility is body evidence, even if the
                 # extractor calls it a role. Header fields bypass body repair.
@@ -908,15 +908,18 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
     # when they lack the first-person/action pattern used by the generic fallback.
     for clause in re.split(r"[，,。；;\n]", evidence):
         clause = clause.strip()
-        from app.services.experience_subjects import subject_span
+        from app.services.experience_subjects import DETAIL_FIELD, subject_span
+        clause = DETAIL_FIELD.sub(lambda match: match[2], clause)
         span = subject_span(clause, evidence)
+        line = next((line for line in evidence.splitlines() if clause and clause in line), '')
+        labelled_detail = span and DETAIL_FIELD.match(line)
         literal_work = (span and span['section'] in {'work_experience', 'internship'}
                         and re.search(r'参与|负责|团队|用|指导|索引|联调|压测|编写', clause))
-        if constraint_only(clause) and not _clause_covered(normalize_text(clause), [normalize_text(q) for q in quotes]):
+        if experience_constraint(clause) and not _clause_covered(normalize_text(clause), [normalize_text(q) for q in quotes]):
             clauses.append(clause)
         elif (clause and not non_fact(clause) and not skill_declaration(clause)
                 and not _PLAN_OR_NEGATED.search(clause) and not _INSTRUCTION.search(clause)
-                and (literal_work or (_clause_subject(clause, evidence)[0] in {"projects", "campus"}
+                and (labelled_detail or literal_work or (_clause_subject(clause, evidence)[0] in {"projects", "campus"}
                      and (coursework_evidence(clause) or re.search(r"完成|拍摄|排版|海报|使用|做了", clause))))
                 and not _clause_covered(normalize_text(clause), [normalize_text(q) for q in quotes])
                 and clause not in clauses):
@@ -936,7 +939,7 @@ def _cover_dropped_clauses(result: dict, evidence: str, turn_id: str, lexical_fa
             owner = _owner_item(result["items"], clause, evidence, normalize_text, followup_target=followup_target)
         errors = lexical_fact_errors(clause, clause) if owner is not None else ["no_owner_item"]
         if owner is None or errors or _quote_has_unquoted_limit(evidence, clause):
-            if constraint_only(clause):
+            if experience_constraint(clause):
                 continue  # A missing owner is not a missing resume bullet.
             result["rejected"].append({"text": clause, "reason": "coverage_fallback_failed:" + _reason_code(errors or "limit")})
             result["uncovered"].append(clause)

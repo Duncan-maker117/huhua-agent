@@ -9,7 +9,7 @@
 | SSH | `ssh banzi`，对应 `ubuntu@49.233.252.47` |
 | 主机 | Ubuntu，`x86_64`；Docker Compose `2.40.3` |
 | 项目目录 | `/opt/huhua` |
-| 镜像 / 容器 | `huhua-agent:20261006-4` / `huhua-app-1` |
+| 镜像 / 容器 | `huhua-agent:20261018-1` / `huhua-app-1` |
 | Compose 配置 | `compose.yaml` + `deploy/compose.host-caddy.yaml`；变量文件 `deploy/compose.env` |
 | 应用入口 | 宿主 `127.0.0.1:18765` → 容器 `8765`；单 worker |
 | 公网入口 | <https://resume.yikuaibanz.cn>；现有宿主 Caddy `2.11.4` 提供 HTTPS 并反代 `18765` |
@@ -21,7 +21,16 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-17 第十三批 UI：三页结构 + 统一顶栏 + 登录弹窗 + MCP 接入页（最新）
+## 2026-10-18 第十四批对话流程 + 第十五批岗位情报 + MCP 第二版（最新）
+
+- 镜像 `huhua-agent:20261018-1`（sha256:bcb7811d…），基于 `20261017-1`，整体替换 `backend/app/`、`web/`、`data/jianlimoban/html-template/`。代码为分支 `integrate-1018`（第十四批 a–c7 + MCP 第二版 + 第十五批 a–d + 测试环境修正）。
+- 内容：模型通过 ask_user 出问题卡、不知道/跳过永久关闭；分阶段对话（基本信息/经历清单表单、逐段深挖、方案门槛）；AI 产品岗按问题/决策/迭代成稿（事实先分槽再逐行改写、子句覆盖校验）；MCP 新增写法指南、本人简历预览（联系方式占位）、逐条排版诊断、模板元数据；贴招聘链接自动读岗位卡、只给方向时后台抽样真实岗位生成画像、公司卡（DeepSeek Search/Fetch，复用 `LLM_API_KEY`，Tavily 兜底）。
+- 无新依赖。新增 schema 组件 `job_intel` v1（`job_intel_cache` / `job_intel_usage` 两张表，启动时创建，只增不改）。演练 `REHEARSAL_OK`（4 个账号 get_profile 正常，情报 provider deepseek/tavily 均可用）；**回滚演练 `ROLLBACK_OK`**：旧镜像 20261017-1 可在新镜像启动过的库副本上健康启动。容器测试 1961 项全过（skip 39：原 36 + 3 个需 node 的 DOM 测试）。
+- 备份 `/opt/huhua-backups/pre-20261018-1/`（app 03b4aca9…、checkpoints e6e99e04…、privacy 0ce522dd…）；回滚拷回 `deploy/compose.env.pre-20261018-1`（指向 20261017-1）后 `compose up -d --no-build --no-deps --wait app`。
+- 线上验收：healthz 正常；新静态资源 `v=20261018-1` 生效；贴美团招聘链接 → 读岗位卡（公司/岗位/要求/职责/加分项）并弹出经历清单卡，服务器直连读取无需代理。
+- 坑：本机 macOS tar 会生成 `._*` 附属文件，打包须 `COPYFILE_DISABLE=1`；测试不得写死 `/private/tmp`。
+
+## 2026-10-17 第十三批 UI：三页结构 + 统一顶栏 + 登录弹窗 + MCP 接入页
 
 - 镜像 `huhua-agent:20261017-1`（sha256:c464719a…），基于 `20261016-4`，只覆盖 `backend/main.py`（新增 `GET /connect`）与 16 个前端文件，外加顶栏统一后的 `web/comparison.html/.css`（对比页其余文件与数据沿用基础镜像，仍未入库）。代码 `6dcf2b0`。
 - 首页 / `/connect` / 对比页共用 `site-chrome.css` + `site-nav.js`：中间为本页章节 + 阅读进度短线，右上角 MCP 接入 / 登录 / 开始写简历；首页登录改弹窗（`home-auth.js`）；`/connect` 生成/吊销 MCP 令牌；聊天页「MCP」入口、删快捷键行、未登录登录改居中窗口；编辑页 logo 回首页。

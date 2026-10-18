@@ -9,7 +9,7 @@
 | SSH | `ssh banzi`，对应 `ubuntu@49.233.252.47` |
 | 主机 | Ubuntu，`x86_64`；Docker Compose `2.40.3` |
 | 项目目录 | `/opt/huhua` |
-| 镜像 / 容器 | `huhua-agent:20261018-1` / `huhua-app-1` |
+| 镜像 / 容器 | `huhua-agent:20261019-1` / `huhua-app-1` |
 | Compose 配置 | `compose.yaml` + `deploy/compose.host-caddy.yaml`；变量文件 `deploy/compose.env` |
 | 应用入口 | 宿主 `127.0.0.1:18765` → 容器 `8765`；单 worker |
 | 公网入口 | <https://resume.yikuaibanz.cn>；现有宿主 Caddy `2.11.4` 提供 HTTPS 并反代 `18765` |
@@ -21,7 +21,16 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-18 第十四批对话流程 + 第十五批岗位情报 + MCP 第二版（最新）
+## 2026-10-19 第十六批：档案优先 + agent 自动读档案 + 记忆导入（最新）
+
+- 镜像 `huhua-agent:20261019-1`（sha256:4d4df719…），基于 `20261018-1`，整体替换 `backend/app/`、`web/`、`data/jianlimoban/html-template/`。代码 GitHub main `8b89711`（分支 batch16a，含 b）。包用 `git archive` 从提交直接打（无 `._*` / `.env` / `__pycache__`），deploy 32392a74…。
+- 内容：登录用户基本信息沿用档案不再弹表单（缺项只显示缺的）；手机/邮箱进简历头部（仍不送模型）；经历清单改为从档案勾选；对话工具 `read_profile` / `use_profile_items`；档案基本信息校验与幂等迁移（所在地为链接、可实习时间吞并其他字段、重复条与重复冲突卡）；档案整理失败细分错误码并记异常类型；「从其他 AI 导入」（网页粘贴 + MCP prompt `import_memory_to_profile`，全部进待确认）。
+- 无新依赖、无新表。演练 `REHEARSAL_OK`：4 个账号 get_profile 后 location_url 0、availability_mixed 0、basic_dup 0，二次读取幂等；**回滚演练 `ROLLBACK_OK`**：旧镜像 20261018-1 在迁移后的副本上健康启动并能读档案。容器测试 1996 项全过（skip 40：node DOM 测试 + 私有 fixture + pdftotext）。
+- 备份 `/opt/huhua-backups/pre-20261019-1/`（app c4b0b1d4…、checkpoints 98e6901b…、privacy 276a26ad…）；回滚拷回 `deploy/compose.env.pre-20261019-1`（指向 20261018-1）后 `compose up -d --no-build --no-deps --wait app`。注意：回滚不撤销档案迁移（旧行保留为 superseded）。
+- 线上验收：healthz 正常；`v=20261019-1` 静态资源生效（选经历卡、从其他 AI 导入）；`/api/profile/import-memory/prompt` 与 `/mcp` 未登录 401。
+- 线上旧 4 条 `archive_unavailable` 仍在（旧代码未记异常类型），新版本再失败会记录具体分类。
+
+## 2026-10-18 第十四批对话流程 + 第十五批岗位情报 + MCP 第二版（历史）
 
 - 镜像 `huhua-agent:20261018-1`（sha256:bcb7811d…），基于 `20261017-1`，整体替换 `backend/app/`、`web/`、`data/jianlimoban/html-template/`。代码为分支 `integrate-1018`（第十四批 a–c7 + MCP 第二版 + 第十五批 a–d + 测试环境修正）。
 - 内容：模型通过 ask_user 出问题卡、不知道/跳过永久关闭；分阶段对话（基本信息/经历清单表单、逐段深挖、方案门槛）；AI 产品岗按问题/决策/迭代成稿（事实先分槽再逐行改写、子句覆盖校验）；MCP 新增写法指南、本人简历预览（联系方式占位）、逐条排版诊断、模板元数据；贴招聘链接自动读岗位卡、只给方向时后台抽样真实岗位生成画像、公司卡（DeepSeek Search/Fetch，复用 `LLM_API_KEY`，Tavily 兜底）。

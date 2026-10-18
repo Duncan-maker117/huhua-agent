@@ -393,9 +393,25 @@ def intake_guidance(state: dict) -> dict | None:
     return card
 
 
-def deepen_context(state: dict) -> dict:
-    from app.agents.career_prompt import ROLE_PLAYBOOKS, load_skill, playbook_followups
+def deepen_dimensions(family: str) -> dict:
+    """Shared role dimensions, independent of intake stage or draft presence."""
+    from app.agents.career_prompt import playbook_followups
     from app.services.ask_user import question_dimension
+    if family == "ai_pm":
+        dimensions = {"problem": "问题定义", "my_work": "本人分工", "decision": "关键产品决策", "iteration": "badcase 与迭代",
+                      "evaluation": "评测方式", "tech_stack": "技术栈", "status": "现状", "links": "链接",
+                      "adoption": "使用人数（可选，个人项目不强制追问）"}
+    else:
+        dimensions = {}
+        for index, question in enumerate(playbook_followups(family)):
+            dimension = question_dimension(prompt=question)
+            dimensions[dimension if re.fullmatch(r'[a-z][a-z0-9_-]*', dimension) else f'playbook_{index + 1}'] = question
+        dimensions.setdefault("my_work", "本人分工")
+    return dimensions
+
+
+def deepen_context(state: dict) -> dict:
+    from app.agents.career_prompt import ROLE_PLAYBOOKS, load_skill
     update = intake_update(state)
     current = current_experience(state)
     from app.services.followup_context import latest_followup
@@ -413,16 +429,7 @@ def deepen_context(state: dict) -> dict:
         return context
     section, item = current
     family = str(((state.get("jd_info") or {}).get("role_profile") or {}).get("role_family") or "other").replace("-", "_")
-    if family == "ai_pm":
-        dimensions = {"problem": "问题定义", "my_work": "本人分工", "decision": "关键产品决策", "iteration": "badcase 与迭代",
-                      "evaluation": "评测方式", "tech_stack": "技术栈", "status": "现状", "links": "链接",
-                      "adoption": "使用人数（可选，个人项目不强制追问）"}
-    else:
-        dimensions = {}
-        for index, question in enumerate(playbook_followups(family)):
-            dimension = question_dimension(prompt=question)
-            dimensions[dimension if re.fullmatch(r'[a-z][a-z0-9_-]*', dimension) else f'playbook_{index + 1}'] = question
-        dimensions.setdefault("my_work", "本人分工")
+    dimensions = deepen_dimensions(family)
     entry = update["intake_progress"].get("deepen", {}).get(item_key(section, item), {})
     closed = set(entry.get("closed_dimensions") or []) | profile_dimensions(item)
     context.update(subject=item.get(FACT_LABELS[section]) or "", item_id=item.get("item_id"),

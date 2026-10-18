@@ -12,6 +12,8 @@ def answer_field(identifier: str, prompt: str) -> str:
     text = f"{identifier} {prompt}".lower()
     if re.search(r"手机|电话|邮箱|联系方式|姓名|学校.*专业", text):
         return ""
+    if identifier == "dates" or "起止时间" in prompt:
+        return "dates"
     for field, pattern in (
         ("start_date", r"start[_-]?(?:date|time)|开始.*(?:时间|年月)|哪年.*开始"),
         ("end_date", r"end[_-]?(?:date|time)|结束.*(?:时间|年月)|哪年.*结束"),
@@ -21,6 +23,17 @@ def answer_field(identifier: str, prompt: str) -> str:
         if re.search(pattern, text):
             return field
     return ""
+
+
+def answer_dates(value: str, target: dict) -> dict:
+    date = r"\d{4}(?:[年./-](?:0?[1-9]|1[0-2])月?)?"
+    match = re.fullmatch(rf"\s*({date})\s*(?:至|到|[-–—~～/]|\s)\s*({date}|至今)\s*", value)
+    if match:
+        return dict(zip(("start_date", "end_date"), match.groups()))
+    missing = [field for field in ("start_date", "end_date") if not target.get(field)]
+    if len(missing) == 1 and re.fullmatch(date + (r"|至今" if missing[0] == "end_date" else ""), value.strip()):
+        return {missing[0]: value.strip()}
+    return {}
 
 
 def append_answer(target: dict, value: str, *, message, question_id: str,
@@ -86,6 +99,22 @@ def apply_answers(collected: dict, message, *, project_fields: bool = False) -> 
                 from app.services.intake import _write_field
                 value = value.strip()
                 if not value or NO_ANSWER.fullmatch(value) or value in {"不确定", "未知"}:
+                    continue
+                if field == "dates":
+                    from app.schemas.facts import FACT_FIELDS
+                    dates = answer_dates(value, target) if len(set(values)) == 1 else {}
+                    if dates and all(key in FACT_FIELDS[section] for key in dates):
+                        for key, date in dates.items():
+                            _write_field(target, key, date, message)
+                            fact = next(f for f in reversed(target["facts"]) if f.get("field") == key
+                                        and f.get("turn_id") == message.id)
+                            provenance = {"question_id": question["id"], "question_prompt": question["prompt"],
+                                          "dimension": dimension, "answer_value": value}
+                            fact.update(provenance)
+                            fact["sources"][0].update(provenance)
+                    else:
+                        append_answer(target, value, message=message, question_id=question["id"],
+                                      prompt=question["prompt"], dimension=dimension, kind="context")
                     continue
                 field = FACT_LABELS[section] if field == "name" else "title" if field == "role" and section in {"work_experience", "internship"} else field
                 from app.schemas.facts import FACT_FIELDS

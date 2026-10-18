@@ -188,23 +188,22 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
     if final_mode not in {"thinking", "off"}:
         raise ValueError("final_mode must be thinking or off")
     working, update = deepcopy(state), {}
-    from app.agents.loop_followup import answer_receipt, answers_unknown, public_clause, questions_allowed
+    from app.agents.loop_followup import answer_receipt, public_clause, questions_allowed
     answer_message = next((m for m in reversed(working.get("messages") or []) if isinstance(m, HumanMessage)), None)
     answer_message = answer_message if answer_message and answer_message.additional_kwargs.get("answers") else None
+    answered_card = False
     if answer_message:
         from app.agents.resume_graph import _intake_saver, _persist_intake
         from app.services.answer_facts import apply_answers, project_answer_fields
-        from app.services.ask_user import close_answers
+        from app.services.ask_user import close_answers, pending_card
         previous = {**working, "messages": working["messages"][:working["messages"].index(answer_message)]}
+        prior_card = pending_card(previous)
+        answered_card = bool(prior_card and prior_card.get("turn_id") == answer_message.additional_kwargs["answers"].get("turn_id"))
         working["closed_questions"] = close_answers(previous, answer_message.content,
                                                     answer_message.additional_kwargs["answers"])
         update["closed_questions"] = working["closed_questions"]
         collected = apply_answers(working.get("collected_info") or {}, answer_message, project_fields=True)
         update.update(await _persist_intake(working, collected))
-        closed = [row for row in working["closed_questions"]
-                  if row.get("turn_id") == answer_message.additional_kwargs["answers"].get("turn_id")]
-        if closed and (all(row.get("reason") in {"unknown", "skipped"} for row in closed) or answers_unknown(answer_message)):
-            update["session_constraints"]["questions_finished"] = True
         working.update(update)
         if saver := _intake_saver.get():
             await saver(working)
@@ -222,13 +221,9 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             working.update(update)
     privacy, reply_id = ContactRedactor(), str(uuid4())
     sources = _sources(working)
-    messages = _input_messages(working, sources, privacy)
-    if answer_message:
-        messages.append({"role": "system", "content": "本轮问题卡答案已由代码记录，关闭记录已更新。不要再次抽取答案或题干；根据已记录事实决定是否更新稿子，再收尾。"})
-    if not questions_allowed(working):
-        messages.append({"role": "system", "content": "本会话深挖已结束，本轮只能按现有事实更新或收尾，不再提问或出卡。"})
+    messages = []
     emit = emit or (lambda event: None)
-    from app.agents.orchestrator_tools import ToolContext, attach_draft_followup
+    from app.agents.orchestrator_tools import ToolContext, attach_draft_followup, _draft_followup, rewrite_answer_items
     # 工具适配器（P1a）按 ToolContext 取业务模型；进度事件由本循环统一发出，不再传 emit 以免重复。
     ctx = ToolContext(llm=llm, turn_id=reply_id)
     if answer_message:
@@ -255,9 +250,9 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         # Hold one sentence so a request cannot leak before its subject arrives.
         while match := re.search(r"[。！？!?]|\n\n", public_buffer):
             clause, public_buffer = public_buffer[:match.end()], public_buffer[match.end():]
-            publish(public_clause(clause, working, has_card=bool(final_metadata.get("ask_user"))))
+            publish(public_clause(clause, working, has_card=bool(final_metadata.get("ask_user") or answered_card)))
         if finish:
-            publish(public_clause(public_buffer, working, has_card=bool(final_metadata.get("ask_user"))))
+            publish(public_clause(public_buffer, working, has_card=bool(final_metadata.get("ask_user") or answered_card)))
             public_buffer = ""
 
     # DeepSeek 在 tool_choice=none 的收尾轮偶尔把工具调用写成 DSML 文本；遇到标记即停止推送，不让标记漏到界面。
@@ -314,6 +309,29 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             if outcome.result.get("status") == "ok":
                 messages.append({"role": "system", "content": "出稿后的补充问题卡已展示。收尾直接说明结果，不在正文重复卡片问题。"})
             pending_followup, stopped = {}, True
+
+    if answered_card and working.get("resume_data"):
+        # Answer turns have a fixed record -> scoped writer -> one card path.
+        # Final prose/model failure cannot decide whether interviewing continues.
+        began = perf_counter()
+        try:
+            outcome = await asyncio.wait_for(rewrite_answer_items(deepcopy(working), state.get("collected_info") or {}, answer_message, ctx), timeout)
+            await apply_outcome(outcome)
+            result = outcome.result
+        except Exception as exc:
+            result = {"status": "error", "code": "tool_error"}
+            logger.warning("orchestrator_answer_write_failed type=%s", type(exc).__name__)
+        ctx.automatic_tools.append({"name": "rewrite_answer_items", "seconds": round(perf_counter() - began, 4),
+                                    "status": result.get("status"), "automatic": True})
+        messages.append({"role": "system", "content": _safe_json({"answer_update": project_tool_result("edit_resume", result, privacy)}, privacy)})
+        pending_followup = _draft_followup(working, ctx)
+        await finish_followup()
+        stopped = True
+    messages = _input_messages(working, sources, privacy) + messages
+    if answer_message:
+        messages.append({"role": "system", "content": "本轮问题卡答案已由代码记录，关闭记录已更新，按需更新稿件和接续卡片已处理。直接根据实际结果收尾，不再次抽取、改稿或提问。"})
+    if not questions_allowed(working):
+        messages.append({"role": "system", "content": "本会话深挖已结束，本轮只能按现有事实更新或收尾，不再提问或出卡。"})
 
     turns_cap_bonus = [0]
     while len(turns) < MAX_MODEL_CALLS + turns_cap_bonus[0]:

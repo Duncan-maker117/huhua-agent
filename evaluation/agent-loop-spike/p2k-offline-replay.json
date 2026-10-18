@@ -1,0 +1,214 @@
+{
+  "mode": "offline_stubs",
+  "turns": [
+    {
+      "action": "initial",
+      "questions": [
+        "dates"
+      ],
+      "bullets": [
+        "现状：已上线"
+      ]
+    },
+    {
+      "action": "answers_1",
+      "questions": [
+        "problem"
+      ],
+      "bullets": [
+        "现状：已上线"
+      ]
+    },
+    {
+      "action": "answers_2",
+      "questions": [
+        "my_work"
+      ],
+      "bullets": [
+        "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实",
+        "现状：已上线"
+      ]
+    },
+    {
+      "action": "answers_3",
+      "questions": [
+        "decision"
+      ],
+      "bullets": [
+        "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实",
+        "现状：已上线"
+      ]
+    },
+    {
+      "action": "answers_4",
+      "questions": [
+        "iteration"
+      ],
+      "bullets": [
+        "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实",
+        "决策：先通过对话补充学生经历，再依据已确认事实成稿",
+        "现状：已上线"
+      ]
+    },
+    {
+      "action": "answers_5",
+      "questions": [
+        "evaluation"
+      ],
+      "bullets": [
+        "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实",
+        "决策：先通过对话补充学生经历，再依据已确认事实成稿",
+        "迭代：更换模型或调整参数",
+        "现状：已上线"
+      ]
+    },
+    {
+      "action": "answers_6",
+      "questions": [],
+      "bullets": [
+        "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实",
+        "决策：先通过对话补充学生经历，再依据已确认事实成稿",
+        "迭代：更换模型或调整参数；对比过不同提示词或方案；做了5个虚拟求职者的对话回放，用71条断言自动检查成稿",
+        "现状：已上线"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "aipm.common.rounds_complete",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "common.rounds_complete",
+          "excerpt": "writer 成稿、正文引用与每轮 SSE"
+        }
+      ]
+    },
+    {
+      "id": "aipm.heading",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "heading",
+          "excerpt": "{'name': '胡话简历', 'start_date': '2026-08', 'end_date': '至今', 'positioning': '面向学生的简历工具'}"
+        }
+      ]
+    },
+    {
+      "id": "aipm.labels",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "labels",
+          "excerpt": "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实\n决策：先通过对话补充学生经历，再依据已确认事实成稿\n迭代：更换模型或调整参数；对比过不同提示词或方案；做了5个虚拟求职者的对话回放，用71条断言自动检查成稿\n现状：已上线"
+        }
+      ]
+    },
+    {
+      "id": "aipm.answers_used",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "answers_used",
+          "excerpt": "[('2026-08 / 至今', False), ('学生难以梳理自己的经历，需要通过对话挖掘可写进简历的事实', False), ('独立完成需求梳理、开发和上线', False), ('先让学生通过对话补充经历，再根据已确认事实成稿', False), ('换模型或调参数', True), ('对比过不同提示词或方案', True), ('做了五个虚拟求职者的对话回放，用71条断言自动检查成稿', True)]"
+        }
+      ]
+    },
+    {
+      "id": "aipm.no_placeholder",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "no_placeholder",
+          "excerpt": "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实\n决策：先通过对话补充学生经历，再依据已确认事实成稿\n迭代：更换模型或调整参数；对比过不同提示词或方案；做了5个虚拟求职者的对话回放，用71条断言自动检查成稿\n现状：已上线"
+        }
+      ]
+    },
+    {
+      "id": "aipm.rewritten",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "rewritten",
+          "excerpt": "最长公共子串 24，阈值 24"
+        }
+      ]
+    },
+    {
+      "id": "aipm.no_invented_metrics",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "no_invented_metrics",
+          "excerpt": "问题：学生难以梳理自身经历，需借助对话挖掘可写进简历的事实\n决策：先通过对话补充学生经历，再依据已确认事实成稿\n迭代：更换模型或调整参数；对比过不同提示词或方案；做了5个虚拟求职者的对话回放，用71条断言自动检查成稿\n现状：已上线"
+        }
+      ]
+    },
+    {
+      "id": "aipm.no_repeated_dimension",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "no_repeated_dimension",
+          "excerpt": "[('胡话简历', 'dates'), ('胡话简历', 'problem'), ('胡话简历', 'my_work'), ('胡话简历', 'decision'), ('胡话简历', 'iteration'), ('胡话简历', 'evaluation')]"
+        }
+      ]
+    },
+    {
+      "id": "aipm.depth_within_limit",
+      "status": "pass",
+      "evidence": [
+        {
+          "action": "answers_6",
+          "path": "depth_within_limit",
+          "excerpt": "深挖上限 6 轮；越级直接写单独失败"
+        }
+      ]
+    }
+  ],
+  "answer_evidence": [
+    {
+      "question_id": "dates",
+      "answer": "2026-08 / 至今",
+      "turn": "answers_1"
+    },
+    {
+      "question_id": "dates",
+      "answer": "2026-08 / 至今",
+      "turn": "answers_1"
+    },
+    {
+      "question_id": "problem",
+      "answer": "学生难以梳理自己的经历，需要通过对话挖掘可写进简历的事实",
+      "turn": "answers_2"
+    },
+    {
+      "question_id": "my_work",
+      "answer": "独立完成需求梳理、开发和上线",
+      "turn": "answers_3"
+    },
+    {
+      "question_id": "decision",
+      "answer": "先让学生通过对话补充经历，再根据已确认事实成稿",
+      "turn": "answers_4"
+    },
+    {
+      "question_id": "iteration",
+      "answer": "换模型或调参数",
+      "turn": "answers_5"
+    },
+    {
+      "question_id": "evaluation",
+      "answer": "对比过不同提示词或方案；做了五个虚拟求职者的对话回放，用71条断言自动检查成稿",
+      "turn": "answers_6"
+    }
+  ]
+}

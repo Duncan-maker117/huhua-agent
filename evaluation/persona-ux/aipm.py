@@ -62,6 +62,10 @@ def question_value(question, values, intake):
     if re.search(r'手机|电话|邮箱|联系方式|学校|专业', prompt):
         return None
     item = intake['items'][0]
+    if question['id'] == 'dates':
+        if '起止' in prompt:
+            return item['start'] + ' / ' + item['end']
+        return item['start'] if '开始' in prompt else item['end']
     if re.search(r'项目|经历', prompt):
         for pattern, field in ((r'名称|名字|叫什么', 'name'), (r'开始.*(?:时间|年月)|哪年.*开始', 'start'),
                                (r'结束.*(?:时间|年月)|哪年.*结束', 'end'), (r'角色|担任.*职务', 'role')):

@@ -28,11 +28,11 @@ class P2jTests(unittest.IsolatedAsyncioTestCase):
         value = missing_heading()
         with patch("app.agents.interviewer.question_candidates") as candidates:
             card = tools._draft_followup(value, tools.ToolContext())
-            self.assertEqual([q["id"] for q in card["questions"]], ["name", "start_date", "end_date", "role"])
+            self.assertEqual([q["id"] for q in card["questions"]], ["name", "dates", "role"])
             candidates.assert_not_called()
         for store in (value["collected_info"], value["resume_data"]):
             store["projects"][0].update(name="资料核对项目", end_date="至今", role="参与者")
-        self.assertEqual([q["id"] for q in tools._draft_followup(value, tools.ToolContext())["questions"]], ["start_date"])
+        self.assertEqual([q["id"] for q in tools._draft_followup(value, tools.ToolContext())["questions"]], ["dates"])
         value["resume_data"]["projects"][0]["start_date"] = "2025-03"
         self.assertEqual(tools._draft_followup(value, tools.ToolContext())["questions"][0]["id"], "evaluation")
 
@@ -60,7 +60,7 @@ class P2jTests(unittest.IsolatedAsyncioTestCase):
                 value["confirmed_plan"] = {"experience_plan": plan}
                 card = tools._draft_followup(value, tools.ToolContext())
                 self.assertEqual(card["subject"], main["name"])
-                self.assertEqual([q["id"] for q in card["questions"]], ["start_date"])
+                self.assertEqual([q["id"] for q in card["questions"]], ["dates"])
         value = missing_heading()
         value["confirmed_plan"] = {"experience_plan": [
             {"item_id": "p1", "treatment": "brief"}, {"item_id": "p2", "treatment": "lead"}]}
@@ -74,7 +74,7 @@ class P2jTests(unittest.IsolatedAsyncioTestCase):
         value["closed_questions"] = [{"subject": "p1", "id": "name", "dimension": "name", "reason": "unknown"}]
         card = tools._draft_followup(value, tools.ToolContext())
         self.assertEqual(card["subject"], "p1")
-        self.assertEqual([q["id"] for q in card["questions"]], ["start_date", "end_date", "role"])
+        self.assertEqual([q["id"] for q in card["questions"]], ["dates", "role"])
         for patch_state in ({"pending_plan": {"kind": "structure_plan"}},
                             {"session_constraints": {"questions_finished": True}},
                             {"collected_info": {**value["collected_info"], "no_more_questions": True}}):
@@ -95,7 +95,7 @@ class P2jTests(unittest.IsolatedAsyncioTestCase):
                 result = await loop.run_orchestrator(value, Model(script), registry=specs, emit=events.append)
             card = pending_card({**value, **result})
             self.assertEqual(card["subject"], "项目（待补名称）")
-            self.assertEqual([q["id"] for q in card["questions"]], ["name", "start_date", "end_date", "role"])
+            self.assertEqual([q["id"] for q in card["questions"]], ["name", "dates", "role"])
             self.assertEqual(len([e for e in events if e["type"] == "guidance"]), 1)
 
     def test_contact_fallback_understands_optional_synonyms_without_false_acknowledgments(self):

@@ -127,23 +127,24 @@ class P2iTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len([f for f in result["collected_info"]["projects"][0]["facts"] if f.get("turn_id") == "answer-turn"]), 1)
         self.assertTrue(result["messages"][-1].content.strip())
 
-    async def test_all_unknown_closes_questions_and_prevents_other_dimension_followups(self):
+    async def test_all_unknown_closes_only_answered_dimension_and_continues(self):
         value = answer_state([question("evaluation", "怎么评测？")], [{"unknown": True}])
         args = {"subject": "项目（待补名称）", "questions": [question("tech_stack", "用什么技术？")]}
         result = await loop.run_orchestrator(value, Model([call("ask_user", card=args),
             {"content": "请补充技术栈？", "deltas": list("请补充技术栈？")}]), registry=tools.TOOLS)
-        self.assertTrue(result["session_constraints"]["questions_finished"])
+        self.assertFalse(result["session_constraints"].get("questions_finished", False))
         self.assertEqual(result["closed_questions"][0]["reason"], "unknown")
-        self.assertFalse(pending_card({**value, **result}))
+        self.assertTrue(pending_card({**value, **result}))
         self.assertNotIn("技术栈", result["messages"][-1].content)
         self.assertIn("稿子未更新", result["messages"][-1].content)
-        self.assertFalse(tools._draft_followup({**value, **result}, tools.ToolContext()))
+        self.assertTrue(tools._draft_followup({**value, **result}, tools.ToolContext()))
+        self.assertTrue(all(q["id"] != "evaluation" for q in pending_card({**value, **result})["questions"]))
 
-    async def test_literal_unknown_option_and_skipped_answer_finish_without_new_facts(self):
+    async def test_literal_unknown_option_and_skipped_answer_continue_without_new_facts(self):
         for answer in ("不知道 / 没有", {"skipped": True}):
             value = answer_state([question("evaluation", "怎么评测？")], [answer])
             result = await loop.run_orchestrator(value, Model([{"content": ""}]), registry=tools.TOOLS)
-            self.assertTrue(result["session_constraints"]["questions_finished"])
+            self.assertFalse(result["session_constraints"].get("questions_finished", False))
             self.assertEqual(result["collected_info"], value["collected_info"])
             self.assertEqual(result["closed_questions"][0]["dimension"], "evaluation")
 
@@ -196,9 +197,9 @@ class P2iTests(unittest.IsolatedAsyncioTestCase):
             next_turn = await loop.run_orchestrator(value, Model([{"content": prose}]), registry=specs)
             self.assertEqual(next_turn["messages"][-1].content, "稿件已保留。")
 
-    def test_loop_identity_dimensions_are_distinct_and_off_contract_is_unchanged(self):
-        self.assertEqual(question_dimension("x", "项目开始时间？"), "start_date")
-        self.assertEqual(question_dimension("x", "项目结束时间？"), "end_date")
+    def test_loop_dates_share_dimension_and_off_contract_is_unchanged(self):
+        self.assertEqual(question_dimension("x", "项目开始时间？"), "dates")
+        self.assertEqual(question_dimension("x", "项目结束时间？"), "dates")
         self.settings.AGENT_MODE = "off"
         self.assertEqual(question_dimension("x", "项目开始时间？"), "dates")
         self.assertEqual(question_dimension("x", "项目结束时间？"), "dates")
@@ -236,7 +237,7 @@ class P2iGraphTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(stored["collected_info"]["projects"][0]["name"], "文档比对工具")
         self.assertEqual(stored["resume_data"]["projects"][0]["start_date"], "2025-04")
         snapshot = (await compiled.aget_state(config)).values
-        self.assertEqual(len(snapshot["closed_questions"]), 4)
+        self.assertEqual(len(snapshot["closed_questions"]), 3)
         self.assertEqual(snapshot["messages"][-1].content, reply)
 
 
@@ -291,7 +292,7 @@ class P2iOfflineReplayTests(unittest.TestCase):
                     elif not facts_ready:
                         script = [call("record_facts", source_id="current"), call("write_draft"), {"content": "初稿已生成。"}]
                     else:
-                        script = [call("write_draft"), {"content": "已按本轮信息处理。"}]
+                        script = [{"content": "已按本轮信息处理。"}]
                     scripted = Model(script)
                     def candidates(current):
                         item = current["resume_data"]["projects"][0]
@@ -332,9 +333,9 @@ class P2iOfflineReplayTests(unittest.TestCase):
                 card = turns[first]["workspace"]["guidance"]
                 self.assertTrue(turns[first]["resume_data"]["projects"][0]["polished_bullets"])
                 self.assertEqual({q["id"] for q in card["questions"]},
-                                 {"start_date", "end_date"} if name == "aipm" else {"name", "start_date", "end_date", "role"})
+                                 {"dates"} if name == "aipm" else {"name", "dates", "role"})
                 self.assertTrue(module.delivered(turns[first + 1]))
-                self.assertEqual({q["id"] for q in turns[first + 1]["workspace"]["guidance"]["questions"]}, {"evaluation"})
+                self.assertEqual({q["id"] for q in turns[first + 1]["workspace"]["guidance"]["questions"]}, {"problem"})
                 self.assertTrue(module.delivered(turns[-1]), turns[-1])
                 item = turns[-1]["resume_data"]["projects"][0]
                 expected = module.INTAKE["items"][0]

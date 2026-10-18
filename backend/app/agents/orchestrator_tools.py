@@ -492,14 +492,13 @@ def _project_identity(data, state):
 
 def _draft_followup(state, ctx):
     from app.agents.interviewer import question_candidates
+    from app.services.intake import deepen_dimensions, profile_dimensions
     from app.services.ask_user import validate_card
     from app.schemas.facts import FACT_FIELDS, FACT_LABELS
     from app.services.candidate_language import placeholder_name
     from app.agents.loop_followup import questions_allowed
     if ctx.ask_used or state.get("pending_plan") or not questions_allowed(state):
         return {}
-    items = {item["item_id"]: item for section in ("projects", "work_experience", "campus", "open_source", "awards")
-             for item in (state.get("resume_data") or {}).get(section) or [] if item.get("item_id")}
     data = state.get("resume_data") or {}
     plan = state.get("confirmed_plan") or (state.get("resume_meta") or {}).get("confirmed_plan") or state.get("match_plan") or {}
     selections = {row["item_id"]: row for row in plan.get("experience_plan") or []}
@@ -513,17 +512,19 @@ def _draft_followup(state, ctx):
     if written:
         # The accepted lead/order determines the main experience, never a blank
         # or hidden item that merely happens to precede it in the fact store.
-        section, item = min(written, key=lambda pair: (
+        written.sort(key=lambda pair: (
             selections.get(pair[1]["item_id"], {}).get("treatment") != "lead",
             list(selections).index(pair[1]["item_id"]) if pair[1]["item_id"] in selections else len(selections)))
+        section, item = written[0]
         name = item.get(FACT_LABELS[section]) or ""
+        dates = [field for field in ("start_date", "end_date") if field in FACT_FIELDS[section] and not item.get(field)]
+        period = "起止时间" if len(dates) == 2 else "开始时间" if dates == ["start_date"] else "结束时间"
         fields = [("name", "这段经历叫什么名字？", not name or placeholder_name(name)),
-                  ("start_date", "这段经历的开始时间是哪年哪月？", not item.get("start_date")),
-                  ("end_date", "这段经历的结束时间是什么时候（仍在进行可填至今）？", not item.get("end_date")),
+                  ("dates", f"这段经历的{period}是什么（年/月，仍在进行可填至今）？", bool(dates)),
                   ("role", "你在这段经历中是什么角色？", not (item.get("title") or item.get("role")))]
         missing = [{"id": field, "prompt": prompt, "kind": "text"} for field, prompt, absent in fields
-                   if absent and (FACT_LABELS[section] if field == "name" else "title"
-                                  if field == "role" and section == "work_experience" else field) in FACT_FIELDS[section]]
+                   if absent and (field == "dates" or (FACT_LABELS[section] if field == "name" else "title"
+                                  if field == "role" and section == "work_experience" else field) in FACT_FIELDS[section])]
         if missing:
             sources = [row for key in FACT_LABELS for row in (state.get("collected_info") or {}).get(key) or []]
             subject = name if name and sum(name in {row.get("name"), row.get("company"), row.get("school")}
@@ -531,18 +532,36 @@ def _draft_followup(state, ctx):
             card = validate_card({"subject": subject, "questions": missing}, state, ctx.turn_id)
             if card:
                 return {"subject": card["subject"], "questions": card["questions"]}
-    for row in question_candidates(state):
-        item = items.get((row.get("improves") or {}).get("item_id"), {})
-        subject = item.get("name") or item.get("company") or ""
-        prompt = row["q"].removeprefix(subject + "：")
-        identifier = question_dimension("q_" + row["question_id"], prompt)
-        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,47}", identifier):
-            identifier = "q_" + row["question_id"]
-        question = {"id": identifier, "prompt": prompt if len(prompt) <= 40 else "这段经历还有什么细节可以补充？",
-                    "placeholder": prompt[:120] if len(prompt) > 40 else "", "kind": "text"}
-        card = validate_card({"subject": subject[:120], "questions": [question]}, state, ctx.turn_id)
-        if card:
-            return {"subject": card["subject"], "questions": card["questions"]}
+    candidates = question_candidates(state) if written else []
+    family = str(((state.get("jd_info") or {}).get("role_profile") or {}).get("role_family") or "other").replace("-", "_")
+    dimensions = deepen_dimensions(family)
+    sources = {row["item_id"]: row for key in FACT_LABELS for row in (state.get("collected_info") or {}).get(key) or []}
+    for section, item in written:
+        name, iid = item.get(FACT_LABELS[section]) or "", item["item_id"]
+        subject = name if name and sum(name in {row.get("name"), row.get("company"), row.get("school")}
+                                      for row in sources.values()) == 1 else iid
+        known = profile_dimensions(sources.get(iid, {}))
+        ordered = dict(dimensions)
+        if family != "ai_pm":
+            ordered = {}
+            for row in candidates:
+                if (row.get("improves") or {}).get("item_id") == iid:
+                    prompt = row["q"].removeprefix(name + "：")
+                    ordered.setdefault(question_dimension(prompt=prompt), prompt)
+            ordered.update({key: label for key, label in dimensions.items() if key not in ordered})
+        for dimension, label in ordered.items():
+            if dimension in known or is_closed(state, iid, dimension, label):
+                continue
+            # Candidates retain their evidence-specific wording; the shared
+            # deepen table fills gaps even when lexical cues suppress them.
+            row = next((row for row in candidates if (row.get("improves") or {}).get("item_id") == iid
+                        and question_dimension(prompt=row["q"].removeprefix(name + "：")) == dimension), None)
+            prompt = row["q"].removeprefix(name + "：") if row else label if "？" in label else f"这段经历的{label}是什么？"
+            question = {"id": dimension, "prompt": prompt if len(prompt) <= 40 else "这段经历还有什么细节可以补充？",
+                        "placeholder": prompt[:120] if len(prompt) > 40 else "", "kind": "text"}
+            card = validate_card({"subject": subject, "questions": [question]}, state, ctx.turn_id)
+            if card:
+                return {"subject": card["subject"], "questions": card["questions"]}
     return {}
 
 
@@ -553,6 +572,24 @@ async def attach_draft_followup(state, followup, ctx):
     ctx.automatic_tools.append({"name": "ask_user", "seconds": round(perf_counter() - began, 4),
                                "status": outcome.result.get("status"), "automatic": True})
     return outcome
+
+
+async def rewrite_answer_items(state, previous, message, ctx):
+    from app.schemas.facts import FACT_SECTIONS
+    old = {fact["id"] for section in FACT_SECTIONS for item in previous.get(section) or []
+           for fact in item.get("facts") or []}
+    targets = [item["item_id"] for section in FACT_SECTIONS for item in (state.get("collected_info") or {}).get(section) or []
+               if any(fact["id"] not in old and fact.get("turn_id") == message.id
+                      and fact.get("status", "active") == "active"
+                      and fact.get("dimension") not in {"name", "role", "dates", "start_date", "end_date"}
+                      for fact in item.get("facts") or [])]
+    visible = {item.get("item_id") for section in FACT_SECTIONS for item in (state.get("resume_data") or {}).get(section) or []
+               if not item.get("hidden")}
+    targets = [iid for iid in targets if iid in visible]
+    if not targets:
+        return ToolOutcome({"status": "unchanged"})
+    return await _write(state, ctx, "根据本轮已记录的补充事实更新对应经历，沿用已确认的写法。",
+                        scope="item", targets=targets, base=state["resume_data"], plan_draft=True)
 
 
 @_register("propose_plan", NoArgs, "依据已记录事实生成结构方案卡，等待用户选择。", "正在整理简历方案…")

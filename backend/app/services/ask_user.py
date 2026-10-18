@@ -92,7 +92,7 @@ def question_dimension(identifier: str = "", prompt: str = "") -> str:
     if getattr(get_settings(), "AGENT_MODE", "off") == "loop":
         from app.services.answer_facts import answer_field
         if field := answer_field(identifier, prompt):
-            return field
+            return "dates" if field in {"start_date", "end_date"} else field
     text = f"{identifier} {prompt}".lower()
     for dimension, pattern in (
         ("adoption", r"adoption|user[_-]?(?:count|number|numbers)|usage|用户数|用户量|用户规模|使用人数|多少人|几个人|人数|人用过|人试过|实际使用|真实用户"),
@@ -128,8 +128,9 @@ def subject_key(subject: str, state: dict) -> str:
 def is_closed(state: dict, subject: str, identifier: str = "", prompt: str = "") -> bool:
     subject = subject_key(subject, state)
     dimension = question_dimension(identifier, prompt)
+    dimensions = {"dates", "start_date", "end_date"} if dimension == "dates" else {dimension}
     return any((not row.get("subject") or not subject or subject_key(row["subject"], state) == subject)
-               and (row.get("id") == identifier or row.get("dimension") == dimension)
+               and (row.get("id") == identifier or row.get("dimension") in dimensions)
                for row in state.get("closed_questions") or [])
 
 

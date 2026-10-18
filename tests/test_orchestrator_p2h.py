@@ -24,6 +24,9 @@ from test_orchestrator_tools import PHONE, EMAIL, Writer, measured, state_with_d
 
 def followup_state():
     value = state_with_draft()
+    for store in (value["collected_info"], value["resume_data"]):
+        for item in store["projects"]:
+            item.update(start_date="2025-03", end_date="2025-05", role="参与者")
     value["match_plan"] = {"questions": [{"q": "如何验证核对结果？", "value": 5,
         "improves": {"item_id": "p1", "req_id": ""}}]}
     return value

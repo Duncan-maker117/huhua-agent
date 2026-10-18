@@ -493,11 +493,44 @@ def _project_identity(data, state):
 def _draft_followup(state, ctx):
     from app.agents.interviewer import question_candidates
     from app.services.ask_user import validate_card
+    from app.schemas.facts import FACT_FIELDS, FACT_LABELS
+    from app.services.candidate_language import placeholder_name
     from app.agents.loop_followup import questions_allowed
     if ctx.ask_used or state.get("pending_plan") or not questions_allowed(state):
         return {}
     items = {item["item_id"]: item for section in ("projects", "work_experience", "campus", "open_source", "awards")
              for item in (state.get("resume_data") or {}).get(section) or [] if item.get("item_id")}
+    data = state.get("resume_data") or {}
+    plan = state.get("confirmed_plan") or (state.get("resume_meta") or {}).get("confirmed_plan") or state.get("match_plan") or {}
+    selections = {row["item_id"]: row for row in plan.get("experience_plan") or []}
+    written = [(section, item) for section in ("projects", "work_experience", "campus", "open_source", "awards")
+               for item in data.get(section) or []
+               if item.get("item_id") and not item.get("hidden")
+               and (data.get("sections") is None or section in {row["kind"] for row in data["sections"]})
+               and (item.get("polished_bullets") or item.get("bullets"))
+               and selections.get(item["item_id"], {}).get("treatment") != "backup"
+               and selections.get(item["item_id"], {}).get("target_bullets") != 0]
+    if written:
+        # The accepted lead/order determines the main experience, never a blank
+        # or hidden item that merely happens to precede it in the fact store.
+        section, item = min(written, key=lambda pair: (
+            selections.get(pair[1]["item_id"], {}).get("treatment") != "lead",
+            list(selections).index(pair[1]["item_id"]) if pair[1]["item_id"] in selections else len(selections)))
+        name = item.get(FACT_LABELS[section]) or ""
+        fields = [("name", "这段经历叫什么名字？", not name or placeholder_name(name)),
+                  ("start_date", "这段经历的开始时间是哪年哪月？", not item.get("start_date")),
+                  ("end_date", "这段经历的结束时间是什么时候（仍在进行可填至今）？", not item.get("end_date")),
+                  ("role", "你在这段经历中是什么角色？", not (item.get("title") or item.get("role")))]
+        missing = [{"id": field, "prompt": prompt, "kind": "text"} for field, prompt, absent in fields
+                   if absent and (FACT_LABELS[section] if field == "name" else "title"
+                                  if field == "role" and section == "work_experience" else field) in FACT_FIELDS[section]]
+        if missing:
+            sources = [row for key in FACT_LABELS for row in (state.get("collected_info") or {}).get(key) or []]
+            subject = name if name and sum(name in {row.get("name"), row.get("company"), row.get("school")}
+                                          for row in sources) == 1 else item["item_id"]
+            card = validate_card({"subject": subject, "questions": missing}, state, ctx.turn_id)
+            if card:
+                return {"subject": card["subject"], "questions": card["questions"]}
     for row in question_candidates(state):
         item = items.get((row.get("improves") or {}).get("item_id"), {})
         subject = item.get("name") or item.get("company") or ""

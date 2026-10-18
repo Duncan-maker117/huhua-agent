@@ -307,7 +307,7 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
         record["checks"] = evaluator.evaluate_persona(persona, record["turns"], with_recovery=with_recovery)
         if agent_mode == "loop":
             record["checks"] += loop_checks.evaluate_loop(persona, record["turns"])
-        record["observations"] = loop_checks.observations(record["turns"])
+        record["observations"] = loop_checks.observations(record["turns"], persona)
         if record["error"]:
             completion = next(c for c in record["checks"] if c["id"].endswith("common.rounds_complete"))
             completion["status"] = "fail"

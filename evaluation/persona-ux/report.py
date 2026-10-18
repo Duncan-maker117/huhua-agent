@@ -145,8 +145,8 @@ def render_report(runs):
     lines += ["", "## 逐轮调用与耗时", "", "模型调用数是服务端观测到的模型 HTTP 尝试数，含编排、工具内部调用与重试；不含轮次外后台归档。N/A 表示缺证据，不能当作0。"]
     for run, label in zip(runs, labels):
         for persona, record in run['personas'].items():
-            stats = loop_checks.observations(record.get('turns') or [])
-            lines += [f"\n{cell(label)}/{persona}：首稿总轮次={stats['first_draft_turn'] or 'N/A'}；从具体材料起={stats['turns_from_material'] or 'N/A'}；联系方式索要轮次={stats['contact_request_turns']}。\n"]
+            stats = loop_checks.observations(record.get('turns') or [], persona)
+            lines += [f"\n{cell(label)}/{persona}：首稿总轮次={stats['first_draft_turn'] or 'N/A'}；首次可写材料轮次={stats['first_material_turn'] or 'N/A'}；从具体材料起={stats['turns_from_material'] or 'N/A'}；联系方式索要轮次={stats['contact_request_turns']}。\n"]
             lines += ["| Run | 人物/轮次 | 模型HTTP调用 | 服务端秒 | SSE秒 | 总秒 | 编排调用 | 编排秒 | 编排 token P/C/R/H |", "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |"]
             for number, turn in enumerate(record.get('turns') or [], 1):
                 values = [turn.get(key) for key in ('model_calls', 'server_seconds', 'stream_seconds', 'elapsed_seconds')]

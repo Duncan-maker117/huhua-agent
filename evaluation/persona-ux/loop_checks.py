@@ -43,11 +43,18 @@ def contact_request(turn):
     return False
 
 
-def observations(turns):
+def observations(turns, persona=None):
     first = next((i for i, t in enumerate(turns, 1) if delivered(t)), None)
-    material = next((i for i, t in enumerate(turns, 1) if t.get("action") == "experience"), 1)
-    return {"first_draft_turn": first,
-            "turns_from_material": first - material + 1 if first and first >= material else None,
+    # These are input-fixture boundaries, independent of when the agent writes.
+    # Other personas provide a resume/experience (or an importable profile) first.
+    actions = {t.get("action") for t in turns}
+    action = ("experience" if persona == "cold" or (persona is None and "introduction" in actions)
+              else "initial_4" if persona == "aipm_real" or (persona is None and "initial_1" in actions)
+              else "initial")
+    material = next((i for i, t in enumerate(turns, 1) if t.get("action") == action
+                     and t.get("kind") != "confirmation"), None)
+    return {"first_draft_turn": first, "first_material_turn": material,
+            "turns_from_material": first - material + 1 if first and material and first >= material else None,
             "contact_request_turns": [i for i, t in enumerate(turns, 1) if contact_request(t)]}
 
 
@@ -63,12 +70,12 @@ def evaluate_loop(persona, turns):
                      "status": "pass" if ok else "fail", "evidence": proof})
 
     first = turns[0] if turns else {}
-    stats = observations(turns)
+    stats = observations(turns, persona)
     add("no_initial_form", "首轮无基本信息/经历清单表单（含流中间卡片）", bool(turns) and not any(
         c.get("kind") in {"intake_basics", "intake_experiences"} for c in cards(first)),
         [checks.evidence(first, "guidance", cards(first))])
-    add("first_draft_by_turn3", "从首条消息起至多3轮出现有正文的已保存初稿；确认轮计入", bool(
-        stats["first_draft_turn"] and stats["first_draft_turn"] <= 3), [checks.evidence(first, "draft_timing", stats)])
+    add("first_draft_by_turn3", "首次提供可写经历素材起至多3轮出现有正文的已保存初稿；素材轮及之后的确认轮计入", bool(
+        stats["turns_from_material"] and stats["turns_from_material"] <= 3), [checks.evidence(first, "draft_timing", stats)])
     requests = stats["contact_request_turns"]
     add("contacts_once", "联系方式至多索要一次；同轮卡片与回复合计一次", bool(turns) and len(requests) <= 1,
         [checks.evidence(t, "reply", t.get("reply")) for t in turns if contact_request(t)] or

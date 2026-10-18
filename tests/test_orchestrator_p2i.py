@@ -270,13 +270,12 @@ class P2iOfflineReplayTests(unittest.TestCase):
                 module = import_module("evaluation.persona-ux." + name)
                 settings = Settings(_env_file=None, AGENT_MODE="loop")
                 requests, calls = [], []
-                phases = ["project_name", "start_date", "end_date", "role", "evaluation"]
-                prompts = ["这个项目叫什么名字？", "项目开始时间是哪年哪月？", "项目结束时间？", "在项目中是什么角色？", "怎么评测？"]
                 model = WrongModel()
                 async def record(value, args, ctx):
                     facts = labeled_facts(name)
                     item = facts["projects"][0]
-                    item.update(name="项目（待补名称）", start_date="", end_date="", role="")
+                    item.update(name=module.INTAKE["items"][0]["name"] if name == "aipm" else "项目（待补名称）",
+                                start_date="", end_date="", role=module.INTAKE["items"][0]["role"] if name == "aipm" else "")
                     item["facts"] = [f for f in item["facts"] if f.get("field") not in {"name", "start_date", "end_date", "role"}]
                     facts["basic_info"] = {"phone": PHONE, "email": EMAIL}
                     return tools.ToolOutcome({"status": "ok"}, {"collected_info": normalize_fact_store(facts),
@@ -294,12 +293,9 @@ class P2iOfflineReplayTests(unittest.TestCase):
                     else:
                         script = [call("write_draft"), {"content": "已按本轮信息处理。"}]
                     scripted = Model(script)
-                    phase = sum(bool(m.additional_kwargs.get("answers")) for m in value["messages"] if isinstance(m, HumanMessage))
                     def candidates(current):
                         item = current["resume_data"]["projects"][0]
-                        if phase >= len(phases):
-                            return []
-                        return [{"question_id": phases[phase], "q": prompts[phase],
+                        return [{"question_id": "evaluation", "q": "这段经历怎么评测？",
                                  "improves": {"item_id": item["item_id"]}}]
                     with patch("app.agents.interviewer.question_candidates", side_effect=candidates):
                         result = await loop.run_orchestrator(value, scripted, registry=specs, llm=model)
@@ -332,6 +328,13 @@ class P2iOfflineReplayTests(unittest.TestCase):
                 self.assertTrue(all(t["reply"].strip() for t in turns))
                 self.assertTrue(all(route == "orchestrator" for route in calls))
                 self.assertFalse(any(t.get("depth_limit_exceeded") for t in turns))
+                first = 0 if name == "aipm" else 3
+                card = turns[first]["workspace"]["guidance"]
+                self.assertTrue(turns[first]["resume_data"]["projects"][0]["polished_bullets"])
+                self.assertEqual({q["id"] for q in card["questions"]},
+                                 {"start_date", "end_date"} if name == "aipm" else {"name", "start_date", "end_date", "role"})
+                self.assertTrue(module.delivered(turns[first + 1]))
+                self.assertEqual({q["id"] for q in turns[first + 1]["workspace"]["guidance"]["questions"]}, {"evaluation"})
                 self.assertTrue(module.delivered(turns[-1]), turns[-1])
                 item = turns[-1]["resume_data"]["projects"][0]
                 expected = module.INTAKE["items"][0]

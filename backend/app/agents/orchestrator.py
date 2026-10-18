@@ -32,7 +32,7 @@ SYSTEM_PROMPT = """你是「胡话」，胡话简历的简历助手，专治简�
 有档案且当前会话缺素材时，先 read_profile，按目标方向直接 use_profile_items 选用相关经历并说明理由，不先询问是否导入。导入成功后必须点名说明实际导入的每段经历；导入与最终放进稿件的取舍分别说明。
 有一段包含具体做法的经历即可 write_draft，工具会自动采用推荐结构方案与岗位写法，沿用用户已选写法；先写后问，不把缺少数字或信息不齐当作不能开始的理由。
 只有 write_draft 成功结果含 contacts_missing 时，才在说明稿子已出好后一次请用户补齐所列的头部信息。状态中 contacts_requested 表示已经问过；用户未回答、跳过或以后再次写稿、改稿、导出，也不能重复索要或以「还缺」提醒。已提供的不要再问。
-write_draft 成功结果含 followup 时，稿件已生成；本轮只再调用一次 ask_user，使用候选卡追问一个薄弱维度后收尾。followup_attached 表示工具已附卡，无需再问。没有候选或工具返回 stop 时直接给最终回复。
+write_draft 成功结果含 followup 时，稿件已生成；本轮只再调用一次 ask_user，原样使用候选卡后收尾。出稿后主经历标题信息不全时，先在一张卡中补缺少的经历名称、起止时间和角色；名称时间齐全后再追问其它维度。followup_attached 表示工具已附卡，无需再问。没有候选或工具返回 stop 时直接给最终回复。
 用户无法回忆或选择跳过时，尊重关闭记录，不追同一维度，不把空信息当经历出稿。
 需要方案确认时 propose_plan；已有稿局部修改用 edit_resume；数字或条数更正先 record_facts，工具会按用户原话同时核对并更新事实与正文，correction_applied 时不要再重写；更正失败如实说明，不能用普通润色绕过。排版检查用 check_layout。
 新事实只能由 record_facts 从用户原文提取；档案条目只能按返回的 ID 选用。不得编造事实或扩大参与程度。
@@ -166,13 +166,20 @@ def _validate_reply(reply, messages, mode, privacy):
 
 def _unrequested_contacts(text, missing):
     labels = {"name": ("姓名", r"姓名|名字"), "phone": ("手机", r"手机|电话|phone"),
-              "email": ("邮箱", r"邮箱|邮件地址|email")}
+              "email": ("邮箱", r"邮箱|邮件地址|电子邮件|电邮|e-?mail")}
     requested = set()
-    for sentence in re.split(r"[。！？!?\n；;]|但是|不过|但", text):
-        if re.search(r"不用|无需|不必|不要|不再|已(?:经)?(?:收到|提供|补齐|记下)", sentence):
-            continue
-        if re.search(r"请|补齐|补充|提供|还差|还缺|缺少|方便|告诉我", sentence):
-            requested.update(key for key, (_, pattern) in labels.items() if re.search(pattern, sentence, re.I))
+    text = re.sub(r"手机(?:拍摄|拍照|剪辑|录制)", "拍摄工具", text)
+    for sentence in re.split(r"[。！？!?\n；;]", text):
+        mentioned = set()
+        for clause in re.split(r"[，,]|但是|不过|但", sentence):
+            fields = {key for key, (_, pattern) in labels.items() if re.search(pattern, clause, re.I)}
+            if fields:
+                mentioned = fields
+            if re.search(r"不用|无需|不必|不要|不再|不需要|已(?:经)?(?:有|收到|提供|补齐|记下|记录)", clause):
+                mentioned = set()
+                continue
+            if re.search(r"请|补|提供|还差|还缺|缺少|方便|告诉我|发给我|发我|留(?:一个|个)|填写|是多少|是什么", clause):
+                requested.update(mentioned)
     return [label for key, (label, _) in labels.items() if key in missing and key not in requested]
 
 
@@ -390,8 +397,10 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                     if pending_followup and name != "ask_user":
                         raise ValueError("draft_followup_only")
                     args = spec.args_model.model_validate_json(call["function"]["arguments"])
-                    if pending_followup and len(args.card.questions) != 1:
-                        raise ValueError("draft_followup_only")
+                    if pending_followup:
+                        # A model cannot replace the deterministic heading card
+                        # with a different subject or a depth question.
+                        args = spec.args_model.model_validate({"card": pending_followup})
                     if name in {"record_facts", "read_jd"}:
                         source = sources.get(args.source_id)
                         if source is None:

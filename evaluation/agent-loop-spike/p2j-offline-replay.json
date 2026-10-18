@@ -1,0 +1,152 @@
+{
+  "kind": "offline_stubs_not_live_model",
+  "source_test": "tests/test_orchestrator_p2i.py::P2iOfflineReplayTests",
+  "personas": {
+    "aipm": {
+      "total_turns": 3,
+      "first_body_turn": 1,
+      "first_card": {
+        "kind": "ask_user",
+        "turn_id": "be340167-c619-4cc3-883e-db4b5101d7ad",
+        "title": "补充问题",
+        "questions": [
+          {
+            "id": "start_date",
+            "prompt": "这段经历的开始时间是哪年哪月？",
+            "kind": "text",
+            "options": [],
+            "allow_other": false,
+            "placeholder": ""
+          },
+          {
+            "id": "end_date",
+            "prompt": "这段经历的结束时间是什么时候（仍在进行可填至今）？",
+            "kind": "text",
+            "options": [],
+            "allow_other": false,
+            "placeholder": ""
+          }
+        ],
+        "subject": "胡话简历"
+      },
+      "answer_turn": 2,
+      "submitted": [
+        {
+          "id": "start_date",
+          "value": "2026-08",
+          "unknown": false
+        },
+        {
+          "id": "end_date",
+          "value": "至今",
+          "unknown": false
+        }
+      ],
+      "heading_after_answer": {
+        "name": "胡话简历",
+        "start_date": "2026-08",
+        "end_date": "至今",
+        "role": "独立开发者",
+        "positioning": "面向学生的AI简历助手"
+      },
+      "next_card_dimensions": [
+        "evaluation"
+      ],
+      "final_delivered": true,
+      "depth_limit_exceeded": false,
+      "assertions_passed": [
+        "title_fields",
+        "saved_body_refs_and_hashes",
+        "nonempty_replies",
+        "loop_answer_routing",
+        "no_phone_or_email_in_model_requests"
+      ]
+    },
+    "aipm_real": {
+      "total_turns": 6,
+      "first_body_turn": 4,
+      "first_card": {
+        "kind": "ask_user",
+        "turn_id": "abe5ca7d-a3ee-4f0f-9dc1-072ccb7ff4ef",
+        "title": "补充问题",
+        "questions": [
+          {
+            "id": "name",
+            "prompt": "这段经历叫什么名字？",
+            "kind": "text",
+            "options": [],
+            "allow_other": false,
+            "placeholder": ""
+          },
+          {
+            "id": "start_date",
+            "prompt": "这段经历的开始时间是哪年哪月？",
+            "kind": "text",
+            "options": [],
+            "allow_other": false,
+            "placeholder": ""
+          },
+          {
+            "id": "end_date",
+            "prompt": "这段经历的结束时间是什么时候（仍在进行可填至今）？",
+            "kind": "text",
+            "options": [],
+            "allow_other": false,
+            "placeholder": ""
+          },
+          {
+            "id": "role",
+            "prompt": "你在这段经历中是什么角色？",
+            "kind": "text",
+            "options": [],
+            "allow_other": false,
+            "placeholder": ""
+          }
+        ],
+        "subject": "项目（待补名称）"
+      },
+      "answer_turn": 5,
+      "submitted": [
+        {
+          "id": "name",
+          "value": "胡话简历",
+          "unknown": false
+        },
+        {
+          "id": "start_date",
+          "value": "2025-09",
+          "unknown": false
+        },
+        {
+          "id": "end_date",
+          "value": "至今",
+          "unknown": false
+        },
+        {
+          "id": "role",
+          "value": "个人开发",
+          "unknown": false
+        }
+      ],
+      "heading_after_answer": {
+        "name": "胡话简历",
+        "start_date": "2025-09",
+        "end_date": "至今",
+        "role": "个人开发",
+        "positioning": "面向用户的简历工具"
+      },
+      "next_card_dimensions": [
+        "evaluation"
+      ],
+      "final_delivered": true,
+      "depth_limit_exceeded": false,
+      "assertions_passed": [
+        "title_fields",
+        "saved_body_refs_and_hashes",
+        "nonempty_replies",
+        "loop_answer_routing",
+        "no_phone_or_email_in_model_requests"
+      ]
+    }
+  }
+}

@@ -64,15 +64,20 @@ class LoopChecksTests(unittest.TestCase):
             self.assertEqual(empty["facts.no_new_numbers"], "fail")
             self.assertEqual(empty["loop.metrics"], "fail")
 
-    def test_three_rounds_counts_greeting_confirmation_and_contacts(self):
+    def test_three_rounds_from_material_keeps_total_turns_and_counts_confirmations(self):
         turns = new_turns("cold")
         turns[2].update(has_data=False, stage="COLLECTING")
         result = indexed("cold", turns)
-        self.assertEqual(result["loop.first_draft_by_turn3"], "fail")
+        self.assertEqual(result["loop.first_draft_by_turn3"], "pass")
         self.assertEqual(loop.observations(turns)["first_draft_turn"], 4)
         self.assertEqual(loop.observations(turns)["turns_from_material"], 2)
         turns.insert(2, {**deepcopy(turns[1]), "action": "confirm", "kind": "confirmation"})
         self.assertEqual(loop.observations(turns)["first_draft_turn"], 5)
+        self.assertEqual(loop.observations(turns)["first_material_turn"], 4)
+        self.assertEqual(loop.observations(turns)["turns_from_material"], 2)
+        for expected in ("pass", "fail"):
+            turns.insert(4, {**deepcopy(turns[1]), "action": "confirm", "kind": "confirmation"})
+            self.assertEqual(indexed("cold", turns)["loop.first_draft_by_turn3"], expected)
 
     def test_preview_empty_hidden_or_uncommitted_is_not_delivered(self):
         for mutate in (

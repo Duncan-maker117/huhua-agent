@@ -30,6 +30,7 @@ checks = import_module("evaluation.persona-ux.checks")
 aipm = import_module("evaluation.persona-ux.aipm")
 aipm_real = import_module("evaluation.persona-ux.aipm_real")
 returning = import_module("evaluation.persona-ux.returning")
+loop_checks = import_module("evaluation.persona-ux.loop_checks")
 CARD_PERSONAS = {"aipm": aipm, "aipm_real": aipm_real, "returning": returning}
 
 
@@ -86,6 +87,24 @@ def read_sse(response, result=None):
             result["errors"].append(code if code.replace("-", "").replace("_", "").isalnum() else "SSE_ERROR")
         elif event.get("type") == "meta":
             result["meta"].update(event)
+            guidance = (event.get("workspace") or {}).get("guidance")
+            if isinstance(guidance, dict) and guidance:
+                result.setdefault("guidance_history", []).append({k: guidance[k] for k in
+                    ("kind", "title", "question", "questions") if k in guidance})
+        elif event.get("type") == "evaluation_metrics":
+            if "metrics" in result:
+                result["errors"].append("Duplicate evaluation metrics")
+            result["metrics"] = {
+                "model_calls": event.get("model_calls") if type(event.get("model_calls")) is int else None,
+                "privacy_blocks": event.get("privacy_blocks") if type(event.get("privacy_blocks")) is int else None,
+                "server_seconds": event.get("server_seconds") if loop_checks.finite_nonnegative(event.get("server_seconds")) else None,
+                "metrics_agent_mode": event.get("agent_mode") if event.get("agent_mode") in {"off", "loop"} else None,
+                "model_call_scope": loop_checks.CALL_SCOPE if event.get("model_call_scope") == loop_checks.CALL_SCOPE else None,
+            }
+        elif event.get("type") == "tool_status":
+            name, status = event.get("tool"), event.get("status")
+            if isinstance(name, str) and name.replace("_", "").isalnum() and status in {"running", "completed"}:
+                result.setdefault("tool_status", []).append({"tool": name, "status": status})
         elif isinstance(event.get("content"), str):
             result["reply"] += event["content"]
 
@@ -162,6 +181,10 @@ class GuestClient:
         except Exception as error:
             record.update(status="error", error=safe_error(error))
         record.update(reply=stream["reply"], sse_done=stream["done"])
+        record.update(stream.get("metrics") or dict.fromkeys(
+            ("model_calls", "privacy_blocks", "server_seconds", "metrics_agent_mode", "model_call_scope")))
+        record["guidance_history"] = stream.get("guidance_history", [])
+        record["tool_status"] = stream.get("tool_status", [])
         record["stream_seconds"] = round(time.monotonic() - started, 3)
         read_started = time.monotonic()
         # Read canonical data even after a failed/truncated stream, so a silent
@@ -202,20 +225,30 @@ def save_turn(directory, index, record):
     prefix.with_suffix(".reply.txt").write_text(record["reply"], encoding="utf-8")
 
 
-def run_replay(base, output, personas, *, with_recovery=False, timeout=300, materials=MATERIALS, returning_db=None):
+def run_replay(base, output, personas, *, with_recovery=False, timeout=300, materials=MATERIALS, returning_db=None, agent_mode=None):
     base = local_base(base)
-    if not personas or len(set(personas)) != len(personas) or any(p not in (*checks.PERSONAS, *CARD_PERSONAS) for p in personas):
+    if not personas or len(set(personas)) != len(personas) or any(p not in (*checks.PERSONAS, *CARD_PERSONAS, *loop_checks.FIXTURES) for p in personas):
         raise ValueError("Personas must be a nonempty unique selection")
+    if agent_mode not in {None, "off", "loop"}:
+        raise ValueError("agent_mode must be off/loop")
     if "returning" in personas and not returning_db:
         raise ValueError("returning requires --returning-db for the isolated local service")
+    if agent_mode is not None:
+        config = GuestClient(base, timeout).json("/_evaluation/config")
+        if (config.get("schema_version") != 1 or config.get("agent_mode") != agent_mode
+                or config.get("model_call_scope") != loop_checks.CALL_SCOPE):
+            raise ValueError("Replay server mode/metrics mismatch; start evaluation/persona-ux/serve.py")
     fixture_bytes = (materials / "fixtures.json").read_bytes()
-    fixtures = {**json.loads(fixture_bytes), "aipm": aipm.FIXTURE}
+    fixtures = {**json.loads(fixture_bytes), "aipm": aipm.FIXTURE, **loop_checks.FIXTURES}
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     run = {"schema_version": 1, "run_id": output.name, "started_at": timestamp(), "base": base,
            "fixture_sha256": hashlib.sha256(fixture_bytes).hexdigest(), "with_recovery": with_recovery,
+           "agent_mode": agent_mode or "off", "agent_mode_verified": agent_mode is not None,
            "confirmation_contract": "workspace.guidance.options[label=按推荐写].value → /api/chat/stream, task=auto",
            "personas": {}}
+    if any(p in loop_checks.FIXTURES for p in personas):
+        run["loop_fixture_sha256"] = hashlib.sha256(loop_checks.FIXTURE_PATH.read_bytes()).hexdigest()
     if "aipm" in personas:
         run["aipm_synthetic_placeholder"] = True
         run["aipm_fixture_sha256"] = hashlib.sha256(Path(aipm.__file__).read_bytes()).hexdigest()
@@ -265,7 +298,11 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
         finally:
             client.cookies.clear()
         record["elapsed_seconds"] = round(time.monotonic() - persona_started, 3)
-        record["checks"] = CARD_PERSONAS.get(persona, checks).evaluate_persona(persona, record["turns"], with_recovery=with_recovery)
+        evaluator = loop_checks if persona in loop_checks.FIXTURES else CARD_PERSONAS.get(persona, checks)
+        record["checks"] = evaluator.evaluate_persona(persona, record["turns"], with_recovery=with_recovery)
+        if agent_mode == "loop":
+            record["checks"] += loop_checks.evaluate_loop(persona, record["turns"])
+        record["observations"] = loop_checks.observations(record["turns"])
         if record["error"]:
             completion = next(c for c in record["checks"] if c["id"].endswith("common.rounds_complete"))
             completion["status"] = "fail"
@@ -285,6 +322,7 @@ def main(argv=None):
     parser.add_argument("--persona", default=",".join(checks.PERSONAS))
     parser.add_argument("--output", type=Path)
     parser.add_argument("--with-recovery", action="store_true")
+    parser.add_argument("--agent-mode", choices=("off", "loop"), help="核对评测服务的 AGENT_MODE；省略则兼容旧服务")
     parser.add_argument("--returning-db", type=Path, help="本地隔离回放服务已初始化的 SQLite 数据库；需使用相同加密配置")
     parser.add_argument("--timeout", type=float, default=300)
     args = parser.parse_args(argv)
@@ -295,7 +333,7 @@ def main(argv=None):
         parser.error("--timeout must be positive")
     try:
         run = run_replay(args.base, output, [p.strip() for p in args.persona.split(",")],
-                         with_recovery=args.with_recovery, timeout=args.timeout, returning_db=args.returning_db)
+                         with_recovery=args.with_recovery, timeout=args.timeout, returning_db=args.returning_db, agent_mode=args.agent_mode)
     except (ValueError, OSError) as error:
         parser.error(safe_error(error))
     print(f"{run['status'].upper()} · {run['stream_requests']} 次聊天请求 · {output / 'run.json'}")

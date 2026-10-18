@@ -11,6 +11,7 @@ if str(HERE.parents[1]) not in sys.path:
     sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE.parents[1] / 'backend'))
 checks = import_module("evaluation.persona-ux.checks")
+loop_checks = import_module("evaluation.persona-ux.loop_checks")
 
 
 def load_run(path):
@@ -30,9 +31,14 @@ def cell(value):
 def result_index(run):
     result = {}
     for persona, record in run['personas'].items():
-        evaluator = import_module(f'evaluation.persona-ux.{persona}') if persona in {'aipm', 'aipm_real'} else checks
-        for row in evaluator.evaluate_persona(persona, record.get('turns') or [], with_recovery=run.get('with_recovery', False)):
-            result[row['id']] = {**row, 'label': row.get('label', row['id'])}
+        evaluator = loop_checks if persona in loop_checks.FIXTURES else (
+            import_module(f'evaluation.persona-ux.{persona}') if persona in {'aipm', 'aipm_real', 'returning'} else checks)
+        turns = record.get('turns') or []
+        rows = evaluator.evaluate_persona(persona, turns, with_recovery=run.get('with_recovery', False))
+        if run.get('agent_mode') == 'loop':
+            rows += loop_checks.evaluate_loop(persona, turns)
+        for row in rows:
+            result[row['id']] = {**row, 'label': row.get('label', row.get('title', row['id']))}
     for persona, record in run["personas"].items():
         if record.get("error"):
             row = result[f"{persona}.common.rounds_complete"]
@@ -46,12 +52,15 @@ def render_report(runs):
         raise ValueError("At least one run is required")
     indexes = [result_index(run) for run in runs]
     labels = [run.get("run_id", f"run-{i + 1}") for i, run in enumerate(runs)]
-    lines = ["# 五人物 API 回放验收", "", "仅对已保存的 API 数据做确定性断言；PASS 不代表语言质量或真实用户效果。", "",
-             "| Run | 人物 | 聊天请求 | 耗时（秒） | PASS / FAIL |", "| --- | --- | ---: | ---: | --- |"]
+    title = "人物 API 回放验收" if any(set(run['personas']) - set(checks.PERSONAS) for run in runs) else "五人物 API 回放验收"
+    lines = ["# " + title, "", "仅对已保存的 API 数据做确定性断言；PASS 不代表语言质量或真实用户效果。", "",
+             "| Run | Agent模式 | 人物 | 聊天请求 | 耗时（秒） | PASS / FAIL |", "| --- | --- | --- | ---: | ---: | --- |"]
     for run, label, index in zip(runs, labels, indexes):
         passed = sum(row["status"] == "pass" for row in index.values())
-        lines.append(f"| {cell(label)} | {cell(', '.join(run['personas']))} | {run.get('stream_requests', '未记录')} | {run.get('elapsed_seconds', '未记录')} | {passed} / {len(index) - passed} |")
-    if len({run.get("fixture_sha256") for run in runs}) > 1 or len({run.get("with_recovery", False) for run in runs}) > 1:
+        mode = run.get('agent_mode', 'off') + ('' if run.get('agent_mode_verified') else '（未核对）')
+        lines.append(f"| {cell(label)} | {cell(mode)} | {cell(', '.join(run['personas']))} | {run.get('stream_requests', '未记录')} | {run.get('elapsed_seconds', '未记录')} | {passed} / {len(index) - passed} |")
+    if any(len({run.get(key) for run in runs}) > 1 for key in (
+            "fixture_sha256", "loop_fixture_sha256", "aipm_fixture_sha256", "aipm_real_fixture_sha256", "returning_fixture_sha256")) or len({run.get("with_recovery", False) for run in runs}) > 1:
         lines += ["", "注意：fixtures 哈希或 recovery 设置不同，对比不是同脚本修复前后验收。"]
     if len({tuple(sorted(run["personas"])) for run in runs}) > 1:
         lines += ["", "注意：人物选择不同；MISSING 表示未覆盖，不计为通过。"]
@@ -66,6 +75,15 @@ def render_report(runs):
         change = "不变" if first == last else "改善" if (first, last) == ("fail", "pass") else "退化" if (first, last) == ("pass", "fail") else "新增" if first == "missing" else "缺失"
         proof = "；".join(f"{e.get('action')}/{e.get('field')}: {e.get('excerpt')}" for e in row.get("evidence", [])[:2])
         lines.append(f"| {cell(id_)} | {cell(row['label'])} | " + " | ".join(s.upper() for s in statuses) + f" | {change} | {cell(proof)} |")
+    lines += ["", "## 逐轮调用与耗时", "", "模型调用数是服务端观测到的模型 HTTP 尝试数，含编排、工具内部调用与重试；不含轮次外后台归档。N/A 表示缺证据，不能当作0。"]
+    for run, label in zip(runs, labels):
+        for persona, record in run['personas'].items():
+            stats = loop_checks.observations(record.get('turns') or [])
+            lines += [f"\n{cell(label)}/{persona}：首稿总轮次={stats['first_draft_turn'] or 'N/A'}；从具体材料起={stats['turns_from_material'] or 'N/A'}；联系方式索要轮次={stats['contact_request_turns']}。\n"]
+            lines += ["| Run | 人物/轮次 | 模型调用 | 服务端秒 | SSE秒 | 总秒 |", "| --- | --- | ---: | ---: | ---: | ---: |"]
+            for number, turn in enumerate(record.get('turns') or [], 1):
+                values = [turn.get(key) for key in ('model_calls', 'server_seconds', 'stream_seconds', 'elapsed_seconds')]
+                lines.append(f"| {cell(label)} | {persona}/{number}:{cell(turn.get('action'))} | " + ' | '.join('N/A' if v is None else str(v) for v in values) + ' |')
     return "\n".join(lines) + "\n"
 
 

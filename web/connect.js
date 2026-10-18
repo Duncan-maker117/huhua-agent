@@ -202,7 +202,7 @@
   }
   bindCopy($('copy-token'), $('token-value'), $('connect-status'), '令牌已复制，请妥善保存。', '复制未完成，请选中令牌手动复制。');
   bindCopy($('copy-config'), $('config-text'), $('copy-config-status'), '配置已复制。', '复制未完成，请选中上方配置手动复制。');
-  for (const task of ['tailor', 'fit', 'project', 'check']) {
+  for (const task of ['tailor', 'fit', 'project', 'memory', 'check']) {
     bindCopy($('copy-task-' + task), $('mcp-task-' + task), $('copy-task-' + task + '-status'),
       '已复制，可粘贴到你的 AI 助手里。', '复制未完成，请选中示例话术手动复制。');
   }

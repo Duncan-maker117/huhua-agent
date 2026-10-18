@@ -395,3 +395,13 @@
 - 去重完全移出 `save_resume_session` 和 `save_canonical_resume`，通用保存器无需来源猜测或默认去重参数。writer 产出按目标条目去重；edit_plan 后的确定性更新显式 `dedupe=True`，以及更正写回仅处理本次实际改变正文的条目，均在版本/页数计算前清理并同步引用/hash/coverage。只改排版/标题、编辑器/API 直接保存、只读聊天与恢复历史不做该清理。`test_resume_density.py` 已逐字恢复 HEAD 的原文件，包括 density=2 断言和移除第十二批新增的 noqa。
 - 新增 4 项回归：主写作两次超时且旧稿不变；编辑器/API 重复内容在回执、SQL、checkpoint 和只读聊天后均保留；edit_plan 生成结果去重且撤销恢复原稿；字面更正写回去重。恢复并加强修补超时测试，空/非对象主响应与次级语义故障测试同步边界。通用模型桩补齐 OnePass/确认方案 WriterDraft 的正确结构，未放宽原业务断言；更正旧测试的预期显式应用本批要求的条目内去重。
 - 验证：指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1696/1696 通过，0 失败/跳过，62.702s**，日志 `/private/tmp/huhua-b12b-full-final.log`；28 份当前改动相关 Python 文件 Ruff 通过，日志 `/private/tmp/huhua-b12b-ruff.log`；`git diff --check` 通过。已恢复原样的 density 测试仍有 HEAD 既存 E402，未以新 noqa 掩盖或扩改；本次 Ruff 口径为当前有差异/新增 Python 文件。3369 份保护文件 SHA-256 均与本轮开始一致（evaluation/fixtures/checks、web/comparison*、输出材料、首页及打包脚本），mmr 原内容完整保留。HEAD 仍为 `a35a805`，未 commit/push/部署，未启动/调用 8833，未调用真实模型；没有声称新的线上或真实人物回放成绩。
+
+## 2026-10-18 第十六批 b：记忆导入（规格 E，本地，未 commit/push/部署）
+
+- 目标与范围：只完成 `docs/development/2026-10-18-batch16-plan.md` 的 E；A–D、intake/public_reply/resume_graph、dist 和部署脚本未改。接手分支 batch16b，仅规格文件预先未跟踪，未修改它。
+- 已完成：新增已鉴权的提示词 GET 与记忆导入 POST；固定中文导出提示词为后端单一来源，枚举与共享 FactCandidate 对齐，uncertain 标在 evidence。JSON 优先严格校验；失败回退档案抽取器 source_kind=import，仍做联系方式脱敏和字面依据检查。输入最多处理 100000 字/200 条，截断有提示；分批 ≤50 调原 propose_to_inbox，复用去重、30 天过期和人工采纳，跨批同事务，不直接入档。
+- 已完成：档案面板复制提示词/粘贴/提交/结果/查看待确认，失败保留输入；MCP prompt `import_memory_to_profile` 与 /connect 话术/复制入口。未新增 CSS。
+- 决策与失败做法：自动归档 worker 不适合导入的人工确认边界，保持原来源限制。初稿 token_id=None 经静态检查发现违反原表非空约束，测试前改为来源标记 web-memory-import，不授予 PAT 权限或改表。旧测试仅精确扩展 MCP prompt 目录集合；其余旧断言未放宽。
+- 当前验证：新增 16 项回归。指定离线全量 1977 项（1975 通过、2 项原有私有样例跳过），0 失败/错误，82.605s；Ruff、JS 语法、DOM 和 diff 检查通过。日志系统临时目录 `huhua-b16b-tests.D6Vry7bb1j`，完整路径见修复说明。
+- 未完成/接手：本地规格 E 无阻塞。下一步由整合任务合并 A–D，再由 Claude 做视觉；真实模型/外部 AI 导出/在线 MCP 尚未验收，不得以离线桩代表线上效果。未启动或访问 8833/8834、未调用真实模型。
+- 文件与说明：新增 `backend/app/services/profile_memory.py`、`backend/app/schemas/profile_import.py`，接入 api/profile、profile_archivist、mcp/server、web/account-profile、connect；完整文件、根因及测试在 `evaluation/persona-ux/batch16b-fix-notes.md`。本 mmr 仅追加，原交接完整保留。

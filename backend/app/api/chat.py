@@ -129,6 +129,11 @@ async def available_web_tools():
     return {"read_url": True, "read_public_url": True, "search": bool(get_settings().TAVILY_API_KEY.strip())}
 
 
+@router.get("/agent-mode")
+async def agent_mode():
+    return {"agent_mode": getattr(get_settings(), "AGENT_MODE", "off")}
+
+
 async def _execute_web_tool(tool: ReadJobURL | ReadPublicURL | SearchJobContext) -> list[dict]:
     from app.services.web_research import WebResearchError, read_public_url, search_job_context
     from app.services.job_intel import read_job_url
@@ -403,7 +408,8 @@ async def chat_stream(request: Request):
                     generation_started = time.monotonic()
                     async with model_slot():
                         async for token in stream:
-                            yield f"data: {json.dumps({'content': token}, ensure_ascii=False)}\n\n"
+                            payload = token if isinstance(token, dict) else {'content': token}
+                            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
                     logger.info("chat_turn_result status=completed saved=true duration_ms=%d", int((time.monotonic() - generation_started) * 1000))
                     yield f"data: {json.dumps(await _session_meta(session_id, llm), ensure_ascii=False)}\n\n"
             except TimeoutError:

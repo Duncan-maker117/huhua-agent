@@ -349,6 +349,9 @@ def current_experience(state: dict) -> tuple[str, dict] | None:
 
 
 def intake_guidance(state: dict) -> dict | None:
+    from app.config import get_settings
+    if getattr(get_settings(), "AGENT_MODE", "off") == "loop":
+        return None
     update = intake_update(state)
     stage, progress = update["intake_stage"], update["intake_progress"]
     if stage == "ready":

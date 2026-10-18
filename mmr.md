@@ -426,3 +426,13 @@
 - 决策及失败做法：当前 langchain-openai 1.6.3 转换器丢失 reasoning_content，采用原始 SDK 字典而非 additional_kwargs 假定透传；若思考内容含联系方式则停止后续请求，不破坏原样回传也不泄露隐私。新测试首次命中提示中与短案例原句重合，改为通用表述后通过，未放宽断言。
 - 未完成/接手：由 Claude 按 README 在有网络环境执行两种 `--real`（真实编排模型 + 假工具），逐例复核工具选择、顺序、语义、真实耗时/token 及 400；先比案例/提示哈希，不把 stub 指标当模型表现。真实业务工具与跨用户轮次续接尚未验证。
 - 边界：未读真实 LLM 配置/调用真实模型，未访问 8833/8834；未改现有节点、前端、dist、依赖或另一 worktree；未 commit/push/部署。当前仅本地新增 spike 文件与本节追加；交付入口 `evaluation/agent-loop-spike/README.md`。
+
+
+## 2026-10-19 第十七批第 1 期 P1b：编排节点与接线（batch17b）
+
+- 目标/范围：仅完成规格的 P1b。新增生产 orchestrator、AGENT_MODE（默认 off）、自由输入分流、loop 自动表单关闭、首屏四入口与 SSE 工具进度；未实现 P1a 业务适配器或 P1c 评测。
+- 已完成：OpenAI SDK 流式与思考字段回传、最多 4 次工具尝试/5 次模型请求（包括一次降级）、超时/取消/来源 ID/联系方式保护、状态增量合并、独立事实保存与最终 checkpoint/SQL 对账。结构化表单、问题卡作答、方案选择及 requested_task 保留原路径；loop 记录材料不自动投影出稿。
+- 关键决定：orchestrator_tools.py 仅契约 stub，明确返回 adapter_not_installed，合并时由 P1a 替换；stop=True 严格收束，已执行工具不因降级重做。auto 响应缓冲确认无工具后发布，强制最终响应实时流式，避免工具旁白冒充最终正文。日志仅计编排 SDK 请求，不声称包含业务适配器全部成本。
+- 验证：新增 23 项离线测试；指定全量 2036 项（2034 通过、2 项原有跳过），0 失败/错误，407.757s，退出码 0。Ruff、JS/HTML 内联脚本语法、交接 shell 语法、diff 检查通过。最终日志 evaluation/agent-loop-spike/p1b-full-tests.log（忽略文件）。未放宽或修改旧断言。
+- 失败做法：旧精简配置对象无 AGENT_MODE 导致首轮 12 个错误，改为缺字段默认 off；新增测试辅助参数重名及额度表注册时序已修正。虚拟环境无 Ruff 模块，使用已有系统 Ruff，未安装依赖。
+- 当前状态/接手：P1b 本地实现已完成，未 commit/push/部署、未改 dist、未启动/访问 8833/8834、未调用真实模型。Claude 合并 P1a/P1c 后按 evaluation/agent-loop-spike/p1b-notes.md 的接口说明及 8847 独立数据库命令运行真实回放，再做视觉与业务联调验收；真实模型质量、首字耗时及适配器效果未由本批验证。本 mmr 仅追加，原内容保留。

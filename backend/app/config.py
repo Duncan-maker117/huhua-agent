@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     LLM_WRITER_TEMPERATURE: float = Field(default=0.4, ge=0, le=2)
     LLM_WRITER_MODE: Literal["one_pass", "two_pass"] = "one_pass"
     LLM_PLAN_CONFIRM: bool = True
+    AGENT_MODE: Literal["off", "loop"] = "off"
     # Speed switches; benchmarked: the first three default on; edit plan reuse stays off.
     # Drop unknown keys on written bullets/items/titles and MatchPlan array elements instead of failing the call.
     LLM_WRITER_IGNORE_EXTRA_BULLET_FIELDS: bool = True

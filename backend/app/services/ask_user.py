@@ -75,6 +75,9 @@ def can_ask_user(state: dict) -> bool:
 
     if state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
         return False
+    from app.config import get_settings
+    if getattr(get_settings(), "AGENT_MODE", "off") == "loop":
+        return True
     # 空字典供无会话的工具适配器使用；真实/旧会话均按实际资料推断表单。
     if state and intake_guidance(state):
         return False
@@ -130,7 +133,8 @@ def validate_card(arguments, state: dict, turn_id: str) -> dict:
     if not can_ask_user(state):
         return {}
     from app.services.intake import deepen_context
-    context = deepen_context(state) if state.get("intake_stage") and state.get("intake_stage") != "ready" else None
+    from app.config import get_settings
+    context = deepen_context(state) if getattr(get_settings(), "AGENT_MODE", "off") != "loop" and state.get("intake_stage") and state.get("intake_stage") != "ready" else None
     try:
         raw = json.loads(arguments) if isinstance(arguments, str) else arguments
         if not isinstance(raw, dict) or set(raw) - {"subject", "questions"}:

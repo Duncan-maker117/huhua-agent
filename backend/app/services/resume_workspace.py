@@ -292,6 +292,9 @@ def build_workspace(values: dict, canonical: dict | None = None) -> dict:
     # 旧会话的成稿可能只在 canonical 中；工具校验与表单必须看到同一份状态。
     guidance = pending_card(intake_state) or guidance
     guidance = intake_guidance(intake_state) or guidance
+    from app.config import get_settings
+    if getattr(get_settings(), "AGENT_MODE", "off") == "loop":
+        guidance = pending_card(intake_state) or None
     if values.get('pending_plan'):
         from app.services.structure_plan import plan_guidance, ALIASES
         retained = {section for message in values.get('messages') or [] if isinstance(message, HumanMessage)

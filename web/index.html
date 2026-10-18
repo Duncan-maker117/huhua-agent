@@ -120,7 +120,7 @@
               </div>
             </div>
           </div>
-          <div class="mt-6 flex flex-wrap gap-2">
+          <div id="legacy-start-actions" class="mt-6 flex flex-wrap gap-2">
             <button type="button" class="quick-action px-4 py-2 rounded-full bg-primary text-on-primary text-sm font-bold shadow-lg shadow-primary/20 transition-colors"
               data-task="decode_jd"
               data-title="解码 JD · 拆出要求与证据"
@@ -134,6 +134,7 @@
               data-title="检查简历 · JD 证据与投递可读性"
               data-desc="发来已有简历，我会优先检查事实一致性、岗位证据与表达。未实际验证的文件解析和招聘条件会标明待核验。">检查简历</button>
           </div>
+          <div id="orchestrator-start-actions" class="mt-6" aria-label="开始整理简历" hidden></div>
         </div>
         <a href="/resume" class="welcome-card welcome-card-link bg-white p-6 rounded-2xl border border-[#e6e2ee] flex flex-col justify-between relative overflow-hidden group transition-colors">
           <div class="z-10">
@@ -266,10 +267,11 @@
 </div>
 
 <script src="/static/change-card.js?v=20261014-ui1"></script>
-<script src="/static/resume-workspace.js?v=20261019-1"></script>
+<script src="/static/resume-workspace.js?v=20261019-p1b"></script>
 <script src="/static/resume-actions.js?v=20261014-ui1"></script>
 <script src="/static/template-preview.js?v=20261014-tpl1"></script>
 <script src="/static/chat-cancel.js?v=20261015-batch8"></script>
+<script src="/static/orchestrator-ui.js?v=20261019-p1b"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -427,6 +429,8 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
   if (!quickReply && !keepDraft) clearAttachments();
 
   const aiEl = appendBubble('assistant', '');
+  const progressEl = document.createElement('div');
+  const showToolProgress = window.HuhuaOrchestrator?.progress(progressEl);
   aiEl.classList.add('streaming');
   aiEl.setAttribute('aria-busy', 'true');
   let buffer = '';
@@ -508,11 +512,24 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
         applyMeta(parsed); return;
       }
       if (parsed.type === 'tool_status') {
+        if (!progressEl.parentNode) {
+          const replyBody = document.createElement('div');
+          replyBody.className = 'min-w-0 flex-1';
+          aiEl.parentNode.insertBefore(replyBody, aiEl);
+          replyBody.append(progressEl, aiEl);
+        }
+        showToolProgress?.(parsed);
         toolMessage = typeof parsed.message === 'string' ? parsed.message : parsed.status === 'completed' ? '网页资料已获取，正在解读…' : '正在获取网页资料…';
         window.HuhuaWebResearch?.toolStatus({...parsed, message:toolMessage}); updateWaiting(); return;
       }
       if (parsed.type === 'sources') {
         window.HuhuaWorkspace?.setWebSources(parsed.sources, submittedSession); return;
+      }
+      if (parsed.type === 'workspace' && parsed.workspace) {
+        window.HuhuaWorkspace?.update(parsed.workspace); return;
+      }
+      if (parsed.type === 'guidance' && parsed.guidance) {
+        window.HuhuaWorkspace?.setGuidance(parsed.guidance); return;
       }
       if (typeof parsed.error === 'string') { streamFailed = true; buffer += `\n[错误: ${parsed.error}${typeof parsed.code === 'string' && parsed.code ? `（${parsed.code}）` : ''}]`; }
       else if (typeof parsed.content === 'string') buffer += parsed.content;
@@ -893,6 +910,12 @@ quickActionBtns.forEach(btn => {
 // 初始把所有 chip 重置到 idle 态，避免第一个 chip HTML 硬编码 bg-primary
 // 导致第一次点击被误判为"已 active，回默认"
 resetSelectedTask();
+
+window.HuhuaOrchestrator?.init({
+  container: document.getElementById('orchestrator-start-actions'),
+  legacy: document.getElementById('legacy-start-actions'), send,
+  busy: () => Boolean(currentController) || conversationBusy || !conversationReady,
+});
 
 // Creation, switching and explicit deletion are managed by conversation-history.js.
 

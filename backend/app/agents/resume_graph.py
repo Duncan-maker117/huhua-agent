@@ -3068,7 +3068,17 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
     return False
 
 
+def _orchestrator_requested(state: ResumeState) -> bool:
+    from app.config import get_settings
+    last_message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
+    structured = last_message and (last_message.additional_kwargs.get("intake") or last_message.additional_kwargs.get("answers"))
+    return (getattr(get_settings(), "AGENT_MODE", "off") == "loop" and not structured and not state.get("plan_choice")
+            and state.get("requested_task", "auto") == "auto")
+
+
 def route_by_stage(state: ResumeState) -> str:
+    if _orchestrator_requested(state):
+        return "orchestrator"
     latest = _latest_human_text(state)
     last_message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
     if last_message and (last_message.additional_kwargs.get("intake") or last_message.additional_kwargs.get("answers")):
@@ -3229,6 +3239,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     """构建并编译 LangGraph 状态机"""
     from functools import partial
     from app.services.job_intel.background import current_graph
+    from app.agents.orchestrator import orchestrator_node
 
     def with_intel_graph(node):
         async def run(state):
@@ -3249,6 +3260,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
     graph.add_node("skill_task", partial(skill_task_node, llm=llm))
     graph.add_node("dialogue", partial(dialogue_node, llm=llm))
     graph.add_node("structure_plan", partial(structure_plan_node, llm=llm))
+    graph.add_node("orchestrator", with_intel_graph(orchestrator_node))
 
     graph.set_conditional_entry_point(
         route_by_stage,
@@ -3261,6 +3273,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
             "skill_task": "skill_task",
             "dialogue": "dialogue",
             "structure_plan": "structure_plan",
+            "orchestrator": "orchestrator",
         },
     )
 
@@ -3278,7 +3291,7 @@ def build_graph(llm: ChatOpenAI, checkpointer: Any | None = None) -> Any:
         _route_after_collecting,
         {"building": "building", "__end__": END},
     )
-    for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue", "structure_plan"]:
+    for node in ["jd_input", "building", "evaluating", "export", "skill_task", "dialogue", "structure_plan", "orchestrator"]:
         graph.add_edge(node, END)
 
     compiled = graph.compile(checkpointer=checkpointer or MemorySaver())
@@ -3440,6 +3453,7 @@ async def _stream_agent_impl(
         "skill_task",
         "dialogue",
         "structure_plan",
+        "orchestrator",
     }
     streamed_reply_ids: set[str] = set()
     buffered_reply_ids: set[str] = set()
@@ -3507,6 +3521,9 @@ async def _stream_agent_impl(
                 mode, update = "updates", event
             if mode == "custom":
                 if not isinstance(update, dict):
+                    continue
+                if update.get("node") == "orchestrator" and update.get("type") in {"tool_status", "workspace", "guidance"}:
+                    yield {key: value for key, value in update.items() if key != "node"}
                     continue
                 reply_id = update.get("reply_id")
                 content = update.get("content")
@@ -3608,7 +3625,8 @@ async def _stream_agent_impl(
 
             values = protect_final(state.values)
             resume_data = values.get("resume_data") or {}
-            if not resume_data and not values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
+            loop_turn = _orchestrator_requested({**initial_values, **input_state})
+            if not loop_turn and not resume_data and not values.get('pending_plan') and task != "research_job" and not _dialogue_requested(last_msg["content"]):
                 resume_data = _serialize_to_resume_data(values)
             from app.agents.tailor_pipeline import constraints_for_turn
             constraints = constraints_for_turn(values, last_msg['content'])

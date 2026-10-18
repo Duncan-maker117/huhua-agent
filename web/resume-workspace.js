@@ -811,6 +811,7 @@
     });
   }
   window.HuhuaWorkspace = {buildAskSubmission, refresh: () => callbacks.refresh?.(), dismissQuestions, init, update, reset, setWebSources, commitWebSources, setStreaming, canvasResult, openTab, setMobileOpen,
+    setGuidance: guidance => { workspace = {...workspace, guidance}; renderGuidance(); },
     setStage(value) {stage = value; if (!hasWorkspace) active = value === 'EXPORT' ? 'resume' : tabs.find(([, , id]) => id === value)?.[0] || 'jd'; renderTabs();},
     canvasError() {status = '预览同步失败，请刷新重试；当前内容已保留'; updateStatus();},
   };

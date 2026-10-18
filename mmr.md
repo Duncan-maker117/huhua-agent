@@ -536,3 +536,21 @@
 - 验证：新增 8 项回归；稀疏 aipm 离线 runner 为 dates→problem→my_work→decision→iteration→evaluation→停止，最终正文含问题/决策/迭代/现状，9 项原人物检查全过并逐标签引用卡片答案。最终指定全量 2177 项：2175 通过、2 原有跳过、0 失败/错误，83.399s；额外 P2e 15 项、9 文件 Ruff/AST、diff 检查通过。
 - 失败做法：一度将维度表排在普通岗位候选前，导致 P2h 顺序断言失败，已修复并保留原断言；日期合题、未知继续及对应旧断言变化逐条见说明。离线写作桩最初复述原话，改桩并加强完整人物检查，未改生产 writer/提示/手册。
 - 未完成/接手：未做新真实模型回放，不能宣称真实 aipm 14/14 或延迟改善。见 `evaluation/agent-loop-spike/p2k-notes.md`、`p2k-offline-replay.json`；真实复测需由后续授权任务执行。未访问 8833/8834、启动应用服务、修改其他 worktree/dist、commit/push/部署；本地实现与交接待审阅。
+
+## 第十七批第 2 期第六轮 P2l（2026-10-19，batch17l，仅追加）
+
+- 目标：修复同一消息中新建的“占位名+动作”和“真实名+时间”拆分；开场审阅并保留 fact_corrections.py / resume_graph.py / orchestrator_tools.py 的中断改动，基线 3a6daf1。
+- 已完成：record_facts 及旧 collecting 共用保守补充规则：同栏目唯一新占位/真实名二条、真实名在本人消息原文、全部事实来源同轮 chat、日期无冲突才合并。保留原事实/来源/限制/笔记/链接和 merged_from；P2h 原强证据路径不变。未解决的拆分在 write_draft 返回 insufficient + experience_identity_unresolved，同轮附一张归属澄清卡；覆盖占位已隐藏和真实名无事实，保留停止/关闭/预算规则。
+- 验证：新增 12 项离线回归，冻结快照合并为一条，8 条事实（含 3 条限制）原样保留；实际 writer/guard 配离线桩正文非空、编造值被拒、引用/hash/隐私检查通过。最终指定全量 2190 项：2188 通过、2 原有跳过、0 失败/错误，83.268s。P2h/P2l/职责归属定向 35 项全过，4 文件 AST/Ruff/diff 检查通过，旧断言未改。
+- 失败做法：首次全量 1 项旧归属回归失败，新 turn_id 未传给原 bind_role_followup 导致错挂事实无法迁移；补传同一 ID 后原断言及最终全量通过。未放宽 writer 跨条目引用，也未通过名称/日期编造动作。
+- 当前状态/未完成：修复、测试和说明均未提交；未做新真实模型回放，不能宣称真实 cold 已全过或延迟改善。无应用后台进程；未访问 8833/8834、调用真实模型、改其它 worktree/dist、commit/push/部署。
+- 接手：看 evaluation/agent-loop-spike/p2l-notes.md 和 tests/test_orchestrator_p2l.py，审阅当前 diff 后按集成任务处理。最终日志 p2l-full-tests-final.log；首次失败日志 p2l-full-tests.log，均按规则忽略。后续真实回放由负责方另行执行。
+
+
+## P2l 中断后复核交接（2026-10-19，仅追加）
+
+- 目标/已完成：承接并审阅 batch17l 基线 3a6daf1 上的全部未提交改动；保留同消息唯一占位/真实名合并、旧 collecting 接入及 insufficient 归属澄清卡，无需追加业务修改，旧测试与断言未改。
+- 关键决策：继续以同轮来源、新建条目、原文具名、唯一候选和无日期冲突为新增合并边界；沿用原事实/来源/限制/merged_from 和 writer 核对，未满足条件就明确询问归属。
+- 本次验证：指定全量重新通过，2190 项、2188 通过、2 原有跳过、0 失败/错误，83.312s，退出码 0；包含 P2h、12 项 P2l 和职责归属回归。4 文件 AST、Ruff、diff 检查通过。日志 evaluation/agent-loop-spike/p2l-full-tests-resumed.log；详情 p2l-notes.md 的中断后复核节。
+- 当前状态/未完成：代码、测试与说明均未提交；未做新真实回放，不能宣称真实 cold 已全过。测试进程已结束，未启动应用服务；未访问 8833/8834、调用真实模型、改其它 worktree/dist、commit/push/部署。本次没有新增失败做法。
+- 接手步骤：审阅当前 diff 和 evaluation/agent-loop-spike/p2l-notes.md 后交由集成任务处理；真实回放仍由负责方另行执行。

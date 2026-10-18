@@ -8,6 +8,48 @@ from app.services.resume_facts import new_fact, normalize_fact_store
 from app.services.resume_versions import text_hash
 
 
+def merge_new_experience_identities(store: dict, previous: dict, evidence: str, turn_id: str) -> None:
+    """Join the sole new placeholder/name pair from one message, without guessing across history."""
+    from app.schemas.facts import FACT_LABELS
+    from app.services.candidate_language import placeholder_name
+
+    if not turn_id:
+        return
+    old_ids = {row['item_id'] for section in FACT_SECTIONS for row in previous.get(section, [])}
+    for section in FACT_SECTIONS:
+        if section == 'education':
+            continue
+        items = store.get(section) or []
+        if len(items) != 2 or any(row['item_id'] in old_ids for row in items):
+            continue
+        label = FACT_LABELS[section]
+        placeholders = [row for row in items if placeholder_name(row.get(label, ''))]
+        named = [row for row in items if row.get(label) and not placeholder_name(row[label])]
+        if len(placeholders) != 1 or len(named) != 1:
+            continue
+        source, target = placeholders[0], named[0]
+        if target[label] not in evidence:
+            continue
+        if any(not row.get('facts') or any(
+                fact.get('turn_id') != turn_id or fact.get('source') != 'chat'
+                or any(origin.get('turn_id') != turn_id or origin.get('source') != 'chat'
+                       for origin in fact.get('sources') or [])
+                for fact in row['facts']) for row in items):
+            continue
+        conflict = False
+        for field in ('start_date', 'end_date', 'date'):
+            periods = [{str(value) for value in [row.get(field), *[
+                fact['text'] for fact in row['facts'] if fact.get('field') == field
+                and fact.get('status', 'active') == 'active']] if value} for row in (source, target)]
+            if any(len(values) > 1 for values in periods) or (periods[0] and periods[0] != periods[1]):
+                conflict = True
+        if conflict:
+            continue
+        apply_experience_merges(store, [{'section': section, 'name': target[label],
+            'target_item_id': target['item_id'], 'source_item_ids': [source['item_id']],
+            'source_quote': evidence, 'turn_id': turn_id}])
+
+
 def recover_experience_merges(patch: dict, evidence: str, outline: list[dict], turn_id: str) -> None:
     """Bind an explicit same-experience correction to uniquely matching topics.
 

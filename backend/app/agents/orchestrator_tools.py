@@ -360,6 +360,8 @@ async def record_facts(state, args, ctx):
             previous_assistant=_latest_previous_assistant(state["messages"][:index]))
         collected = apply_fact_patch(previous, patch)
         _clean_unrecorded_notes(collected, previous, patch)
+        from app.services.fact_corrections import merge_new_experience_identities
+        merge_new_experience_identities(collected, previous, text, source_id)
     _bind_campus_identity(collected)
     collected = absorb_education(collected, previous, text, source_id)
     if _no_more_questions({"messages": [source]}):
@@ -755,6 +757,12 @@ def _state_fields():
 @_register("write_draft", WriteArgs, "用已记录事实写第一稿；缺经历返回 insufficient；缺姓名或联系方式仍出稿，并在结果中给出 contacts_missing。", "正在写第一稿…")
 async def write_draft(state, args, ctx):
     collected = state.get("collected_info") or {}
+    if clarification := _split_identity_clarification(state):
+        attached = await attach_draft_followup(state, clarification["followup"], ctx)
+        clarification["followup_attached"] = attached.result.get("status") == "ok"
+        if not clarification["followup_attached"]:
+            clarification["followup_unavailable_reason"] = attached.result.get("code")
+        return ToolOutcome(clarification, attached.update, attached.events, stop=True)
     if not _has_experience(collected):
         return ToolOutcome({"status": "insufficient", "missing": ["至少一段经历的具体做法"]})
     # 先写后问：缺联系方式不阻塞出稿，头部留空，由编排在出稿后一次问齐。
@@ -788,6 +796,43 @@ async def write_draft(state, args, ctx):
         outcome.update["session_constraints"] = {**(outcome.update.get("session_constraints") or state.get("session_constraints") or {}),
                                                   "contacts_requested": True}
     return outcome
+
+
+def _split_identity_clarification(state):
+    """An unbound action cannot supply a named item's body; ask before writing."""
+    from app.schemas.facts import FACT_LABELS
+    from app.services.candidate_language import placeholder_name
+    from app.services.resume_facts import normalize_fact_store
+    collected = normalize_fact_store(state.get("collected_info") or {})
+    hidden = {row.get("item_id") for section in FACT_LABELS
+              for row in (state.get("resume_data") or {}).get(section) or [] if row.get("hidden")}
+    for section, label in FACT_LABELS.items():
+        if section == "education":
+            continue
+        items = [row for row in collected.get(section) or [] if not row.get("hidden")]
+        # A plan may have hidden the action-bearing placeholder already. Its
+        # active facts still need an owner before the visible named item can write.
+        placeholders = [row for row in items if placeholder_name(row.get(label, ""))
+                        and _has_experience({section: [row]})]
+        named = [row for row in items if row.get(label) and not placeholder_name(row[label])
+                 and row.get("item_id") not in hidden
+                 and not _has_experience({section: [row]})]
+        if not placeholders or not named:
+            continue
+        names = "、".join(row[label] for row in named)
+        actions = "；".join(fact["text"] for row in placeholders for fact in row.get("facts") or []
+                           if fact.get("status", "active") == "active"
+                           and fact.get("kind") in {"action", "method_tool", "deliverable",
+                                                    "result_metric", "result_qualitative"})
+        details = ContactRedactor().redact(f"具名条目：{names}；待补名称条目的做法：{actions}")
+        return {"status": "insufficient", "code": "experience_identity_unresolved",
+                "missing": ["经历归属确认"],
+                "message": "具名条目缺少具体做法，做法记录在待补名称条目中，尚不能确认属于同一段经历。",
+                "followup": {"subject": named[0]["item_id"] if len(named) == 1 else "",
+                             "questions": [{"id": "experience_identity", "kind": "text",
+                                 "prompt": "这些条目是同一段经历吗？请说明对应关系。",
+                                 "placeholder": details[:120]}]}}
+    return {}
 
 
 def _missing_contacts(state):

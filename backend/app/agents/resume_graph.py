@@ -1297,7 +1297,7 @@ async def _extract_info_from_message(
 ) -> dict:
     """Apply a sparse, per-fact validated user message patch."""
     message, _ = split_mixed_material(message)
-    from app.agents.fact_extractor import apply_fact_patch, extract_facts_patch, followup_item
+    from app.agents.fact_extractor import _candidate_evidence, apply_fact_patch, extract_facts_patch, followup_item
     from app.services.resume_facts import normalize_fact_store
     if _no_more_questions({"messages": [HumanMessage(content=message)]}):
         current = {**current, "no_more_questions": True}
@@ -1309,15 +1309,18 @@ async def _extract_info_from_message(
         if normalized["followup_target"].get("asked_hash") != _hash_text(latest_followup(previous_reply)):
             normalized.pop("followup_target", None)
     try:
+        turn_id = str(uuid.uuid4())
         patch = await extract_facts_patch(
-            message, normalized, llm, metadata_context=normalized.get("metadata_context"),
+            message, normalized, llm, turn_id=turn_id, metadata_context=normalized.get("metadata_context"),
             previous_assistant=_previous_assistant.get())
         result = apply_fact_patch(normalized, patch)
         if (_re.search(r'我负责|我写|我做|本人|独立|一个人|都是我', message)
                 and _re.search(r'职责|分工|独立|团队|一个人|谁做', _previous_assistant.get())):
             from app.agents.turn_actions import bind_role_followup
-            result = bind_role_followup(result, _previous_assistant.get(), message)
+            result = bind_role_followup(result, _previous_assistant.get(), message, turn_id)
         _clean_unrecorded_notes(result, normalized, patch)
+        from app.services.fact_corrections import merge_new_experience_identities
+        merge_new_experience_identities(result, normalized, _candidate_evidence(message), turn_id)
         result.pop("followup_target", None)
         result.pop("unrecorded", None)
         uncovered = [str(c) for c in patch.get("uncovered") or []][:3]

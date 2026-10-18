@@ -43,6 +43,7 @@ class ToolContext:
     ask_used: bool = False
     profile_item_ids: set[str] = field(default_factory=set)
     recorded_sources: set[str] = field(default_factory=set)
+    corrected_sources: set[str] = field(default_factory=set)
     jd_sources: set[str] = field(default_factory=set)
 
 
@@ -78,10 +79,57 @@ class EditArgs(NoArgs):
     instruction: str = Field(min_length=1, max_length=4000)
 
 
-def _safe_result(result: dict) -> dict:
+def _safe_result(result: dict, state: dict, update: dict, tool: str) -> dict:
+    from app.services.structure_plan import user_plan_text
+    current = {**state, **update}
+    profile = (current.get("jd_info") or {}).get("role_profile") or {}
+    hidden = {"id", "item_id", "fact_id", "fact_ids", "req_id", "req_ids", "slot_id", "slot_ids",
+              "coverage_fact_ids", "text_hash", "profile_refs", "sources", "turn_id", "source_id",
+              "profile_statement_fact_ids", "labeled_slots", "slot_trace", "slot_lines", "edit_contract"}
+    names = {}
+
+    def collect(value):
+        if isinstance(value, dict):
+            label = value.get("name") or value.get("company") or value.get("school") or ""
+            if value.get("item_id"):
+                identifier = str(value["item_id"])
+                names[identifier] = str(label or names.get(identifier) or "")
+            if value.get("id"):
+                names[str(value["id"])] = str(value.get("signal") or value.get("text") or "") if (
+                    value.get("signal") or value.get("priority")) else ""
+            for key, row in value.items():
+                if key in hidden and key.endswith(("_id", "_ids")):
+                    for identifier in row if isinstance(row, list) else [row]:
+                        if isinstance(identifier, str):
+                            names.setdefault(identifier, "")
+                collect(row)
+        elif isinstance(value, list):
+            for row in value:
+                collect(row)
+
+    for value in (current.get("collected_info"), current.get("resume_data"), profile, result):
+        collect(value)
+    identifiers = sorted((key for key in names if key), key=len, reverse=True)
+    pattern = re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(map(re.escape, identifiers)) + r")(?![A-Za-z0-9_])") if identifiers else None
+
+    def readable(value, path=()):
+        if isinstance(value, dict):
+            return {(pattern.sub(lambda match: names[match[0]], key) if pattern else key):
+                    (row if tool == "read_profile" and path == ("items",) and key == "id"
+                          else readable(row, (*path, key)))
+                    for key, row in value.items() if key not in hidden or (
+                        tool == "read_profile" and path == ("items",) and key == "id")}
+        if isinstance(value, list):
+            return [readable(row, path) for row in value]
+        if isinstance(value, str):
+            value = user_plan_text(value, profile)
+            value = pattern.sub(lambda match: names[match[0]], value) if pattern else value
+            return re.sub(r"(?<![A-Za-z0-9_])(?:" + "|".join(sorted(hidden)) + r")(?![A-Za-z0-9_])", "", value)
+        return value
+
     privacy = ContactRedactor()
     # Tool data is JSON text, including objects resembling opaque media blocks.
-    return json.loads(privacy.redact(json.dumps(privacy.redact(result), ensure_ascii=False)))
+    return json.loads(privacy.redact(json.dumps(privacy.redact(readable(result)), ensure_ascii=False)))
 
 
 def _error(code: str, **details) -> ToolOutcome:
@@ -138,7 +186,7 @@ def _register(name, args_model, description, progress):
             except Exception as exc:
                 # Provider/persistence errors can echo private source text.
                 outcome = _error("tool_exception", error_type=type(exc).__name__)
-            outcome.result = _safe_result(outcome.result)
+            outcome.result = _safe_result(outcome.result, state, outcome.update, name)
             completed = outcome.result.get("status") in {"ok", "partial", "unchanged"}
             await status("completed", "处理完成" if completed else "本次处理未完成，请查看结果")
             outcome.events = [*events, *outcome.events]
@@ -177,6 +225,8 @@ async def use_profile_items(state, args, ctx):
     if any(identifier not in ctx.profile_item_ids for identifier in args.item_ids):
         return _error("read_profile_first_or_unknown_item")
     result, update = await execute_profile_tool("use_profile_items", args.model_dump(), state)
+    if result.get("status") == "ok" and result.get("imported"):
+        result["message"] = "已从档案导入：" + "、".join(result["imported"]) + "。"
     return ToolOutcome(result, update)
 
 
@@ -266,6 +316,22 @@ async def record_facts(state, args, ctx):
         return _error("not_candidate_material")
     if source_id in ctx.recorded_sources:
         return ToolOutcome({"status": "unchanged", "code": "source_already_recorded"})
+    from app.services.fact_corrections import correction_pairs
+    pairs = correction_pairs(text, state.get("collected_info"))
+    if pairs and state.get("resume_data"):
+        from app.agents.resume_graph import _literal_correction_update
+        corrected = await _literal_correction_update(state, text, pairs)
+        if "resume_data" not in corrected:
+            return ToolOutcome({"status": "insufficient", "code": "correction_not_applied",
+                                "message": corrected["messages"][0].content})
+        intake = await _persist_intake(state, corrected["collected_info"])
+        corrected.pop("messages", None)
+        outcome = _document_outcome({**intake, **corrected})
+        outcome.result["correction_applied"] = True
+        outcome.stop = True
+        ctx.recorded_sources.add(source_id)
+        ctx.corrected_sources.add(source_id)
+        return outcome
     text = _candidate_evidence(text)
     if not _candidate_evidence(text).strip():
         return _error("not_candidate_material")
@@ -318,18 +384,28 @@ async def ask_user(state, args, ctx):
     if state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
         return ToolOutcome({"status": "unavailable", "code": "questions_disabled"})
     questions, seen = [], set()
+    contacts = False
     for question in args.card.questions:
+        contact_question = bool(re.search(r"手机|电话|邮箱|联系方式|phone|email", question.prompt + question.placeholder + question.id, re.I))
+        if contact_question and (not state.get("resume_data") or not _missing_contacts(state)
+                                or ((state.get("session_constraints") or {}).get("contacts_requested")
+                                    and not _export_contacts_requested(state))):
+            continue
         dimension = question_dimension(question.id, question.prompt)
         if dimension not in seen and not is_closed(state, args.card.subject, question.id, question.prompt):
             questions.append(question.model_dump())
             seen.add(dimension)
+            contacts = contacts or contact_question
     if not questions:
         return ToolOutcome({"status": "unavailable", "code": "questions_closed"})
     card = {"kind": "ask_user", "turn_id": ctx.turn_id, "title": "补充问题",
             "subject": args.card.subject, "questions": questions}
     message = AIMessage(content="", id=str(uuid4()), additional_kwargs={"ask_user": card, "ask_user_enabled": True})
     ctx.ask_used = True
-    return ToolOutcome({"status": "ok", "card": card}, {"messages": [message]},
+    update = {"messages": [message]}
+    if contacts:
+        update["session_constraints"] = {**(state.get("session_constraints") or {}), "contacts_requested": True}
+    return ToolOutcome({"status": "ok", "card": card}, update,
                        [{"type": "guidance", "guidance": card}], stop=True)
 
 
@@ -355,10 +431,7 @@ def _project_contacts(data, collected):
 
 @_register("propose_plan", NoArgs, "依据已记录事实生成结构方案卡，等待用户选择。", "正在整理简历方案…")
 async def propose_plan(state, args, ctx):
-    from app.agents.resume_writer import run_resume_writer
-    from app.agents.resume_graph import _make_writer_llm, _serialize_to_resume_data
-    from app.agents.tailor_pipeline import constraints_for_turn
-    from app.services.resume_workspace import bounded_web_sources
+    from app.agents.resume_graph import _serialize_to_resume_data
     from app.services.structure_plan import plan_guidance
     collected = state.get("collected_info") or {}
     if not _has_experience(collected):
@@ -367,19 +440,28 @@ async def propose_plan(state, args, ctx):
     if not card:
         if ctx.llm is None:
             return _error("model_unavailable")
-        planned = await run_resume_writer(collected, (state.get("jd_info") or {}).get("role_profile") or {},
-            _make_writer_llm(ctx.llm), current_data=_serialize_to_resume_data({**state, "messages": []}), structured_llm=_structured(ctx),
-            constraints=constraints_for_turn(state, ""), mode="two_pass", phase="plan",
-            planning_context={"jd_info": state.get("jd_info") or {},
-                              "company_sources": bounded_web_sources(state.get("web_sources"), content_limit=1800)})
-        card = planned["structure_plan"]
+        card = await _structure_card(state, ctx, _serialize_to_resume_data({**state, "messages": []}), "")
     guidance = {**plan_guidance(card, collected, (state.get("jd_info") or {}).get("role_profile")), "turn_id": ctx.turn_id}
     return ToolOutcome({"status": "ok", "plan": card},
                        {"pending_plan": card, "confirmed_plan": {}, "plan_required": True, "stage": "BUILDING"},
                        [{"type": "guidance", "guidance": guidance}], stop=True)
 
 
-async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=None):
+async def _structure_card(state, ctx, base, instruction):
+    from app.agents.resume_writer import run_resume_writer
+    from app.agents.resume_graph import _make_writer_llm
+    from app.agents.tailor_pipeline import constraints_for_turn
+    from app.services.resume_workspace import bounded_web_sources
+    planned = await run_resume_writer(state.get("collected_info") or {},
+        (state.get("jd_info") or {}).get("role_profile") or {}, _make_writer_llm(ctx.llm),
+        current_data=base, resume_meta=state.get("resume_meta") or {}, structured_llm=_structured(ctx),
+        instruction=instruction, constraints=constraints_for_turn(state, instruction), mode="two_pass", phase="plan",
+        planning_context={"jd_info": state.get("jd_info") or {},
+                          "company_sources": bounded_web_sources(state.get("web_sources"), content_limit=1800)})
+    return planned["structure_plan"]
+
+
+async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=None, plan_draft=False):
     from app.agents.resume_graph import _make_writer_llm, _serialize_to_resume_data
     from app.agents.tailor_pipeline import run_tailor_pipeline
     from app.config import get_settings
@@ -390,6 +472,20 @@ async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=Non
     # Loop writing may use only the fact master and the saved document.
     base = deepcopy(base) if base is not None else _serialize_to_resume_data({**state, "messages": []})
     _project_contacts(base, collected)
+    if plan_draft:
+        from app.services.structure_plan import select_plan, accept_profile, edit_plan, plan_action
+        from app.agents.resume_graph import _latest_human_text
+        confirmed = state.get("confirmed_plan") or (state.get("resume_meta") or {}).get("confirmed_plan")
+        latest = _latest_human_text(state)
+        if not confirmed:
+            card = state.get("pending_plan") or await _structure_card(state, ctx, base, instruction or latest)
+            action, index = plan_action(latest, card)
+            selected = select_plan(card, index if action == "confirm" else 0)
+            if selected is None:
+                return ToolOutcome({"status": "insufficient", "missing": ["有效的结构方案选择"]})
+            confirmed = accept_profile(selected)
+        confirmed, _ = edit_plan(confirmed, latest, collected)
+        state = {**state, "confirmed_plan": confirmed, "pending_plan": {}, "plan_required": False}
     update = await run_tailor_pipeline(state, base, _make_writer_llm(ctx.llm), structured_llm=_structured(ctx),
         instruction=instruction, scope=scope, targets=targets, mode=get_settings().LLM_WRITER_MODE)
     # The writer/pipeline is not another fact intake entry point.
@@ -432,9 +528,8 @@ async def write_draft(state, args, ctx):
     collected = state.get("collected_info") or {}
     if not _has_experience(collected):
         return ToolOutcome({"status": "insufficient", "missing": ["至少一段经历的具体做法"]})
-    basic = collected.get("basic_info") or {}
     # 先写后问：缺联系方式不阻塞出稿，头部留空，由编排在出稿后一次问齐。
-    missing = [key for key in ("name", "phone", "email") if not str(basic.get(key) or "").strip()]
+    missing = _missing_contacts(state)
     direction_update = {}
     current_direction = (state.get("jd_info") or {}).get("role_direction") or (state.get("jd_info") or {}).get("job_title")
     if args.direction and args.direction != current_direction:
@@ -445,13 +540,28 @@ async def write_draft(state, args, ctx):
         direction_update = {**_clear_structure_plan(state), "jd_info": info, "jd_text": "", "jd_skipped": True,
                             "jd_keywords": [args.direction],
                             "resume_strategy": build_resume_strategy(jd_info=info, jd_keywords=[args.direction], has_jd=False)}
-    outcome = await _write({**state, **direction_update}, ctx, args.emphasis or "")
+    outcome = await _write({**state, **direction_update}, ctx, args.emphasis or "", plan_draft=True)
     if outcome.update:
         outcome.update = {**direction_update, **outcome.update, "pending_plan": {}, "plan_required": False}
         outcome.stop = True
-    if missing:
+    if missing and outcome.update and (not (state.get("session_constraints") or {}).get("contacts_requested")
+                                       or _export_contacts_requested(state)):
         outcome.result["contacts_missing"] = missing
+        outcome.update["session_constraints"] = {**(outcome.update.get("session_constraints") or state.get("session_constraints") or {}),
+                                                  "contacts_requested": True}
     return outcome
+
+
+def _export_contacts_requested(state):
+    from app.agents.resume_graph import _latest_human_text, _user_wants_export
+    text = _latest_human_text(state)
+    return bool(re.search(r"导出|下载", text) and _user_wants_export(text))
+
+
+def _missing_contacts(state):
+    basic = {**((state.get("resume_data") or {}).get("basic_info") or {}),
+             **((state.get("collected_info") or {}).get("basic_info") or {})}
+    return [key for key in ("name", "phone", "email") if not str(basic.get(key) or "").strip()]
 
 
 @_register("edit_resume", EditArgs, "按编辑契约修改已有稿并保留可撤销版本；新事实须先 record_facts。", "正在修改简历…")
@@ -462,6 +572,12 @@ async def edit_resume(state, args, ctx):
     data = state.get("resume_data")
     if not data:
         return ToolOutcome({"status": "insufficient", "missing": ["已有简历"]})
+    source = _source(state, "current")
+    if source and (source.id or "current") in ctx.corrected_sources:
+        return ToolOutcome({"status": "unchanged", "correction_applied": True})
+    from app.services.fact_corrections import correction_pairs
+    if source and isinstance(source.content, str) and correction_pairs(source.content, state.get("collected_info")):
+        return await record_facts(state, {"source_id": "current"}, ctx)
     if re.fullmatch(r"\s*(?:撤销|撤回|回到上一版|恢复上一版)(?:刚才的修改|这次修改|上次修改|上一版|一下)?[。！!\s]*", args.instruction):
         if not state.get("resume_versions"):
             return ToolOutcome({"status": "unavailable", "code": "no_previous_version"})

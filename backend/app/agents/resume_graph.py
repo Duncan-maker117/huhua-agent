@@ -2762,6 +2762,51 @@ async def _evaluating_turn_node(state: ResumeState, llm: ChatOpenAI) -> dict:
         return _finish_followup_turn(state, result)
 
 
+async def _literal_correction_update(state: dict, text: str, pairs: list[dict]) -> dict:
+    """Apply the shared fact/body correction transaction without a writer call."""
+    from app.services.fact_corrections import apply_literal_corrections
+    from app.services.resume_delivery import export_capability
+    data = state.get("resume_data") or _serialize_to_resume_data(state)
+    collected = state.get("collected_info") or _empty_collected_info()
+    corrected = apply_literal_corrections(collected, data, state.get('resume_meta') or {}, pairs)
+    if corrected.get('error'):
+        return {'messages': [AIMessage(content='更正未完成：' + corrected['error'])]}
+    # A literal correction must not swallow other edits in the same turn.
+    from app.agents.turn_actions import choose_edit_plan, render_operation_report
+    from app.services.edit_plan import execute_edit_plan
+    from app.services.candidate_skills import apply_literal_skill_limits
+    plan = choose_edit_plan(text, corrected['resume_data'], [], corrected['collected_info'], router_failed=True)
+    executed = execute_edit_plan(corrected['resume_data'], state.get('session_constraints'),
+                                 [op for op in plan if op['op'] not in {'rewrite', 'compress', 'refocus'}],
+                                 collected_info=corrected['collected_info'], instruction=text)
+    corrected.update(resume_data=executed['data'], collected_info=executed['collected_info'])
+    skill_changes = apply_literal_skill_limits(corrected['collected_info'], corrected['resume_data'], text)
+    # This path generates corrected prose; ordinary editor/API persistence
+    # must never silently deduplicate user-authored bullets.
+    from app.services.resume_dedup import changed_bullet_items, deduplicate_resume
+    deduplicate_resume(corrected['resume_data'], corrected['resume_meta'],
+                       item_ids=changed_bullet_items(data, corrected['resume_data']))
+    from app.services.fact_coverage import ensure_fact_coverage
+    ensure_fact_coverage(corrected['resume_data'], corrected['resume_meta'], corrected['collected_info'])
+    from app.services.resume_versions import prepare_version
+    from app.agents.tailor_pipeline import constraints_for_turn
+    from app.services.resume_capacity import measure_rendered_pages
+    version = prepare_version(data, state.get('resume_meta') or {}, state.get('resume_versions') or [],
+                              corrected['resume_data'], corrected['resume_meta'], label='更正事实')
+    measurement = await asyncio.to_thread(measure_rendered_pages, corrected['resume_data'], constraints_for_turn(state, text))
+    version['resume_meta']['page_check'] = measurement
+    changes = [f"{pair['old']} → {pair['new']}" for pair in pairs]
+    changes.extend(render_operation_report(executed['operation_results'], data, corrected['resume_data']))
+    changes.extend(skill_changes)
+    version['resume_meta']['change_summary'] = changes
+    version['resume_meta']['writer_diagnostic'] = {'status': 'not_called', 'reason': 'literal_correction'}
+    return {**version, 'collected_info': corrected['collected_info'], 'page_check': measurement,
+            'session_constraints': constraints_for_turn(state, text),
+            'stage': 'EVALUATING', 'resume_draft': resume_to_text(version['resume_data']),
+            'change_summary': changes,
+            'messages': [AIMessage(content='已更新正文。本次修改：' + '；'.join(changes) + '。' + export_capability(version['resume_data']))]}
+
+
 async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: SpeculativeScope) -> dict:
     """Draft edits and read-only advice have separate return paths."""
     from app.agents.tailor_pipeline import infer_edit_scope
@@ -2807,46 +2852,10 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         result = await _update_without_writer(state, text, repair_dates=True)
         return {**result, 'stage': 'EVALUATING', 'resume_draft': resume_to_text(result['resume_data']),
                 'messages': [AIMessage(content='最终稿已放到右侧「写简历」，沿用已确认的事实和删改要求。' + export_capability(result['resume_data']))]}
-    from app.services.fact_corrections import apply_literal_corrections, correction_pairs
+    from app.services.fact_corrections import correction_pairs
     pairs = correction_pairs(text, collected)
     if pairs:
-        corrected = apply_literal_corrections(collected, data, state.get('resume_meta') or {}, pairs)
-        if corrected.get('error'):
-            return {'messages': [AIMessage(content='更正未完成：' + corrected['error'])]}
-        # A literal correction must not swallow other edits in the same turn.
-        from app.agents.turn_actions import choose_edit_plan, render_operation_report
-        from app.services.edit_plan import execute_edit_plan
-        from app.services.candidate_skills import apply_literal_skill_limits
-        plan = choose_edit_plan(text, corrected['resume_data'], [], corrected['collected_info'], router_failed=True)
-        executed = execute_edit_plan(corrected['resume_data'], state.get('session_constraints'),
-                                     [op for op in plan if op['op'] not in {'rewrite', 'compress', 'refocus'}],
-                                     collected_info=corrected['collected_info'], instruction=text)
-        corrected.update(resume_data=executed['data'], collected_info=executed['collected_info'])
-        skill_changes = apply_literal_skill_limits(corrected['collected_info'], corrected['resume_data'], text)
-        # This path generates corrected prose; ordinary editor/API persistence
-        # must never silently deduplicate user-authored bullets.
-        from app.services.resume_dedup import changed_bullet_items, deduplicate_resume
-        deduplicate_resume(corrected['resume_data'], corrected['resume_meta'],
-                           item_ids=changed_bullet_items(data, corrected['resume_data']))
-        from app.services.fact_coverage import ensure_fact_coverage
-        ensure_fact_coverage(corrected['resume_data'], corrected['resume_meta'], corrected['collected_info'])
-        from app.services.resume_versions import prepare_version
-        from app.agents.tailor_pipeline import constraints_for_turn
-        from app.services.resume_capacity import measure_rendered_pages
-        version = prepare_version(data, state.get('resume_meta') or {}, state.get('resume_versions') or [],
-                                  corrected['resume_data'], corrected['resume_meta'], label='更正事实')
-        measurement = await asyncio.to_thread(measure_rendered_pages, corrected['resume_data'], constraints_for_turn(state, text))
-        version['resume_meta']['page_check'] = measurement
-        changes = [f"{pair['old']} → {pair['new']}" for pair in pairs]
-        changes.extend(render_operation_report(executed['operation_results'], data, corrected['resume_data']))
-        changes.extend(skill_changes)
-        version['resume_meta']['change_summary'] = changes
-        version['resume_meta']['writer_diagnostic'] = {'status': 'not_called', 'reason': 'literal_correction'}
-        return {**version, 'collected_info': corrected['collected_info'], 'page_check': measurement,
-                'session_constraints': constraints_for_turn(state, text),
-                'stage': 'EVALUATING', 'resume_draft': resume_to_text(version['resume_data']),
-                'change_summary': changes,
-                'messages': [AIMessage(content='已更新正文。本次修改：' + '；'.join(changes) + '。' + export_capability(version['resume_data']))]}
+        return await _literal_correction_update(state, text, pairs)
     from app.agents.turn_actions import wording_only
     local_wording = wording_only(text)
     imported = parse_existing_resume(text)

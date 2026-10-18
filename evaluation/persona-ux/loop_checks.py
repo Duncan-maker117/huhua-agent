@@ -24,17 +24,19 @@ def cards(turn):
 def contact_request(turn):
     for card in cards(turn):
         if card.get("kind") == "intake_basics":
-            return True
+            missing = card.get("missing_fields")
+            if missing is None or set(missing) & {"phone", "email"}:
+                return True
         if card.get("kind") == "ask_user" and re.search(
                 r"手机|电话|邮箱|联系方式|\b(?:phone|email)\b",
                 "\n".join(checks.strings({k: card.get(k) for k in ("question", "questions", "title")})), re.I):
             return True
-    for clause in re.split(r"[。！!；;\n]", turn.get("reply") or ""):
+    for clause in re.split(r"[，,。！!；;\n]|但(?:是)?", turn.get("reply") or ""):
         if not re.search(r"手机|电话|邮箱|联系方式", clause):
             continue
         if re.search(r"(?:不|无需|不用|不必).{0,8}(?:需要|提供|补|填|发|给)|已(?:经)?(?:有|提供|记录|收到|记下)", clause):
             continue
-        if re.search(r"[？?]|请|补充|提供|告诉|留(?:下|个)|填写|填入|发(?:我|来|一下)|给我|还缺|缺少|需要", clause):
+        if re.search(r"[？?]|请|补充|提供|告诉|留(?:下|个)|填写|填入|发(?:我|来|一下)|给我|还缺|还差|缺少|需要", clause):
             return True
     return False
 
@@ -72,15 +74,22 @@ def evaluate_loop(persona, turns):
     bad = []
     for turn in turns:
         counts = turn.get("model_calls")
+        orchestration = turn.get('orchestrator') or {}
+        expected = (turn.get('metrics_version') == 2 and turn.get('kind') != 'confirmation'
+                    and not turn.get('answers') and not turn.get('intake'))
+        orchestrator_ok = not expected or (
+            type(orchestration.get('model_calls')) is int and orchestration['model_calls'] > 0
+            and finite_nonnegative(orchestration.get('seconds'))
+            and len(orchestration.get('turns') or []) == orchestration['model_calls'])
         if not (type(counts) is int and counts >= 0 and turn.get("metrics_agent_mode") == "loop"
                 and turn.get("model_call_scope") == CALL_SCOPE
                 and finite_nonnegative(turn.get("server_seconds"))
                 and finite_nonnegative(turn.get("stream_seconds"))
-                and finite_nonnegative(turn.get("elapsed_seconds"))):
+                and finite_nonnegative(turn.get("elapsed_seconds")) and orchestrator_ok):
             bad.append(turn)
     add("metrics", "每轮有服务端模型HTTP尝试数与耗时；缺失不估为0", bool(turns) and not bad,
         [checks.evidence(t, "metrics", {k: t.get(k) for k in (
-            "model_calls", "model_call_scope", "metrics_agent_mode", "server_seconds", "stream_seconds", "elapsed_seconds")})
+            "model_calls", "model_call_scope", "metrics_agent_mode", "server_seconds", "stream_seconds", "elapsed_seconds", "orchestrator")})
          for t in (bad or turns)])
     add("contacts_not_sent", "每轮出站隐私检查无拦截；原始联系方式不发模型", bool(turns) and all(
         type(t.get("privacy_blocks")) is int and t["privacy_blocks"] == 0 for t in turns),

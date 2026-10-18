@@ -31,6 +31,7 @@ aipm = import_module("evaluation.persona-ux.aipm")
 aipm_real = import_module("evaluation.persona-ux.aipm_real")
 returning = import_module("evaluation.persona-ux.returning")
 loop_checks = import_module("evaluation.persona-ux.loop_checks")
+metrics = import_module("evaluation.persona-ux.metrics")
 CARD_PERSONAS = {"aipm": aipm, "aipm_real": aipm_real, "returning": returning}
 
 
@@ -100,6 +101,8 @@ def read_sse(response, result=None):
                 "server_seconds": event.get("server_seconds") if loop_checks.finite_nonnegative(event.get("server_seconds")) else None,
                 "metrics_agent_mode": event.get("agent_mode") if event.get("agent_mode") in {"off", "loop"} else None,
                 "model_call_scope": loop_checks.CALL_SCOPE if event.get("model_call_scope") == loop_checks.CALL_SCOPE else None,
+                "metrics_version": 2 if event.get("metrics_version") == 2 else None,
+                "orchestrator": metrics.orchestrator(event.get("orchestrator")),
             }
         elif event.get("type") == "tool_status":
             name, status = event.get("tool"), event.get("status")
@@ -183,6 +186,7 @@ class GuestClient:
         record.update(reply=stream["reply"], sse_done=stream["done"])
         record.update(stream.get("metrics") or dict.fromkeys(
             ("model_calls", "privacy_blocks", "server_seconds", "metrics_agent_mode", "model_call_scope")))
+        record.setdefault('orchestrator', None)
         record["guidance_history"] = stream.get("guidance_history", [])
         record["tool_status"] = stream.get("tool_status", [])
         record["stream_seconds"] = round(time.monotonic() - started, 3)
@@ -272,7 +276,8 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
             else:
                 client.start()
             if persona in CARD_PERSONAS:
-                for turn in CARD_PERSONAS[persona].replay(client):
+                options = {'agent_mode': agent_mode} if persona in {'aipm', 'aipm_real'} else {}
+                for turn in CARD_PERSONAS[persona].replay(client, **options):
                     record["turns"].append(turn)
                     save_turn(directory, len(record["turns"]), turn)
             attachment = client.upload(materials / "design-material.txt") if persona == "design" else ""

@@ -1,8 +1,10 @@
 """Opt-in local replay server; instrumentation is never imported by production."""
 import argparse
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from contextvars import ContextVar
+from importlib import import_module
 import json
+import logging
 import os
 from pathlib import Path
 import sys
@@ -12,6 +14,21 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[2]
 COUNTS = ContextVar("persona_model_counts", default=None)
 CALL_SCOPE = "httpx_chat_completions_responses_attempts"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+metrics = import_module('evaluation.persona-ux.metrics')
+
+
+class OrchestratorMeter(logging.Filter):
+    def filter(self, record):
+        counts = COUNTS.get()
+        if counts is not None and record.msg == 'orchestrator_turn %s' and len(record.args) == 1:
+            try:
+                projected = metrics.orchestrator(json.loads(record.args[0]))
+            except (ValueError, TypeError):
+                projected = None
+            counts['orchestrator'] = projected
+        return True
 
 
 def inspect_request(request):
@@ -31,19 +48,40 @@ def inspect_request(request):
 
 @contextmanager
 def model_meter():
-    import httpx
-    async_send, sync_send = httpx.AsyncClient.send, httpx.Client.send
+    def counted_async(original):
+        async def send(client, request, *args, **kwargs):
+            inspect_request(request)
+            return await original(client, request, *args, **kwargs)
+        return send
 
-    async def counted_async(client, request, *args, **kwargs):
-        inspect_request(request)
-        return await async_send(client, request, *args, **kwargs)
+    def counted_sync(original):
+        def send(client, request, *args, **kwargs):
+            inspect_request(request)
+            return original(client, request, *args, **kwargs)
+        return send
 
-    def counted_sync(client, request, *args, **kwargs):
-        inspect_request(request)
-        return sync_send(client, request, *args, **kwargs)
-
-    with patch.object(httpx.AsyncClient, "send", counted_async), patch.object(httpx.Client, "send", counted_sync):
-        yield
+    logger = logging.getLogger('app.agents.orchestrator')
+    meter, level = OrchestratorMeter(), logger.level
+    logger.addFilter(meter)
+    logger.setLevel(logging.INFO)
+    try:
+        with ExitStack() as stack:
+            patched = set()
+            # Current OpenAI SDK uses httpx2; older SDKs and other tools use
+            # httpx. Patch the actual client classes, not a guessed call count.
+            for name in ('httpx', 'httpx2'):
+                try:
+                    module = import_module(name)
+                except ModuleNotFoundError:
+                    continue
+                for cls, wrapper in ((module.AsyncClient, counted_async), (module.Client, counted_sync)):
+                    if cls not in patched:
+                        stack.enter_context(patch.object(cls, 'send', wrapper(cls.send)))
+                        patched.add(cls)
+            yield
+    finally:
+        logger.removeFilter(meter)
+        logger.setLevel(level)
 
 
 class ReplayApp:
@@ -69,11 +107,19 @@ class ReplayApp:
 
         async def emit_metrics():
             nonlocal emitted
-            metrics = {"type": "evaluation_metrics", "agent_mode": self.agent_mode,
-                       "model_call_scope": CALL_SCOPE, **counts,
+            # Independent counters must agree; do not repair a missed HTTP
+            # observation by pretending it was measured (including privacy).
+            measured = dict(counts)
+            orchestration = measured.get('orchestrator') or {}
+            if (orchestration.get('model_calls') is not None
+                    and orchestration['model_calls'] > measured['model_calls']):
+                measured.update(model_calls=None, privacy_blocks=None)
+            event = {"type": "evaluation_metrics", "agent_mode": self.agent_mode,
+                       "metrics_version": 2, "orchestrator": None,
+                       "model_call_scope": CALL_SCOPE, **measured,
                        "server_seconds": round(time.monotonic() - started, 4)}
             await send({"type": "http.response.body", "more_body": True,
-                        "body": b"data: " + json.dumps(metrics).encode() + b"\n\n"})
+                        "body": b"data: " + json.dumps(event).encode() + b"\n\n"})
             emitted = True
 
         async def measured_send(message):

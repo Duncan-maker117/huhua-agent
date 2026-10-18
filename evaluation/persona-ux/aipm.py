@@ -32,9 +32,7 @@ MAX_ROUNDS = 6
 
 
 def _answer(question):
-    from app.services.ask_user import question_dimension
-    dimension = question_dimension(question['id'], question['prompt'])
-    value = VALUES.get(dimension)
+    value = question_value(question, VALUES, INTAKE)
     values = value if isinstance(value, list) else [value] if value else []
     if question['kind'] != 'text':
         selected = []
@@ -53,6 +51,21 @@ def _answer(question):
     elif question['kind'] == 'text':
         values = '；'.join(values)
     return {'id': question['id'], 'value': values or '', 'unknown': not bool(values)}
+
+
+def question_value(question, values, intake):
+    """Cards may ask for the same header facts that off collects via intake."""
+    from app.services.ask_user import question_dimension
+    prompt = question['prompt']
+    if re.search(r'手机|电话|邮箱|联系方式|学校|专业', prompt):
+        return None
+    item = intake['items'][0]
+    if re.search(r'项目|经历', prompt):
+        for pattern, field in ((r'名称|名字|叫什么', 'name'), (r'开始.*(?:时间|年月)|哪年.*开始', 'start'),
+                               (r'结束.*(?:时间|年月)|哪年.*结束', 'end'), (r'角色|担任.*职务', 'role')):
+            if re.search(pattern, prompt):
+                return item[field]
+    return values.get(question_dimension(question['id'], prompt))
 
 
 def _normalized(text):
@@ -88,13 +101,14 @@ def free_text_answer(reply, values):
     return '；'.join(value) if isinstance(value, list) else value or '不知道'
 
 
-def replay(client):
+def replay(client, *, agent_mode=None):
     """Follow actual cards until a verified draft, with a bounded intake budget."""
     turn = client.turn('initial', FIRST)
     yield turn
     counts = {}
     for round_index in range(MAX_ROUNDS + 1):
-        if turn.get('status') != 'ok' or delivered(turn):
+        if turn.get('status') != 'ok' or (delivered(turn) and (
+                agent_mode != 'loop' or not pending_followup(turn))):
             return
         workspace = turn.get('workspace') or {}
         guidance = workspace.get('guidance') or {}
@@ -119,6 +133,15 @@ def replay(client):
             action += '_' + str(counts[action])
         turn = client.turn(action, text, **extra)
         yield turn
+
+
+def pending_followup(turn):
+    """A saved first draft does not end the loop's write-then-ask flow."""
+    from app.services.followup_context import latest_followup
+    guidance = (turn.get('workspace') or {}).get('guidance') or {}
+    return bool(guidance.get('kind') in {
+        'ask_user', 'structure_plan', 'intake_basics', 'intake_experiences',
+    } or latest_followup(turn.get('reply') or ''))
 
 
 def submission(step, workspace):

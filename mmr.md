@@ -484,3 +484,15 @@
 - 验证：新增 11 项测试方法，覆盖两类 AI 产品 labeled 成稿、原写法、数字更正与旧节点一致、失败/歧义/参考来源、持久化回调、跨轮联系方式及隐私。指定全量最终 2115 项，2113 通过、2 项原有跳过，0 失败/错误，91.102s，退出码 0；日志 `evaluation/agent-loop-spike/p2f-full-tests-final.log`。Ruff/AST/diff 通过，AST 确认 orchestrator 除提示常量无改动，旧断言原样保留。
 - 失败做法/未完成：未用普通抽取+整稿润色修数字；回执只删 ID 字段不足，最终补正文/诊断键引用过滤。真实模型未回放，不能宣称人物通过率提升；答案接续/检查口径仍交 P2c，实际延迟交 P2a。普通回复的联系方式约束仍需真实回放验证。
 - 接手：合并三支时保留 session_constraints.contacts_requested 的模型可见状态/摘要；按 p2f-notes.md 命令在新数据库、8857/8858 串行跑 off/loop 全人物，并核对 canonical 正文与引用。未访问 8833/8834、未调用真实模型、未改 dist、未 commit/push/部署。
+## 进行中记录
+- 2026-10-19 P2c（batch17g）：只改评测与指定比较脚本；第 1 期两组 run 在 sibling huhua-b17b 只读核对。确认 aipm 首稿终止截断后续问答、returning 字面“导入”误判；career/design 重复索要联系方式属真实失败，保留。旧回放 HTTP 计数全为 0，新增编排指标独立取证，不将旧零值当作零成本。
+
+## 2026-10-19 第十七批第 2 期 P2c 评测交接（batch17g）
+
+- 目标/边界：仅 P2c；改 evaluation、评测测试和规格点名的 scripts/compare_persona_runs.py。本文件仅追加；生产编排/工具/提示词/手册、其他 worktree 与 dist 未改，未调用真实模型、访问 8833/8834、commit/push/部署。
+- 已完成：loop 的 aipm/aipm_real 首稿后继续真实问题卡/纯文本追问，绑定实际 turn_id，使用原 VALUES 和 INTAKE 来源；off 停止流程、真实人物前四轮和严格失败断言保留。returning 接受完成态“选用/写入”且核对同轮两段可见经历；联系方式按轮去重、分句识别，真正重复仍失败。新增两目录比较脚本、逐轮/逐次编排 token/耗时及共同断言表。
+- 根因/关键决策：旧回放 78 轮 HTTP 调用数全为 0，实际 SDK 继承 httpx2.AsyncClient，旧评测只 patch httpx；现兼容两种同步/异步传输并在发送前阻断联系方式。编排指标从现有日志做数值白名单，不保存正文/思考；缺失为 N/A，计数矛盾不以推算填零。真实 SDK + MockTransport 离线验证通过。
+- 证据：第 1 期只读来源 ../huhua-b17b/evaluation/persona-ux/runs/p1-{off,loop}-all-5，共 178 份文件核对一致。冻结重评 off 113/118、loop 147/168；唯一变动 returning.profile.import_receipt FAIL→PASS，属判定纠错，非模型质量提升。报告 evaluation/persona-ux/p2g-p1-comparison.md。
+- 验证：新增 18 项；指定全量 2122 项，2120 通过、2 项原有跳过、0 失败/错误，85.412s，退出码 0。旧测试文件/断言未改。Ruff、10 文件 AST、交接命令语法和 diff 检查通过；最终日志 evaluation/agent-loop-spike/p2g-full-tests.log（忽略）。
+- 失败做法：首版只测 httpx 未覆盖当前 SDK，虽中间全量通过仍补实际 SDK 传输回归；新增测试闭括号、分句“还差”和 SDK 异常包装预期已修正，详见 evaluation/agent-loop-spike/p2g-notes.md。
+- 未完成/接手：Claude 合并 P2a/P2b/P2c 后按 p2g-notes.md 的完整命令启动 8847/8848 独立临时数据库，顺序跑 off/loop 全人物并生成简表/明细；trap 清理服务。真实质量、token 预算与缓存命中未实测，旧零计数不能代表零成本或隐私覆盖。本轮无遗留应用服务或付费任务。

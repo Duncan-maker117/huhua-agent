@@ -31,7 +31,7 @@ def call(name, **arguments):
 class OrchestratorSpikeTest(unittest.IsolatedAsyncioTestCase):
     async def test_all_cases_both_modes_and_no_test_content_in_system(self):
         cases = json.loads(DEFAULT_CASES.read_text())["cases"]
-        self.assertEqual(len(cases), 10)
+        self.assertEqual(len(cases), 13)
         for mode in ("off", "thinking"):
             for case in cases:
                 with self.subTest(mode=mode, case=case["id"]):
@@ -138,7 +138,7 @@ class OrchestratorSpikeTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("reasoning_content", result)
 
     async def test_injection_stays_data_and_external_material_cannot_be_recorded(self):
-        case = json.loads(DEFAULT_CASES.read_text())["cases"][-1]
+        case = next(c for c in json.loads(DEFAULT_CASES.read_text())["cases"] if c["id"] == "10")
         text = case["user_message"]
         model = ScriptedModel([call("read_jd", source_id="current"), call("record_facts", source_id="current"), {"content": "不能写入"}])
         tools = FakeTools(text)
@@ -178,7 +178,7 @@ class OrchestratorSpikeTest(unittest.IsolatedAsyncioTestCase):
             report = json.loads((Path(directory) / "offline" / "report.json").read_text())
             markdown = (Path(directory) / "offline" / "report.md").read_text()
             self.assertEqual(code, 0)
-            self.assertEqual(report["summary"]["matched"], 10)
+            self.assertEqual(report["summary"]["matched"], 13)
             self.assertEqual(report["metadata"]["token_source"], "scripted_fixture")
             self.assertNotIn("13800138000", json.dumps(report))
             self.assertNotIn("reasoning_content", json.dumps(report))

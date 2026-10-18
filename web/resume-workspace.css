@@ -304,3 +304,20 @@ main, #chat-pane, #chat-body, #messages, #composer-wrap { min-height: 0; min-wid
   .intake-check { grid-column: span 3; }
   .intake-field:has([name="phone"]), .intake-field:has([name="email"]) { grid-column: 1 / -1; }
 }
+/* 第十七批：编排模式首屏入口与工具进度。 */
+.orchestrator-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.orchestrator-entry { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 10px 14px; border: 1px solid #e6e2ee; border-radius: 12px; background: #fcfbff; text-align: left; transition: border-color .15s, background-color .15s, transform .15s; }
+.orchestrator-entry:hover:not(:disabled) { border-color: #b9a4f0; background: #f6f2ff; }
+.orchestrator-entry:active:not(:disabled) { transform: translateY(1px); }
+.orchestrator-entry:focus-visible { outline: 2px solid #5423e7; outline-offset: 2px; }
+.orchestrator-entry:disabled { opacity: .6; cursor: progress; }
+.orchestrator-entry-label { font-size: 13.5px; font-weight: 650; color: #1d1a26; }
+.orchestrator-entry-hint { font-size: 12px; line-height: 1.5; color: #645e72; }
+@media (max-width: 480px) { .orchestrator-entries { grid-template-columns: 1fr; } }
+.tool-progress { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; font-size: 12px; line-height: 1.5; color: #645e72; }
+.tool-progress::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #9f86ea; }
+.tool-progress[data-status="running"]::before { animation: tool-progress-pulse 1s ease-in-out infinite; }
+.tool-progress[data-status="completed"] { color: #8a8398; }
+.tool-progress[data-status="completed"]::before { background: #c9bbf0; }
+@keyframes tool-progress-pulse { 50% { opacity: .3; transform: scale(.8); } }
+@media (prefers-reduced-motion: reduce) { .tool-progress[data-status="running"]::before { animation: none; } }

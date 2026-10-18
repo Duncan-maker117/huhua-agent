@@ -11,13 +11,13 @@ class OrchestratorUITests(unittest.TestCase):
         result = subprocess.run(["node", "-e", r'''
 const assert = require('node:assert/strict');
 class Element {
-  constructor() { this.children = []; this.handlers = {}; this.dataset = {}; this.style = {}; this.attributes = {}; this.hidden = true; }
+  constructor() { this.children = []; this.handlers = {}; this.dataset = {}; this.style = {}; this.attributes = {}; this.hidden = true; this.classList = {add: () => {}}; }
   append(child) { this.children.push(child); }
   addEventListener(name, callback) { this.handlers[name] = callback; }
   setAttribute(name, value) { this.attributes[name] = value; }
 }
 global.window = {};
-global.document = {createElement: () => new Element()};
+global.document = {createElement: () => new Element(), getElementById: () => null};
 require('./web/orchestrator-ui.js');
 const ui = window.HuhuaOrchestrator;
 const tick = () => new Promise(resolve => setImmediate(resolve));
@@ -29,7 +29,7 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
     fetcher: async url => { assert.equal(url, '/api/chat/agent-mode'); return {ok:true, json: async () => ({agent_mode:'loop'})}; }});
   await tick();
   assert.equal(legacy.style.display, 'none'); assert.equal(container.hidden, false);
-  assert.deepEqual(container.children.map(b => b.textContent), ['我有 JD', '我有旧简历', '先聊聊我的经历', '看看你能做什么']);
+  assert.deepEqual(container.children.map(b => b.children[0].textContent), ['我有 JD', '我有旧简历', '先聊聊我的经历', '看看你能做什么']);
   const button = container.children[0];
   const sending = button.handlers.click();
   await button.handlers.click();

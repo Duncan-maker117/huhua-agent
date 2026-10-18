@@ -79,3 +79,44 @@ TOOLS: dict[str, ToolSpec]  # name -> (pydantic 参数模型, 描述, async hand
 - AGENT_MODE=off：全量测试与现有回放基线不变。
 - AGENT_MODE=loop：cold / upload / returning 真实回放通过上述检查；现有 7 人物给出对比报告。
 - 不 commit 到 main、不部署；Claude 合并三支、跑真实回放后再定。
+
+---
+
+# 第 2 期：回放调优（起点 batch17b 41a8ec3）
+
+## 第 1 期真实回放结果（runs/p1-loop-all-5 vs p1-off-all-5，同一提交、同一模型）
+
+| 人物 | off | loop | loop 未过 |
+|---|---|---|---|
+| cold | 9/11 | 16/16 | — |
+| upload | 8/10 | 14/15 | facts.no_extra_experience（「不是」，已由 d 修，待复测） |
+| returning | 6/6 | 10/11 | profile.import_receipt |
+| tech | 17/17 | 21/22 | correction_190 |
+| ops / service | 全过 | 全过 | — |
+| career | 13/13 | 16/18 | correction_four, loop.contacts_once |
+| design | 14/14 | 18/19 | loop.contacts_once |
+| aipm | 8/9 | 10/14 | heading, labels, answers_used, no_repeated_dimension |
+| aipm_real | 11/11 | 4/16 | 结构化写法整体缺失、未在 3 轮内出稿、联系方式重复问等 |
+
+其它观察：编排层每轮平均 24.8s（最长 72.8s），平均 3.7 次模型调用；单次调用 prompt 平均 13.7k、最大 85k token（工具结果含整份 resume_data / 事实 JSON、历史 16 条全文）。回复中出现内部标识（「对应信号 s1」）。开场价值示例出现编造数字（示例写了具体涨粉数）。
+
+## 分工（三个 Codex 并行，按文件边界，不得越界）
+
+### P2a 时延与上下文（只改 `backend/app/agents/orchestrator.py` 中除 `SYSTEM_PROMPT` 以外的部分；可新增 `backend/app/agents/orchestrator_context.py`）
+- 发给编排模型的工具结果做压缩投影：不发整份 resume_data/事实全集，改为摘要（条目名、每条要点首句/数量、版本号、页数、缺失项、错误码），保留模型决策所需字段；长文本截断并标注。
+- 历史压缩：保留最近若干轮原文，更早的用一段确定性摘要（已记录的经历名、方向、已问维度、已有稿版本），不调用额外模型。
+- 稳定前缀：system + tools schema 放在最前且逐轮不变，便于 DeepSeek 前缀缓存（记录 `prompt_cache_hit_tokens` 若接口返回）。
+- 评估「收尾回复轮关闭思考」：决策轮保持思考，纯文字收尾轮用 off；给出离线可测的开关（设置项），默认值由 Claude 实测后定。
+- 指标：每轮日志增加各次调用 prompt/completion/reasoning/cache 命中 token 与耗时（不含正文）。目标：单次调用 prompt 中位 ≤ 6k、最大 ≤ 20k。
+
+### P2b 写作对齐与行为（只改 `backend/app/agents/orchestrator_tools.py` 与 `orchestrator.py` 的 `SYSTEM_PROMPT` 常量；必要时小幅抽取 resume_graph 内可复用函数，节点行为不变）
+- write_draft 与旧流程成稿质量对齐：旧流程成稿前有结构方案（structure_plan，含岗位手册 labeled 写法、问题/决策/迭代标签、标题行「名称｜定位｜性质｜时间」）。loop 下 write_draft 必须走同一结构方案与 labeled writer（自动采用推荐方案；用户已明确选过写法则沿用），而不是直接 tailor。以 aipm / aipm_real 的 heading、labels、answers_used、real_pains 等检查为准。
+- 用户修正（「改成 190」「改成四条」等数字/条数修正）走旧流程同一编辑契约，确认 tech correction_190、career correction_four 场景通过。
+- 联系方式只问一次：状态里记录已请求联系方式；用户未回答也不再重复问（除非用户要导出且仍缺）。
+- 工具结果中的内部标识（信号 id s1/s2、slot id、fact id、内部字段名）不进入模型可见文本；系统提示要求不向用户提内部编号。
+- 系统提示：开场价值示例只能用明确标注为「假设」的示意，且不得出现具体编造数字；导入经历后回复必须点名导入了哪几段（returning import_receipt）。
+
+### P2c 评测（只改 `evaluation/`、`tests/` 中评测相关文件）
+- loop 模式下 aipm / aipm_real 等依赖问题卡的人物：runner 对 ask_user 卡按既有答案契约作答（与 off 模式相同的答案来源），不能因 loop 不出卡就提前结束；记录每轮 orchestrator 指标（调用数、token、耗时）并在报告中给出两模式对比表。
+- 检查项复核：`loop.contacts_once` 的判定是否会把「出稿后一次问齐」误判；returning `import_receipt` 判定是否过度依赖字面「导入」。如判定本身有误，修判定并在说明中写理由；不得为通过而放宽真实缺陷。
+- 新增 `scripts/compare_persona_runs.py`：输入两个 run 目录，输出 markdown 对比表（通过率、未过项、平均/最大每轮耗时）。

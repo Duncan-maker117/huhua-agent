@@ -31,7 +31,7 @@ SYSTEM_PROMPT = """你是「胡话」，胡话简历的简历助手，专治简�
 开场不索要姓名、手机或邮箱。用户提供任何本人信息（包括自我介绍、粘贴材料、旧简历），先 record_facts。
 有档案且当前会话缺素材时，先 read_profile，按目标方向直接 use_profile_items 选用相关经历并说明理由，不先询问是否导入。导入成功后必须点名说明实际导入的每段经历；导入与最终放进稿件的取舍分别说明。
 有一段包含具体做法的经历即可 write_draft，工具会自动采用推荐结构方案与岗位写法，沿用用户已选写法；先写后问，不把缺少数字或信息不齐当作不能开始的理由。
-只有 write_draft 成功结果含 contacts_missing 时，才在说明稿子已出好后一次请用户补齐所列的头部信息。状态中 contacts_requested 表示已经问过；用户未回答、跳过或以后再次写稿、改稿，也不能重复索要或以「还缺」提醒，除非用户明确要导出且仍缺。已提供的不要再问。
+只有 write_draft 成功结果含 contacts_missing 时，才在说明稿子已出好后一次请用户补齐所列的头部信息。状态中 contacts_requested 表示已经问过；用户未回答、跳过或以后再次写稿、改稿、导出，也不能重复索要或以「还缺」提醒。已提供的不要再问。
 write_draft 成功结果含 followup 时，稿件已生成；本轮只再调用一次 ask_user，使用候选卡追问一个薄弱维度后收尾。followup_attached 表示工具已附卡，无需再问。没有候选或工具返回 stop 时直接给最终回复。
 用户无法回忆或选择跳过时，尊重关闭记录，不追同一维度，不把空信息当经历出稿。
 需要方案确认时 propose_plan；已有稿局部修改用 edit_resume；数字或条数更正先 record_facts，工具会按用户原话同时核对并更新事实与正文，correction_applied 时不要再重写；更正失败如实说明，不能用普通润色绕过。排版检查用 check_layout。
@@ -181,13 +181,51 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
     if final_mode not in {"thinking", "off"}:
         raise ValueError("final_mode must be thinking or off")
     working, update = deepcopy(state), {}
+    from app.agents.loop_followup import answer_receipt, answers_unknown, public_clause, questions_allowed
+    answer_message = next((m for m in reversed(working.get("messages") or []) if isinstance(m, HumanMessage)), None)
+    answer_message = answer_message if answer_message and answer_message.additional_kwargs.get("answers") else None
+    if answer_message:
+        from app.agents.resume_graph import _intake_saver, _persist_intake
+        from app.services.answer_facts import apply_answers, project_answer_fields
+        from app.services.ask_user import close_answers
+        previous = {**working, "messages": working["messages"][:working["messages"].index(answer_message)]}
+        working["closed_questions"] = close_answers(previous, answer_message.content,
+                                                    answer_message.additional_kwargs["answers"])
+        update["closed_questions"] = working["closed_questions"]
+        collected = apply_answers(working.get("collected_info") or {}, answer_message, project_fields=True)
+        update.update(await _persist_intake(working, collected))
+        closed = [row for row in working["closed_questions"]
+                  if row.get("turn_id") == answer_message.additional_kwargs["answers"].get("turn_id")]
+        if closed and (all(row.get("reason") in {"unknown", "skipped"} for row in closed) or answers_unknown(answer_message)):
+            update["session_constraints"]["questions_finished"] = True
+        working.update(update)
+        if saver := _intake_saver.get():
+            await saver(working)
+        data = deepcopy(working.get("resume_data") or {})
+        project_answer_fields(data, collected)
+        if data != (working.get("resume_data") or {}):
+            from app.services.resume_versions import prepare_version
+            from app.services.resume_review import resume_to_text
+            from app.services.resume_capacity import measure_rendered_pages
+            update.update(prepare_version(state.get("resume_data") or {}, state.get("resume_meta") or {},
+                state.get("resume_versions") or [], data, deepcopy(state.get("resume_meta") or {})))
+            update.update(resume_data=data, resume_draft=resume_to_text(data),
+                          page_check=await asyncio.to_thread(measure_rendered_pages, data, working.get("session_constraints")))
+            update["resume_meta"]["page_check"] = update["page_check"]
+            working.update(update)
     privacy, reply_id = ContactRedactor(), str(uuid4())
     sources = _sources(working)
     messages = _input_messages(working, sources, privacy)
+    if answer_message:
+        messages.append({"role": "system", "content": "本轮问题卡答案已由代码记录，关闭记录已更新。不要再次抽取答案或题干；根据已记录事实决定是否更新稿子，再收尾。"})
+    if not questions_allowed(working):
+        messages.append({"role": "system", "content": "本会话深挖已结束，本轮只能按现有事实更新或收尾，不再提问或出卡。"})
     emit = emit or (lambda event: None)
     from app.agents.orchestrator_tools import ToolContext, attach_draft_followup
     # 工具适配器（P1a）按 ToolContext 取业务模型；进度事件由本循环统一发出，不再传 emit 以免重复。
     ctx = ToolContext(llm=llm, turn_id=reply_id)
+    if answer_message:
+        ctx.recorded_sources.update({"current", answer_message.id or "current"})
     parts, turns = [], []
     final_metadata = {}
     tool_turns, imported, contacts_missing = [], [], []
@@ -202,6 +240,19 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             parts.append(text)
             emit({"type": PUBLIC_REPLY_EVENT, "node": "orchestrator", "reply_id": reply_id, "content": text})
 
+    public_buffer = ""
+
+    def publish_model(text, *, finish=False):
+        nonlocal public_buffer
+        public_buffer += text
+        # Hold one sentence so a request cannot leak before its subject arrives.
+        while match := re.search(r"[。！？!?]|\n\n", public_buffer):
+            clause, public_buffer = public_buffer[:match.end()], public_buffer[match.end():]
+            publish(public_clause(clause, working, has_card=bool(final_metadata.get("ask_user"))))
+        if finish:
+            publish(public_clause(public_buffer, working, has_card=bool(final_metadata.get("ask_user"))))
+            public_buffer = ""
+
     # DeepSeek 在 tool_choice=none 的收尾轮偶尔把工具调用写成 DSML 文本；遇到标记即停止推送，不让标记漏到界面。
     dsml = {"buffer": "", "blocked": False}
 
@@ -212,13 +263,13 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         marker = dsml["buffer"].find(DSML_MARKER)
         if marker >= 0:
             dsml["blocked"] = True
-            publish(contact_stream.feed(dsml["buffer"][:marker]))
+            publish_model(contact_stream.feed(dsml["buffer"][:marker]))
             dsml["buffer"] = ""
             return
         # 保留可能是标记前缀的尾巴，其余正常推送。
         keep = max((n for n in range(1, len(DSML_MARKER)) if dsml["buffer"].endswith(DSML_MARKER[:n])), default=0)
         ready, dsml["buffer"] = dsml["buffer"][:len(dsml["buffer"]) - keep], dsml["buffer"][len(dsml["buffer"]) - keep:]
-        publish(contact_stream.feed(ready))
+        publish_model(contact_stream.feed(ready))
 
     async def apply_outcome(outcome):
         from app.agents.resume_graph import ResumeState
@@ -281,7 +332,7 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                                                           on_delta=delta if not allow_tools else lambda text: None), timeout)
             row["usage"] = _usage(reply.usage)
             if dsml["buffer"] and not dsml["blocked"]:
-                publish(contact_stream.feed(dsml["buffer"]))
+                publish_model(contact_stream.feed(dsml["buffer"]))
             dsml["buffer"] = ""
             message = _validate_reply(reply, messages, request_mode, privacy)
             if not allow_tools and message.get("tool_calls"):
@@ -289,7 +340,7 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         except Exception as exc:
             row.update(error=type(exc).__name__, http_status=getattr(exc, "status_code", None))
             private_error = isinstance(exc, SpikeProtocolError) and str(exc).startswith("contacts_in_")
-            if request_mode == "thinking" and not retried and not parts and not private_error and (
+            if request_mode == "thinking" and not retried and not parts and not public_buffer and not private_error and (
                     isinstance(exc, SpikeProtocolError) or getattr(exc, "status_code", None) == 400) and len(turns) < MAX_MODEL_CALLS:
                 retried, mode = True, "off"
                 for prior in messages:
@@ -314,12 +365,12 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             await finish_followup()
             if allow_tools:
                 delta(privacy.redact(message.get("content") or ""))
-            elif not parts:
+            elif not parts and not public_buffer:
                 delta(privacy.redact(message.get("content") or ""))
             if dsml["buffer"] and not dsml["blocked"]:
-                publish(contact_stream.feed(dsml["buffer"]))
+                publish_model(contact_stream.feed(dsml["buffer"]))
                 dsml["buffer"] = ""
-            if not ("".join(parts)).strip():
+            if not (message.get("content") or "").strip() and not ("".join(parts) + public_buffer).strip():
                 status = "unavailable"
             break
         for call in calls:
@@ -390,7 +441,7 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             messages.append({"role": "tool", "tool_call_id": call["id"],
                              "content": _safe_json({"untrusted_data": project_tool_result(name, result, privacy)}, privacy)})
     await finish_followup()
-    publish(contact_stream.finish())
+    publish_model(contact_stream.finish(), finish=True)
     if status != "completed":
         publish(PUBLIC_REPLY_INTERRUPTED if parts else "这次回复暂未完成，已处理的材料可在工作区核对，请稍后重试。")
     content = "".join(parts)
@@ -399,6 +450,12 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         publish(contact_stream.finish())
     if missing := _unrequested_contacts(content, contacts_missing):
         publish(("\n\n" if parts else "") + "请补充" + "、".join(missing) + "，用于简历头部。")
+    if answer_message:
+        receipt = answer_receipt(state, working, answer_message,
+            updated=working.get("resume_data") != state.get("resume_data"), has_card=bool(final_metadata.get("ask_user")))
+        publish(("\n\n" if parts else "") + privacy.redact(receipt))
+    if not "".join(parts).strip():
+        publish("本轮处理已结束。可在右侧核对已有内容，或继续提供真实经历。")
     usage = {key: sum(row["usage"][key] for row in turns)
              if turns and all(row["usage"].get(key) is not None for row in turns) else None for key in TOKEN_FIELDS}
     metrics = {"model_calls": len(turns), "tool_steps": steps, "seconds": round(perf_counter() - started, 4),

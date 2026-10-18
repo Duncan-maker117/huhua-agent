@@ -108,12 +108,24 @@ def import_receipt(turn):
     names = {p.get("name") for p in checks.visible_items(turn.get("resume_data") or {}, "projects")}
     if not all(name in reply and name in names for name in PROJECTS):
         return False
-    for clause in re.split(r"[。！!？?；;\n]", reply):
-        if re.search(r"未|没有|没能|失败|(?:将|会|准备|打算|可以|建议|是否|要不要).{0,12}(?:导入|选用|选进|写入)", clause):
-            continue
-        if re.search(r"(?:已|已经).{0,30}(?:导入|选用|写入)|选进了(?:稿子|简历)|(?:导入|写入)了", clause):
-            return True
-    return False
+    action = r"(?:导入|采用|选用|选进|写入)"
+    completed = re.compile(r"(?:已|已经).{0,30}" + action
+        + r"|选进了(?:稿子|简历)|(?:导入|采用|写入)了|导入的|从档案选了")
+    incomplete = re.compile(r"[？?]|(?:未|没有|没能|将|会|准备|打算|可以|建议|是否|要不要).{0,12}"
+        + action + "|" + action + r".{0,12}(?:失败|未完成)")
+    adopted = set()
+    for block in re.split(r"\n\s*\n", reply):
+        lines = block.strip().splitlines()
+        # A completed-action heading governs its immediately following named list.
+        if (len(lines) > 1 and completed.search(lines[0]) and not incomplete.search(lines[0])
+                and all(re.match(r"\s*(?:[-*]|\d+[.)、])\s", line) for line in lines[1:])):
+            clauses = [block]
+        else:
+            clauses = re.split(r"(?<=[。！!？?；;])|\n", block)
+        for clause in clauses:
+            if completed.search(clause) and not incomplete.search(clause):
+                adopted.update(name for name in PROJECTS if name in clause)
+    return set(PROJECTS) <= adopted
 
 
 def evaluate_persona(persona, turns, **_):

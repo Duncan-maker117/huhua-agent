@@ -15,6 +15,7 @@ from app.schemas.facts import FACT_LABELS
 from app.services.resume_facts import new_fact, normalize_fact_store
 
 STAGES = ("basics", "target", "experiences", "deepen", "ready")
+MAX_FOLLOWUP_ROUNDS = 6  # 与旧流程离线回放共用的深挖轮数上限。
 SECTIONS = ("projects", "work_experience", "internship", "campus", "open_source", "awards")
 TYPES = {"项目": "projects", "实习": "internship", "校园": "campus", "竞赛": "awards", "其他": "projects"}
 Month = Annotated[str, Field(pattern=r"^(?:\d{4}-(?:0[1-9]|1[0-2]))?$")]

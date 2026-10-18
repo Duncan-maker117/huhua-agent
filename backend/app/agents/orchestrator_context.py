@@ -175,6 +175,7 @@ def _asked(state):
 
 
 def input_context(state, sources, privacy):
+    from app.agents.loop_followup import MAX_FOLLOWUP_ROUNDS, question_rounds, questions_allowed
     messages = [(index, message) for index, message in enumerate(state.get("messages") or [])
                 if isinstance(message, (HumanMessage, AIMessage))]
     user_indices = [index for index, message in messages if isinstance(message, HumanMessage)]
@@ -213,7 +214,9 @@ def input_context(state, sources, privacy):
                "recorded_experiences": [item.get("name") or item.get("company") or item.get("school")
                     for section in FACT_SECTIONS for item in collected.get(section) or [] if isinstance(item, dict)],
                "asked_dimensions": _asked(state), "closed_questions": state.get("closed_questions") or []}
-    data = {"summary": summary, "session_constraints": state.get("session_constraints") or {},
+    data = {"question_budget": {"used": question_rounds(state), "limit": MAX_FOLLOWUP_ROUNDS,
+                               "allowed": questions_allowed(state)},
+            "summary": summary, "session_constraints": state.get("session_constraints") or {},
             "profile_summary": state.get("profile_summary") or {}, "intake_account": bool(state.get("intake_account")),
             "pending_plan": _plan(state.get("pending_plan") or {}),
             "confirmed_plan": _plan(state.get("confirmed_plan") or {}),
@@ -221,7 +224,7 @@ def input_context(state, sources, privacy):
             "collected_info": _facts(safe_data(collected, privacy)),
             "resume_data": _document(safe_data(document, privacy)),
             "jd_info": _job(safe_data(state.get("jd_info") or {}, privacy))}
-    limits = {"summary": 850, "session_constraints": 300, "profile_summary": 200, "intake_account": 100,
+    limits = {"question_budget": 180, "summary": 850, "session_constraints": 300, "profile_summary": 200, "intake_account": 100,
               "pending_plan": 250, "confirmed_plan": 250, "page_check": 200,
               "collected_info": 1200, "resume_data": 700, "jd_info": 400}
     data = {key: _bounded(value, limits[key]) for key, value in safe_data(data, privacy).items()}

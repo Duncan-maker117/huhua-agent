@@ -7,6 +7,8 @@ from copy import deepcopy
 from difflib import SequenceMatcher
 import re
 
+from app.services.intake import MAX_FOLLOWUP_ROUNDS
+
 FIRST = '我想投AI产品经理实习。我自己做了一个AI简历助手，叫胡话简历，从需求到开发都是我一个人做的，现在已经上线了，能通过对话帮学生挖经历写简历。'
 INTAKE = {'kind': 'experiences', 'items': [{'name': '胡话简历', 'type': '项目',
           'start': '2026-08', 'end': '至今', 'role': '独立开发者', 'summary': '现在已经上线了'}]}
@@ -28,7 +30,7 @@ FIXTURE = {'role': '合成 AI 产品实习人物，待真实对话替换',
            'answers_2': {'answers': {'items': [{'id': key, 'value': value} for key, value in VALUES.items()]}},
            'basics': {'message': '跳过基本信息，继续。', 'intake': {'kind': 'basics', 'skipped': True}}}
 MAX_COMMON_SUBSTRING = 24
-MAX_ROUNDS = 6
+MAX_ROUNDS = MAX_FOLLOWUP_ROUNDS
 
 
 def _answer(question):

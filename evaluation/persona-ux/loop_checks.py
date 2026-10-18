@@ -29,9 +29,11 @@ def contact_request(turn):
                 return True
         if card.get("kind") == "ask_user" and re.search(
                 r"手机|电话|邮箱|联系方式|\b(?:phone|email)\b",
-                "\n".join(checks.strings({k: card.get(k) for k in ("question", "questions", "title")})), re.I):
+                re.sub(r"手机(?:拍摄|拍照|剪辑|录制)", "拍摄工具",
+                       "\n".join(checks.strings({k: card.get(k) for k in ("question", "questions", "title")}))), re.I):
             return True
     for clause in re.split(r"[，,。！!；;\n]|但(?:是)?", turn.get("reply") or ""):
+        clause = re.sub(r"手机(?:拍摄|拍照|剪辑|录制)", "拍摄工具", clause)
         if not re.search(r"手机|电话|邮箱|联系方式", clause):
             continue
         if re.search(r"(?:不|无需|不用|不必).{0,8}(?:需要|提供|补|填|发|给)|已(?:经)?(?:有|提供|记录|收到|记下)", clause):

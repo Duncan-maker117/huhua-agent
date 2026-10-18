@@ -77,10 +77,14 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
         for key in ("intake", "answers"):
             value = state()
             value["messages"][0].additional_kwargs[key] = {"present": True}
-            self.assertEqual(graph.route_by_stage(value), "collecting")
+            self.assertEqual(graph.route_by_stage(value), "orchestrator" if key == "answers" else "collecting")
         self.assertEqual(graph.route_by_stage(state(plan_choice={"option": "default"}, pending_plan={"ready": True})), "structure_plan")
         self.assertEqual(graph.route_by_stage(state(requested_task="decode_jd")), "skill_task")
         self.settings.AGENT_MODE = "off"
+        for key in ("intake", "answers"):
+            value = state()
+            value["messages"][0].additional_kwargs[key] = {"present": True}
+            self.assertEqual(graph.route_by_stage(value), "collecting")
         self.assertEqual(graph.route_by_stage(state()), "jd_input")
         self.assertEqual(graph.route_by_stage(state(stage="EVALUATING")), "evaluating")
 

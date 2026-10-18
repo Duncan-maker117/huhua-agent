@@ -321,6 +321,12 @@ async def record_facts(state, args, ctx):
         return _error("not_candidate_material")
     if source_id in ctx.recorded_sources:
         return ToolOutcome({"status": "unchanged", "code": "source_already_recorded"})
+    if source.additional_kwargs.get("answers"):
+        from app.services.answer_facts import apply_answers
+        collected = apply_answers(state.get("collected_info") or {}, source, project_fields=True)
+        update = await _persist_intake(state, collected)
+        ctx.recorded_sources.add(source_id)
+        return ToolOutcome({"status": "ok", "collected_info": collected}, update)
     from app.services.fact_corrections import correction_pairs
     pairs = correction_pairs(text, state.get("collected_info"))
     if pairs and state.get("resume_data"):
@@ -413,17 +419,20 @@ def _bind_campus_identity(collected):
 
 @_register("ask_user", AskArgs, "给出必要的补充问题卡；跳过已关闭的维度，不将选项当作事实。", "正在整理补充问题…")
 async def ask_user(state, args, ctx):
+    from app.agents.loop_followup import questions_allowed
     if ctx.ask_used:
         return ToolOutcome({"status": "limited", "code": "question_card_already_used"})
     if state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
         return ToolOutcome({"status": "unavailable", "code": "questions_disabled"})
+    if not questions_allowed(state):
+        return ToolOutcome({"status": "limited", "code": "question_budget_exhausted"}, stop=True)
     questions, seen = [], set()
     contacts = False
     for question in args.card.questions:
-        contact_question = bool(re.search(r"手机|电话|邮箱|联系方式|phone|email", question.prompt + question.placeholder + question.id, re.I))
+        text = re.sub(r"手机(?:拍摄|拍照|剪辑|录制)", "拍摄工具", question.prompt + question.placeholder + question.id)
+        contact_question = bool(re.search(r"手机|电话|邮箱|联系方式|phone|email", text, re.I))
         if contact_question and (not state.get("resume_data") or not _missing_contacts(state)
-                                or ((state.get("session_constraints") or {}).get("contacts_requested")
-                                    and not _export_contacts_requested(state))):
+                                or (state.get("session_constraints") or {}).get("contacts_requested")):
             continue
         dimension = question_dimension(question.id, question.prompt)
         if dimension not in seen and not is_closed(state, args.card.subject, question.id, question.prompt):
@@ -464,8 +473,10 @@ def _project_contacts(data, collected):
 
 
 def _project_identity(data, state):
+    from app.services.answer_facts import project_answer_fields
     from app.services.candidate_language import safe_objective
     collected = state.get("collected_info") or {}
+    project_answer_fields(data, collected)
     _project_contacts(data, collected)
     basic = data.setdefault("basic_info", {})
     saved = ((state.get("resume_data") or {}).get("basic_info") or {}).get("objective")
@@ -482,7 +493,8 @@ def _project_identity(data, state):
 def _draft_followup(state, ctx):
     from app.agents.interviewer import question_candidates
     from app.services.ask_user import validate_card
-    if ctx.ask_used or state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
+    from app.agents.loop_followup import questions_allowed
+    if ctx.ask_used or state.get("pending_plan") or not questions_allowed(state):
         return {}
     items = {item["item_id"]: item for section in ("projects", "work_experience", "campus", "open_source", "awards")
              for item in (state.get("resume_data") or {}).get(section) or [] if item.get("item_id")}
@@ -701,18 +713,11 @@ async def write_draft(state, args, ctx):
                 outcome.events.extend(attached.events)
                 outcome.result["followup_attached"] = attached.result.get("status") == "ok"
                 outcome.stop = True
-    if missing and outcome.update and (not (state.get("session_constraints") or {}).get("contacts_requested")
-                                       or _export_contacts_requested(state)):
+    if missing and outcome.update and not (state.get("session_constraints") or {}).get("contacts_requested"):
         outcome.result["contacts_missing"] = missing
         outcome.update["session_constraints"] = {**(outcome.update.get("session_constraints") or state.get("session_constraints") or {}),
                                                   "contacts_requested": True}
     return outcome
-
-
-def _export_contacts_requested(state):
-    from app.agents.resume_graph import _latest_human_text, _user_wants_export
-    text = _latest_human_text(state)
-    return bool(re.search(r"导出|下载", text) and _user_wants_export(text))
 
 
 def _missing_contacts(state):

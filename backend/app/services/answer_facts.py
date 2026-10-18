@@ -4,7 +4,23 @@ import re
 
 from app.services.ask_user import question_dimension, subject_key
 from app.services.resume_facts import new_fact, normalize_fact_store
-from app.schemas.facts import FACT_SECTIONS
+from app.schemas.facts import FACT_LABELS, FACT_SECTIONS
+
+
+def answer_field(identifier: str, prompt: str) -> str:
+    """Only explicit identity questions can populate an experience heading."""
+    text = f"{identifier} {prompt}".lower()
+    if re.search(r"手机|电话|邮箱|联系方式|姓名|学校.*专业", text):
+        return ""
+    for field, pattern in (
+        ("start_date", r"start[_-]?(?:date|time)|开始.*(?:时间|年月)|哪年.*开始"),
+        ("end_date", r"end[_-]?(?:date|time)|结束.*(?:时间|年月)|哪年.*结束"),
+        ("role", r"\brole\b|角色|担任.*职务"),
+        ("name", r"(?:project|experience|company)[_-]?name|名称|名字|叫什么"),
+    ):
+        if re.search(pattern, text):
+            return field
+    return ""
 
 
 def append_answer(target: dict, value: str, *, message, question_id: str,
@@ -26,7 +42,7 @@ def append_answer(target: dict, value: str, *, message, question_id: str,
     target["facts"].append(fact)
 
 
-def apply_answers(collected: dict, message) -> dict:
+def apply_answers(collected: dict, message, *, project_fields: bool = False) -> dict:
     result = normalize_fact_store(collected)
     answers = message.additional_kwargs.get("answers") or {}
     card = message.additional_kwargs.get("answer_card") or {}
@@ -44,6 +60,7 @@ def apply_answers(collected: dict, message) -> dict:
     if len(matches) != 1:
         return result  # 归属不唯一时不能把答案挂到最后一段经历。
     target = matches[0]
+    section = next(section for section in FACT_SECTIONS if target in result.get(section, []))
     questions = {q["id"]: q for q in card.get("questions") or []}
     for answer in answers.get("items") or []:
         question = questions.get(answer.get("id"))
@@ -60,6 +77,54 @@ def apply_answers(collected: dict, message) -> dict:
             # allow_other 的任意自填也属于本人陈述；不从未选选项补事实。
             if question["kind"] != "text" and value not in question.get("options", []) and not question.get("allow_other"):
                 continue
+            if project_fields:
+                from app.agents.interviewer import NO_ANSWER
+                if NO_ANSWER.fullmatch(value.strip()) or value.strip() in {"不确定", "未知"}:
+                    continue
+            if project_fields and (field := answer_field(question["id"], question["prompt"])):
+                from app.services.candidate_language import placeholder_name
+                from app.services.intake import _write_field
+                value = value.strip()
+                if not value or NO_ANSWER.fullmatch(value) or value in {"不确定", "未知"}:
+                    continue
+                field = FACT_LABELS[section] if field == "name" else "title" if field == "role" and section in {"work_experience", "internship"} else field
+                from app.schemas.facts import FACT_FIELDS
+                projectable = field in FACT_FIELDS[section] and len(set(values)) == 1
+                if field == FACT_LABELS[section]:
+                    projectable = projectable and placeholder_name(target.get(field, ""))
+                if field in {"start_date", "end_date"}:
+                    projectable = projectable and bool(re.fullmatch(r"\d{4}(?:[年./-](?:0?[1-9]|1[0-2])月?)?|至今", value))
+                    projectable = projectable and not (field == "start_date" and value == "至今")
+                if not projectable:
+                    append_answer(target, value, message=message, question_id=question["id"],
+                                  prompt=question["prompt"], dimension=dimension, kind="context")
+                    continue
+                _write_field(target, field, value, message)
+                fact = target["facts"][-1]
+                provenance = {"question_id": question["id"], "question_prompt": question["prompt"],
+                              "dimension": dimension}
+                fact.update(provenance)
+                fact["sources"][0].update(provenance)
+                continue
             append_answer(target, value, message=message, question_id=question["id"],
                           prompt=question["prompt"], dimension=dimension, kind=kind)
     return deepcopy(result)
+
+
+def project_answer_fields(data: dict, collected: dict) -> None:
+    """Project confirmed answer fields without replacing a real saved name."""
+    from app.services.candidate_language import placeholder_name
+    for section in FACT_SECTIONS:
+        for source in collected.get(section) or []:
+            target = next((item for item in data.get("work_experience" if section == "internship" else section) or []
+                           if item.get("item_id") == source.get("item_id")), None)
+            if target is None:
+                continue
+            for fact in source.get("facts") or []:
+                field = fact.get("field")
+                if (field not in {FACT_LABELS[section], "start_date", "end_date", "role", "title"}
+                        or not fact.get("question_id") or fact.get("status", "active") != "active"):
+                    continue
+                if field == FACT_LABELS[section] and not placeholder_name(target.get(field, "")):
+                    continue
+                target[field] = fact["text"]

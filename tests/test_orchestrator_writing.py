@@ -175,7 +175,7 @@ class OrchestratorWritingTest(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(ctx.corrected_sources)
                 self.assertEqual(state, before)
 
-    async def test_contacts_asked_once_across_turns_and_export_can_ask_again(self):
+    async def test_contacts_asked_once_across_turns_including_export(self):
         state = {**graph._init_state(), "collected_info": collected()}
         state["collected_info"]["basic_info"] = {"name": "离线候选人"}
         first = await tools.write_draft(state, {}, tools.ToolContext(llm=Writer()))
@@ -192,7 +192,7 @@ class OrchestratorWritingTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(current["session_constraints"]["contacts_requested"])
         current["messages"] = [HumanMessage(content="导出PDF")]
         export = await tools.write_draft(current, {}, tools.ToolContext(llm=Writer()))
-        self.assertEqual(export.result["contacts_missing"], ["phone", "email"])
+        self.assertNotIn("contacts_missing", export.result)
         current["collected_info"]["basic_info"].update(phone=PHONE, email=EMAIL)
         completed = await tools.write_draft(current, {}, tools.ToolContext(llm=Writer()))
         self.assertNotIn("contacts_missing", completed.result)

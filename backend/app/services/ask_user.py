@@ -88,6 +88,11 @@ def can_ask_user(state: dict) -> bool:
 
 def question_dimension(identifier: str = "", prompt: str = "") -> str:
     """稳定维度覆盖旧问句与模型新 slug，优先识别题干中的同义表述。"""
+    from app.config import get_settings
+    if getattr(get_settings(), "AGENT_MODE", "off") == "loop":
+        from app.services.answer_facts import answer_field
+        if field := answer_field(identifier, prompt):
+            return field
     text = f"{identifier} {prompt}".lower()
     for dimension, pattern in (
         ("adoption", r"adoption|user[_-]?(?:count|number|numbers)|usage|用户数|用户量|用户规模|使用人数|多少人|几个人|人数|人用过|人试过|实际使用|真实用户"),

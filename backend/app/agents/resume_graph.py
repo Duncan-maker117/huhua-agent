@@ -3080,7 +3080,7 @@ def _visible_draft_edit_requested(state: ResumeState) -> bool:
 def _orchestrator_requested(state: ResumeState) -> bool:
     from app.config import get_settings
     last_message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
-    structured = last_message and (last_message.additional_kwargs.get("intake") or last_message.additional_kwargs.get("answers"))
+    structured = last_message and last_message.additional_kwargs.get("intake")
     return (getattr(get_settings(), "AGENT_MODE", "off") == "loop" and not structured and not state.get("plan_choice")
             and state.get("requested_task", "auto") == "auto")
 

@@ -375,6 +375,53 @@
     try { await navigator.clipboard.writeText(value); say('已复制。'); }
     catch (_) { say('未能复制，请选中内容手动复制。', true); }
   }
+  async function importMemory() {
+    if (busy || focusInlineForm(content, 'memory-import')) return;
+    const form = node('form', undefined, 'profile-card profile-form profile-memory-import');
+    form.dataset.profileForm = 'memory-import';
+    form.append(node('h2', '从其他 AI 导入', 'profile-section-title'),
+      node('p', '复制提示词，贴到你常用的 AI，把它的回答整段复制回来。导入后仍需你确认，才会进入档案。', 'profile-muted'));
+    const prompt = inputField(form, '记忆导出提示词', '', 'textarea'); prompt.readOnly = true; prompt.required = false; prompt.rows = 8;
+    const copy = button('复制提示词', () => copyMcp(prompt.value)); copy.disabled = true; form.append(copy);
+    const answer = inputField(form, '粘贴 AI 的回答', '', 'textarea'); answer.rows = 10; answer.placeholder = '粘贴完整回答（包括 JSON 代码块）';
+    const hint = node('p', '', 'profile-muted'); form.append(hint);
+    const submit = node('button', '提交到待确认', 'profile-button'); submit.type = 'submit';
+    const result = node('p', '', 'profile-memory-result'); result.setAttribute('role', 'status'); result.setAttribute('aria-live', 'polite');
+    form.append(submit, button('取消', () => { if (!busy) renderProfile(); }), result); content.prepend(form);
+    async function loadPrompt() {
+      if (busy) return;
+      setBusy(true); say('正在读取导出提示词…');
+      try {
+        const response = await request('/api/profile/import-memory/prompt');
+        if (typeof response.prompt !== 'string' || !response.prompt) throw new Error('提示词暂不可用，请重试。');
+        prompt.value = response.prompt;
+        hint.textContent = `单次最多 ${response.max_facts} 条，超过 ${response.max_chars} 字会截断并提示，请分批导入。`;
+        say('提示词已准备好。');
+      } catch (error) { say(error.message, true); }
+      finally { setBusy(false); copy.disabled = !prompt.value; }
+    }
+    form.append(button('重新读取提示词', loadPrompt));
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); if (busy || !form.reportValidity()) return;
+      if (!answer.value.trim()) { say('请先粘贴 AI 的回答。', true); return; }
+      setBusy(true); say('正在整理记忆，结果将进入待确认…');
+      try {
+        const response = await request('/api/profile/import-memory', {text: answer.value}, 'POST');
+        const count = Number(response.imported_count) || 0, duplicates = Number(response.duplicate_count) || 0;
+        result.textContent = `${count} 条进入待确认。` + (duplicates ? `${duplicates} 条重复或已存在，未重复添加。` : '')
+          + (response.warnings || []).join(' ') + (count ? '请到「信息确认」核对后采纳。' : '可检查回答内容，或到「信息确认」查看已有建议。');
+        say(result.textContent);
+        if (!form.querySelector('.profile-memory-review')) {
+          const review = button('查看待确认信息', async () => {
+            if (busy) return;
+            profileView = 'confirmations'; await loadProfile();
+          }); review.classList.add('profile-memory-review'); form.append(review);
+        }
+      } catch (error) { result.textContent = error.message + ' 输入已保留，可重试。'; say(result.textContent, true); }
+      finally { setBusy(false); copy.disabled = !prompt.value; }
+    });
+    await loadPrompt(); answer.focus();
+  }
   function renderMcpTasks() {
     const section = node('section', undefined, 'profile-mcp-tasks'); section.setAttribute('aria-label', '接入后可以这样用');
     section.append(node('h3', '接入后可以这样用'));
@@ -473,7 +520,7 @@
     confirmation.classList.add('profile-confirm-button'); confirmation.setAttribute('aria-expanded', String(profileView === 'confirmations'));
     const pendingCount = (profile.conflicts || []).length + (inbox.pending_count || 0);
     if (pendingCount) { const badge = node('span', String(pendingCount), 'profile-confirm-badge'); badge.setAttribute('aria-label', pendingCount + ' 条待确认'); confirmation.append(badge); }
-    actions.append(confirmation, button('补充一条信息', addFact, false), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
+    actions.append(confirmation, button('补充一条信息', addFact, false), button('从其他 AI 导入', importMemory), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
       const note = node('div', undefined, 'profile-notice'); note.append(node('p', '把此浏览器凭证下可认领的旧对话关联到当前账号，并整理其中明确的本人信息。只导入你自己的资料。'));
       note.append(button('确认导入本人旧对话', () => mutate(() => request('/api/account/claim-browser', {}, 'POST'), '已认领可导入的旧对话，整理状态见下方。')), button('取消', renderProfile)); actions.replaceChildren(note);
     })); content.append(actions);

@@ -1,5 +1,6 @@
 """Authenticated, account-scoped archive endpoints."""
 
+import asyncio
 from datetime import datetime
 from typing import Literal
 
@@ -11,6 +12,7 @@ from app.agents.profile_archivist import Category, FactField
 from app.database import get_db
 from app.services.account_service import assert_same_origin, require_account
 from app.services import profile_service as archive
+from app.services import profile_memory
 from app.services.conversation_store import ConversationNotFound, assert_session_owner
 from app.services.data_crypto import CryptoConfigurationError, DataDecryptionError
 
@@ -69,6 +71,24 @@ class ImportContext(BaseModel):
     include_contacts: bool = False
 
 
+class ImportMemory(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str
+
+
+async def _extract_memory(payload, context, account_id):
+    from app.agents.profile_archivist import make_archivist
+    from app.api.resume import _llm_for_graph
+    from app.config import get_settings
+    from app.services.runtime_limits import model_slot, reserve_turn
+
+    if not get_settings().LLM_API_KEY:
+        raise HTTPException(503, detail={"code": "model_unavailable", "message": "暂时无法整理纯文本，请保留输入，或让 AI 按提示词输出 JSON 后重试"})
+    reserve_turn("account:" + account_id)
+    async with model_slot():
+        return await asyncio.wait_for(make_archivist(_llm_for_graph())(payload, context), timeout=45)
+
+
 def _call(db, function, *args, **kwargs):
     try:
         value = function(db, *args, **kwargs)
@@ -96,6 +116,28 @@ def _account(request):
 @router.get("")
 def profile(request: Request, db=Depends(get_db)):
     return _call(db, archive.get_profile, _account(request))
+
+
+@router.get("/import-memory/prompt")
+def memory_prompt(request: Request):
+    _account(request)
+    return {"prompt": profile_memory.MEMORY_EXPORT_PROMPT,
+            "max_chars": profile_memory.MAX_IMPORT_CHARS, "max_facts": profile_memory.MAX_IMPORT_FACTS}
+
+
+@router.post("/import-memory")
+async def import_memory(req: ImportMemory, request: Request, db=Depends(get_db)):
+    account_id = _account(request)
+    try:
+        parsed = await profile_memory.parse_memory(
+            req.text, lambda payload, context: _extract_memory(payload, context, account_id))
+    except archive.ProfileValidationError:
+        raise HTTPException(422, detail={"code": "invalid_archive_input", "message": "请粘贴需要导入的 AI 回答"}) from None
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(503, detail={"code": "archive_unavailable", "message": "记忆导入暂时无法整理，请保留输入并重试"}) from None
+    return _call(db, profile_memory.propose_memory, account_id, parsed)
 
 
 @router.post("/facts")

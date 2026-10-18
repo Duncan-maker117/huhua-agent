@@ -80,7 +80,7 @@ async function tokensAndConfig() {
   await emit($('config-tab-codex'), 'keydown', {key: 'Home'}); assert.equal(f.document.activeElement, $('config-tab-claude'));
   for (const [button, source, status] of [
     ['copy-token', 'token-value', 'connect-status'], ['copy-config', 'config-text', 'copy-config-status'],
-    ...['tailor', 'fit', 'project', 'check'].map(key => ['copy-task-' + key, 'mcp-task-' + key, 'copy-task-' + key + '-status']),
+    ...['tailor', 'fit', 'project', 'memory', 'check'].map(key => ['copy-task-' + key, 'mcp-task-' + key, 'copy-task-' + key + '-status']),
   ]) {
     const label = $(button).textContent;
     await $(button).click(); assert.equal(f.copied.at(-1), $(source).textContent); assert.equal($(button).textContent, '已复制');

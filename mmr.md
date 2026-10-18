@@ -407,3 +407,12 @@
 - 验证：用户指定全量命令最终 1979 项 / 81.871s，1977 通过、0 失败、2 项已有私有 fixture 缺失跳过。intake DOM、JS 语法、git diff --check 通过；变更 Python Ruff 通过（旧 test_batch14b_intake.py 模块文档前 import 的十条 E402 未顺手调整）。无真实模型调用，无 8833/8834 访问，无 commit/push/部署；未改 dist 或部署脚本。
 - 未完成：Claude 接手真实模型 returning 回放和 UI 视觉；线上四条旧 archive_unavailable 的精确原因、真实存量迁移结果仍需实际环境证据。离线成功不等于真实模型推荐质量已验证。
 - 接手：先看 evaluation/persona-ux/batch16a-fix-notes.md（含改动文件、旧断言逐条理由、迁移恢复边界和回放命令）。returning 需本地独立服务已初始化的 SQLite，使用 --returning-db 并保持服务与 runner 加密配置一致；合成账号凭证只留内存。真实回放不要指向生产或用户数据库。
+## 2026-10-18 第十六批 b：记忆导入（规格 E，本地，未 commit/push/部署）
+
+- 目标与范围：只完成 `docs/development/2026-10-18-batch16-plan.md` 的 E；A–D、intake/public_reply/resume_graph、dist 和部署脚本未改。接手分支 batch16b，仅规格文件预先未跟踪，未修改它。
+- 已完成：新增已鉴权的提示词 GET 与记忆导入 POST；固定中文导出提示词为后端单一来源，枚举与共享 FactCandidate 对齐，uncertain 标在 evidence。JSON 优先严格校验；失败回退档案抽取器 source_kind=import，仍做联系方式脱敏和字面依据检查。输入最多处理 100000 字/200 条，截断有提示；分批 ≤50 调原 propose_to_inbox，复用去重、30 天过期和人工采纳，跨批同事务，不直接入档。
+- 已完成：档案面板复制提示词/粘贴/提交/结果/查看待确认，失败保留输入；MCP prompt `import_memory_to_profile` 与 /connect 话术/复制入口。未新增 CSS。
+- 决策与失败做法：自动归档 worker 不适合导入的人工确认边界，保持原来源限制。初稿 token_id=None 经静态检查发现违反原表非空约束，测试前改为来源标记 web-memory-import，不授予 PAT 权限或改表。旧测试仅精确扩展 MCP prompt 目录集合；其余旧断言未放宽。
+- 当前验证：新增 16 项回归。指定离线全量 1977 项（1975 通过、2 项原有私有样例跳过），0 失败/错误，82.605s；Ruff、JS 语法、DOM 和 diff 检查通过。日志系统临时目录 `huhua-b16b-tests.D6Vry7bb1j`，完整路径见修复说明。
+- 未完成/接手：本地规格 E 无阻塞。下一步由整合任务合并 A–D，再由 Claude 做视觉；真实模型/外部 AI 导出/在线 MCP 尚未验收，不得以离线桩代表线上效果。未启动或访问 8833/8834、未调用真实模型。
+- 文件与说明：新增 `backend/app/services/profile_memory.py`、`backend/app/schemas/profile_import.py`，接入 api/profile、profile_archivist、mcp/server、web/account-profile、connect；完整文件、根因及测试在 `evaluation/persona-ux/batch16b-fix-notes.md`。本 mmr 仅追加，原交接完整保留。

@@ -23,12 +23,12 @@ from app.services.model_privacy import ContactRedactor, ContactTokenStream, reda
 logger = logging.getLogger(__name__)
 MAX_MODEL_CALLS = 5
 MAX_TOOL_STEPS = 4
-SYSTEM_PROMPT = """你是简历编排助手，把用户的真实经历变成可核对、面向目标岗位的简历。
+SYSTEM_PROMPT = """你是「胡话」，胡话简历的简历助手，专治简历里的胡话：把用户的真实经历写成每句有出处、面向目标岗位的简历，不替用户编。
 开场简短说明能做什么，并给一个具体价值示例；邀请用户随便介绍在读什么、做过什么、想投什么。
 开场不索要姓名、手机或邮箱。用户提供任何本人信息（包括自我介绍、粘贴材料、旧简历），先 record_facts。
 有档案且当前会话缺素材时，先 read_profile，按目标方向直接 use_profile_items 选用相关经历并说明理由，不先询问是否导入。
 有一段包含具体做法的经历即可 write_draft，先写后问，不把缺少数字或信息不齐当作不能开始的理由。
-只有 write_draft 返回 need_contacts 时，才一次请用户补齐缺少的姓名、手机、邮箱；已提供的不要重复问。
+write_draft 结果含 contacts_missing 时，先说明稿子已出好，再一次请用户补齐缺少的姓名、手机、邮箱（放进简历头部）；已提供的不要重复问。
 成稿后针对最弱条目用 ask_user 追问一个维度。工具返回 stop 时本轮直接给最终回复，未完成的补问留给下一轮。
 用户无法回忆或选择跳过时，尊重关闭记录，不追同一维度，不把空信息当经历出稿。
 需要方案确认时 propose_plan；已有稿局部修改用 edit_resume；排版检查用 check_layout。
@@ -38,6 +38,8 @@ read_jd 和 record_facts 只传 source_id，代码读取原文；current 指本�
 每轮最多四次工具执行，优先一次一个；工具失败或信息不足时如实说明，不声称已完成未完成的操作。
 工具调用轮不输出面向用户的正文。最终回复简短说明做了什么、为什么（给一两句判断依据），以及一个明确下一步。
 已写稿件以右侧最终保存的版本为准，不在保存完成前宣称已永久保存。只有问题工具可以生成问题卡，不从正文伪造卡片。"""
+
+DSML_MARKER = "<｜｜DSML｜｜"
 
 _PROGRESS = {
     "read_profile": "正在读取已有经历…", "use_profile_items": "正在选用相关经历…",
@@ -177,11 +179,28 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             parts.append(text)
             emit({"type": PUBLIC_REPLY_EVENT, "node": "orchestrator", "reply_id": reply_id, "content": text})
 
-    def delta(text):
-        publish(contact_stream.feed(text))
+    # DeepSeek 在 tool_choice=none 的收尾轮偶尔把工具调用写成 DSML 文本；遇到标记即停止推送，不让标记漏到界面。
+    dsml = {"buffer": "", "blocked": False}
 
-    while len(turns) < MAX_MODEL_CALLS:
-        allow_tools = not stopped and steps < MAX_TOOL_STEPS and len(turns) < MAX_MODEL_CALLS - 1
+    def delta(text):
+        if dsml["blocked"]:
+            return
+        dsml["buffer"] += text
+        marker = dsml["buffer"].find(DSML_MARKER)
+        if marker >= 0:
+            dsml["blocked"] = True
+            publish(contact_stream.feed(dsml["buffer"][:marker]))
+            dsml["buffer"] = ""
+            return
+        # 保留可能是标记前缀的尾巴，其余正常推送。
+        keep = max((n for n in range(1, len(DSML_MARKER)) if dsml["buffer"].endswith(DSML_MARKER[:n])), default=0)
+        ready, dsml["buffer"] = dsml["buffer"][:len(dsml["buffer"]) - keep], dsml["buffer"][len(dsml["buffer"]) - keep:]
+        publish(contact_stream.feed(ready))
+
+    turns_cap_bonus = [0]
+    while len(turns) < MAX_MODEL_CALLS + turns_cap_bonus[0]:
+        allow_tools = (not stopped and steps < MAX_TOOL_STEPS and len(turns) < MAX_MODEL_CALLS - 1
+                       and not dsml.get("retried"))
         sent = redact_model_messages(messages, privacy)
         for outbound in sent:
             if isinstance(outbound.get("content"), str):
@@ -194,6 +213,9 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             reply = await asyncio.wait_for(model.complete(sent, mode=mode, allow_tools=allow_tools,
                                                           on_delta=delta if not allow_tools else lambda text: None), timeout)
             row["usage"] = reply.usage
+            if dsml["buffer"] and not dsml["blocked"]:
+                publish(contact_stream.feed(dsml["buffer"]))
+            dsml["buffer"] = ""
             message = _validate_reply(reply, messages, mode, privacy)
             if not allow_tools and message.get("tool_calls"):
                 raise SpikeProtocolError("tools_requested_after_limit")
@@ -210,6 +232,14 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             break
         finally:
             row["seconds"] = round(perf_counter() - began, 4)
+        if DSML_MARKER in (message.get("content") or ""):
+            # 伪调用不进历史；若收尾轮没有任何正文，再要求一次纯文字回复。
+            message["content"] = message["content"].split(DSML_MARKER, 1)[0]
+            if not message.get("tool_calls") and not "".join(parts).strip() and not dsml.get("retried"):
+                dsml.update(retried=True, blocked=False, buffer="")
+                messages.append({"role": "system", "content": "工具调用次数已用完。请直接用文字告诉用户本轮完成了什么、还缺什么、下一步是什么，不要输出任何工具调用或标记。"})
+                turns_cap_bonus[0] += 1
+                continue
         messages.append(message)
         calls = message.get("tool_calls") or []
         if not calls:
@@ -247,7 +277,8 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                     if not isinstance(outcome.result, dict) or not isinstance(outcome.update, dict) or not isinstance(outcome.events, list):
                         raise TypeError("invalid_tool_outcome")
                     from app.agents.resume_graph import ResumeState
-                    if set(outcome.update) - ResumeState.__annotations__.keys():
+                    if unknown := sorted(set(outcome.update) - ResumeState.__annotations__.keys()):
+                        logger.warning("orchestrator_unknown_state_field tool=%s fields=%s", name, unknown)
                         raise ValueError("unknown_state_field")
                     patch = deepcopy(outcome.update)
                     if "messages" in patch:

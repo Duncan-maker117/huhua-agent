@@ -127,7 +127,8 @@ def main(argv=None):
     os.environ.update({"AGENT_MODE": args.agent_mode, "APP_ENV": "local",
                        "DATABASE_URL": "sqlite:///" + str(directory / "application.sqlite3"),
                        "CHECKPOINT_DB_PATH": str(directory / "checkpoints.sqlite3"),
-                       "ALLOW_INSECURE_LOCAL_STORAGE": "true", "REQUIRE_ACCOUNT": "false",
+                       # 与线上一致：需要账号但允许游客体验，回放器按游客 Cookie 建会话。
+                       "REQUIRE_ACCOUNT": "true", "ALLOW_GUEST_EXPERIENCE": "true",
                        "AUTH_COOKIE_SECURE": "false", "ENABLE_RAG": "false"})
     sys.path.insert(0, str(ROOT / "backend"))
     from app.config import get_settings
@@ -135,7 +136,7 @@ def main(argv=None):
     import uvicorn
     with model_meter():
         from main import app
-        uvicorn.run(ReplayApp(app, mode), host="127.0.0.1", port=args.port, access_log=False)
+        uvicorn.run(ReplayApp(app, mode), host="127.0.0.1", port=args.port, access_log=False, loop="asyncio")
 
 
 if __name__ == "__main__":

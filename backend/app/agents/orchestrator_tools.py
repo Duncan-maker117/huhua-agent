@@ -337,9 +337,12 @@ def _has_experience(collected):
     from app.schemas.facts import FACT_SECTIONS
     from app.services.resume_facts import active_facts_for_writer
     active = active_facts_for_writer(collected)
-    return any(fact.get("text", "").strip() and fact.get("kind") in {
+    # 档案导入的事实统一为 kind=context，按档案字段判断是否属于具体做法/结果。
+    profile_fields = {"description", "result", "deliverable", "tool", "summary", "pr"}
+    return any(fact.get("text", "").strip() and (fact.get("kind") in {
         "action", "method_tool", "deliverable", "result_metric", "result_qualitative",
-    } for section in FACT_SECTIONS if section != "education" for item in active.get(section) or []
+    } or (fact.get("profile_refs") and (fact.get("profile_field") or fact.get("field")) in profile_fields))
+        for section in FACT_SECTIONS if section != "education" for item in active.get(section) or []
         for fact in item.get("facts") or [])
 
 
@@ -414,18 +417,24 @@ def _document_outcome(update):
     return ToolOutcome({"status": status, "changed": bool(update.get("changed")),
         "version_id": update.get("version_id"), "resume_data": data, "page_check": update.get("page_check"),
         "change_summary": update.get("change_summary", []), "writer_diagnostic": diagnostic,
-        "edit_contract": update.get("edit_contract", {}), "guard_fallbacks": update.get("guard_fallbacks", [])}, update)
+        "edit_contract": update.get("edit_contract", {}), "guard_fallbacks": update.get("guard_fallbacks", [])},
+        # 写稿链路还返回 changed / writer_diagnostic 等诊断键；原图会忽略它们，这里只把状态字段交给编排合并。
+        {key: value for key, value in update.items() if key in _state_fields()})
 
 
-@_register("write_draft", WriteArgs, "用已记录事实写第一稿；缺经历返回 insufficient，缺姓名或联系方式返回 need_contacts。", "正在写第一稿…")
+def _state_fields():
+    from app.agents.resume_graph import ResumeState
+    return ResumeState.__annotations__.keys()
+
+
+@_register("write_draft", WriteArgs, "用已记录事实写第一稿；缺经历返回 insufficient；缺姓名或联系方式仍出稿，并在结果中给出 contacts_missing。", "正在写第一稿…")
 async def write_draft(state, args, ctx):
     collected = state.get("collected_info") or {}
     if not _has_experience(collected):
         return ToolOutcome({"status": "insufficient", "missing": ["至少一段经历的具体做法"]})
     basic = collected.get("basic_info") or {}
+    # 先写后问：缺联系方式不阻塞出稿，头部留空，由编排在出稿后一次问齐。
     missing = [key for key in ("name", "phone", "email") if not str(basic.get(key) or "").strip()]
-    if missing:
-        return ToolOutcome({"status": "need_contacts", "missing": missing})
     direction_update = {}
     current_direction = (state.get("jd_info") or {}).get("role_direction") or (state.get("jd_info") or {}).get("job_title")
     if args.direction and args.direction != current_direction:
@@ -440,6 +449,8 @@ async def write_draft(state, args, ctx):
     if outcome.update:
         outcome.update = {**direction_update, **outcome.update, "pending_plan": {}, "plan_required": False}
         outcome.stop = True
+    if missing:
+        outcome.result["contacts_missing"] = missing
     return outcome
 
 

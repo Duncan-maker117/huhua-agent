@@ -334,9 +334,13 @@ class OrchestratorToolsTest(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(outcome.stop)
         facts = collected()
         facts["basic_info"] = {"name": "离线候选人"}
-        result = await tools.write_draft({"collected_info": facts}, {}, tools.ToolContext())
-        self.assertEqual(result.result, {"status": "need_contacts", "missing": ["phone", "email"]})
-        self.assertEqual(result.update, {})
+        # 先写后问：缺联系方式照常出稿，结果带 contacts_missing 供编排出稿后一次问齐。
+        written = tools.ToolOutcome({"status": "ok"}, {"resume_data": {}})
+        with patch.object(tools, "_write", AsyncMock(return_value=written)) as write:
+            result = await tools.write_draft({"collected_info": facts}, {}, tools.ToolContext())
+        write.assert_awaited_once()
+        self.assertEqual(result.result, {"status": "ok", "contacts_missing": ["phone", "email"]})
+        self.assertTrue(result.stop)
 
     async def test_draft_real_pipeline_guard_privacy_and_no_intake_stage_gate(self):
         state = {**graph._init_state(), "collected_info": collected()}

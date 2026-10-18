@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import inspect
 import json
 import re
+from time import perf_counter
 from typing import Any, Callable
 from uuid import uuid4
 
@@ -41,6 +42,8 @@ class ToolContext:
     emit: Callable | None = None
     company_used: bool = False
     ask_used: bool = False
+    followup_available: bool = True
+    automatic_tools: list[dict] = field(default_factory=list)
     profile_item_ids: set[str] = field(default_factory=set)
     recorded_sources: set[str] = field(default_factory=set)
     corrected_sources: set[str] = field(default_factory=set)
@@ -114,11 +117,13 @@ def _safe_result(result: dict, state: dict, update: dict, tool: str) -> dict:
 
     def readable(value, path=()):
         if isinstance(value, dict):
+            selectable = (tool == "read_profile" and path == ("items",)
+                          or path in {("followup", "questions"), ("card", "questions")})
             return {(pattern.sub(lambda match: names[match[0]], key) if pattern else key):
-                    (row if tool == "read_profile" and path == ("items",) and key == "id"
+                    (row if selectable and key == "id"
                           else readable(row, (*path, key)))
                     for key, row in value.items() if key not in hidden or (
-                        tool == "read_profile" and path == ("items",) and key == "id")}
+                        selectable and key == "id")}
         if isinstance(value, list):
             return [readable(row, path) for row in value]
         if isinstance(value, str):
@@ -349,6 +354,7 @@ async def record_facts(state, args, ctx):
             previous_assistant=_latest_previous_assistant(state["messages"][:index]))
         collected = apply_fact_patch(previous, patch)
         _clean_unrecorded_notes(collected, previous, patch)
+    _bind_campus_identity(collected)
     collected = absorb_education(collected, previous, text, source_id)
     if _no_more_questions({"messages": [source]}):
         collected["no_more_questions"] = True
@@ -375,6 +381,34 @@ async def record_facts(state, args, ctx):
                         "changed": collected != previous, "collected_info": collected,
                         "uncovered": uncovered, "incomplete": incomplete,
                         "rejected_count": len(patch.get("rejected") or [])}, update)
+
+
+def _bind_campus_identity(collected):
+    """Rejoin a placeholder only when its role names one same-turn campus item."""
+    from app.services.candidate_language import placeholder_name
+    from app.services.fact_corrections import apply_experience_merges
+    items = collected.get("campus") or []
+    for item in items[:]:
+        if not placeholder_name(item.get("name", "")):
+            continue
+        active = [f for f in item.get("facts") or [] if f.get("status", "active") == "active"]
+        roles = [f for f in active if f.get("kind") == "role" and f.get("turn_id")]
+        matches = [(other, fact) for other in items if other is not item and other.get("name")
+                   and not placeholder_name(other["name"]) for fact in roles
+                   if re.search(r"(?:在|于)\s*" + re.escape(other["name"]) + r"\s*(?:担任|任|做)", fact["text"])
+                   and any(f.get("turn_id") == fact["turn_id"] for f in other.get("facts") or [])]
+        targets = {row["item_id"] for row, _ in matches}
+        if len(targets) != 1:
+            continue
+        target, role = matches[0]
+        if any(f.get("turn_id") != role["turn_id"] for f in active):
+            continue
+        # Conflicting periods may be separate stints in the same organization.
+        if any(item.get(key) and target.get(key) and item[key] != target[key] for key in ("start_date", "end_date")):
+            continue
+        apply_experience_merges(collected, [{"section": "campus", "name": target["name"],
+            "target_item_id": target["item_id"], "source_item_ids": [item["item_id"]],
+            "source_quote": role.get("source_quote") or role["text"], "turn_id": role["turn_id"]}])
 
 
 @_register("ask_user", AskArgs, "给出必要的补充问题卡；跳过已关闭的维度，不将选项当作事实。", "正在整理补充问题…")
@@ -429,6 +463,53 @@ def _project_contacts(data, collected):
             basic[key] = collected["basic_info"][key] or ""
 
 
+def _project_identity(data, state):
+    from app.services.candidate_language import safe_objective
+    collected = state.get("collected_info") or {}
+    _project_contacts(data, collected)
+    basic = data.setdefault("basic_info", {})
+    saved = ((state.get("resume_data") or {}).get("basic_info") or {}).get("objective")
+    fact = (collected.get("basic_info") or {}).get("objective")
+    jd = state.get("jd_info") or {}
+    direction = jd.get("role_direction") or jd.get("job_title") or jd.get("target_role") or fact
+    # Direction extraction can append a long parenthesized skills brief. The
+    # heading uses its job label, not the full brief rejected by safe_objective.
+    direction = safe_objective(direction) or safe_objective(re.split(r"[（(]", str(direction or ""), maxsplit=1)[0])
+    # Keep a user's edited heading; otherwise the conversation direction wins.
+    basic["objective"] = safe_objective(saved if saved and saved not in {fact, direction} else direction or saved or basic.get("objective"))
+
+
+def _draft_followup(state, ctx):
+    from app.agents.interviewer import question_candidates
+    from app.services.ask_user import validate_card
+    if ctx.ask_used or state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
+        return {}
+    items = {item["item_id"]: item for section in ("projects", "work_experience", "campus", "open_source", "awards")
+             for item in (state.get("resume_data") or {}).get(section) or [] if item.get("item_id")}
+    for row in question_candidates(state):
+        item = items.get((row.get("improves") or {}).get("item_id"), {})
+        subject = item.get("name") or item.get("company") or ""
+        prompt = row["q"].removeprefix(subject + "：")
+        identifier = question_dimension("q_" + row["question_id"], prompt)
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,47}", identifier):
+            identifier = "q_" + row["question_id"]
+        question = {"id": identifier, "prompt": prompt if len(prompt) <= 40 else "这段经历还有什么细节可以补充？",
+                    "placeholder": prompt[:120] if len(prompt) > 40 else "", "kind": "text"}
+        card = validate_card({"subject": subject[:120], "questions": [question]}, state, ctx.turn_id)
+        if card:
+            return {"subject": card["subject"], "questions": card["questions"]}
+    return {}
+
+
+async def attach_draft_followup(state, followup, ctx):
+    """Use the same tool/validator even when no model decision budget remains."""
+    began = perf_counter()
+    outcome = await ask_user(state, {"card": followup}, ctx)
+    ctx.automatic_tools.append({"name": "ask_user", "seconds": round(perf_counter() - began, 4),
+                               "status": outcome.result.get("status"), "automatic": True})
+    return outcome
+
+
 @_register("propose_plan", NoArgs, "依据已记录事实生成结构方案卡，等待用户选择。", "正在整理简历方案…")
 async def propose_plan(state, args, ctx):
     from app.agents.resume_graph import _serialize_to_resume_data
@@ -471,7 +552,7 @@ async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=Non
     # Legacy serialization can harvest optional fields from chat history.
     # Loop writing may use only the fact master and the saved document.
     base = deepcopy(base) if base is not None else _serialize_to_resume_data({**state, "messages": []})
-    _project_contacts(base, collected)
+    _project_identity(base, state)
     if plan_draft:
         from app.services.structure_plan import select_plan, accept_profile, edit_plan, plan_action
         from app.agents.resume_graph import _latest_human_text
@@ -492,7 +573,8 @@ async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=Non
     update.pop("collected_info", None)
     data = update["resume_data"]
     before_projection = deepcopy(data)
-    _project_contacts(data, collected)
+    _restore_unwritten_items(state, update, scope, targets)
+    _project_identity(data, state)
     if data != before_projection:
         from app.services.resume_versions import prepare_version
         from app.services.resume_capacity import measure_rendered_pages
@@ -502,6 +584,71 @@ async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=Non
             state.get("resume_versions") or [], data, update.get("resume_meta") or {}))
         update["resume_meta"]["page_check"] = update["page_check"]
     return _document_outcome(update)
+
+
+def _restore_unwritten_items(state, update, scope, targets):
+    """Last loop-only delivery fallback: active own facts, never rejected prose."""
+    from app.agents.resume_writer import _source_evidence, _body_fact
+    from app.agents.career_prompt import writing_structure
+    from app.services.labeled_writer import fallback_row, rule_slot, SLOTS
+    from app.services.resume_versions import text_hash
+    from app.services.fact_coverage import ensure_fact_coverage
+    if scope == "bullet":
+        return
+    _, items, facts = _source_evidence(state.get("collected_info") or {})
+    data, meta = update["resume_data"], update.setdefault("resume_meta", {})
+    plan = update.get("match_plan") or state.get("confirmed_plan") or {}
+    treatments = {row["item_id"]: row for row in plan.get("experience_plan") or []}
+    family = ((state.get("jd_info") or {}).get("role_profile") or {}).get("role_family", "other")
+    restored = []
+    for iid, (section, source) in items.items():
+        if scope == "item" and iid not in targets:
+            continue
+        selection = treatments.get(iid, {})
+        if selection.get("treatment") == "backup" or selection.get("target_bullets") == 0:
+            continue
+        item = next((row for row in data.get(section) or [] if row.get("item_id") == iid), None)
+        prior = next((row for row in (state.get("resume_data") or {}).get(section) or [] if row.get("item_id") == iid), {})
+        field = "polished_bullets" if section == "projects" else "bullets"
+        if item is None or item.get(field) or prior.get("hidden") or source.get("hidden"):
+            continue
+        own = [f["id"] for f in source["facts"] if _body_fact(f)]
+        labeled = (section == "projects" and plan.get("bullet_style") == "labeled"
+                   and writing_structure(family)["bullet_style"] == "labeled")
+        groups = ({slot: [fid for fid in own if rule_slot(facts[fid]) == slot] for slot in SLOTS}
+                  if labeled else {"plain": own})
+        rows = [fallback_row(slot, ids, iid, facts, source.get("name", "")) for slot, ids in groups.items() if ids]
+        rows = [row for row in rows if row["text"] and row["fact_ids"]][:selection.get("target_bullets", 4)]
+        if not rows:
+            continue
+        for row in rows:
+            if labeled:
+                row["text"] = row["slot"] + "：" + row["text"]
+        item[field], item["hidden"] = [row["text"] for row in rows], False
+        meta.setdefault("bullets", {})[iid] = [{"fact_ids": row["fact_ids"], "coverage_fact_ids": row["fact_ids"],
+                                                "text_hash": text_hash(row["text"])} for row in rows]
+        name = item.get("name") or item.get("company") or iid
+        notice = f"方案中保留的「{name}」未能形成通过事实校验的正文，请在核对页检查这段经历。"
+        data["verification_notes"] = [n for n in data.get("verification_notes") or [] if n != notice]
+        update["change_summary"] = [n for n in update.get("change_summary") or [] if n != notice]
+        restored.append(iid)
+    if restored:
+        from app.services.resume_limits import preserve_item_limits
+        preserved, metadata, fallbacks = preserve_item_limits(data, meta, state.get("collected_info") or {},
+            item_ids=restored, constraints=update.get("session_constraints") or state.get("session_constraints"))
+        data.clear()
+        data.update(preserved)
+        meta.clear()
+        meta.update(metadata)
+        update.setdefault("guard_fallbacks", []).extend(fallbacks)
+        diagnostic = update.setdefault("writer_diagnostic", meta.get("writer_diagnostic") or {})
+        diagnostic["deterministic_body_fallbacks"] = restored
+        diagnostic["undelivered_items"] = [iid for iid in diagnostic.get("undelivered_items") or [] if iid not in restored]
+        meta["writer_diagnostic"] = diagnostic
+        meta["change_summary"] = update.get("change_summary", [])
+        for holder in (update, meta):
+            holder["omitted"] = [row for row in holder.get("omitted") or [] if row.get("item_id") not in restored]
+        ensure_fact_coverage(data, meta, state.get("collected_info") or {})
 
 
 def _document_outcome(update):
@@ -544,6 +691,16 @@ async def write_draft(state, args, ctx):
     if outcome.update:
         outcome.update = {**direction_update, **outcome.update, "pending_plan": {}, "plan_required": False}
         outcome.stop = True
+        working = {**state, **outcome.update}
+        if followup := _draft_followup(working, ctx):
+            outcome.result["followup"] = followup
+            outcome.stop = False
+            if not ctx.followup_available:
+                attached = await attach_draft_followup(working, followup, ctx)
+                outcome.update.update(attached.update)
+                outcome.events.extend(attached.events)
+                outcome.result["followup_attached"] = attached.result.get("status") == "ok"
+                outcome.stop = True
     if missing and outcome.update and (not (state.get("session_constraints") or {}).get("contacts_requested")
                                        or _export_contacts_requested(state)):
         outcome.result["contacts_missing"] = missing

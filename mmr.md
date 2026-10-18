@@ -496,3 +496,14 @@
 - 验证：新增 18 项；指定全量 2122 项，2120 通过、2 项原有跳过、0 失败/错误，85.412s，退出码 0。旧测试文件/断言未改。Ruff、10 文件 AST、交接命令语法和 diff 检查通过；最终日志 evaluation/agent-loop-spike/p2g-full-tests.log（忽略）。
 - 失败做法：首版只测 httpx 未覆盖当前 SDK，虽中间全量通过仍补实际 SDK 传输回归；新增测试闭括号、分句“还差”和 SDK 异常包装预期已修正，详见 evaluation/agent-loop-spike/p2g-notes.md。
 - 未完成/接手：Claude 合并 P2a/P2b/P2c 后按 p2g-notes.md 的完整命令启动 8847/8848 独立临时数据库，顺序跑 off/loop 全人物并生成简表/明细；trap 清理服务。真实质量、token 预算与缓存命中未实测，旧零计数不能代表零成本或隐私覆盖。本轮无遗留应用服务或付费任务。
+
+## 2026-10-19 第十七批 P2h：先写后问、写稿回退与编排耗时
+
+- 目标/范围：batch17h 从 31cfd13 接续，仅改 orchestrator.py、orchestrator_tools.py、orchestrator_context.py 和对应测试；不改旧图节点、评测判定、手册或 dist。本节只追加，前文保留。
+- 已完成：write_draft 后复用 question_candidates 生成一个校验过的 followup；预算内只再允许 ask_user，预算不足/模型漏调用/失败时确定性附卡，状态与事件保持一致。成功出稿收尾补齐遗漏的联系方式请求，跨轮不重复；档案回执按第十六批逐一点名规则补漏去重。
+- 根因/决策：cold 实为 plain/data 路径，校园身份拆为两个条目，方案错误隐藏了动作所属条目，跨条目引用被 invalid_refs 正确拒绝。仅在 record_facts 对明确同名、同轮、唯一且无日期冲突的占位校园条目复用旧合并事务，保留原 fact IDs/来源与审计；不放松 fact_guard。loop 写稿空正文复用 c6 active facts 规范化兜底，尊重隐藏/备用/零行/作用域，并更新引用、版本与测量。
+- 已完成：write/edit 投影会话岗位；tech 的长方向附括号技能说明会被 safe_objective 整串清空，现提取合法岗位名，保留不同的手改头部。联系方式仍不进模型。
+- 耗时：orchestrator_turn 新增 tools[] 的名称/秒数/状态/固定错误码，自动附卡单列，扣除嵌套计时；无正文/参数。AGENT_FINAL_MODE 默认 off，仅强制文字收尾关闭思考，决策仍 thinking，可显式恢复。自然语言质量与真实耗时收益待回放；record_facts 后没有硬编码直跳写稿。
+- 验证：最终指定全量 2149 项，2147 通过、2 原有跳过、0 失败/错误（85.884s，退出码 0）；额外 P2e 上下文 15 项全过（0.458s）。新增 P2h 回归 16 项；Ruff、6 文件 AST、diff check 通过。旧 SDK 思考协议测试显式选 thinking，原断言保留；P2e 仅按需求更新两处收尾默认值期望。
+- 失败做法：没有沿用 labeled 导致 cold 失败的假设；没有绕过跨条目核对；新增测试曾误把无 match_plan 当无候选，已按手册候选实际行为修正测试场景。第一次全量后补长方向回归，再跑最终全量。
+- 当前状态/接手：未 commit/push/部署，未调用真实模型、启动应用服务或访问 8833/8834。说明见 evaluation/agent-loop-spike/p2h-notes.md；旧产物对比见 p2h-frozen-comparison.md。returning 本轮实际已点名两段，旧检查器完成态表达不兼容仍保留失败，评测任务需核对；本任务不为字面通过重复回执。下一步由集成任务合并后做真实回放，核对卡片续答、cold 正文、tech 头部及工具分项耗时；旧产物不是修复后验收。

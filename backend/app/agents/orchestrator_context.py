@@ -18,8 +18,8 @@ TOOL_RESULT_CHARS = 3200
 
 
 class OrchestratorSettings(BaseSettings):
-    # Preserve P1 until a real replay selects the final-response default.
-    AGENT_FINAL_MODE: Literal["thinking", "off"] = "thinking"
+    # Decisions still think; a forced text-only receipt needs no further plan.
+    AGENT_FINAL_MODE: Literal["thinking", "off"] = "off"
     model_config = {"env_file": str(Path(__file__).resolve().parents[2] / ".env"),
                     "env_file_encoding": "utf-8", "extra": "ignore"}
 
@@ -140,6 +140,7 @@ def project_tool_result(name, result, privacy):
     # Decision/status fields come first so large optional diagnostics cannot crowd them out.
     projected = _pick(result, ("status", "code", "error_type", "changed", "restored", "version_id",
         "missing", "contacts_missing", "contacts_requested", "basics_complete", "imported", "message",
+        "followup", "followup_attached",
         "uncovered", "incomplete", "rejected_count", "source_kind", "candidate_facts"))
     transforms = {"page_check": _page, "jd_info": _job, "collected_info": _facts,
                   "resume_data": _document, "plan": _plan}

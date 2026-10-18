@@ -398,7 +398,8 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
             async with AsyncOpenAI(api_key="offline-key", base_url="https://model.invalid/v1", http_client=http, max_retries=0) as client:
                 tools = registry(read_profile=AsyncMock(return_value=ToolOutcome({"status": "ok"}, {}, [], stop=True)))
                 model = loop.OrchestratorModel(client, model="fixture", schemas=loop._schemas(tools))
-                result = await loop.run_orchestrator(state(), model, registry=tools, emit=published.append)
+                result = await loop.run_orchestrator(state(), model, registry=tools, emit=published.append,
+                                                     final_mode="thinking")
         self.assertEqual([e["content"] for e in published if e["type"] == loop.PUBLIC_REPLY_EVENT], ["你好。", "已核对。"])
         self.assertNotIn("思考甲", str(result))
         self.assertNotIn("私有工具旁白", str(published))

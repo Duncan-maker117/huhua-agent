@@ -5,6 +5,7 @@ import asyncio
 from copy import deepcopy
 import json
 import logging
+import re
 from time import perf_counter
 from uuid import uuid4
 
@@ -31,7 +32,7 @@ SYSTEM_PROMPT = """你是「胡话」，胡话简历的简历助手，专治简�
 有档案且当前会话缺素材时，先 read_profile，按目标方向直接 use_profile_items 选用相关经历并说明理由，不先询问是否导入。导入成功后必须点名说明实际导入的每段经历；导入与最终放进稿件的取舍分别说明。
 有一段包含具体做法的经历即可 write_draft，工具会自动采用推荐结构方案与岗位写法，沿用用户已选写法；先写后问，不把缺少数字或信息不齐当作不能开始的理由。
 只有 write_draft 成功结果含 contacts_missing 时，才在说明稿子已出好后一次请用户补齐所列的头部信息。状态中 contacts_requested 表示已经问过；用户未回答、跳过或以后再次写稿、改稿，也不能重复索要或以「还缺」提醒，除非用户明确要导出且仍缺。已提供的不要再问。
-成稿后针对最弱条目用 ask_user 追问一个维度。工具返回 stop 时本轮直接给最终回复，未完成的补问留给下一轮。
+write_draft 成功结果含 followup 时，稿件已生成；本轮只再调用一次 ask_user，使用候选卡追问一个薄弱维度后收尾。followup_attached 表示工具已附卡，无需再问。没有候选或工具返回 stop 时直接给最终回复。
 用户无法回忆或选择跳过时，尊重关闭记录，不追同一维度，不把空信息当经历出稿。
 需要方案确认时 propose_plan；已有稿局部修改用 edit_resume；数字或条数更正先 record_facts，工具会按用户原话同时核对并更新事实与正文，correction_applied 时不要再重写；更正失败如实说明，不能用普通润色绕过。排版检查用 check_layout。
 新事实只能由 record_facts 从用户原文提取；档案条目只能按返回的 ID 选用。不得编造事实或扩大参与程度。
@@ -163,7 +164,19 @@ def _validate_reply(reply, messages, mode, privacy):
     return message
 
 
-async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeout=90.0, final_mode="thinking"):
+def _unrequested_contacts(text, missing):
+    labels = {"name": ("姓名", r"姓名|名字"), "phone": ("手机", r"手机|电话|phone"),
+              "email": ("邮箱", r"邮箱|邮件地址|email")}
+    requested = set()
+    for sentence in re.split(r"[。！？!?\n；;]|但是|不过|但", text):
+        if re.search(r"不用|无需|不必|不要|不再|已(?:经)?(?:收到|提供|补齐|记下)", sentence):
+            continue
+        if re.search(r"请|补齐|补充|提供|还差|还缺|缺少|方便|告诉我", sentence):
+            requested.update(key for key, (_, pattern) in labels.items() if re.search(pattern, sentence, re.I))
+    return [label for key, (label, _) in labels.items() if key in missing and key not in requested]
+
+
+async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeout=90.0, final_mode="off"):
     """Return one graph update; failed replies retain already validated tool updates."""
     if final_mode not in {"thinking", "off"}:
         raise ValueError("final_mode must be thinking or off")
@@ -172,11 +185,13 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
     sources = _sources(working)
     messages = _input_messages(working, sources, privacy)
     emit = emit or (lambda event: None)
-    from app.agents.orchestrator_tools import ToolContext
+    from app.agents.orchestrator_tools import ToolContext, attach_draft_followup
     # 工具适配器（P1a）按 ToolContext 取业务模型；进度事件由本循环统一发出，不再传 emit 以免重复。
     ctx = ToolContext(llm=llm, turn_id=reply_id)
     parts, turns = [], []
     final_metadata = {}
+    tool_turns, imported, contacts_missing = [], [], []
+    pending_followup = {}
     contact_stream = ContactTokenStream()
     steps, searched, stopped, retried = 0, False, False, False
     mode, status = "thinking", "completed"
@@ -205,10 +220,49 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         ready, dsml["buffer"] = dsml["buffer"][:len(dsml["buffer"]) - keep], dsml["buffer"][len(dsml["buffer"]) - keep:]
         publish(contact_stream.feed(ready))
 
+    async def apply_outcome(outcome):
+        from app.agents.resume_graph import ResumeState
+        if unknown := sorted(set(outcome.update) - ResumeState.__annotations__.keys()):
+            logger.warning("orchestrator_unknown_state_field fields=%s", unknown)
+            raise ValueError("unknown_state_field")
+        patch = deepcopy(outcome.update)
+        if "messages" in patch:
+            working["messages"] = add_messages(working.get("messages") or [], patch["messages"])
+            update["messages"] = add_messages(update.get("messages") or [], patch.pop("messages"))
+        working.update(patch)
+        update.update(patch)
+        if "collected_info" in patch:
+            from app.agents.resume_graph import _intake_saver
+            if saver := _intake_saver.get():
+                await saver(working)
+        for event in outcome.events:
+            if isinstance(event, dict) and event.get("type") == "tool_status" and event.get("status") == "running":
+                continue
+            if isinstance(event, dict) and event.get("type") in {"tool_status", "workspace", "guidance"}:
+                card = event.get("guidance") or (event.get("workspace") or {}).get("guidance")
+                if isinstance(card, dict) and card.get("kind") == "ask_user":
+                    from app.services.ask_user import validate_card
+                    valid = validate_card({"questions": card.get("questions"), "subject": card.get("subject", "")},
+                                          working, card.get("turn_id") or reply_id)
+                    if valid:
+                        final_metadata["ask_user"] = valid
+                emit({**event, "node": "orchestrator"})
+
+    async def finish_followup():
+        nonlocal pending_followup, stopped
+        if pending_followup:
+            outcome = await attach_draft_followup(working, pending_followup, ctx)
+            await apply_outcome(outcome)
+            if outcome.result.get("status") == "ok":
+                messages.append({"role": "system", "content": "出稿后的补充问题卡已展示。收尾直接说明结果，不在正文重复卡片问题。"})
+            pending_followup, stopped = {}, True
+
     turns_cap_bonus = [0]
     while len(turns) < MAX_MODEL_CALLS + turns_cap_bonus[0]:
         allow_tools = (not stopped and steps < MAX_TOOL_STEPS and len(turns) < MAX_MODEL_CALLS - 1
                        and not dsml.get("retried"))
+        if not allow_tools:
+            await finish_followup()
         request_mode = "off" if not allow_tools and final_mode == "off" else mode
         sent = redact_model_messages(messages, privacy)
         if request_mode == "off":
@@ -257,6 +311,7 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
         messages.append(message)
         calls = message.get("tool_calls") or []
         if not calls:
+            await finish_followup()
             if allow_tools:
                 delta(privacy.redact(message.get("content") or ""))
             elif not parts:
@@ -272,6 +327,8 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             result = {"status": "error", "code": "tool_budget_exceeded" if steps >= MAX_TOOL_STEPS else "turn_stopped"}
             if steps < MAX_TOOL_STEPS and not stopped:
                 steps += 1
+                tool_began = perf_counter()
+                automatic_start = len(ctx.automatic_tools)
                 spec = registry.get(name)
                 label = _PROGRESS.get(name, "正在处理…")
                 if spec:
@@ -279,7 +336,11 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                 try:
                     if spec is None:
                         raise ValueError("unknown_tool")
+                    if pending_followup and name != "ask_user":
+                        raise ValueError("draft_followup_only")
                     args = spec.args_model.model_validate_json(call["function"]["arguments"])
+                    if pending_followup and len(args.card.questions) != 1:
+                        raise ValueError("draft_followup_only")
                     if name in {"record_facts", "read_jd"}:
                         source = sources.get(args.source_id)
                         if source is None:
@@ -290,58 +351,59 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                         if searched:
                             raise ValueError("company_budget_exceeded")
                         searched = True
+                    ctx.followup_available = (steps < MAX_TOOL_STEPS and len(turns) < MAX_MODEL_CALLS - 1)
                     outcome = await asyncio.wait_for(spec.handler(deepcopy(working), args, ctx), timeout)
                     if not isinstance(outcome.result, dict) or not isinstance(outcome.update, dict) or not isinstance(outcome.events, list):
                         raise TypeError("invalid_tool_outcome")
-                    from app.agents.resume_graph import ResumeState
-                    if unknown := sorted(set(outcome.update) - ResumeState.__annotations__.keys()):
-                        logger.warning("orchestrator_unknown_state_field tool=%s fields=%s", name, unknown)
-                        raise ValueError("unknown_state_field")
-                    patch = deepcopy(outcome.update)
-                    if "messages" in patch:
-                        working["messages"] = add_messages(working.get("messages") or [], patch["messages"])
-                        update["messages"] = add_messages(update.get("messages") or [], patch.pop("messages"))
-                    working.update(patch)
-                    update.update(patch)
-                    if "collected_info" in patch:
-                        from app.agents.resume_graph import _intake_saver
-                        if saver := _intake_saver.get():
-                            await saver(working)
+                    await apply_outcome(outcome)
                     result, stopped = outcome.result, outcome.stop
+                    if name == "use_profile_items" and result.get("status") == "ok":
+                        imported.extend(n for n in result.get("imported") or [] if n not in imported)
+                    if name == "write_draft" and "resume_data" in outcome.update:
+                        contacts_missing = result.get("contacts_missing") or contacts_missing
+                        pending_followup = {} if result.get("followup_attached") else result.get("followup") or {}
+                        if pending_followup:
+                            stopped = False
+                    elif pending_followup and name == "ask_user":
+                        if final_metadata.get("ask_user"):
+                            pending_followup = {}
+                        stopped = True
                     if name == "read_jd" and result.get("status") == "ok":
                         source["kind"] = "jd"
-                    for event in outcome.events:
-                        if isinstance(event, dict) and event.get("type") == "tool_status" and event.get("status") == "running":
-                            continue  # 本循环在调用前已发出「进行中」
-                        if isinstance(event, dict) and event.get("type") in {"tool_status", "workspace", "guidance"}:
-                            card = event.get("guidance") or (event.get("workspace") or {}).get("guidance")
-                            if isinstance(card, dict) and card.get("kind") == "ask_user":
-                                from app.services.ask_user import validate_card
-                                valid = validate_card({"questions": card.get("questions"), "subject": card.get("subject", "")},
-                                                      working, card.get("turn_id") or reply_id)
-                                if valid:
-                                    final_metadata["ask_user"] = valid
-                            emit({**event, "node": "orchestrator"})
                 except (ValidationError, json.JSONDecodeError, KeyError):
                     result = {"status": "error", "code": "invalid_arguments"}
                 except ValueError as exc:
-                    code = str(exc) if str(exc) in {"unknown_tool", "unknown_source", "not_candidate_material", "company_budget_exceeded", "unknown_state_field"} else "tool_error"
+                    code = str(exc) if str(exc) in {"unknown_tool", "unknown_source", "not_candidate_material", "company_budget_exceeded", "unknown_state_field", "draft_followup_only"} else "tool_error"
                     result = {"status": "error", "code": code}
                 except Exception as exc:
                     result = {"status": "error", "code": "tool_error", "error_type": type(exc).__name__}
+                nested_seconds = sum(row["seconds"] for row in ctx.automatic_tools[automatic_start:])
+                tool_turns.append({"name": name if spec else "unknown_tool",
+                                   "seconds": round(max(0, perf_counter() - tool_began - nested_seconds), 4),
+                                   "status": result.get("status"), **({"code": result["code"]} if result.get("code") else {})})
+                if pending_followup and name != "write_draft":
+                    stopped = True
                 if spec:
                     emit({"type": "tool_status", "node": "orchestrator", "tool": name, "status": "completed",
                           "message": label.removeprefix("正在").rstrip("…") + (
                               "：处理完成" if result.get("status") == "ok" else "：已返回结果")})
             messages.append({"role": "tool", "tool_call_id": call["id"],
                              "content": _safe_json({"untrusted_data": project_tool_result(name, result, privacy)}, privacy)})
+    await finish_followup()
     publish(contact_stream.finish())
     if status != "completed":
         publish(PUBLIC_REPLY_INTERRUPTED if parts else "这次回复暂未完成，已处理的材料可在工作区核对，请稍后重试。")
+    content = "".join(parts)
+    if imported and not all(name in content for name in imported):
+        publish(contact_stream.feed(privacy.redact(("\n\n" if parts else "") + "已从档案导入：" + "、".join(imported) + "。")))
+        publish(contact_stream.finish())
+    if missing := _unrequested_contacts(content, contacts_missing):
+        publish(("\n\n" if parts else "") + "请补充" + "、".join(missing) + "，用于简历头部。")
     usage = {key: sum(row["usage"][key] for row in turns)
              if turns and all(row["usage"].get(key) is not None for row in turns) else None for key in TOKEN_FIELDS}
     metrics = {"model_calls": len(turns), "tool_steps": steps, "seconds": round(perf_counter() - started, 4),
-               "fallback": retried, "status": status, "usage": usage, "turns": turns, "final_mode": final_mode}
+               "fallback": retried, "status": status, "usage": usage, "turns": turns, "final_mode": final_mode,
+               "tools": [*tool_turns, *ctx.automatic_tools]}
     logger.info("orchestrator_turn %s", json.dumps(metrics))
     final = AIMessage(content="".join(parts), id=reply_id, additional_kwargs={**final_metadata, "orchestrator": metrics})
     update["messages"] = add_messages(update.get("messages") or [], [final])

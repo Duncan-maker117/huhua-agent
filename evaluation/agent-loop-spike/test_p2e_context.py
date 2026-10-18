@@ -139,7 +139,7 @@ class ContextProjectionTests(unittest.TestCase):
 
     def test_final_mode_settings_default_override_and_validation(self):
         with patch.dict(os.environ, {}, clear=True):
-            self.assertEqual(context.OrchestratorSettings(_env_file=None).AGENT_FINAL_MODE, "thinking")
+            self.assertEqual(context.OrchestratorSettings(_env_file=None).AGENT_FINAL_MODE, "off")
         with patch.dict(os.environ, {"AGENT_FINAL_MODE": "off"}):
             self.assertEqual(context.OrchestratorSettings(_env_file=None).AGENT_FINAL_MODE, "off")
         with self.assertRaises(ValidationError):
@@ -175,7 +175,7 @@ class ContextLoopTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["messages"][-1].content, "核对完成")
         self.assertFalse(result["messages"][-1].additional_kwargs["orchestrator"]["fallback"])
 
-    async def test_default_and_auto_text_remain_thinking(self):
+    async def test_default_final_off_and_auto_text_remains_thinking(self):
         for final_mode in ("thinking", "off"):
             model = Model([{"content": "你好"}])
             await loop.run_orchestrator(state(), model, registry=registry(), final_mode=final_mode)
@@ -183,7 +183,7 @@ class ContextLoopTests(unittest.IsolatedAsyncioTestCase):
         model = Model([call("check_layout"), {"content": "完成"}])
         await loop.run_orchestrator(state(), model, registry=registry(check_layout=AsyncMock(
             return_value=ToolOutcome({"status": "ok"}, stop=True))))
-        self.assertEqual([r["mode"] for r in model.requests], ["thinking", "thinking"])
+        self.assertEqual([r["mode"] for r in model.requests], ["thinking", "off"])
 
     async def test_final_off_after_budget_fallback_and_dsml_retry(self):
         scripts = [([call("check_layout")] * 4 + [{"content": "完成"}], ["thinking"] * 4 + ["off"]),

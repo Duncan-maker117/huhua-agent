@@ -426,3 +426,15 @@
 - 决策及失败做法：当前 langchain-openai 1.6.3 转换器丢失 reasoning_content，采用原始 SDK 字典而非 additional_kwargs 假定透传；若思考内容含联系方式则停止后续请求，不破坏原样回传也不泄露隐私。新测试首次命中提示中与短案例原句重合，改为通用表述后通过，未放宽断言。
 - 未完成/接手：由 Claude 按 README 在有网络环境执行两种 `--real`（真实编排模型 + 假工具），逐例复核工具选择、顺序、语义、真实耗时/token 及 400；先比案例/提示哈希，不把 stub 指标当模型表现。真实业务工具与跨用户轮次续接尚未验证。
 - 边界：未读真实 LLM 配置/调用真实模型，未访问 8833/8834；未改现有节点、前端、dist、依赖或另一 worktree；未 commit/push/部署。当前仅本地新增 spike 文件与本节追加；交付入口 `evaluation/agent-loop-spike/README.md`。
+
+
+## 2026-10-19 第十七批第 1 期：P1a 工具适配器
+
+- 目标与范围：仅完成 batch17a 的 P1a；遵守本期 ToolOutcome / TOOLS 接口，不改 P1b 编排/路由/配置/前端及 P1c 回放。
+- 已完成：新增 `backend/app/agents/orchestrator_tools.py`，统一 10 个工具、严格参数、原始 HumanMessage 来源、联系方式脱敏与确定性投影、问题/方案卡、事实先保存、写稿/编辑事实护栏、可撤销版本及不写 PDF 的测页；新增 `tests/test_orchestrator_tools.py` 的 36 个离线测试。
+- 关键决策：调用既有抽取/持久化/写作/编辑/测页服务，不调用整个阶段节点，避免引入阶段门槛和隐式事实恢复；写稿/方案序列化禁止从未记录聊天补字段。成功 write_draft 的 stop=True 严格遵循共同接口。
+- 验证：指定全量命令最终 2049 项，2047 通过、2 跳过、0 失败，92.964s；新增测试在全量发现环境下 36/36 通过；Ruff、语法、空白检查通过。未修改任何旧断言。
+- 失败做法：旧混合材料拆分会漏掉明确本人标签的前缀，已在适配器补界限；writer 异常按真实 ChatTurnError 契约保留旧稿；新测试曾受 benchmark 的被拒文本诊断开关影响，显式隔离生产开关后保留原断言通过，详见说明。
+- 未完成：真实模型与 P1b/P1c 合并后的跨轮回放由 Claude 运行；本期没有调用真实模型、访问 8833/8834、commit、push、部署或修改 dist。
+- 接手：阅读 `evaluation/agent-loop-spike/p1a-notes.md`；内含工具参数、ToolContext 生命周期、状态/事件合并、持久化上下文要求及可直接执行的离线与真实业务工具 smoke 命令。合并时保留 _intake_saver/profile_runtime；总预算、超时、模型计量、最终回复/持久化由 P1b 接线。
+- 当前状态：工作在 batch17a，代码与说明待合并；本节仅追加，未改动此前交接内容。

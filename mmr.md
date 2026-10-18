@@ -416,3 +416,13 @@
 - 当前验证：新增 16 项回归。指定离线全量 1977 项（1975 通过、2 项原有私有样例跳过），0 失败/错误，82.605s；Ruff、JS 语法、DOM 和 diff 检查通过。日志系统临时目录 `huhua-b16b-tests.D6Vry7bb1j`，完整路径见修复说明。
 - 未完成/接手：本地规格 E 无阻塞。下一步由整合任务合并 A–D，再由 Claude 做视觉；真实模型/外部 AI 导出/在线 MCP 尚未验收，不得以离线桩代表线上效果。未启动或访问 8833/8834、未调用真实模型。
 - 文件与说明：新增 `backend/app/services/profile_memory.py`、`backend/app/schemas/profile_import.py`，接入 api/profile、profile_archivist、mcp/server、web/account-profile、connect；完整文件、根因及测试在 `evaluation/persona-ux/batch16b-fix-notes.md`。本 mmr 仅追加，原交接完整保留。
+
+## 2026-10-19 第十七批 s：DeepSeek 多步工具编排 spike（batch17s）
+
+- 目标：仅做第 0 期协议和可行性验证，不接入线上图，不替换 route_by_stage 或阶段状态机。
+- 完成：新增 `agents/orchestrator_spike.py`，现有 OpenAI SDK 流式调用支持 off/thinking，完整保留 reasoning_content、tool_calls 与 ID；最多 4 次工具执行尝试 + 1 次最终回复。九个默认内存假工具可注入，实现可选 decoder/fact_extractor 真实适配器（仅本轮内存）。来源 ID、工具错误、预算和联系方式保护由代码处理。
+- 完成：`scripts/run_agent_spike.py`、`evaluation/agent-loop-spike/cases.json` 十例、README/修复说明、`runs/stub-off` 与 `runs/stub-thinking` 报告。两模式各 10/10 符合脚本预设，不代表真实模型正确率或成本。
+- 验证：新增 17 项离线单测；指定全量 2013 项，2011 通过、2 项原有跳过、0 失败，88.964s；Ruff 通过。SDK 流式分片/序列化用 httpx.MockTransport，无真实模型调用。未修改已有断言。
+- 决策及失败做法：当前 langchain-openai 1.6.3 转换器丢失 reasoning_content，采用原始 SDK 字典而非 additional_kwargs 假定透传；若思考内容含联系方式则停止后续请求，不破坏原样回传也不泄露隐私。新测试首次命中提示中与短案例原句重合，改为通用表述后通过，未放宽断言。
+- 未完成/接手：由 Claude 按 README 在有网络环境执行两种 `--real`（真实编排模型 + 假工具），逐例复核工具选择、顺序、语义、真实耗时/token 及 400；先比案例/提示哈希，不把 stub 指标当模型表现。真实业务工具与跨用户轮次续接尚未验证。
+- 边界：未读真实 LLM 配置/调用真实模型，未访问 8833/8834；未改现有节点、前端、dist、依赖或另一 worktree；未 commit/push/部署。当前仅本地新增 spike 文件与本节追加；交付入口 `evaluation/agent-loop-spike/README.md`。

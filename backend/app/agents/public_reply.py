@@ -114,6 +114,7 @@ async def stream_public_reply(
             for chunk in chunks:
                 entry = tool_parts.setdefault(chunk.get("index", 0), {"name": "", "args": ""})
                 entry["name"] += chunk.get("name") or ""
+                entry["id"] = entry.get("id") or chunk.get("id") or ""
                 entry["args"] += chunk.get("args") or ""
         else:
             completed_tools.extend(getattr(message, "tool_calls", None) or [])
@@ -198,14 +199,18 @@ async def stream_public_reply(
                 arguments = json.loads(arguments) if isinstance(arguments, str) else arguments
             except ValueError:
                 arguments = {}
-            call_id = str(uuid4())
+            # DeepSeek 思考模式按模型生成的调用 ID 找回 reasoning；自造 ID 会被拒（400）。
+            call_id = call.get("id") or str(uuid4())
             history.extend([AIMessage(content="", tool_calls=[{"id": call_id, "name": call["name"], "args": arguments}]),
                             ToolMessage(content=json.dumps(result, ensure_ascii=False), tool_call_id=call_id)])
         if calls:
-            if imported:
-                emit(("\n\n" if parts else "") + "已从档案导入：" + "、".join(imported) + "。")
-            continuation = await stream_public_reply(original_llm, history, ask_state=working,
+            # 续写关闭思考：DeepSeek 思考模式要求回传上一轮 reasoning_content，而 LangChain 不保留它。
+            from app.services.llm_compat import without_thinking
+            continuation = await stream_public_reply(without_thinking(original_llm), history, ask_state=working,
                 timeout=timeout, publish=False, _profile_round=_profile_round + 1)
+            # 模型已逐一说明导入了哪几段时，不再重复确定性回执。
+            if imported and not all(name in continuation.content for name in imported):
+                emit(("\n\n" if parts else "") + "已从档案导入：" + "、".join(imported) + "。")
             emit(("\n\n" if parts else "") + continuation.content)
             profile_update.update(continuation.additional_kwargs.get("profile_update") or {})
             profile_card = continuation.additional_kwargs.get("ask_user") or {}

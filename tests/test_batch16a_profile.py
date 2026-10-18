@@ -196,9 +196,14 @@ class Batch16ProfileTests(unittest.IsolatedAsyncioTestCase):
         token = profile_runtime.set(("account:a", "returning"))
         try:
             config = {"configurable": {"thread_id": "returning"}}
-            with patch.object(graph, "_extract_info_from_message", side_effect=AssertionError("request is not a fact")):
+            with patch.object(graph, "_extract_info_from_message", side_effect=AssertionError("request is not a fact")), \
+                 patch("app.services.llm_compat.without_thinking", side_effect=lambda llm: llm) as no_thinking:
                 state = await compiled.ainvoke({"messages": [HumanMessage(content=returning.FIRST, id="returning-request")]}, config)
             self.assertEqual(model.used, ["read_profile", "use_profile_items"])
+            # 真实 DeepSeek：思考模式续写要求回传 reasoning_content，工具结果后的续写必须关闭思考。
+            self.assertTrue(no_thinking.called)
+            # 回执在正文之后落库，与流式顺序一致；前端按最后一条回复核对保存。
+            self.assertTrue([m for m in state["messages"] if isinstance(m, AIMessage)][-1].content.startswith("已沿用档案"))
             self.assertEqual(len(state["collected_info"]["projects"]), 2)
             replies = "".join(m.content for m in state["messages"] if isinstance(m, AIMessage))
             self.assertIn("已沿用档案", replies)
@@ -342,6 +347,16 @@ class Batch16ProfileTests(unittest.IsolatedAsyncioTestCase):
 
 
 class Batch16RequestTests(unittest.TestCase):
+    def test_explicit_generate_with_session_experiences_goes_to_drafting_not_profile(self):
+        text = "用刚选的经历直接生成简历，不再追问。"
+        self.assertTrue(graph._explicit_generate_requested(text))
+        state = {"messages": [HumanMessage(content=text)], "intake_account": True,
+                 "profile_summary": {"has_facts": True}, "collected_info": {}}
+        self.assertEqual(graph.route_by_stage(state), "dialogue")
+        state["collected_info"] = {"projects": [{"item_id": "p1", "name": "任务编排器", "facts": []}]}
+        self.assertNotEqual(graph.route_by_stage(state), "dialogue")
+        self.assertFalse(graph._explicit_generate_requested("不要直接生成"))
+
     def test_profile_query_is_not_a_missing_fact_but_real_development_still_is(self):
         from app.agents.fact_extractor import uncovered_action_clauses
         from app.services.candidate_language import non_fact

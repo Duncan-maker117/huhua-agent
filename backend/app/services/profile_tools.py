@@ -148,14 +148,16 @@ def profile_result(function):
         if not progress.get("profile_notice_shown") and (notice := profile_basics_notice(state)):
             progress["profile_notice_shown"] = True
             state = {**state, "intake_progress": progress}
-            receipt = AIMessage(content=notice + "\n\n", id=str(uuid4()))
+            receipt = AIMessage(content=notice, id=str(uuid4()))
+        result = await function(state, *args, **kwargs)
+        if receipt:
+            # 回执排在本轮正文之后：流式顺序与落库顺序一致，前端保存核对按最后一条回复比对。
             from langgraph.config import get_stream_writer, get_config
             try:
                 get_stream_writer()({"type": "public_reply_delta", "node": get_config().get("metadata", {}).get("langgraph_node", ""),
-                                     "reply_id": receipt.id, "content": receipt.content})
+                                     "reply_id": receipt.id, "content": "\n\n" + receipt.content})
             except (RuntimeError, KeyError):
                 pass
-        result = await function(state, *args, **kwargs)
         for message in result.get("messages") or []:
             update = message.additional_kwargs.pop("profile_update", None)
             if update:
@@ -164,7 +166,7 @@ def profile_result(function):
         if receipt:
             if not result.get("resume_data") and not state.get("resume_data"):
                 result.update(_live_resume_update({**state, **result}, result.get("collected_info", state.get("collected_info")) or {}))
-            result["messages"] = [receipt, *result.get("messages", [])]
+            result["messages"] = [*result.get("messages", []), receipt]
             result["intake_progress"] = {**result.get("intake_progress", progress), "profile_notice_shown": True}
         return result
     return wrapped

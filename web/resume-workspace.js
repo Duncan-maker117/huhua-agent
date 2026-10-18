@@ -473,7 +473,11 @@
               : draft.profile_item_ids.filter(id => id !== item.id);
           });
           const category = {project: '项目', work: '工作 / 实习', campus: '校园', open_source: '开源', awards: '竞赛'}[item.category] || item.category;
-          label.append(check, node('span', [item.name, category, [item.start, item.end].filter(Boolean).join(' 至 '), item.summary].filter(Boolean).join('｜')));
+          const text = node('span', undefined, 'intake-profile-choice-text');
+          text.append(node('span', item.name, 'intake-profile-choice-name'),
+            node('span', [category, [item.start, item.end].filter(Boolean).join(' 至 ')].filter(Boolean).join(' · '), 'intake-profile-choice-meta'));
+          if (item.summary) text.append(node('span', item.summary, 'intake-profile-choice-summary'));
+          label.append(check, text);
           choices.append(label);
         }
         form.append(choices);

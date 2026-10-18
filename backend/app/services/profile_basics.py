@@ -43,6 +43,9 @@ def clean_basic(field, value):
         raise ValueError("invalid_basic_name")
     if field == "location" and re.search(r"https?://|www\.|@|\d{7,}|[:：\n]", value, re.I):
         raise ValueError("invalid_basic_location")
+    if field == "objective":
+        from app.services.candidate_language import safe_objective
+        value = safe_objective(value) or value
     if KEY_VALUE.search(value) or KEY_VALUE.search("," + value):
         raise ValueError("mixed_basic_fields")
     return field, value

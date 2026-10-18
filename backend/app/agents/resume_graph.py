@@ -264,6 +264,10 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
     for key, value in (saved_resume.get("basic_info") or {}).items():
         basic_info[key] = base_basic.get(key, value)
 
+    # 本会话明确说的方向优先于档案沿用的旧方向；用户在编辑器里手改过的求职意向不覆盖。
+    direction = jd_info.get("role_direction") if not has_job_description(jd_info) else ""
+    if direction and (saved_resume.get("basic_info") or {}).get("objective", "") in {"", base_basic.get("objective", "")}:
+        basic_info["objective"] = direction
     basic_info["objective"] = safe_objective(basic_info.get("objective"))
 
     def _active_item(item: dict) -> dict:
@@ -942,7 +946,7 @@ def _explicit_generate_requested(text: str) -> bool:
             continue
         if _re.search(r"不要|先别|暂不|不想|还不|别急|是否|要不要|能否|[？?]", clause):
             continue
-        if _re.search(r'(?:^|[，,])\s*(?:请|现在|帮我)?(?:直接(?:成稿|生成|写)|不用先问|不必先问|整理成.{0,60}简历)', clause):
+        if _re.search(r'(?:^|[，,])\s*(?:请|现在|帮我)?(?:(?:就)?(?:用|拿|基于|根据).{0,20}?)?(?:直接(?:成稿|生成|写)|不用先问|不必先问|整理成.{0,60}简历)', clause):
             return True
         if _re.search(
             r"(?:^|[，,])\s*(?:请|帮我|给我|现在|直接|开始|先|按已有|按现有).{0,30}"
@@ -1737,7 +1741,8 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
                 "non_candidate_message_ids": _exclude_latest_source(state)}
     from app.services.profile_tools import tools_enabled, profile_request
     from app.services.intake import experiences
-    if tools_enabled(state) and (profile_request(text) or (_explicit_generate_requested(text) and not experiences(state))):
+    # 已有本会话经历时，明确的生成请求走成稿，不被「用…经历」再拉回档案读取。
+    if tools_enabled(state) and (not experiences(state) if _explicit_generate_requested(text) else profile_request(text)):
         update = {**_direction_profile_update(state, text), "non_candidate_message_ids": _exclude_latest_source(state)}
         working = {**state, **update}
         response = await stream_public_reply(llm, [SystemMessage(content=career_system(None,
@@ -3071,7 +3076,7 @@ def route_by_stage(state: ResumeState) -> str:
     from app.services.profile_tools import profile_request
     from app.services.intake import experiences
     if state.get("intake_account") and (state.get("profile_summary") or {}).get("has_facts") and (
-            profile_request(latest) or (_explicit_generate_requested(latest) and not experiences(state))):
+            (not experiences(state) if _explicit_generate_requested(latest) else profile_request(latest))):
         return "dialogue"
     if state.get('plan_choice') and state.get('pending_plan'):
         return 'structure_plan'
@@ -3444,6 +3449,7 @@ async def _stream_agent_impl(
     reply_buffers = {}
     completed_reply_ids: set[str] = set()
     pending_replies: dict[int, str] = {}
+    fresh_replies: set[int] = set()
     turn_replies: list[AIMessage] = []
     saved_intake = {}
 
@@ -3549,6 +3555,8 @@ async def _stream_agent_impl(
                         if message.content and (message.id not in streamed_reply_ids or message.id in buffered_reply_ids):
                             consumed = buffer.consumed if buffer else len(emitted_text.get(message.id, ''))
                             pending_replies[id(message)] = message.content[consumed:]
+                            if not consumed:
+                                fresh_replies.add(id(message))
         graph_completed = True
     except Exception as e:
         turn_error = to_turn_error(e)
@@ -3715,5 +3723,11 @@ async def _stream_agent_impl(
     except Exception:
         # Label maintenance must never turn a committed turn into a save error.
         logger.warning("Conversation saved; automatic title update failed")
-    for reply in pending_replies.values():
-        yield reply
+    # 同一轮多条回复（如「已沿用档案」回执）补发时另起一段，不与上一条正文粘连。
+    emitted_any = any(emitted_text.values())
+    for key, reply in pending_replies.items():
+        if not reply:
+            continue
+        fresh = key in fresh_replies and emitted_any and not reply.startswith("\n")
+        yield ("\n\n" + reply) if fresh else reply
+        emitted_any = True

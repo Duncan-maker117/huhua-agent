@@ -177,7 +177,8 @@ class PublicStreamingTest(unittest.IsolatedAsyncioTestCase):
                     [{"content": "你好"}], "protocol", object()
                 )
             ]
-        self.assertEqual(chunks, ["第一段", "第二段", "安全检查结果"])
+        # 第十六批：同一轮另一条未流式回复补发时另起一段，不与上一条正文粘连。
+        self.assertEqual(chunks, ["第一段", "第二段", "\n\n安全检查结果"])
 
     async def test_partial_model_failure_marks_and_checkpoints_interrupted_reply(self):
         model = GatedPublicModel(failure=True)

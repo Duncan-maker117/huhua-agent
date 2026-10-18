@@ -101,7 +101,9 @@ def placeholder_name(value: str) -> bool:
 
 
 def safe_objective(value: str) -> str:
-    value = str(value or "").strip()
+    # 「我想投 X」被整理成「投 X」时只保留岗位名，不把动词写进简历头部或会话标题。
+    value = re.sub(r"^(?:我)?(?:想|要|准备|打算)?(?:投递|投|应聘|申请)\s*", "", str(value or "").strip())
+    value = re.sub(r"\s*(?:的)?(?:简历|岗位)$", "", value)
     if (not value or len(value) > 20 or re.search(r"我|你|他|她|不知道|不清楚|不确定|适合|希望|想|兴趣|"
                                                   r"[？?。！!；;\n]|什么|哪些|怎么|是否|职业方向", value)):
         return ""

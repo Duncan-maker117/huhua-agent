@@ -380,27 +380,39 @@
     const form = node('form', undefined, 'profile-card profile-form profile-memory-import');
     form.dataset.profileForm = 'memory-import';
     form.append(node('h2', '从其他 AI 导入', 'profile-section-title'),
-      node('p', '复制提示词，贴到你常用的 AI，把它的回答整段复制回来。导入后仍需你确认，才会进入档案。', 'profile-muted'));
-    const prompt = inputField(form, '记忆导出提示词', '', 'textarea'); prompt.readOnly = true; prompt.required = false; prompt.rows = 8;
-    const copy = button('复制提示词', () => copyMcp(prompt.value)); copy.disabled = true; form.append(copy);
-    const answer = inputField(form, '粘贴 AI 的回答', '', 'textarea'); answer.rows = 10; answer.placeholder = '粘贴完整回答（包括 JSON 代码块）';
-    const hint = node('p', '', 'profile-muted'); form.append(hint);
+      node('p', '让你常用的 AI 把它记得的你的经历整理出来，再交给胡话简历。导入的内容先进「信息确认」，你采纳后才进档案。', 'profile-muted'));
+    const step1 = node('div', undefined, 'profile-memory-step');
+    const step1Head = node('div', undefined, 'profile-memory-step-head');
+    step1Head.append(node('span', '1', 'profile-memory-step-index'), node('strong', '复制提示词，发给 ChatGPT / Claude / 豆包 / Kimi / DeepSeek'));
+    const prompt = node('textarea', undefined, 'profile-memory-prompt'); prompt.readOnly = true; prompt.rows = 6;
+    prompt.setAttribute('aria-label', '记忆导出提示词');
+    const copy = button('复制提示词', () => copyMcp(prompt.value)); copy.disabled = true; copy.classList.add('profile-memory-copy');
+    const retry = button('重新读取提示词', () => loadPrompt()); retry.hidden = true;
+    step1.append(step1Head, prompt, copy, retry);
+    const step2 = node('div', undefined, 'profile-memory-step');
+    const step2Head = node('div', undefined, 'profile-memory-step-head');
+    step2Head.append(node('span', '2', 'profile-memory-step-index'), node('strong', '把它的回答整段粘贴回来'));
+    const answer = node('textarea', undefined, 'profile-memory-answer'); answer.rows = 8; answer.placeholder = '粘贴完整回答（包括 JSON 代码块）';
+    answer.setAttribute('aria-label', '粘贴 AI 的回答');
+    const hint = node('p', '', 'profile-muted profile-memory-hint');
+    step2.append(step2Head, answer, hint);
     const submit = node('button', '提交到待确认', 'profile-button'); submit.type = 'submit';
+    const actionsRow = node('div', undefined, 'profile-memory-actions');
+    actionsRow.append(submit, button('取消', () => { if (!busy) renderProfile(); }));
     const result = node('p', '', 'profile-memory-result'); result.setAttribute('role', 'status'); result.setAttribute('aria-live', 'polite');
-    form.append(submit, button('取消', () => { if (!busy) renderProfile(); }), result); content.prepend(form);
+    form.append(step1, step2, actionsRow, result); content.prepend(form);
     async function loadPrompt() {
       if (busy) return;
       setBusy(true); say('正在读取导出提示词…');
       try {
         const response = await request('/api/profile/import-memory/prompt');
         if (typeof response.prompt !== 'string' || !response.prompt) throw new Error('提示词暂不可用，请重试。');
-        prompt.value = response.prompt;
+        prompt.value = response.prompt; retry.hidden = true;
         hint.textContent = `单次最多 ${response.max_facts} 条，超过 ${response.max_chars} 字会截断并提示，请分批导入。`;
         say('提示词已准备好。');
-      } catch (error) { say(error.message, true); }
+      } catch (error) { retry.hidden = false; say(error.message, true); }
       finally { setBusy(false); copy.disabled = !prompt.value; }
     }
-    form.append(button('重新读取提示词', loadPrompt));
     form.addEventListener('submit', async event => {
       event.preventDefault(); if (busy || !form.reportValidity()) return;
       if (!answer.value.trim()) { say('请先粘贴 AI 的回答。', true); return; }

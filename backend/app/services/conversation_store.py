@@ -47,7 +47,9 @@ def derive_conversation_title(state_values: dict) -> str | None:
         company = jd.get("company") or ""
         return _short_title(f"{company} · {role}" if company.strip() else role) or None
     sources = [values.get("collected_info") or {}, values.get("resume_data") or {}, values]
-    direction = next((source.get("basic_info", {}).get("objective") for source in sources
+    # 简历头部的求职意向已按「本会话方向优先于档案旧方向」投影，标题与之保持一致。
+    ordered = [values.get("resume_data") or {}, values.get("collected_info") or {}, values]
+    direction = next((source.get("basic_info", {}).get("objective") for source in ordered
                       if (source.get("basic_info") or {}).get("objective")), None)
     direction = direction or values.get("role_direction") or jd.get("role_direction")
     if isinstance(direction, str) and direction.strip():

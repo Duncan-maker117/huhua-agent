@@ -93,7 +93,7 @@ def replay(client):
     yield turn
     if turn.get("status") != "ok":
         return
-    turn = client.turn("draft", "用刚选的经历直接生成简历，不再追问。")
+    turn = client.turn("draft", "按现有材料生成简历草稿。")  # 与界面「生成草稿」按钮的发送值一致
     yield turn
     guidance = (turn.get("workspace") or {}).get("guidance") or {}
     if turn.get("status") == "ok" and guidance.get("kind") == "structure_plan":

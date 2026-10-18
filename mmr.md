@@ -395,3 +395,15 @@
 - 去重完全移出 `save_resume_session` 和 `save_canonical_resume`，通用保存器无需来源猜测或默认去重参数。writer 产出按目标条目去重；edit_plan 后的确定性更新显式 `dedupe=True`，以及更正写回仅处理本次实际改变正文的条目，均在版本/页数计算前清理并同步引用/hash/coverage。只改排版/标题、编辑器/API 直接保存、只读聊天与恢复历史不做该清理。`test_resume_density.py` 已逐字恢复 HEAD 的原文件，包括 density=2 断言和移除第十二批新增的 noqa。
 - 新增 4 项回归：主写作两次超时且旧稿不变；编辑器/API 重复内容在回执、SQL、checkpoint 和只读聊天后均保留；edit_plan 生成结果去重且撤销恢复原稿；字面更正写回去重。恢复并加强修补超时测试，空/非对象主响应与次级语义故障测试同步边界。通用模型桩补齐 OnePass/确认方案 WriterDraft 的正确结构，未放宽原业务断言；更正旧测试的预期显式应用本批要求的条目内去重。
 - 验证：指定全量 `DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib .venv/bin/python scripts/run_tests.py` **1696/1696 通过，0 失败/跳过，62.702s**，日志 `/private/tmp/huhua-b12b-full-final.log`；28 份当前改动相关 Python 文件 Ruff 通过，日志 `/private/tmp/huhua-b12b-ruff.log`；`git diff --check` 通过。已恢复原样的 density 测试仍有 HEAD 既存 E402，未以新 noqa 掩盖或扩改；本次 Ruff 口径为当前有差异/新增 Python 文件。3369 份保护文件 SHA-256 均与本轮开始一致（evaluation/fixtures/checks、web/comparison*、输出材料、首页及打包脚本），mmr 原内容完整保留。HEAD 仍为 `a35a805`，未 commit/push/部署，未启动/调用 8833，未调用真实模型；没有声称新的线上或真实人物回放成绩。
+
+
+## 第十六批 a 记录 · 2026-10-18
+
+- 目标与范围：在 batch16a 完成规格 A/B/C/D：基本信息档案优先、质量迁移与失败细分、从档案选经历、read_profile/use_profile_items 及 returning 离线回放；E 不在本批范围。
+- 已完成：基本信息和第一条教育（含手机/邮箱/链接）确定性沿用，完整档案不出 basics 卡；缺项表单与“改”；到岗时间可选；七模板联系方式投影验证。基本信息校验、结构化表单拆分、本人主体归一、同值/冲突去重、按账号幂等 superseded 迁移。归档异常按阶段及类型安全记录，区分模型/解密/数据库错误且可重试。
+- 已完成：经历目录复选、岗位相关排序/预选、共用 fact_ids → prepare_graph_context 导入和 provenance、已知维度不重问；账号限定的档案工具、有界 read → use → 回复、命名回执与图/SQL 持久化；正常档案请求不再误报“没记下来”。新增 returning 人物、显式隔离数据库预置参数及十八项离线回归。
+- 关键决策：联系方式只走确定性投影，保持原 model_privacy/ContactTokenStream 与 MCP PNG 占位；目录可见不等于经历自动导入；工具使用服务端账号/会话归属，不信任模型提交的 ID；没有改写作/槽位/校验链路。
+- 失败做法已修正：空 ID 列表误回退默认查询；读事务迁移新 ID 回滚；迁移同事件冲突碰唯一约束；“本人”归一后漏过滤已删除 GitHub 链接；工具中途持久化与节点末尾来源分类不一致触发 source_id_reused。HTTP 离线回归已覆盖保存和回读。
+- 验证：用户指定全量命令最终 1979 项 / 81.871s，1977 通过、0 失败、2 项已有私有 fixture 缺失跳过。intake DOM、JS 语法、git diff --check 通过；变更 Python Ruff 通过（旧 test_batch14b_intake.py 模块文档前 import 的十条 E402 未顺手调整）。无真实模型调用，无 8833/8834 访问，无 commit/push/部署；未改 dist 或部署脚本。
+- 未完成：Claude 接手真实模型 returning 回放和 UI 视觉；线上四条旧 archive_unavailable 的精确原因、真实存量迁移结果仍需实际环境证据。离线成功不等于真实模型推荐质量已验证。
+- 接手：先看 evaluation/persona-ux/batch16a-fix-notes.md（含改动文件、旧断言逐条理由、迁移恢复边界和回放命令）。returning 需本地独立服务已初始化的 SQLite，使用 --returning-db 并保持服务与 runner 加密配置一致；合成账号凭证只留内存。真实回放不要指向生产或用户数据库。

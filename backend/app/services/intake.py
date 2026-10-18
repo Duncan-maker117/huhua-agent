@@ -29,6 +29,21 @@ class BasicsValues(BaseModel):
     graduation: Month = ""
     location: str = Field(default="", max_length=120)
     availability: str = Field(default="", max_length=300)
+    phone: str = Field(default="", max_length=40)
+    email: str = Field(default="", max_length=254)
+
+    @model_validator(mode="after")
+    def validate_basics(self):
+        from app.services.profile_basics import clean_basic, EMAIL, PHONE
+        for field in ("name", "location", "availability"):
+            value = getattr(self, field)
+            if value and clean_basic(field, value)[0] != field:
+                raise ValueError("请将链接或联系方式填入对应字段")
+        if self.phone and not PHONE.fullmatch(self.phone):
+            raise ValueError("请检查手机号码")
+        if self.email and not EMAIL.fullmatch(self.email):
+            raise ValueError("请检查邮箱")
+        return self
 
 
 class BasicsIntake(BaseModel):
@@ -53,11 +68,12 @@ class ExperiencesIntake(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     kind: Literal["experiences"]
     items: list[ExperienceInput] = Field(default_factory=list, max_length=30)
+    profile_item_ids: list[str] = Field(default_factory=list, max_length=30)
     skipped: bool = False
 
     @model_validator(mode="after")
     def require_items(self):
-        if not self.skipped and not self.items:
+        if not self.skipped and not self.items and not self.profile_item_ids:
             raise ValueError("请至少填写一段经历，或选择跳过")
         return self
 
@@ -110,7 +126,7 @@ def role_value(item: dict) -> str:
 
 
 def basics_values(collected: dict) -> dict:
-    """白名单投影；联系方式永远不进入表单或表单确认载荷。"""
+    """表单白名单投影；联系方式只在出站模型边界脱敏。"""
     basic = collected.get("basic_info") or {}
     edu = next(iter(collected.get("education") or []), {})
     degree = field_value(edu, "degree")
@@ -118,9 +134,42 @@ def basics_values(collected: dict) -> dict:
         degree = next((label for pattern, label in (("博士", "博士"), ("硕士|研究生", "硕士"), ("本科|学士", "本科"), ("专科|大专", "大专"))
                        if re.search(pattern, degree)), "其他")
     return {"name": basic.get("name") or "", "location": basic.get("location") or "",
-            "availability": basic.get("availability") or "", "school": field_value(edu, "school"),
+            "availability": basic.get("availability") or "", "phone": basic.get("phone") or "",
+            "email": basic.get("email") or "", "school": field_value(edu, "school"),
             "major": field_value(edu, "major"), "degree": degree,
             "graduation": month_value(field_value(edu, "end_date"))}
+
+
+def profile_basics_complete(values):
+    return bool(values.get("name") and any(values.get(key) for key in ("school", "major", "degree")))
+
+
+def profile_basics_notice(state):
+    if (state.get("intake_progress") or {}).get("basics") != "from_profile":
+        return ""
+    values = basics_values(state.get("collected_info") or {})
+    education = " ".join(filter(None, [values["school"], values["major"], values["degree"],
+                                       values["graduation"] + " 毕业" if values["graduation"] else ""]))
+    contacts = " ".join(label for field, label in (("phone", "手机"), ("email", "邮箱")) if values.get(field))
+    return "已沿用档案：" + "｜".join(filter(None, [values["name"], values["location"], education,
+                                                       contacts + "已带上" if contacts else ""])) + "；有变化直接说。"
+
+
+def profile_dimensions(item):
+    """已有档案证据覆盖的维度不再追问，不从描述数量猜细节齐全。"""
+    from app.services.ask_user import question_dimension
+    known = set()
+    for fact in item.get("facts") or []:
+        if not fact.get("profile_refs") or fact.get("status", "active") != "active":
+            continue
+        field = fact.get("field") or fact.get("profile_field", "")
+        dimension = {"role": "my_work", "title": "my_work", "tool": "tech_stack", "status": "status",
+                     "link": "links", "start_date": "dates", "end_date": "dates"}.get(field)
+        if dimension:
+            known.add(dimension)
+        if fact.get("question_id"):
+            known.add(question_dimension(fact["question_id"], fact.get("question_prompt", "")))
+    return known
 
 
 def _write_field(target: dict, field: str, value: str, message: HumanMessage):
@@ -157,8 +206,9 @@ def apply_submission(state: dict, submission: dict, message: HumanMessage) -> di
         basic = collected.setdefault("basic_info", {})
         # 基本信息本身没有 facts 数组；其证据另存，避免混入 ResumeData 的字段。
         evidence = {"facts": collected.get("basic_info_facts") or []}
-        for key in ("name", "location", "availability"):
-            _write_field(evidence, key, values.get(key, ""), message)
+        for key in ("name", "location", "availability", "phone", "email"):
+            if key not in {"phone", "email"}:
+                _write_field(evidence, key, values.get(key, ""), message)
             if values.get(key):
                 basic[key] = values[key]
         collected["basic_info_facts"] = evidence["facts"]
@@ -246,6 +296,8 @@ def intake_update(state: dict) -> dict:
         return {"intake_stage": "ready", "intake_progress": progress}
     basic = basics_values(state.get("collected_info") or {})
     human_text = "\n".join(str(m.content) for m in state.get("messages") or [] if isinstance(m, HumanMessage))
+    if state.get("intake_account") and profile_basics_complete(basics_values(state.get("intake_profile") or {})) and not progress.get("basics"):
+        progress["basics"] = "from_profile"
     provided = any(basic.values()) and (not state.get("intake_profile")
                                        or any(value and value in human_text for value in basic.values()))
     if provided and progress.get("basics") in {None, "deferred"}:
@@ -271,12 +323,15 @@ def intake_update(state: dict) -> dict:
                 # 迁移第十四批 a 的关闭记录：已经答过的维度也是已完成的深挖轮次。
                 entry["asked_dimensions"] = list(entry["closed_dimensions"])
                 entry["rounds"] = len({row.get("turn_id") for row in closed})
+            known = profile_dimensions(item)
+            if {"my_work", "tech_stack", "status"} <= known:
+                entry["complete"] = True
             asked = set(entry["asked_dimensions"])
             if asked and asked <= set(entry["closed_dimensions"]):
                 without_fact = all(row.get("reason") in {"unknown", "skipped"} for row in closed if row.get("dimension") in asked)
                 entry["complete"] = len(asked) >= 2 or without_fact
         done = all(deep[item_key(s, i)]["complete"] for s, i in rows)
-        if done and any(_skeleton(s, i) and deep[item_key(s, i)]["rounds"] for s, i in rows):
+        if done and any(_skeleton(s, i) and (deep[item_key(s, i)]["rounds"] or profile_dimensions(i)) for s, i in rows):
             if progress.get("basics") != "deferred":
                 stage = "ready"
     previous = state.get("intake_stage")
@@ -311,7 +366,8 @@ def intake_guidance(state: dict) -> dict | None:
     if kind == "basics":
         values = {**basics_values(state.get("intake_profile") or {}), **{
             k: v for k, v in basics_values(state.get("collected_info") or {}).items() if v}}
-        card = {"kind": "intake_basics", "title": "确认基本信息" if state.get("intake_account") else "基本信息", "values": values}
+        card = {"kind": "intake_basics", "title": "补充基本信息" if any(values.values()) else "基本信息", "values": values,
+                "missing_fields": [key for key, value in values.items() if not value]}
     else:
         from app.services.candidate_language import placeholder_name
         items = [{"item_id": item.get("item_id") or "", "name": "" if placeholder_name(item.get(FACT_LABELS[section], "")) else item.get(FACT_LABELS[section]) or "",
@@ -322,7 +378,13 @@ def intake_guidance(state: dict) -> dict | None:
                               or next((f.get("source_quote") or f.get("text") for f in item.get("facts") or []
                                        if not f.get("field") and f.get("kind") != "role" and f.get("status", "active") == "active"), ""))[:2000]}
                  for section, item in experiences(state)]
-        card = {"kind": "intake_experiences", "title": "经历清单", "items": items}
+        from app.services.profile_tools import rank_items, relevance, role_query
+        query = role_query(state)
+        catalog = rank_items(state.get("profile_items") or [], query)[:30]
+        selected = [item["id"] for item in catalog if query and relevance(item, query) > 0][:3]
+        card = {"kind": "intake_experiences", "title": "从档案选经历" if catalog else "经历清单", "items": items,
+                "profile_items": [{k: v for k, v in item.items() if k != "fact_ids"} for item in catalog],
+                "selected_profile_ids": selected}
     card["turn_id"] = hashlib.sha256(json.dumps([card, progress.get(kind)], ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:16]
     return card
 
@@ -358,7 +420,7 @@ def deepen_context(state: dict) -> dict:
             dimensions[dimension if re.fullmatch(r'[a-z][a-z0-9_-]*', dimension) else f'playbook_{index + 1}'] = question
         dimensions.setdefault("my_work", "本人分工")
     entry = update["intake_progress"].get("deepen", {}).get(item_key(section, item), {})
-    closed = set(entry.get("closed_dimensions") or [])
+    closed = set(entry.get("closed_dimensions") or []) | profile_dimensions(item)
     context.update(subject=item.get(FACT_LABELS[section]) or "", item_id=item.get("item_id"),
                    dimensions=dimensions, remaining_dimensions=[d for d in dimensions if d not in closed],
                    current_progress=entry, playbook=load_skill("role-playbooks/" + ROLE_PLAYBOOKS.get(family, "general.md")))

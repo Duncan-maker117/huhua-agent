@@ -73,6 +73,7 @@ async def import_facts(session_id: str, body: ProfileImport, request: Request):
         graph = get_graph(_llm_for_graph())
         with SessionLocal() as db:
             context = get_context(db, account, subject_ids=body.fact_ids, limit=100, include_contacts=True)
+            db.commit()
         if len(context["facts"]) != len(set(body.fact_ids)):
             raise HTTPException(409, "选中的资料已变化或不可使用，请刷新档案")
         snapshot = await graph.aget_state({"configurable": {"thread_id": session_id}})

@@ -189,7 +189,7 @@ class IntakeUnitTest(unittest.TestCase):
             self.assertIn(fact["source_quote"], message.content)
         self.assertIsNone(intake_guidance(state))
 
-    def test_skip_basics_is_permanent_and_account_prefill_has_no_contacts(self):
+    def test_skip_basics_is_permanent_and_complete_profile_needs_no_card(self):
         state = {
             **graph._init_state(),
             "intake_account": True,
@@ -205,10 +205,8 @@ class IntakeUnitTest(unittest.TestCase):
             },
         }
         card = intake_guidance(state)
-        self.assertEqual(card["title"], "确认基本信息")
-        self.assertEqual(card["values"]["school"], "测试大学")
-        self.assertNotIn("13900000000", str(card))
-        self.assertNotIn("private@example", str(card))
+        self.assertIsNone(card)
+        self.assertEqual(intake_update(state)["intake_progress"]["basics"], "from_profile")
         free = {
             **state,
             "collected_info": {"basic_info": {"name": "张三"}},
@@ -266,10 +264,11 @@ class IntakeUnitTest(unittest.TestCase):
             all(f["turn_id"] == "form" for f in item["facts"] if f.get("field"))
         )
 
-    def test_schema_rejects_contacts_empty_names_and_invalid_months(self):
+    def test_schema_accepts_contacts_rejects_empty_names_and_invalid_months(self):
         base = {"messages": [{"role": "user", "content": "表单"}]}
+        accepted = ChatRequest.model_validate({**base, "intake": {"kind": "basics", "values": {"phone": "13900000000"}}})
+        self.assertEqual(accepted.intake.values.phone, "13900000000")
         for intake in (
-            {"kind": "basics", "values": {"phone": "13900000000"}},
             {"kind": "basics", "values": {"graduation": "2027-19"}},
             {"kind": "experiences", "items": [{"name": " ", "type": "项目"}]},
             {"kind": "experiences", "items": []},
@@ -748,22 +747,15 @@ class IntakeProfileTest(unittest.IsolatedAsyncioTestCase):
         )
         with patch.object(profile_bridge, "SessionLocal", self.factory):
             prefill = profile_bridge.intake_profile_state("account:a")
-        self.assertNotIn("13900000000", str(prefill))
-        self.assertNotIn("private@example", str(prefill))
-        self.assertNotIn("不自动导入", str(prefill))
+        self.assertEqual(prefill["intake_profile"]["basic_info"]["phone"], "13900000000")
+        self.assertEqual(prefill["intake_profile"]["basic_info"]["email"], "private@example.test")
+        self.assertNotIn("不自动导入", str(prefill["intake_profile"]))
+        self.assertEqual(prefill["profile_items"][0]["name"], "不自动导入的项目")
         self.assertNotIn("其他人", str(prefill))
         state = {**graph._init_state(), **prefill}
-        card = build_workspace(state)["guidance"]
-        self.assertEqual(card["title"], "确认基本信息")
-        self.assertEqual(card["values"]["school"], "测试大学")
-        self.assertEqual(card["values"]["graduation"], "2027-06")
-        state.update(
-            apply_submission(
-                state,
-                {"kind": "basics", "values": card["values"]},
-                HumanMessage(content="基本信息确认", id="confirmed"),
-            )
-        )
-        self.assertFalse(state["collected_info"]["basic_info"].get("phone"))
-        self.assertFalse(state["collected_info"]["basic_info"].get("email"))
-        self.assertEqual(state["collected_info"]["education"][0]["school"], "测试大学")
+        self.assertNotEqual((build_workspace(state).get("guidance") or {}).get("kind"), "intake_basics")
+        self.assertEqual(intake_update(state)["intake_progress"]["basics"], "from_profile")
+        from app.services.intake import basics_values
+        values = basics_values(prefill["intake_profile"])
+        self.assertEqual(values["school"], "测试大学")
+        self.assertEqual(values["graduation"], "2027-06")

@@ -7,11 +7,12 @@ or the normal LangGraph model-message stream.
 
 import asyncio
 import logging
+import json
 import re
 from typing import Callable
 from uuid import uuid4
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from langgraph.config import get_config, get_stream_writer
 
@@ -48,6 +49,7 @@ async def stream_public_reply(
     single_question: bool = False,
     ask_state: dict | None = None,
     publish: bool = True,
+    _profile_round: int = 0,
 ) -> AIMessage:
     """Stream an explicitly public call and return its completed checkpoint text.
 
@@ -60,7 +62,9 @@ async def stream_public_reply(
     from app.services.ask_user import AskUser, can_ask_user, question_context, validate_card
     from app.services.job_intel.integration import SearchCompany, COMPANY_CONTRACT, company_tool, company_reply
     from app.services.job_intel import search_company
+    from app.services.profile_tools import ReadProfile, UseProfileItems, tools_enabled, profile_contract, execute_profile_tool
     original_llm = llm
+    profile_enabled = ask_state is not None and tools_enabled(ask_state) and _profile_round < 2
     enabled = ask_state is not None
     tools_available = callable(getattr(llm, "bind_tools", None))
     if enabled:
@@ -74,9 +78,17 @@ async def stream_public_reply(
             company = convert_to_openai_tool(SearchCompany)
             company['function'].update(name='search_company', description='按公司名查公开背景，附来源；每轮至多一次。')
             tools.append(company)
+            if profile_enabled:
+                for schema, name, description in ((ReadProfile, "read_profile", "读取本人档案经历目录，按岗位相关度排序。"),
+                                                   (UseProfileItems, "use_profile_items", "将目录中的经历导入当前对话，必须说明导入了哪几段。")):
+                    profile_tool = convert_to_openai_tool(schema)
+                    profile_tool["function"].update(name=name, description=description)
+                    tools.append(profile_tool)
             llm = llm.bind_tools(tools, tool_choice="auto")
         # 预算在生成前约束；包括无工具适配器和表单轮，均不事后裁剪正文。
         single_question = False
+    if profile_enabled:
+        messages = [*messages, SystemMessage(content=profile_contract(ask_state))]
     messages = redact_model_messages(messages)
     llm = label_run(llm, "public_reply")
     reply_id = str(uuid4())
@@ -167,6 +179,36 @@ async def stream_public_reply(
         logger.warning("Public reply interrupted: %s", type(exc).__name__)
         interrupted = True
         emit(PUBLIC_REPLY_INTERRUPTED)
+    profile_update, imported, profile_card = {}, [], {}
+    if profile_enabled and tools_available and not interrupted:
+        calls = [call for call in [*tool_parts.values(), *completed_tools]
+                 if call.get("name") in {"read_profile", "use_profile_items"}][:2]
+        history = list(messages)
+        working = dict(ask_state)
+        for call in calls:
+            try:
+                result, update = await execute_profile_tool(call["name"], call.get("args"), working)
+            except (ValueError, TypeError):
+                result, update = {"status": "invalid_arguments", "message": "请使用目录中的条目 ID。"}, {}
+            working.update(update)
+            profile_update.update(update)
+            imported.extend(result.get("imported") or [])
+            arguments = call.get("args") or {}
+            try:
+                arguments = json.loads(arguments) if isinstance(arguments, str) else arguments
+            except ValueError:
+                arguments = {}
+            call_id = str(uuid4())
+            history.extend([AIMessage(content="", tool_calls=[{"id": call_id, "name": call["name"], "args": arguments}]),
+                            ToolMessage(content=json.dumps(result, ensure_ascii=False), tool_call_id=call_id)])
+        if calls:
+            if imported:
+                emit(("\n\n" if parts else "") + "已从档案导入：" + "、".join(imported) + "。")
+            continuation = await stream_public_reply(original_llm, history, ask_state=working,
+                timeout=timeout, publish=False, _profile_round=_profile_round + 1)
+            emit(("\n\n" if parts else "") + continuation.content)
+            profile_update.update(continuation.additional_kwargs.get("profile_update") or {})
+            profile_card = continuation.additional_kwargs.get("ask_user") or {}
     intel_company = {}
     if enabled and tools_available and not interrupted:
         # 同一输出即使携带多个公司调用，也只执行第一个；不启动自主工具循环。
@@ -187,7 +229,7 @@ async def stream_public_reply(
         parts = [transform("".join(parts))]
         if writer is not None:
             writer({"type": PUBLIC_REPLY_EVENT, "node": node, "reply_id": reply_id, "content": parts[0]})
-    card = {}
+    card = profile_card
     if enabled and tools_available and not interrupted:
         for call in [*tool_parts.values(), *completed_tools]:
             if call.get("name") == "ask_user":
@@ -198,6 +240,7 @@ async def stream_public_reply(
         id=reply_id,
         additional_kwargs={"public_reply_interrupted": interrupted,
                            **({"ask_user_enabled": True} if enabled else {}),
+                           **({"profile_update": profile_update} if profile_update else {}),
                            **({"intel_company": intel_company} if intel_company else {}),
                            **({"ask_user": card} if card else {})},
     )

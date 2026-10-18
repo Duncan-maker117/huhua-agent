@@ -74,7 +74,8 @@ class ArchiveTests(unittest.IsolatedAsyncioTestCase):
             result = archive.add_fact(db, account, category=category, subject=subject, field=field, value=value, **kwargs)
             db.commit()
             return next(f for f in result["facts"] + result["preferences"]
-                        if f["field"] == field and f["subject"] == subject and f["category"] == category)
+                        if f["field"] == field and f["subject"] == ("本人" if category == "basic" else subject) and f["category"] == category
+                        and (field not in {"link", "github", "website"} or f["value"] == value))
 
     def profile(self, account="a"):
         with self.factory() as db:
@@ -261,7 +262,7 @@ class ArchiveTests(unittest.IsolatedAsyncioTestCase):
             raise RuntimeError("private error must never appear in status")
         self.assertEqual((await archive.process_pending_events(self.factory, broken))["failed"], 1)
         task = self.profile()["archive_status"]["tasks"][0]
-        self.assertEqual(task["error_code"], "archive_unavailable")
+        self.assertEqual(task["error_code"], "archive_model_error")
         with self.factory() as db:
             archive.retry_task(db, "a", event_id)
             db.commit()

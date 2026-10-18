@@ -65,23 +65,25 @@ def account_id(owner):
 
 
 def intake_profile_state(owner, *, db=None):
-    """读端也能显示确认卡；不因打开卡片把档案教育或联系方式写入简历。"""
+    """读取账号基本信息与经历目录，模型边界继续统一脱敏。"""
     account = account_id(owner)
     if not account:
         return {"intake_account": False, "intake_profile": {}}
-    from app.services.intake import basics_values
     from app.services.profile_service import get_intake_context
 
     def read(session):
-        values = basics_values(context_to_collected_info(get_intake_context(session, account)))
-        return {"intake_account": True, "intake_profile": {
-            "basic_info": {key: values[key] for key in ("name", "location", "availability")},
-            "education": [{"school": values["school"], "major": values["major"], "degree": values["degree"], "end_date": values["graduation"]}],
+        from app.services.profile_tools import profile_catalog
+        profile = context_to_collected_info(get_intake_context(session, account))
+        return {"intake_account": True, "profile_items": profile_catalog(session, account), "intake_profile": {
+            "basic_info": profile.get("basic_info") or {},
+            "education": profile.get("education", [])[:1],
         }}
     if db is not None:
         return read(db)
     with SessionLocal() as session:
-        return read(session)
+        result = read(session)
+        session.commit()
+        return result
 
 
 def protect_data(owner, data, *, reject=False, db=None):
@@ -125,14 +127,35 @@ def protect_state(owner, state):
     return cleaned
 
 
-async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, context=None):
+async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, context=None, current_state=None):
     """Sanitize stored context, then import explicitly selected profile facts."""
     account = account_id(owner)
     config = {"configurable": {"thread_id": session_id}}
+    if current_state is not None:
+        with SessionLocal() as db:
+            conversation = db.get(Conversation, session_id)
+            if not account or not conversation or conversation.owner_hash != owner:
+                raise HTTPException(404, "会话不存在")
+            context = get_context(db, account, subject_ids=fact_ids, limit=500, include_contacts=False)
+            if len(context["facts"]) != len(set(fact_ids or [])):
+                raise HTTPException(409, "档案条目已变化")
+            bindings = []
+            collected = context_to_collected_info(context, protect_data(owner, current_state.get("collected_info") or {}, db=db),
+                                                  projection_bindings=bindings)
+            from app.services.resume_provenance import update_bindings
+            update_bindings(db, account, session_id, collected, bindings=bindings)
+            from app.services.profile_service import merge_job_version_import
+            merge_job_version_import(db, account, session_id, context["fact_refs"])
+            db.commit()
+        return {"context": context, "update": {"collected_info": collected}}
     snapshot = await graph.aget_state(config)
     previous = (snapshot.values if snapshot else {}) or {}
     values = protect_state(owner, previous)
     with SessionLocal() as db:
+        if account:
+            from app.services.profile_service import migrate_legacy_basic_facts
+            migrate_legacy_basic_facts(db, account)
+            values["collected_info"] = protect_data(owner, values.get("collected_info") or {}, db=db)
         stored = db.get(ResumeSession, session_id)
         if stored is None:
             raise HTTPException(404, "会话不存在")
@@ -151,10 +174,21 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
             context = get_context(db, account, subject_ids=fact_ids, limit=100, include_contacts=False) if account else {"facts": [], "fact_refs": []}
         from app.services.profile_service import get_profile_summary
         summary = get_profile_summary(db, account) if account else {}
-        # 表单预填独立于简历投影；只从既有服务读取非联系方式白名单。
+        # 基本信息与第一条教育确定性沿用，经历仍由用户或工具明确选择。
         intake_profile = intake_profile_state(owner, db=db)
         collected = (context_to_collected_info(context, values.get("collected_info"))
                      if context["facts"] else values.get("collected_info") or {})
+        if account:
+            from app.services.profile_service import get_intake_context
+            basic_context = get_intake_context(db, account)
+            education = next((fact["subject"] for fact in basic_context["facts"] if fact["category"] == "education"), None)
+            basic_context["facts"] = [f for f in basic_context["facts"] if f["category"] != "education" or f["subject"] == education]
+            if basic_context["facts"]:
+                bindings = []
+                collected = context_to_collected_info(basic_context, collected, projection_bindings=bindings)
+                from app.services.resume_provenance import update_bindings
+                update_bindings(db, account, session_id, collected, bindings=bindings)
+        db.commit()
     update = {k: v for k, v in values.items() if k != "messages"}
     old_ids = {m.id for m in previous.get("messages") or [] if m.id}
     new_ids = {m.id for m in values.get("messages") or [] if m.id}
@@ -162,6 +196,8 @@ async def prepare_graph_context(owner, session_id, graph, *, fact_ids=None, cont
     update["collected_info"] = collected
     update["profile_summary"] = summary
     update.update(intake_profile)
+    from app.services.intake import intake_update
+    update.update(intake_update({**values, **update}))
     if previous or context["facts"] or summary.get("has_facts") or account:
         await graph.aupdate_state(config, update, as_node="building")
     return context

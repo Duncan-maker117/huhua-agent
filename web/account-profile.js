@@ -44,7 +44,7 @@
     {title: '检查简历依据', example: '检查这份简历里哪些说法在我的胡话简历档案里找不到依据',
       note: '逐条对照档案事实，标出没有出处的句子。'},
   ];
-  const fieldNames = {summary: '简介', pr: 'PR 号或链接', level: '级别 / 名次', date: '时间', highlights: '教育荣誉', link: '链接', availability: '可实习时间', name: '姓名', phone: '手机', email: '邮箱', location: '所在地', role: '个人职责', status: '进展状态', description: '经历描述', result: '实际结果', skill: '技能', preference: '长期偏好', objective: '求职方向', school: '学校', degree: '学历', major: '专业', start_date: '开始时间', end_date: '结束时间', company: '公司', title: '岗位', tool: '使用工具', deliverable: '交付物'};
+  const fieldNames = {summary: '简介', pr: 'PR 号或链接', level: '级别 / 名次', date: '时间', highlights: '教育荣誉', link: '链接', availability: '到岗 / 可实习时间', name: '姓名', phone: '手机', email: '邮箱', location: '所在地', role: '个人职责', status: '进展状态', description: '经历描述', result: '实际结果', skill: '技能', preference: '长期偏好', objective: '求职方向', school: '学校', degree: '学历', major: '专业', start_date: '开始时间', end_date: '结束时间', company: '公司', title: '岗位', tool: '使用工具', deliverable: '交付物'};
   const categories = {basic: '基本信息', education: '教育', project: '项目', work: '工作与实习', campus: '校园经历', open_source: '开源贡献', awards: '竞赛荣誉', skill: '技能', preference: '偏好'};
   const stateNames = {pending: '待整理', running: '整理中', failed: '整理失败', complete: '已整理', completed: '已整理', succeeded: '已整理'};
   function apiError(response, body, url) {

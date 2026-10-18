@@ -46,7 +46,8 @@ class P1ProfileWelcomeTests(unittest.IsolatedAsyncioTestCase):
         values = graph.aupdate_state.call_args.args[1]
         self.assertEqual(values["profile_summary"]["experience_count"], 1)
         self.assertFalse(values["collected_info"]["projects"])
-        self.assertNotIn("不应自动导入的分工", str(values))
+        self.assertNotIn("不应自动导入的分工", str(values["collected_info"]))
+        self.assertEqual(values["profile_items"][0]["name"], "项目甲")
         reply = (await dialogue_node(values, None))["messages"][0].content
         self.assertIn("虚构小林，欢迎回来", reply)
         self.assertIn("档案里有 1 段经历", reply)

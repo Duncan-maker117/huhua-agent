@@ -10,11 +10,13 @@ import asyncio
 import copy
 import inspect
 import json
+import logging
 import re
 from datetime import UTC, datetime, timedelta
 
 from pydantic import ValidationError
 from sqlalchemy import and_, exists, func, or_, select, update
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.agents.profile_archivist import (
     ArchiveBatch, ArchiveProposal, deterministic_proposals, validate_grounding,
@@ -24,7 +26,7 @@ from app.models.profile import (
     ProfileInbox, ProfileInvalidation, ProfileJobVersion, ProfileSource, new_id,
 )
 from app.services.account_service import blind_index
-from app.services.data_crypto import CryptoConfigurationError, get_crypto
+from app.services.data_crypto import CryptoConfigurationError, DataDecryptionError, get_crypto
 from app.services.profile_equivalence import equivalent_value, normalize_skill, split_skill_values
 from app.services.resume_field_hygiene import is_project_status, trim_name_punctuation
 
@@ -207,6 +209,9 @@ def _archive_task_view(row):
         "budget_exhausted": "今天的生成与整理额度已用完，额度恢复后会继续处理。",
         "archive_timeout": "这次整理超时，已保存的聊天仍在，可以稍后重试。",
         "revision_conflict": "档案刚有更新，这次整理将依据最新资料重试。",
+        "archive_model_error": "模型调用失败，聊天仍已保存，可以重试整理。",
+        "archive_decryption_error": "档案暂时无法解密，请恢复加密配置后重试整理。",
+        "archive_database_error": "档案数据库暂时不可用，可以稍后重试整理。",
         "archive_unavailable": "暂时无法完成整理，已保存的聊天仍在，可以稍后重试。",
         "archive_invalid_response": "这次返回的整理内容不完整，未写入档案。请重试整理。",
     }
@@ -220,6 +225,7 @@ def _archive_task_view(row):
 
 def get_profile(db, account_id):
     profile = ensure_profile(db, account_id)
+    migrate_legacy_basic_facts(db, account_id)
     migrate_legacy_narrative_conflicts(db, account_id)
     migrate_legacy_equivalent_conflicts(db, account_id)
     migrate_legacy_skill_facts(db, account_id)
@@ -382,6 +388,14 @@ def _replace_fact(db, row, value, source_id, expected_revision, effective_at=Non
     if row.status != "active" or row.revision != expected_revision:
         raise ProfileRevisionConflict("fact_revision_conflict")
     old = _open(row)
+    if row.category == "basic":
+        from app.services.profile_basics import clean_basic
+        try:
+            field, value = clean_basic(old["field"], value)
+            if field != old["field"]:
+                raise ValueError("field_changed")
+        except ValueError:
+            raise ProfileValidationError("invalid_basic_value") from None
     if (old.get("value") == value and _dt(old.get("effective_at")) == _dt(effective_at)
             and (proficiency is _UNSET or proficiency == old.get("proficiency"))):
         return row
@@ -521,7 +535,11 @@ def _apply_skill_proposal(db, account_id, proposal, source, *, allow_restore=Fal
 def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore=False):
     if proposal.category == "skill":
         return _apply_skill_proposal(db, account_id, proposal, source, allow_restore=allow_restore)
-    key = _key(account_id, [proposal.category, proposal.subject.strip(), proposal.field])
+    proposal = ArchiveProposal.model_validate(proposal.model_dump())
+    parts = [proposal.category, proposal.subject.strip(), proposal.field]
+    if proposal.category == "basic" and proposal.field in {"link", "github", "website"}:
+        parts.extend(["value", proposal.value.strip()])
+    key = _key(account_id, parts)
     row = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
     timestamp = source.recorded_at
     narrative = _narrative_slot(proposal.category, proposal.field, proposal.value)
@@ -568,7 +586,8 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
     if row.status != "active" or _is_invalidated_value(db, account_id, row.id, proposal.value):
         return "blocked"
     old = _open(row)
-    if old["value"] == proposal.value:
+    from app.services.profile_basics import value_key
+    if old["value"] == proposal.value or (proposal.category == "basic" and value_key(old["value"]) == value_key(proposal.value)):
         _mention(db, row, source)
         # Repetition changes provenance, not fact revision or verification.
         return "duplicate"
@@ -600,6 +619,12 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
         _replace_fact(db, row, proposal.value, source.id, row.revision,
                       proposal.effective_at or old.get("effective_at"), timestamp, "refine")
         return "updated"
+    if proposal.category == "basic":
+        for pending in db.scalars(select(ProfileConflict).where(
+                ProfileConflict.account_id == account_id, ProfileConflict.fact_id == row.id,
+                ProfileConflict.status == "pending", ProfileConflict.expected_revision == row.revision)):
+            if value_key(_open(pending).get("proposed_value", "")) == value_key(proposal.value):
+                return "conflict"
     conflict = db.scalar(select(ProfileConflict).where(
         ProfileConflict.account_id == account_id, ProfileConflict.event_id == event_id,
         ProfileConflict.fact_id == row.id,
@@ -614,6 +639,111 @@ def _apply_proposal(db, account_id, proposal, source, event_id, *, allow_restore
         })
         db.add(conflict)
     return "conflict"
+
+
+def migrate_legacy_basic_facts(db, account_id):
+    """按账号幂等修复；旧行及冲突 payload 保留，可据 migration_previous 回滚。"""
+    from app.services.profile_basics import clean_basic, split_fields, value_key, EDUCATION_FIELDS
+    rows = list(db.scalars(select(ProfileFact).where(ProfileFact.account_id == account_id,
+                ProfileFact.category == "basic", ProfileFact.status == "active").order_by(ProfileFact.updated_at.desc())))
+    changed, mapping = 0, {}
+    for row in rows:
+        if row.status != "active":
+            continue
+        old = _open(row)
+        field, value = old["field"], old["value"]
+        pieces = split_fields(field + ":" + value) if field == "availability" else [(field, value)]
+        school = next((v for f, v in pieces if f == "school"), "教育经历")
+        clean = []
+        for f, v in pieces:
+            if not v:
+                continue
+            try:
+                f, v = clean_basic(f, v)
+            except ValueError:
+                continue
+            category = "education" if f in EDUCATION_FIELDS else "basic"
+            clean.append((category, school if category == "education" else "本人", f, v))
+        equivalent = []
+        for candidate in db.scalars(select(ProfileFact).where(ProfileFact.account_id == account_id,
+                ProfileFact.status == "active", ProfileFact.id != row.id,
+                ProfileFact.category.in_({part[0] for part in clean} or {"basic"}))):
+            data = _open(candidate)
+            if any(candidate.category == c and data.get("subject") == subject and data.get("field") == f
+                   and value_key(data.get("value", "")) == value_key(v) for c, subject, f, v in clean):
+                equivalent.append(candidate)
+        if clean == [("basic", old.get("subject"), field, value)] and not equivalent:
+            continue
+        if not any(c == "basic" and f == field and v == value for c, _, f, v in clean):
+            _invalidate(db, row, old, "migration")
+        row.status = "superseded"
+        original_key = row.slot_key
+        row.slot_key = _key(account_id, ["migration", row.id])
+        row.payload = _seal(row, {**old, "migration_previous": {"slot_key": original_key, "status": "active"}})
+        changed += 1
+        db.flush()
+        for category, subject, f, v in clean:
+            match = next((r for r in equivalent if r.category == category and _open(r)["field"] == f
+                          and value_key(_open(r)["value"]) == value_key(v)), None)
+            if match:
+                data = _open(match)
+                data["source_ids"] = list(dict.fromkeys([*data.get("source_ids", []), *old.get("source_ids", [])]))
+                match.payload = _seal(match, data)
+            else:
+                parts = [category, subject, f]
+                if f in {"link", "github", "website"}:
+                    parts.extend(["value", v])
+                key = _key(account_id, parts)
+                occupied = db.scalar(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.slot_key == key))
+                if occupied:
+                    # 真实单值分歧继续留待确认；不自动覆盖，也不复活已删除槽位。
+                    if occupied.status == "active":
+                        data = _open(occupied)
+                        conflict = ProfileConflict(id=new_id(), account_id=account_id, fact_id=occupied.id,
+                            event_id="migration-" + row.id, expected_revision=occupied.revision, status="pending")
+                        conflict.payload = _seal(conflict, {"current_value": data["value"], "proposed_value": v,
+                            "subject": subject, "field": f, "source_id": next(iter(old.get("source_ids", [])), None)})
+                        db.add(conflict)
+                    continue
+                match = ProfileFact(id=new_id(), account_id=account_id, category=category, slot_key=key,
+                                    revision=1, status="active", updated_at=row.updated_at)
+                match.payload = _seal(match, {**old, "subject": subject, "field": f, "value": v,
+                                             "migration_from": row.id})
+                db.add(match)
+                db.flush()
+            if category == "basic" and f == field:
+                mapping[row.id] = match
+    seen = set()
+    for conflict in db.scalars(select(ProfileConflict).where(ProfileConflict.account_id == account_id,
+            ProfileConflict.status == "pending").order_by(ProfileConflict.created_at)):
+        fact = db.get(ProfileFact, conflict.fact_id)
+        if not fact or fact.category != "basic":
+            continue
+        data = _open(conflict)
+        replacement = mapping.get(fact.id)
+        if replacement:
+            collision = db.scalar(select(ProfileConflict).where(ProfileConflict.account_id == account_id,
+                ProfileConflict.event_id == conflict.event_id, ProfileConflict.fact_id == replacement.id,
+                ProfileConflict.id != conflict.id))
+            if collision:
+                conflict.status = "superseded"
+                changed += 1
+                continue
+            conflict.payload = _seal(conflict, {**data, "subject": "本人", "migration_previous": {
+                "fact_id": conflict.fact_id, "expected_revision": conflict.expected_revision, "payload": data}})
+            conflict.fact_id, conflict.expected_revision = replacement.id, replacement.revision
+            fact = replacement
+            changed += 1
+        key = (conflict.fact_id, value_key(data.get("proposed_value", "")))
+        if fact.status != "active" or key in seen:
+            conflict.status = "superseded"
+            changed += 1
+        else:
+            seen.add(key)
+    if changed:
+        _bump(db, ensure_profile(db, account_id))
+        db.flush()
+    return changed
 
 
 def migrate_legacy_equivalent_conflicts(db, account_id):
@@ -922,6 +1052,14 @@ def edit_fact(db, account_id, fact_id, *, value, expected_revision, effective_at
     if not isinstance(value, str) or not value.strip() or len(value) > 4000:
         raise ProfileValidationError("invalid_value")
     row = _owned(db, ProfileFact, account_id, fact_id)
+    if row.category == "basic":
+        from app.services.profile_basics import clean_basic
+        try:
+            field, value = clean_basic(_open(row)["field"], value)
+            if field != _open(row)["field"]:
+                raise ValueError("field_changed")
+        except ValueError:
+            raise ProfileValidationError("invalid_basic_value") from None
     skill = None
     if row.category == "skill":
         items = split_skill_values(value)
@@ -1045,7 +1183,7 @@ def get_profile_summary(db, account_id):
         data = _open(row)
         if row.category == "basic" and data.get("field") == "name" and not name:
             name = data.get("value") or ""
-        if row.category in {"project", "work", "education", "campus", "open_source", "awards"} and data.get("subject"):
+        if row.category in {"project", "work", "campus", "open_source", "awards"} and data.get("subject"):
             experiences.add((row.category, data["subject"]))
     return {"has_facts": bool(rows), "name": name, "experience_count": len(experiences)}
 
@@ -1057,13 +1195,14 @@ def get_context(db, account_id, *, subject_ids=None, limit=30, include_contacts=
     strings. Without them only basic non-contact facts and long-term preferences
     are returned. Project history requires explicit selection.
     """
+    migrate_legacy_basic_facts(db, account_id)
     query = select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.status == "active")
-    if subject_ids:
-        query = query.where(ProfileFact.id.in_(list(subject_ids)[:100]))
+    if subject_ids is not None:
+        query = query.where(ProfileFact.id.in_(list(subject_ids)[:500]))
     else:
         query = query.where(ProfileFact.category.in_(["basic", "preference"]))
     facts = []
-    for row in db.scalars(query.order_by(ProfileFact.updated_at.desc()).limit(min(limit, 100))).all():
+    for row in db.scalars(query.order_by(ProfileFact.updated_at.desc()).limit(min(limit, 500))).all():
         data = _open(row)
         if not include_contacts and data.get("field") in {"phone", "email"}:
             continue
@@ -1078,12 +1217,13 @@ def get_context(db, account_id, *, subject_ids=None, limit=30, include_contacts=
 
 
 def get_intake_context(db, account_id):
-    """基本信息确认卡专用：仅取基本与教育档案，排除手机和邮箱。"""
+    """仅供确定性投影；联系方式在模型边界另行脱敏。"""
+    migrate_legacy_basic_facts(db, account_id)
     ids = list(db.scalars(select(ProfileFact.id).where(
         ProfileFact.account_id == account_id, ProfileFact.status == "active",
         ProfileFact.category.in_(["basic", "education"]),
     ).order_by(ProfileFact.updated_at.desc()).limit(100)))
-    return get_context(db, account_id, subject_ids=ids, limit=100, include_contacts=False)
+    return get_context(db, account_id, subject_ids=ids, limit=100, include_contacts=True)
 
 
 def _archive_context(db, account_id, payload):
@@ -1093,6 +1233,7 @@ def _archive_context(db, account_id, payload):
     search index. Only explicitly named subjects or selected fact IDs reach the
     extractor. Ambiguous pronouns deliberately remain a conflict/question.
     """
+    migrate_legacy_basic_facts(db, account_id)
     selected = set(payload.get("subject_ids") or [])
     text = payload.get("human_text", "")
     rows = db.scalars(select(ProfileFact).where(ProfileFact.account_id == account_id,
@@ -1154,6 +1295,7 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
             if field not in {"description", "bullets", "polished_bullets"}:
                 matching["field"] = "link" if field == "links" else field
             evidence.append(matching)
+        matching["profile_field"] = fact["field"]
         references = matching.setdefault("profile_refs", [])
         if reference not in references:
             references.append(reference)
@@ -1172,7 +1314,7 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
             value = trim_name_punctuation(value)
         if category == "basic":
             if field in {"link", "github", "website"}:
-                label = fact.get("subject") if field == "link" else "GitHub" if field == "github" else "个人主页"
+                label = "GitHub" if "github.com" in value else "个人主页"
                 link = {"text": label or "链接", "url": value}
                 if link not in result["basic_info"].setdefault("links", []):
                     result["basic_info"]["links"].append(link)
@@ -1198,9 +1340,9 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 item = {identity: subject, **({"profile_subject": subject} if category in {"campus", "open_source", "awards"} else {})}
                 items.append(item)
             plain_fields = {
-                "project": {"role", "start_date", "end_date"},
-                "work": {"title", "start_date", "end_date"},
-                "education": {"degree", "major", "start_date", "end_date", "highlights"},
+                "project": {"name", "role", "start_date", "end_date"},
+                "work": {"company", "title", "start_date", "end_date"},
+                "education": {"school", "degree", "major", "start_date", "end_date", "highlights"},
                 "campus": {"name", "role", "start_date", "end_date"},
                 "open_source": {"name", "pr", "start_date", "end_date"},
                 "awards": {"name", "level", "date"},
@@ -1336,7 +1478,7 @@ def _invalidation_applies(rule, text, *, category=None, subject=None, field=None
                 and not (text == rule.get("current_value") and text != token))
     if category and rule.get("category") and category != rule["category"]:
         return False
-    if subject and rule.get("subject") and subject != rule["subject"]:
+    if category != "basic" and subject and rule.get("subject") and subject != rule["subject"]:
         return False
     if category:
         # A current replacement only exempts this fact's matching slot. An
@@ -1603,6 +1745,7 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
             if claimed.rowcount != 1:
                 continue
         try:
+            phase = "read_source"
             with session_factory() as db:
                 event = db.get(ProfileArchiveEvent, event_id)
                 source = db.get(ProfileSource, event.source_id)
@@ -1613,8 +1756,12 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
                     continue
                 payload, account_id = _open(source), event.account_id
                 context = _archive_context(db, account_id, payload)
+                db.commit()
             proposals = deterministic_proposals(payload)
-            if extractor is not None:
+            from app.services.profile_basics import structured_basics
+            structured = bool(structured_basics(payload.get("human_text", "")))
+            if extractor is not None and not structured:
+                phase = "model_call"
                 if budget_reserver is not None:
                     reservation = budget_reserver(account_id)
                     if inspect.isawaitable(reservation):
@@ -1623,6 +1770,7 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
                 answer = await asyncio.wait_for(pending, timeout_seconds) if inspect.isawaitable(pending) else pending
                 batch = answer if isinstance(answer, ArchiveBatch) else ArchiveBatch.model_validate(answer)
                 proposals.extend(batch.proposals)
+            phase = "write_archive"
             # Source excerpts are mandatory for every model-proposed value.
             grounded = []
             for item in proposals:
@@ -1642,7 +1790,7 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
             manual_complete = (payload.get("source_kind") == "manual" and bool(confirmed)
                                and len(grounded) == len(proposals))
             waiting_model = (extractor is None and bool(payload.get("human_text", "").strip())
-                             and not manual_complete)
+                             and not manual_complete and not structured)
             with session_factory() as db:
                 event = db.get(ProfileArchiveEvent, event_id)
                 source = db.get(ProfileSource, event.source_id)
@@ -1672,6 +1820,7 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
             # Keep the lease; another process will resume after lease expiry.
             raise
         except Exception as error:
+            logging.getLogger(__name__).warning("profile_archive_failed phase=%s error=%s", phase, type(error).__name__)
             with session_factory() as db:
                 event = db.get(ProfileArchiveEvent, event_id)
                 if event and event.status == "running" and event.lease_token == token:
@@ -1681,6 +1830,9 @@ async def process_pending_events(session_factory, extractor=None, *, limit=10, t
                                         else "revision_conflict" if isinstance(error, ProfileRevisionConflict)
                                         else "archive_timeout" if isinstance(error, TimeoutError)
                                         else "archive_invalid_response" if isinstance(error, ValidationError)
+                                        else "archive_decryption_error" if isinstance(error, (DataDecryptionError, CryptoConfigurationError))
+                                        else "archive_database_error" if isinstance(error, SQLAlchemyError)
+                                        else "archive_model_error" if phase == "model_call"
                                         else "archive_unavailable")
                     event.available_at = ((_now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
                                           if exhausted else _now() + timedelta(seconds=min(300, 2 ** event.attempts)))

@@ -29,7 +29,8 @@ sys.path.insert(0, str(ROOT / "backend"))
 checks = import_module("evaluation.persona-ux.checks")
 aipm = import_module("evaluation.persona-ux.aipm")
 aipm_real = import_module("evaluation.persona-ux.aipm_real")
-CARD_PERSONAS = {"aipm": aipm, "aipm_real": aipm_real}
+returning = import_module("evaluation.persona-ux.returning")
+CARD_PERSONAS = {"aipm": aipm, "aipm_real": aipm_real, "returning": returning}
 
 
 def timestamp():
@@ -201,10 +202,12 @@ def save_turn(directory, index, record):
     prefix.with_suffix(".reply.txt").write_text(record["reply"], encoding="utf-8")
 
 
-def run_replay(base, output, personas, *, with_recovery=False, timeout=300, materials=MATERIALS):
+def run_replay(base, output, personas, *, with_recovery=False, timeout=300, materials=MATERIALS, returning_db=None):
     base = local_base(base)
     if not personas or len(set(personas)) != len(personas) or any(p not in (*checks.PERSONAS, *CARD_PERSONAS) for p in personas):
         raise ValueError("Personas must be a nonempty unique selection")
+    if "returning" in personas and not returning_db:
+        raise ValueError("returning requires --returning-db for the isolated local service")
     fixture_bytes = (materials / "fixtures.json").read_bytes()
     fixtures = {**json.loads(fixture_bytes), "aipm": aipm.FIXTURE}
     output = Path(output)
@@ -219,6 +222,8 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
     if "aipm_real" in personas:
         run["aipm_real_source"] = "用户授权导出的真实对话；已确认无个人联系方式；经历名称与开始月份另经确认"
         run["aipm_real_fixture_sha256"] = hashlib.sha256(Path(aipm_real.__file__).read_bytes()).hexdigest()
+    if "returning" in personas:
+        run["returning_fixture_sha256"] = hashlib.sha256(Path(returning.__file__).read_bytes()).hexdigest()
     started = time.monotonic()
     write_json(output / "run.json", run)
     for persona in personas:
@@ -229,7 +234,10 @@ def run_replay(base, output, personas, *, with_recovery=False, timeout=300, mate
         persona_started = time.monotonic()
         client = GuestClient(base, timeout)
         try:
-            client.start()
+            if persona == "returning":
+                returning.start(client, returning_db)
+            else:
+                client.start()
             if persona in CARD_PERSONAS:
                 for turn in CARD_PERSONAS[persona].replay(client):
                     record["turns"].append(turn)
@@ -277,6 +285,7 @@ def main(argv=None):
     parser.add_argument("--persona", default=",".join(checks.PERSONAS))
     parser.add_argument("--output", type=Path)
     parser.add_argument("--with-recovery", action="store_true")
+    parser.add_argument("--returning-db", type=Path, help="本地隔离回放服务已初始化的 SQLite 数据库；需使用相同加密配置")
     parser.add_argument("--timeout", type=float, default=300)
     args = parser.parse_args(argv)
     output = (args.output or HERE / "runs" / timestamp()).resolve()
@@ -286,7 +295,7 @@ def main(argv=None):
         parser.error("--timeout must be positive")
     try:
         run = run_replay(args.base, output, [p.strip() for p in args.persona.split(",")],
-                         with_recovery=args.with_recovery, timeout=args.timeout)
+                         with_recovery=args.with_recovery, timeout=args.timeout, returning_db=args.returning_db)
     except (ValueError, OSError) as error:
         parser.error(safe_error(error))
     print(f"{run['status'].upper()} · {run['stream_requests']} 次聊天请求 · {output / 'run.json'}")

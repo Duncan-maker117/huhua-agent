@@ -283,7 +283,7 @@
     const experiences = workspace.experiences || {}, items = list(experiences.items);
     heading(panel, '已收集的经历', '来自你提供的资料；缺少的细节单独标出。');
     const basic = experiences.basic_info || workspace.basic_info || {};
-    facts(panel, [['姓名', basic.name], ['求职方向', basic.objective || basic.target_role || basic.job_intention], ['学校', basic.school], ['学历', basic.degree], ['邮箱', basic.email], ['电话', basic.phone], ['可实习时间', basic.availability]]);
+    facts(panel, [['姓名', basic.name], ['求职方向', basic.objective || basic.target_role || basic.job_intention], ['学校', basic.school], ['学历', basic.degree], ['邮箱', basic.email], ['电话', basic.phone], ['到岗 / 可实习时间', basic.availability]]);
     facts(panel, list(basic.links).map(link => [link.text, link.url]));
     for (const education of list(experiences.education)) {
       const card = node('article', undefined, 'workspace-card');
@@ -416,9 +416,11 @@
   }
   function renderIntakeCard(dock, guidance, key) {
     const kind = guidance.kind === 'intake_basics' ? 'basics' : 'experiences';
+    const catalog = list(guidance.profile_items);
     const blank = () => ({name: '', type: '项目', start: '', end: '', role: '', summary: ''});
     if (!intakeDrafts.has(key)) intakeDrafts.set(key, kind === 'basics'
-      ? {...guidance.values} : {items: list(guidance.items).length ? guidance.items.map(row => ({...row})) : [blank()]});
+      ? {...guidance.values} : {items: list(guidance.items).length ? guidance.items.map(row => ({...row})) : catalog.length ? [] : [blank()],
+        profile_item_ids: [...list(guidance.selected_profile_ids)]});
     const draft = intakeDrafts.get(key);
     const form = node('form', undefined, 'intake-card'); form.dataset.intake = kind;
     form.setAttribute('aria-label', guidance.title || (kind === 'basics' ? '基本信息' : '经历清单'));
@@ -439,12 +441,43 @@
     }
     const errors = [];
     if (kind === 'basics') {
-      for (const [name, label, type, options] of [
+      const definitions = [
         ['name', '姓名'], ['school', '学校'], ['major', '专业'],
         ['degree', '学历', 'text', ['本科', '硕士', '博士', '大专', '其他']],
-        ['graduation', '毕业时间', 'month'], ['location', '所在城市'], ['availability', '可实习时间'],
-      ]) field(form, draft, name, label, type, options);
+        ['graduation', '毕业时间', 'month'], ['location', '所在城市'], ['availability', '到岗 / 可实习时间'],
+        ['phone', '手机（选填）', 'tel'], ['email', '邮箱（选填）', 'email'],
+      ];
+      const existing = node('div', undefined, 'intake-existing-fields'); existing.hidden = true;
+      if (guidance.missing_fields) {
+        const summary = node('div', undefined, 'intake-profile-summary');
+        summary.append(node('span', definitions.filter(([name]) => draft[name]).map(([name, label]) => label + '：' + draft[name]).join('｜')));
+        summary.append(button('改', () => { existing.hidden = !existing.hidden; }, 'intake-edit-existing'));
+        form.append(summary);
+      }
+      for (const [name, label, type, options] of definitions) {
+        const parent = guidance.missing_fields && !guidance.missing_fields.includes(name) ? existing : form;
+        const input = field(parent, draft, name, label, type, options);
+        if (name === 'availability') input.placeholder = '找实习再填，全职可留空';
+      }
+      form.append(existing);
     } else {
+      if (catalog.length) {
+        const choices = node('fieldset', undefined, 'intake-profile-choices');
+        choices.append(node('legend', '选择用于当前简历的经历'));
+        for (const item of catalog) {
+          const label = node('label', undefined, 'intake-profile-choice');
+          const check = node('input'); check.type = 'checkbox'; check.value = item.id; check.name = 'profile_item_ids';
+          check.checked = draft.profile_item_ids.includes(item.id);
+          check.addEventListener('change', () => {
+            draft.profile_item_ids = check.checked ? [...new Set([...draft.profile_item_ids, item.id])]
+              : draft.profile_item_ids.filter(id => id !== item.id);
+          });
+          const category = {project: '项目', work: '工作 / 实习', campus: '校园', open_source: '开源', awards: '竞赛'}[item.category] || item.category;
+          label.append(check, node('span', [item.name, category, [item.start, item.end].filter(Boolean).join(' 至 '), item.summary].filter(Boolean).join('｜')));
+          choices.append(label);
+        }
+        form.append(choices);
+      } else form.append(node('p', '也可以直接在聊天里讲。', 'intake-hint'));
       draft.items.forEach((row, index) => {
         const group = node('fieldset', undefined, 'intake-row');
         group.append(node('legend', '经历 ' + (index + 1)));
@@ -465,11 +498,12 @@
         const error = node('p', '', 'intake-error'); error.setAttribute('role', 'alert'); error.hidden = true;
         errors.push({row, error, name}); group.append(error);
         const remove = button('删除这段', () => { draft.items.splice(index, 1); renderGuidance(); }, 'intake-row-remove');
-        remove.hidden = draft.items.length === 1; group.append(remove); form.append(group);
+        remove.hidden = !catalog.length && draft.items.length === 1; group.append(remove); form.append(group);
       });
-      const add = button('再加一段', () => { draft.items.push(blank()); renderGuidance(); }, 'intake-add');
+      const add = button(catalog.length ? '再加一段新的' : '再加一段', () => { draft.items.push(blank()); renderGuidance(); }, 'intake-add');
       add.disabled = draft.items.length >= 30; form.append(add);
     }
+    const selectionError = node('p', '', 'intake-selection-error'); selectionError.setAttribute('role', 'alert'); selectionError.hidden = true; form.append(selectionError);
     async function submit(skipped = false) {
       if (!skipped && kind === 'experiences') {
         for (const {row, error, name} of errors) {
@@ -478,15 +512,18 @@
         }
         const invalid = errors.find(row => !row.error.hidden);
         if (invalid) { invalid.name.focus(); return; }
+        if (!draft.items.length && !draft.profile_item_ids.length) {
+          selectionError.textContent = '请选择一段档案经历，或再加一段新的，也可以跳过。'; selectionError.hidden = false; return;
+        }
       }
       const values = kind === 'basics' ? {...draft} : null;
       const items = kind === 'experiences' && !skipped ? draft.items.map(row => Object.fromEntries(
         ['item_id', 'name', 'type', 'start', 'end', 'role', 'summary'].map(name => [name, (row[name] || '').trim()]))) : [];
-      const intake = kind === 'basics' ? {kind, values, skipped} : {kind, items, skipped};
+      const intake = kind === 'basics' ? {kind, values, skipped} : {kind, items, profile_item_ids: skipped ? [] : draft.profile_item_ids, skipped};
       const message = skipped ? (kind === 'basics' ? '跳过基本信息，继续。' : '跳过经历清单，继续。')
         : kind === 'basics' ? '基本信息：' + (Object.entries(values).filter(([, value]) => value).map(([name, value]) =>
-          ({name: '姓名', school: '学校', major: '专业', degree: '学历', graduation: '毕业时间', location: '所在城市', availability: '可实习时间'}[name] + '：' + value)).join('，') || '暂未填写')
-        : '经历清单：\n' + items.map(row => '「' + row.name + '」；类型：' + row.type +
+          ({name: '姓名', school: '学校', major: '专业', degree: '学历', graduation: '毕业时间', location: '所在城市', availability: '可实习时间', phone: '手机', email: '邮箱'}[name] + '：' + value)).join('，') || '暂未填写')
+        : (draft.profile_item_ids.length ? '从档案选用：' + catalog.filter(item => draft.profile_item_ids.includes(item.id)).map(item => item.name).join('、') + '。\n' : '') + '经历清单：\n' + items.map(row => '「' + row.name + '」；类型：' + row.type +
           (row.start || row.end ? '；时间：' + (row.start && row.end
             ? row.start + (row.end === '至今' ? ' ' : ' 至 ') + row.end : row.start || row.end) : '') +
           (row.role ? '；角色：' + row.role : '') + (row.summary ? '；简介：' + row.summary : '')).join('\n');

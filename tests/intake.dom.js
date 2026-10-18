@@ -77,7 +77,8 @@ const experience = {kind: 'intake_experiences', title: '经历清单', turn_id: 
   assert.equal(fields('name')[0].value, '张三');
   assert.equal(fields('degree')[0].tagName, 'SELECT');
   assert.equal(fields('graduation')[0].type, 'month');
-  assert.equal(fields('phone').length + fields('email').length, 0);
+  assert.equal(fields('phone').length + fields('email').length, 2);
+  assert.equal(fields('availability')[0].placeholder, '找实习再填，全职可留空');
   assert.equal(find('intake-submit').type, 'submit');
   fill('degree', '本科'); fill('graduation', '2027-06'); fill('availability', '每周4天，3个月');
   await submit();
@@ -100,6 +101,35 @@ const experience = {kind: 'intake_experiences', title: '经历清单', turn_id: 
     assert.equal(latest.payload.intake.items[0].start, start);
     assert.equal(latest.payload.intake.items[0].end, end);
   }
+  context.window.fixture({guidance: {...basics, turn_id: 'partial', missing_fields: ['major', 'degree', 'graduation', 'location', 'availability', 'phone', 'email']}}, sender);
+  assert.equal(find('intake-existing-fields').hidden, true);
+  assert.match(all(find('intake-profile-summary')).map(row => row.textContent || '').join(''), /张三.*测试大学/);
+  await click(find('intake-edit-existing'));
+  assert.equal(find('intake-existing-fields').hidden, false);
+  fill('phone', '13900001234'); fill('email', 'returning@example.test');
+  await submit();
+  assert.equal(sent.at(-1).payload.intake.values.phone, '13900001234');
+  assert.match(sent.at(-1).text, /手机：13900001234.*邮箱：returning@example.test/);
+  const catalog = {kind: 'intake_experiences', title: '从档案选经历', turn_id: 'catalog', items: [], selected_profile_ids: ['p1'],
+    profile_items: [{id: 'p1', name: '检索工具', category: 'project', start: '2026-01', end: '至今', summary: '支持引用核对'},
+      {id: 'p2', name: '校园活动', category: 'campus', summary: '协助登记'}]};
+  context.window.fixture({guidance: catalog}, sender);
+  assert.equal(finds('intake-row').length, 0);
+  assert.equal(fields('name').length, 0);
+  assert.equal(fields('profile_item_ids')[0].checked, true);
+  const check = fields('profile_item_ids')[1]; check.checked = true; check.handlers.change();
+  await submit();
+  assert.deepEqual(sent.at(-1).payload.intake.profile_item_ids, ['p1', 'p2']);
+  assert.deepEqual(sent.at(-1).payload.intake.items, []);
+  assert.match(sent.at(-1).text, /检索工具、校园活动/);
+  context.window.fixture({guidance: {...catalog, turn_id: 'catalog-empty', selected_profile_ids: []}}, sender);
+  const before = sent.length; await submit(); assert.equal(sent.length, before);
+  assert.equal(find('intake-selection-error').hidden, false);
+  await click(find('intake-add'));
+  assert.equal(finds('intake-row').length, 1);
+  assert.equal(find('intake-row-remove').hidden, false);
+  await click(find('intake-row-remove'));
+  assert.equal(finds('intake-row').length, 0);
   const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
   assert.match(html, /intake = null/); assert.match(html, /\.\.\.\(intake \? \{intake\} : \{\}\)/);
   console.log('intake DOM checks passed');

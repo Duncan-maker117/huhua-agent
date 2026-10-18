@@ -214,7 +214,7 @@ def question_context(state: dict, *, tools_available: bool = True) -> str:
     card = intake_guidance(state) if state else None
     budget = "本轮正文提问预算：最多 1 个问句、只问 1 件事；需要问两个及以上问题时必须用 ask_user。"
     if card:
-        collecting = ("基本信息（姓名、教育、城市与可实习时间）" if card["kind"] == "intake_basics"
+        collecting = ("基本信息缺项（姓名、教育、城市、可选的到岗时间与联系方式）" if card["kind"] == "intake_basics"
                       else "经历清单（名称、类型、时间、角色与简介）")
         budget = (f"本轮正文提问预算：0 个问句。本轮卡片已在收集{collecting}，"
                   "正文只写一句过渡语，不要提问；不要同时深挖经历或询问其他信息。本轮不提供 ask_user，不得调用。")

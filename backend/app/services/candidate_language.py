@@ -35,7 +35,9 @@ def literal_employment(text: str) -> tuple[str, str]:
 
 
 def non_fact(text: str) -> bool:
-    return bool(_NON_FACT.search(text)) or editorial_absence(text)
+    from app.services.profile_tools import profile_request
+    clauses = [part.strip() for part in re.split(r"[，,。；;\n]", text) if part.strip()]
+    return bool(_NON_FACT.search(text)) or editorial_absence(text) or bool(clauses and all(profile_request(part) for part in clauses))
 
 
 def editorial_absence(text: str) -> bool:

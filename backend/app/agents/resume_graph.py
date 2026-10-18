@@ -27,6 +27,7 @@ from app.agents.decoder_chain import run_decoder_chain
 from app.services.error_codes import to_turn_error
 from app.agents.career_prompt import career_messages, career_system
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, stream_public_reply
+from app.services.profile_tools import profile_result
 from app.services.job_intel.integration import enrich_direction, intel_result
 from app.agents.router import advice_contains_facts, explicit_edit_requested, is_advice, is_greeting
 from app.agents.triage_chain import (
@@ -114,7 +115,8 @@ class ResumeState(TypedDict):
     profile_summary: dict  # Account archive identity/counts only, refreshed by profile_bridge.
     intake_stage: str  # basics → target → experiences → deepen → ready
     intake_progress: dict  # 表单确认/跳过，以及每段经历的已问维度、轮数和完成情况
-    intake_profile: dict  # 基本与教育预填白名单，不含联系方式
+    intake_profile: dict  # 档案基本与教育，模型边界统一脱敏
+    profile_items: list[dict]  # 脱敏经历目录
     intake_account: bool
 
 
@@ -169,6 +171,7 @@ def _init_state() -> ResumeState:
         "intake_stage": "basics",
         "intake_progress": {},
         "intake_profile": {},
+        "profile_items": [],
         "intake_account": False,
     }
 
@@ -1223,7 +1226,8 @@ def unrecorded_notice(collected: dict, latest_human: str) -> str:
                          for section in ("projects", "work_experience", "internship", "education", "campus", "open_source", "awards")
                          for item in (collected.get(section) or []) if isinstance(item, dict)
                          for fact in item.get("facts") or [] if fact.get("status", "active") == "active")
-    missing = [clause for clause in info.get("clauses") or [] if clause not in recorded]  # 后续兜底已原文保留的不再提示
+    from app.services.profile_tools import profile_request
+    missing = [clause for clause in info.get("clauses") or [] if clause not in recorded and not profile_request(clause)]  # 后续兜底已原文保留的不再提示
     lines = [f"这句我没记下来：「{clause}」，能换个说法吗？" for clause in missing]
     lines += [f"「{tail}」后面还没说完，可以补充一下吗？" for tail in info.get("incomplete") or []]
     return "\n\n" + "\n".join(lines) if lines else ""
@@ -1715,6 +1719,7 @@ def _dialogue_requested(text: str) -> bool:
     return is_greeting(text) or (is_advice(text) and not explicit_edit_requested(text))
 
 
+@profile_result
 @intel_result
 async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """Reply without a draft update; statements alongside advice still become facts."""
@@ -1730,6 +1735,15 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
                                        "定制一页简历、核对事实，再导出 PDF / Word。\n\n" + start)],
                 "stage": state.get("stage", "JD_INPUT"),
                 "non_candidate_message_ids": _exclude_latest_source(state)}
+    from app.services.profile_tools import tools_enabled, profile_request
+    from app.services.intake import experiences
+    if tools_enabled(state) and (profile_request(text) or (_explicit_generate_requested(text) and not experiences(state))):
+        update = {**_direction_profile_update(state, text), "non_candidate_message_ids": _exclude_latest_source(state)}
+        working = {**state, **update}
+        response = await stream_public_reply(llm, [SystemMessage(content=career_system(None,
+            "用户请求使用已有档案。先读取目录，再按岗位选用已有事实；本会话为空不代表档案为空。")),
+            _stage_context(working), *state.get("messages", [])], ask_state=working)
+        return {**update, "messages": [response], "stage": "COLLECTING"}
     collected = state.get("collected_info") or _empty_collected_info()
     updated = collected
     message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
@@ -1754,6 +1768,7 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     return result
 
 
+@profile_result
 @intel_result
 async def jd_input_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.services.intake import intake_update
@@ -1926,6 +1941,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     return {"messages": [response]}
 
 
+@profile_result
 @intel_result
 async def collecting_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if refusal := _fabrication_refusal(state):
@@ -1981,6 +1997,12 @@ async def _intake_form_turn(state: ResumeState, llm, message: HumanMessage) -> d
     from app.services.intake import apply_submission, intake_update
     payload = message.additional_kwargs.get("intake") or {}
     if payload:
+        if payload.get("profile_item_ids") and not payload.get("skipped"):
+            from app.services.profile_tools import execute_profile_tool
+            imported, selected = await execute_profile_tool("use_profile_items", {"item_ids": payload["profile_item_ids"]}, state)
+            if imported.get("status") != "ok":
+                raise ValueError("profile_items_unavailable")
+            state = {**state, **selected}
         update = apply_submission(state, payload, message)
     else:
         from app.services.answer_facts import apply_answers
@@ -2516,6 +2538,7 @@ async def _model_followup(state: dict, result: dict, llm) -> AIMessage:
         return AIMessage(content=prefix)
 
 
+@profile_result
 @intel_result
 async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmation=False) -> dict:
     if refusal := _fabrication_refusal(state):
@@ -2550,6 +2573,7 @@ def _plan_card_update(result: dict) -> dict:
             'messages': [AIMessage(content='先定这份简历的方案。选「按推荐写」或备选方案后开始成稿，也可以直接说想怎么改。')]}
 
 
+@profile_result
 @intel_result
 async def structure_plan_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     from app.schemas.writer import MatchPlan
@@ -2672,6 +2696,7 @@ def _review_reply(resume_data: dict, jd_info: dict | None) -> tuple[str, list[st
     return reply, checks
 
 
+@profile_result
 @intel_result
 async def evaluating_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if refusal := _fabrication_refusal(state):
@@ -2975,6 +3000,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
             'messages': [followup.model_copy(update={'content': reply})]}
 
 
+@profile_result
 @intel_result
 async def export_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """阶段5：引导用户核对并使用真实存在的预览与导出入口。"""
@@ -3042,6 +3068,11 @@ def route_by_stage(state: ResumeState) -> str:
     last_message = next((m for m in reversed(state.get("messages") or []) if isinstance(m, HumanMessage)), None)
     if last_message and (last_message.additional_kwargs.get("intake") or last_message.additional_kwargs.get("answers")):
         return 'collecting'
+    from app.services.profile_tools import profile_request
+    from app.services.intake import experiences
+    if state.get("intake_account") and (state.get("profile_summary") or {}).get("has_facts") and (
+            profile_request(latest) or (_explicit_generate_requested(latest) and not experiences(state))):
+        return "dialogue"
     if state.get('plan_choice') and state.get('pending_plan'):
         return 'structure_plan'
     if requests_fabrication(latest):
@@ -3075,6 +3106,7 @@ def route_by_stage(state: ResumeState) -> str:
     return stage.lower()
 
 
+@profile_result
 @intel_result
 async def skill_task_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     """Explicit single-turn skills; review materials never enter candidate facts."""

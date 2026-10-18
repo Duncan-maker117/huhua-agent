@@ -464,3 +464,13 @@
 - 验证：新增 13 项测试；指定全量最终 **2104 项，2102 通过、2 项原有跳过，0 失败/错误，86.197s，退出码 0**。Ruff、7 文件 AST、diff 检查通过，旧断言未修改/放宽。日志 `evaluation/agent-loop-spike/p1d-full-tests.log`（忽略文件），说明 `evaluation/agent-loop-spike/p1d-notes.md`。
 - 失败做法：首版扩展共享 `constraint_only` 导致正文范围被误删，全量出现 14 个失败断言；已恢复旧正文规则并隔离抽取判断，原断言全部通过。新 collecting 桩构造与角色断言按实际契约修正，详见说明。
 - 未完成/接手：真实模型回放与成稿质量未复测；如后续获授权，可运行该 fixture 的 off/loop 隔离回放并核对模型原始输出。本次未访问 8833/8834、未调用真实模型、未改 dist、未 commit/push/部署；测试未写死临时路径。本节仅追加，原交接内容保留。
+
+
+## 2026-10-19 第十七批第 2 期 P2b 写作对齐与行为（batch17f，仅本地）
+
+- 目标/边界：按第 2 期规格仅处理 P2b；起始 HEAD `815d22f`。生产修改限 `orchestrator_tools.py`、`orchestrator.py` 的 SYSTEM_PROMPT，以及 `resume_graph.py` 原字面更正事务的小幅抽取。另新增 `tests/test_orchestrator_writing.py` 与 `evaluation/agent-loop-spike/p2f-notes.md`；本节只追加，未改旧交接。
+- 已完成：write_draft 自动选择既有结构方案并走 phase=write/labeled writer，保留确认方案和用户写法；record_facts/edit_resume 共用旧数字更正事务，原话授权、正文/事实引用/版本同步，成功后 stop 避免整稿重写。联系方式已请求状态写入 session_constraints，跨轮不重复索要，明确导出仍缺时可再问；工具回执去内部引用，保留档案选择句柄，导入回执逐段点名；开场提示只用标注假设的无编造数字示意。
+- 关键决策：不调用整个旧节点，不复制编排/抽取逻辑；旧 evaluating 分支仅改成调用抽出的同一函数，节点行为不变。测试人物只在测试材料，不写入生产提示/手册。第 1 期 run 目录在相邻 huhua-b17b，只读核对，未改冻结结果。
+- 验证：新增 11 项测试方法，覆盖两类 AI 产品 labeled 成稿、原写法、数字更正与旧节点一致、失败/歧义/参考来源、持久化回调、跨轮联系方式及隐私。指定全量最终 2115 项，2113 通过、2 项原有跳过，0 失败/错误，91.102s，退出码 0；日志 `evaluation/agent-loop-spike/p2f-full-tests-final.log`。Ruff/AST/diff 通过，AST 确认 orchestrator 除提示常量无改动，旧断言原样保留。
+- 失败做法/未完成：未用普通抽取+整稿润色修数字；回执只删 ID 字段不足，最终补正文/诊断键引用过滤。真实模型未回放，不能宣称人物通过率提升；答案接续/检查口径仍交 P2c，实际延迟交 P2a。普通回复的联系方式约束仍需真实回放验证。
+- 接手：合并三支时保留 session_constraints.contacts_requested 的模型可见状态/摘要；按 p2f-notes.md 命令在新数据库、8857/8858 串行跑 off/loop 全人物，并核对 canonical 正文与引用。未访问 8833/8834、未调用真实模型、未改 dist、未 commit/push/部署。

@@ -4,7 +4,7 @@ These spans constrain ownership; they do not interpret duties as new subjects.
 """
 import re
 
-from app.services.candidate_language import literal_employment, literal_item_name, non_fact, safe_item_name
+from app.services.candidate_language import experience_constraint, literal_employment, literal_item_name, non_fact, safe_item_name
 
 
 _LABELS = {
@@ -17,6 +17,7 @@ _LABELS = {
 }
 _MARKER = re.compile(r'(?m)(?:^[ \t]*|【)(?P<label>' + '|'.join(sorted(_LABELS, key=len, reverse=True))
                      + r')(?:[：:]|[一二三四五六七八九十\d]*】)|(?<!\d)\d+[）)]')
+DETAIL_FIELD = re.compile(r'^\s*(角色|职务|具体工作|工作内容|职责|范围|职责边界)\s*[:：]\s*(.*)')
 
 
 def explicit_subject_spans(text: str) -> list[dict]:
@@ -56,6 +57,21 @@ def explicit_subject_spans(text: str) -> list[dict]:
                 name, fields['role'] = role[1], role[2]
         if not section or not safe_item_name(name):
             continue
+        # Only labelled continuation fields belong to the preceding subject.
+        # Stop before another section or ordinary prose instead of guessing.
+        if section in {'projects', 'campus', 'internship', 'work_experience'}:
+            while end < len(text) and text[end] == '\n':
+                line_end = text.find('\n', end + 1)
+                line_end = len(text) if line_end < 0 else line_end
+                detail = DETAIL_FIELD.fullmatch(text[end + 1:line_end])
+                if not detail:
+                    break
+                if detail[1] in {'角色', '职务'}:
+                    from app.services.resume_field_hygiene import positive_role
+                    value = detail[2].strip(' 。；;')
+                    if value and positive_role(value) == value and not experience_constraint(value):
+                        fields['title' if section in {'internship', 'work_experience'} else 'role'] = value
+                end = line_end
         spans.append({'start': marker.start(), 'end': end, 'section': section,
                       'name': name, 'fields': fields})
     # Prose also establishes an identity before model facts are routed. Without

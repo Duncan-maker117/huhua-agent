@@ -56,6 +56,12 @@ _WORDING_LIMIT = re.compile(
     r"(?:不是|并非|不担任).{0,8}(?:负责人|账号负责人)|"
     r"(?:选题|文案).{0,4}由.{1,12}(?:定|决定|提供|给)|"
     r"(?:店长|部长|主管|同事).{0,4}(?:给|提供)(?:的)?文案")
+_NEGATED_DUTY = re.compile(
+    r'^(?:我|本人)?(?:也|还|尚|并|从)?(?:没有|没|未|不曾|不)(?:上线|部署|做|进行|参与|负责|主导|担任|'
+    r'管理|承担|组织|开发|测试|压测|设计|编写|执行|参加|使用)')
+_OTHER_OWNER = re.compile(
+    r'^(?:同学|队友|同事|他人|其他人)(?:们)?(?:主要)?(?:负责|承担)|'
+    r'^[^，,。；;\n]{1,24}由(?:同学|队友|同事|他人|其他人)(?:们)?(?:主要)?(?:负责|承担)$')
 
 
 def wording_constraint(text: str) -> bool:
@@ -81,6 +87,21 @@ def constraint_only(text: str) -> bool:
         # after the ownership limit. Removing that clause would lose the count.
         return not re.match(r'(?:(?:用|使用)[^，,。；;没有未不]{1,60}?)?(?:制作|绘制|排版|设计|完成|发布)',
                             clause[limit.end():].lstrip())
+
+    return bool(clauses) and all(only_limit(part) for part in clauses)
+
+
+def experience_constraint(text: str) -> bool:
+    """Intake limits include deployment/team scope that prose may need to retain."""
+    clauses = [part.strip() for part in re.split(r"[，,。；;\n]", text or "") if part.strip()]
+
+    def only_limit(clause):
+        clause = re.sub(r'^(?:范围|职责边界)\s*[:：]\s*', '', clause)
+        if constraint_only(clause):
+            return True
+        return bool((_NEGATED_DUTY.match(clause) or _OTHER_OWNER.search(clause)
+                     or re.match(r'^非.{0,8}负责人$', clause)) and not re.search(r'但|却|而|我|本人',
+                         re.sub(r'^(?:我|本人)', '', clause)))
 
     return bool(clauses) and all(only_limit(part) for part in clauses)
 
@@ -129,7 +150,8 @@ def discipline_name(value: str) -> bool:
 def safe_item_name(value: str) -> bool:
     value = str(value or "").strip()
     return bool(value and len(value) <= 36 and not re.search(r"^[了的在]|[了的在]$", value)
-                and not _PROSE_NAME.search(value))
+                and not _PROSE_NAME.search(value) and not experience_constraint(value)
+                and not re.match(r'^(?:不是|并非|不属于|没有|尚未|并未|从未)', value))
 
 
 def campus_evidence(text: str) -> bool:
@@ -162,7 +184,7 @@ def literal_item_name(text: str, section: str) -> str:
             match = re.search(r"(?:作业|课程设计)(?:是|为|叫|[：:])\s*([^，,。；;\n]{2,30})", text)
             if match and safe_item_name(match[1]):
                 return match[1]
-        patterns += [r"(?:做过|做|在|参与|负责|开发)(?:了|过)?\s*([A-Za-z\u4e00-\u9fff0-9_-]{1,30})\s*项目"]
+        patterns += [r"(?:做过|做|在|参与|负责|开发)(?:了|过)?[^\S\n]*([A-Za-z\u4e00-\u9fff0-9_-]{1,30})[^\S\n]*项目"]
     for pattern in patterns:
         for match in re.finditer(pattern, text):
             name = match[1].strip()

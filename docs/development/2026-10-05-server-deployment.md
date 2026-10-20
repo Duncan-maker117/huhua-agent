@@ -9,7 +9,7 @@
 | SSH | `ssh banzi`，对应 `ubuntu@49.233.252.47` |
 | 主机 | Ubuntu，`x86_64`；Docker Compose `2.40.3` |
 | 项目目录 | `/opt/huhua` |
-| 镜像 / 容器 | `huhua-agent:20261019-1` / `huhua-app-1` |
+| 镜像 / 容器 | `huhua-agent:20261020-1` / `huhua-app-1` |
 | Compose 配置 | `compose.yaml` + `deploy/compose.host-caddy.yaml`；变量文件 `deploy/compose.env` |
 | 应用入口 | 宿主 `127.0.0.1:18765` → 容器 `8765`；单 worker |
 | 公网入口 | <https://resume.yikuaibanz.cn>；现有宿主 Caddy `2.11.4` 提供 HTTPS 并反代 `18765` |
@@ -21,7 +21,16 @@
 
 这是新的服务器数据环境，**未迁移本机旧聊天**。数据卷同时保留两份 SQLite；不要删除卷，也不要在代码更新时重新生成数据密钥或 `ACCOUNT_SECRET`。宿主机已有 Caddy 占用 80/443，不启动 Compose 中的 `caddy` 服务或 `bundled-proxy` profile。
 
-## 2026-10-19 第十六批：档案优先 + agent 自动读档案 + 记忆导入（最新）
+## 2026-10-20 第十七批：编排模式上线 + MCP 精细编辑链接 + PDF 提速（最新）
+
+- 镜像 `huhua-agent:20261020-1`（sha256:06110f6b…），基于 `20261019-1`，替换 `backend/app/`、`main.py`、`web/`、`data/jianlimoban/html-template/`，新增 `data/sample_resume.json`；构建时用 `prepare_pdf_fonts.py` / `build_template_previews.py` 生成 `/app/data/fonts` 与 7 张模板预览。代码分支 batch17b `18b066b`。
+- 内容：`deploy/app.env` 新增 `AGENT_MODE=loop`（模型编排工具、代码守底线）；MCP save/export 返回 `edit_url`，同一份简历只存一份草稿（`conversation_id` + `base_revision`，旧稿 409）；网页编辑链接未登录时提示登录后回原链接；PDF 常用字字体子集与预览预生成。
+- 无新依赖、无新表。容器测试 2221 项全过（skip 43：node DOM 测试 + 私有 fixture + pdftotext）。演练：新镜像在库副本上开编排模式，6 个账号 get_profile 二次幂等、0 错误；**回滚演练**：旧镜像 20261019-1 同副本 6/6 正常。同机 PDF 单页 8.5–9.0s → 2.3s。
+- 备份 `/opt/huhua-backups/pre-20261020-1/`（app 34e7cdce…、checkpoints fffb9a51…、privacy accb9d30…）；回滚拷回 `deploy/compose.env.pre-20261020-1`（指向 20261019-1）与 `deploy/app.env.pre-20261020-1`（无 AGENT_MODE）后 `compose up -d --no-build --no-deps --wait app`。只想关编排模式时删掉 app.env 中 `AGENT_MODE=loop` 重启即可。
+- 线上验收：healthz 正常；`/`、`/chat`、`/resume`、`/connect` 200 且 `v=20261020-1` 生效；`/mcp` 未登录 401；容器内 `AGENT_MODE=loop`；线上容器排版测量首次 1.49s、之后 0.15s；切换后日志无错误。
+- 坑：单独 `docker run` 演练必须带 compose 注入的 `DATABASE_URL` / `CHECKPOINT_DB_PATH` 等变量，否则连到空库。
+
+## 2026-10-19 第十六批：档案优先 + agent 自动读档案 + 记忆导入（历史）
 
 - 镜像 `huhua-agent:20261019-1`（sha256:4d4df719…），基于 `20261018-1`，整体替换 `backend/app/`、`web/`、`data/jianlimoban/html-template/`。代码 GitHub main `8b89711`（分支 batch16a，含 b）。包用 `git archive` 从提交直接打（无 `._*` / `.env` / `__pycache__`），deploy 32392a74…。
 - 内容：登录用户基本信息沿用档案不再弹表单（缺项只显示缺的）；手机/邮箱进简历头部（仍不送模型）；经历清单改为从档案勾选；对话工具 `read_profile` / `use_profile_items`；档案基本信息校验与幂等迁移（所在地为链接、可实习时间吞并其他字段、重复条与重复冲突卡）；档案整理失败细分错误码并记异常类型；「从其他 AI 导入」（网页粘贴 + MCP prompt `import_memory_to_profile`，全部进待确认）。

@@ -99,6 +99,96 @@ class MCPBatch17ProtocolTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result['download_url'])
         self.assertEqual(self.count_conversations(), before)
 
+    def renamed(self, name):
+        data = draft()
+        data['projects'][0]['name'] = name
+        return data
+
+    async def test_update_existing_draft_keeps_one_conversation(self):
+        template = 't001-jianyue'
+        async with self.client() as client:
+            first = await self.call(client, 'huhua_resume_save', {'resume': draft(), 'template_id': template})
+            cid, revision = first['conversation_id'], first['revision']
+            count = self.count_conversations()
+            got = await self.call(client, 'huhua_resume_get', {'conversation_id': cid})
+            self.assertEqual(got['revision'], revision)
+            second = await self.call(client, 'huhua_resume_save', {
+                'resume': self.renamed('第二版项目'), 'template_id': template,
+                'conversation_id': cid, 'base_revision': revision})
+            self.assertEqual(second['conversation_id'], cid)
+            self.assertNotEqual(second['revision'], revision)
+            self.assertNotEqual(second['version_id'], first['version_id'])
+            self.assertEqual(self.count_conversations(), count)
+            got = await self.call(client, 'huhua_resume_get', {'conversation_id': cid})
+            self.assertEqual(got['untrusted_text']['resume']['projects'][0]['name'], '第二版项目')
+            self.assertEqual(got['revision'], second['revision'])
+            exported = await self.call(client, 'huhua_resume_export', {
+                'resume': self.renamed('第三版项目'), 'template_id': template,
+                'conversation_id': cid, 'base_revision': second['revision']})
+            self.assertEqual((exported['conversation_id'], self.count_conversations()), (cid, count))
+            self.assertNotEqual(exported['revision'], second['revision'])
+            self.assertTrue((await self.web.get(exported['download_url'])).content.startswith(b'%PDF-'))
+            got = await self.call(client, 'huhua_resume_get', {'conversation_id': cid})
+            self.assertEqual(got['untrusted_text']['resume']['projects'][0]['name'], '第三版项目')
+            # conversation_id only still exports the stored version without writing.
+            only = await self.call(client, 'huhua_resume_export', {'conversation_id': cid, 'template_id': template})
+            self.assertEqual(only['revision'], exported['revision'])
+            # Without conversation_id a new draft is created, as before.
+            other = await self.call(client, 'huhua_resume_save', {'resume': draft(), 'template_id': template})
+            self.assertNotEqual(other['conversation_id'], cid)
+            self.assertEqual(self.count_conversations(), count + 1)
+
+    async def test_stale_base_revision_is_refused_without_writing_or_download(self):
+        template = 't001-jianyue'
+        async with self.client() as client:
+            first = await self.call(client, 'huhua_resume_save', {'resume': draft(), 'template_id': template})
+            cid = first['conversation_id']
+            current = (await self.web.get('/api/resume/current', params={'session_id': cid})).json()
+            edited = current['data']
+            edited['projects'][0]['name'] = '用户手改'
+            put = await self.web.put('/api/resume/current', json={
+                'session_id': cid, 'expected_revision': current['revision'], 'resume_data': edited})
+            self.assertEqual(put.status_code, 200, put.text)
+            issued = len(self.downloads.entries)
+            for tool, extra in (('huhua_resume_save', {}), ('huhua_resume_export', {'format': 'pdf'})):
+                result = await self.call(client, tool, {
+                    'resume': self.renamed('助手旧稿'), 'template_id': template, 'conversation_id': cid,
+                    'base_revision': first['revision'], **extra}, error=True)
+                self.assertEqual(result.structured_content['error'], 'draft_changed_reload', tool)
+                self.assertIn('huhua_resume_get', result.structured_content['next_step'])
+            self.assertEqual(len(self.downloads.entries), issued)
+            got = await self.call(client, 'huhua_resume_get', {'conversation_id': cid})
+            self.assertEqual(got['untrusted_text']['resume']['projects'][0]['name'], '用户手改')
+            missing = await self.call(client, 'huhua_resume_save', {
+                'resume': draft(), 'template_id': template, 'conversation_id': cid}, error=True)
+            self.assertEqual(missing.structured_content['error'], 'base_revision_required')
+            # Reading the latest revision lets the assistant continue.
+            latest = got['untrusted_text']['resume']
+            latest['projects'][0]['name'] = '基于最新'
+            ok = await self.call(client, 'huhua_resume_save', {
+                'resume': latest, 'template_id': template,
+                'conversation_id': cid, 'base_revision': got['revision']})
+            self.assertEqual(ok['conversation_id'], cid)
+
+    async def test_update_rejects_foreign_and_non_mcp_sessions(self):
+        from app.services.conversation_store import create_conversation
+        from app.services.session_store import save_resume_session
+        mine = create_conversation('account:a')['session_id']
+        save_resume_session(mine, draft() | {'basic_info': {'name': 'x'}}, stage='EDITING', resume_meta={'source': 'writer'})
+        theirs = create_conversation('account:b')['session_id']
+        save_resume_session(theirs, draft(), stage='EDITING', resume_meta={'source': 'mcp'})
+        before = self.count_conversations()
+        async with self.client() as client:
+            for tool in ('huhua_resume_save', 'huhua_resume_export'):
+                args = {'resume': draft(), 'template_id': 't001-jianyue', 'base_revision': 'a' * 64}
+                foreign = await self.call(client, tool, {**args, 'conversation_id': theirs}, error=True)
+                self.assertIn('404', str(foreign))
+                web = await self.call(client, tool, {**args, 'conversation_id': mine}, error=True)
+                self.assertEqual(web.structured_content['error'], 'draft_not_mcp')
+                missing = await self.call(client, tool, {**args, 'conversation_id': 'nope'}, error=True)
+                self.assertIn('404', str(missing))
+        self.assertEqual(self.count_conversations(), before)
+
     async def test_instructions_tell_assistant_to_share_edit_url(self):
         for text in ('edit_url', '点进去直接改', 'huhua_resume_get(conversation_id)', '不要拿旧稿覆盖'):
             self.assertIn(text, self.server.instructions)

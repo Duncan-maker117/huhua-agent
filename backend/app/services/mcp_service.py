@@ -113,6 +113,13 @@ def resume_claims(data, citations):
     return rows
 
 
+class DraftError(Exception):
+    """Typed MCP draft-update refusal; the server maps it to a structured tool error."""
+    def __init__(self, status, code):
+        super().__init__(code)
+        self.status, self.code = status, code
+
+
 class DownloadStore:
     """Opaque 256-bit capabilities; bytes are ready before the URL is returned."""
     def __init__(self, clock=time.monotonic):
@@ -259,8 +266,36 @@ class MCPService:
                 data = ResumeData.model_validate(data, extra='ignore').model_dump()
             safe = self._private(db, principal.account.id, data, 'profile:contacts' in principal.scopes) if redact else data
             return {'has_data': bool(data), 'conversation_id': row.session_id, 'version': row.version,
+                    'revision': self._revision(db, principal.account.owner, row),
                     'source': (row.resume_state or {}).get('resume_meta', {}).get('source'),
                     'untrusted_text': {'resume': safe}}
+
+    def _revision(self, db, owner, row):
+        from app.services.canonical_resume import resume_revision
+        from app.services.education_fields import clean_resume_education
+        # Same value as GET /api/resume/current, so web edits and MCP share one revision.
+        return resume_revision(protect_data(owner, clean_resume_education(row.resume_data or {}), db=db))
+
+    def _draft_check(self, principal, conversation_id, base_revision):
+        """Own, MCP-sourced, unchanged draft; refusals are typed and happen before any rendering."""
+        if 'resume:write' not in principal.scopes:
+            raise HTTPException(403, '需要 resume:write 权限')
+        with self.factory() as db:
+            row = db.scalars(select(ResumeSession).join(Conversation).where(
+                Conversation.owner_hash == principal.account.owner,
+                ResumeSession.owner_key == principal.account.owner, ResumeSession.stage != DELETED_STAGE,
+                ResumeSession.session_id == conversation_id)).first()
+            if row is None or _is_expired(row):
+                raise HTTPException(404, '对话不存在')
+            if (row.resume_state or {}).get('resume_meta', {}).get('source') != 'mcp':
+                raise DraftError(409, 'draft_not_mcp')
+            if not base_revision:
+                raise DraftError(409, 'base_revision_required')
+            if base_revision != self._revision(db, principal.account.owner, row):
+                raise DraftError(409, 'draft_changed_reload')
+            return {'meta': deepcopy((row.resume_state or {}).get('resume_meta') or {}),
+                    'versions': deepcopy((row.resume_state or {}).get('resume_versions') or []),
+                    'data': deepcopy(row.resume_data or {})}
 
     def _fill_contacts(self, principal, data):
         """Use confirmed profile projection, never assistant-supplied identity/contact slots."""
@@ -338,11 +373,14 @@ class MCPService:
                              'untrusted_text': {'text': row['text'], 'violations': row['lexical_errors']}}
                             for row in checked]}
 
-    async def export(self, principal, resume, conversation_id, template_id, format, citations):
+    async def export(self, principal, resume, conversation_id, template_id, format, citations, base_revision=None):
         template_check(template_id)
-        if (resume is None) == (conversation_id is None):
+        if resume is None and conversation_id is None:
             raise ValueError('provide_resume_or_conversation_id')
-        if conversation_id:
+        updating = resume is not None and conversation_id is not None
+        if updating:
+            await asyncio.to_thread(self._draft_check, principal, conversation_id, base_revision)
+        elif conversation_id:
             if 'resume:read' not in principal.scopes:
                 raise HTTPException(403, '需要 resume:read 权限')
             stored = await asyncio.to_thread(self.resume_get, principal, conversation_id, redact=False)
@@ -352,13 +390,23 @@ class MCPService:
         content = await asyncio.to_thread(render_resume_pdf, template_id, data) if format == 'pdf' else await asyncio.to_thread(resume_data_to_docx, data)
         if not content.startswith(b'%PDF-' if format == 'pdf' else b'PK'):
             raise ValueError('invalid_export')
+        extra = {}
+        if updating:
+            # A refused update must not leave a download behind, so save before issuing the link.
+            saved = await self._store(principal, deepcopy(data), checked, template_id, conversation_id, base_revision)
+            extra = {'conversation_id': conversation_id, 'edit_url': saved['edit_url'], 'revision': saved['revision']}
         token = self.downloads.put(content, format)
         result = {'download_url': self.base_url() + '/api/mcp-download/' + token, 'expires_in': 600,
                   'single_use': True, 'format': format, 'bytes': len(content), 'fact_check': checked,
                   'section_diagnostics': section_diagnostics(data),
-                  'contacts_filled_by_server': True}
-        if conversation_id:
-            result.update(conversation_id=conversation_id, edit_url=self.edit_url(conversation_id, template_id))
+                  'contacts_filled_by_server': True, **extra}
+        if updating:
+            pass
+        elif conversation_id:
+            with self.factory() as db:
+                row = db.get(ResumeSession, conversation_id)
+                revision = self._revision(db, principal.account.owner, row)
+            result.update(conversation_id=conversation_id, edit_url=self.edit_url(conversation_id, template_id), revision=revision)
         elif 'resume:write' not in principal.scopes:
             result['edit_url_unavailable'] = '令牌没有 resume:write 权限，未保存可编辑草稿'
         elif self.checkpointer is None or self.checkpointer() is None:
@@ -366,7 +414,7 @@ class MCPService:
         else:
             try:
                 saved = await self._store(principal, deepcopy(data), checked, template_id)
-                result.update(conversation_id=saved['conversation_id'], edit_url=saved['edit_url'])
+                result.update(conversation_id=saved['conversation_id'], edit_url=saved['edit_url'], revision=saved['revision'])
             except Exception:
                 logger.exception('mcp export could not save an editable draft')
                 result['edit_url_unavailable'] = '保存可编辑草稿失败，导出文件不受影响'
@@ -375,24 +423,28 @@ class MCPService:
     def edit_url(self, session_id, template_id):
         return self.base_url() + '/resume?' + urlencode({'session': session_id, 'template': template_id})
 
-    async def save(self, principal, resume, citations, template_id):
+    async def save(self, principal, resume, citations, template_id, conversation_id=None, base_revision=None):
         template_check(template_id)
+        if conversation_id:
+            await asyncio.to_thread(self._draft_check, principal, conversation_id, base_revision)
         data = await asyncio.to_thread(self._fill_contacts, principal, validate_resume(resume))
         checked = await self._check_resume(principal, data, citations)
-        return await self._store(principal, data, checked, template_id)
+        return await self._store(principal, data, checked, template_id, conversation_id, base_revision)
 
-    async def _store(self, principal, data, checked, template_id):
+    async def _store(self, principal, data, checked, template_id, conversation_id=None, base_revision=None):
         from app.agents.resume_graph import build_graph, _serialize_to_resume_data
-        from app.services.canonical_resume import resume_revision, save_canonical_resume
+        from app.services.canonical_resume import ResumeRevisionConflict, resume_revision, save_canonical_resume
         from app.services.conversation_store import create_conversation, remove_conversation
         from app.services.resume_facts import normalize_fact_store
         from app.services.resume_versions import prepare_version
         from app.services.session_store import delete_resume_session, session_lock
 
-        # A new document gets no client-controlled provenance bindings.
-        for group in ('education', 'projects', 'work_experience', 'campus', 'open_source', 'awards'):
-            for item in data.get(group) or []:
-                item.pop('item_id', None)
+        groups = ('education', 'projects', 'work_experience', 'campus', 'open_source', 'awards')
+        if not conversation_id:
+            # A new document gets no client-controlled provenance bindings.
+            for group in groups:
+                for item in data.get(group) or []:
+                    item.pop('item_id', None)
         notes = ['来自 AI 助手（MCP）；仅做词法初筛，尚未完成语义核验。']
         diagnostics = section_diagnostics(data)
         notes.extend(row['path'] + '：' + row['message'] for row in diagnostics)
@@ -405,26 +457,48 @@ class MCPService:
         saver = self.checkpointer()
         # Build nodes with no LLM; only checkpoint operations are ever invoked.
         graph = build_graph(None, saver)
-        session = await asyncio.to_thread(create_conversation, principal.account.owner)
-        session_id = session['session_id']
-        try:
-            async with session_lock(session_id):
-                version = prepare_version({}, {}, [], data, {'source': 'mcp', 'fact_check': checked}, label='AI 助手（MCP）草稿')
-                def after_save(db, before, canonical):
-                    conversation = db.get(Conversation, session_id)
-                    conversation.title = 'AI 助手（MCP）简历'
-                    row = db.get(ResumeSession, session_id)
-                    row.resume_state = {**row.resume_state, 'title_source': 'manual'}
-                result = await save_canonical_resume(
-                    session_id, resume_revision({}), data, graph, _serialize_to_resume_data,
-                    source='mcp', collected_info=normalize_fact_store({}),
-                    resume_meta=version['resume_meta'], resume_versions=version['resume_versions'],
-                    session_constraints={'template_id': template_id, 'page_limit': 1}, after_save=after_save)
-        except BaseException:
-            await asyncio.to_thread(remove_conversation, session_id)
-            await asyncio.to_thread(delete_resume_session, session_id)
-            await saver.adelete_thread(session_id)
-            raise
+        if conversation_id:
+            # Append a version to the existing draft; the revision check is re-run under the lock.
+            session_id = conversation_id
+            current = await asyncio.to_thread(self._draft_check, principal, conversation_id, base_revision)
+            try:
+                async with session_lock(session_id):
+                    kept = {item.get('item_id') for group in groups for item in data.get(group) or []}
+                    removed = sorted({item['item_id'] for group in groups for item in current['data'].get(group) or []
+                                      if item.get('item_id')} - kept)
+                    version = prepare_version(current['data'], current['meta'], current['versions'], data,
+                                              {'source': 'mcp', 'fact_check': checked}, label='AI 助手（MCP）更新')
+                    result = await save_canonical_resume(
+                        session_id, base_revision, data, graph, _serialize_to_resume_data,
+                        source='mcp', resume_meta=version['resume_meta'], resume_versions=version['resume_versions'],
+                        session_constraints={'template_id': template_id, 'page_limit': 1}, removed_item_ids=removed)
+            except ResumeRevisionConflict:
+                raise DraftError(409, 'draft_changed_reload') from None
+            except HTTPException as error:
+                if error.status_code == 409:
+                    raise DraftError(409, 'item_ids_mismatch') from None
+                raise
+        else:
+            session = await asyncio.to_thread(create_conversation, principal.account.owner)
+            session_id = session['session_id']
+            try:
+                async with session_lock(session_id):
+                    version = prepare_version({}, {}, [], data, {'source': 'mcp', 'fact_check': checked}, label='AI 助手（MCP）草稿')
+                    def after_save(db, before, canonical):
+                        conversation = db.get(Conversation, session_id)
+                        conversation.title = 'AI 助手（MCP）简历'
+                        row = db.get(ResumeSession, session_id)
+                        row.resume_state = {**row.resume_state, 'title_source': 'manual'}
+                    result = await save_canonical_resume(
+                        session_id, resume_revision({}), data, graph, _serialize_to_resume_data,
+                        source='mcp', collected_info=normalize_fact_store({}),
+                        resume_meta=version['resume_meta'], resume_versions=version['resume_versions'],
+                        session_constraints={'template_id': template_id, 'page_limit': 1}, after_save=after_save)
+            except BaseException:
+                await asyncio.to_thread(remove_conversation, session_id)
+                await asyncio.to_thread(delete_resume_session, session_id)
+                await saver.adelete_thread(session_id)
+                raise
         return {'saved': True, 'conversation_id': session_id, 'version_id': version['version_id'],
                 'revision': result['revision'], 'source': 'mcp', 'fact_check': checked,
                 'section_diagnostics': diagnostics,

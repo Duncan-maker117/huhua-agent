@@ -33,6 +33,8 @@ def parse_header_fields(text: str) -> dict:
     basic = {}
     for field, pattern in (
         ("name", r"(?:^|[\n，,；;。】])[ \t]*(?:我的)?(?:姓名|测试候选人)[ \t]*(?:是|为|[：:])?[ \t]*([^\s，,；;。:：、]{1,30})"),
+        # 口语自报姓名：「我叫程岚」，只取 2-4 个汉字且须在标点/结尾处结束。
+        ("name", r"(?:^|[\n，,；;。】\s!！~]|你好|您好|大家好|嗨)我叫[ \t]*(?![它他她这那其])([\u4e00-\u9fff·]{2,4})(?=[\s，,；;。.、]|$)"),
         ("phone", r"(?:联系电话|手机号码|手机号|电话|手机)\s*(?:是|为|[：:])?\s*(\+?\d[\dXx* \t()-]{5,}[\dXx*])(?!\d)"),
         ("email", r"(?:电子邮箱|邮箱|email)\s*(?:是|为|[：:])?\s*([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})"),
         ("location", r"(?:所在地|居住地|城市|现居|人在)\s*(?:是|为|[：:])?\s*([\u4e00-\u9fff]{2,12})(?=[\s，,；;。]|$)"),
@@ -40,6 +42,8 @@ def parse_header_fields(text: str) -> dict:
     ):
         if match := re.search(pattern, text, re.I):
             value = match[1].strip()
+            if field in basic:
+                continue
             if field != "objective" or safe_objective(value):
                 basic[field] = value
     links = []

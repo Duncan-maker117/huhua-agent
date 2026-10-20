@@ -342,6 +342,31 @@ class P2hWritingTests(unittest.IsolatedAsyncioTestCase):
                 "resume_data": {"basic_info": {"objective": saved}}, "jd_info": {"role_direction": direction}})
             self.assertEqual(data["basic_info"]["objective"], expected)
 
+    def test_header_projection_fills_name_from_spoken_self_intro_without_overwriting(self):
+        from app.services.candidate_sections import parse_header_fields
+        text = "我叫程岚，手机13900002017，邮箱cold.person@example.invalid。就按刚才的材料出稿。"
+        basic = parse_header_fields(text)
+        self.assertEqual((basic["name"], basic["phone"], basic["email"]),
+                         ("程岚", "13900002017", "cold.person@example.invalid"))
+        collected = {"basic_info": dict(basic)}
+        data = {"basic_info": {"name": "", "phone": "", "email": ""}}
+        tools._project_identity(data, {"collected_info": collected, "resume_data": {}})
+        self.assertEqual(data["basic_info"]["name"], "程岚")
+        self.assertEqual(data["basic_info"]["phone"], "13900002017")
+        self.assertEqual(data["basic_info"]["email"], "cold.person@example.invalid")
+        # 头部已有的（含手改的）姓名不被覆盖，空的 collected 姓名也不清空头部。
+        for fact_name, header_name, expected in (("程岚", "程岚岚", "程岚岚"), ("", "程岚", "程岚")):
+            data = {"basic_info": {"name": header_name}}
+            tools._project_identity(data, {"collected_info": {"basic_info": {"name": fact_name}}, "resume_data": {}})
+            self.assertEqual(data["basic_info"]["name"], expected)
+        self.assertNotIn("name", parse_header_fields("我叫它小助手的东西，好用"))
+        # 代词开头不是姓名；常见问候前缀后的自报姓名要识别；显式「姓名：」优先。
+        self.assertNotIn("name", parse_header_fields("我叫它小助手，好用"))
+        self.assertNotIn("name", parse_header_fields("我叫这个功能智能体，"))
+        self.assertEqual(parse_header_fields("你好我叫王小明。")["name"], "王小明")
+        self.assertEqual(parse_header_fields("您好！我叫李四，想投运营")["name"], "李四")
+        self.assertEqual(parse_header_fields("姓名：李雷\n我叫韩梅梅，")["name"], "李雷")
+
 
 if __name__ == "__main__":
     unittest.main()

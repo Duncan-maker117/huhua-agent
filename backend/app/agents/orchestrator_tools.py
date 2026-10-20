@@ -472,6 +472,10 @@ def _project_contacts(data, collected):
     for key in ("phone", "email"):
         if key in (collected.get("basic_info") or {}):
             basic[key] = collected["basic_info"][key] or ""
+    # 姓名同样确定性投影，但空值不覆盖头部已有姓名，编辑器里手改过的不同姓名保持不变。
+    name = str((collected.get("basic_info") or {}).get("name") or "").strip()
+    if name and not str(basic.get("name") or "").strip():
+        basic["name"] = name
 
 
 def _project_identity(data, state):

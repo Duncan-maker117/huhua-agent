@@ -5,11 +5,13 @@ from copy import deepcopy
 from functools import lru_cache
 import hashlib
 import json
+import logging
 from pathlib import Path
 import re
 import secrets
 from threading import Lock
 import time
+from urllib.parse import urlencode
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -31,6 +33,7 @@ from app.services.session_store import DELETED_STAGE, _is_expired
 from app.services.template_previews import load_prebuilt_preview
 from app.tools.resume_data_docx import resume_data_to_docx
 
+logger = logging.getLogger(__name__)
 CONTACT_FIELDS = {'phone', 'email', 'link', 'links', 'github', 'website'}
 MAX_DOCUMENT_BYTES = 1024 * 1024
 CONTACT_PLACEHOLDERS = {'phone': '0' * 15, 'email': 'M' * 32}
@@ -350,12 +353,35 @@ class MCPService:
         if not content.startswith(b'%PDF-' if format == 'pdf' else b'PK'):
             raise ValueError('invalid_export')
         token = self.downloads.put(content, format)
-        return {'download_url': self.base_url() + '/api/mcp-download/' + token, 'expires_in': 600,
-                'single_use': True, 'format': format, 'bytes': len(content), 'fact_check': checked,
-                'section_diagnostics': section_diagnostics(data),
-                'contacts_filled_by_server': True}
+        result = {'download_url': self.base_url() + '/api/mcp-download/' + token, 'expires_in': 600,
+                  'single_use': True, 'format': format, 'bytes': len(content), 'fact_check': checked,
+                  'section_diagnostics': section_diagnostics(data),
+                  'contacts_filled_by_server': True}
+        if conversation_id:
+            result.update(conversation_id=conversation_id, edit_url=self.edit_url(conversation_id, template_id))
+        elif 'resume:write' not in principal.scopes:
+            result['edit_url_unavailable'] = '令牌没有 resume:write 权限，未保存可编辑草稿'
+        elif self.checkpointer is None or self.checkpointer() is None:
+            result['edit_url_unavailable'] = '草稿存储暂不可用，未保存可编辑草稿'
+        else:
+            try:
+                saved = await self._store(principal, deepcopy(data), checked, template_id)
+                result.update(conversation_id=saved['conversation_id'], edit_url=saved['edit_url'])
+            except Exception:
+                logger.exception('mcp export could not save an editable draft')
+                result['edit_url_unavailable'] = '保存可编辑草稿失败，导出文件不受影响'
+        return result
+
+    def edit_url(self, session_id, template_id):
+        return self.base_url() + '/resume?' + urlencode({'session': session_id, 'template': template_id})
 
     async def save(self, principal, resume, citations, template_id):
+        template_check(template_id)
+        data = await asyncio.to_thread(self._fill_contacts, principal, validate_resume(resume))
+        checked = await self._check_resume(principal, data, citations)
+        return await self._store(principal, data, checked, template_id)
+
+    async def _store(self, principal, data, checked, template_id):
         from app.agents.resume_graph import build_graph, _serialize_to_resume_data
         from app.services.canonical_resume import resume_revision, save_canonical_resume
         from app.services.conversation_store import create_conversation, remove_conversation
@@ -363,13 +389,10 @@ class MCPService:
         from app.services.resume_versions import prepare_version
         from app.services.session_store import delete_resume_session, session_lock
 
-        template_check(template_id)
-        data = await asyncio.to_thread(self._fill_contacts, principal, validate_resume(resume))
         # A new document gets no client-controlled provenance bindings.
         for group in ('education', 'projects', 'work_experience', 'campus', 'open_source', 'awards'):
             for item in data.get(group) or []:
                 item.pop('item_id', None)
-        checked = await self._check_resume(principal, data, citations)
         notes = ['来自 AI 助手（MCP）；仅做词法初筛，尚未完成语义核验。']
         diagnostics = section_diagnostics(data)
         notes.extend(row['path'] + '：' + row['message'] for row in diagnostics)
@@ -406,4 +429,5 @@ class MCPService:
                 'revision': result['revision'], 'source': 'mcp', 'fact_check': checked,
                 'section_diagnostics': diagnostics,
                 'conversation_url': self.base_url() + '/chat?session=' + session_id,
+                'edit_url': self.edit_url(session_id, template_id),
                 'contacts_filled_by_server': True}

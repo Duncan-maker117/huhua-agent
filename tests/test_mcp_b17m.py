@@ -54,6 +54,55 @@ class MCPBatch17ProtocolTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(row['gallery_url'], result['gallery_url'] + '?template=' + row['id'])
             self.assertNotIn('testserver', row['gallery_url'])
 
+    def count_conversations(self):
+        from app.models.models import Conversation
+        with self.factory() as db:
+            return db.query(Conversation).count()
+
+    async def test_save_and_export_return_edit_url(self):
+        template = 't001-jianyue'
+        args = {'resume': draft(), 'template_id': template}
+        async with self.client() as client:
+            saved = await self.call(client, 'huhua_resume_save', args)
+            expected = 'http://testserver/resume?session=' + saved['conversation_id'] + '&template=' + template
+            self.assertEqual(saved['edit_url'], expected)
+            self.assertIn('/chat?session=', saved['conversation_url'])
+            before = self.count_conversations()
+            same = await self.call(client, 'huhua_resume_export', {
+                'conversation_id': saved['conversation_id'], 'template_id': template})
+            self.assertEqual(same['edit_url'], expected)
+            self.assertEqual(same['conversation_id'], saved['conversation_id'])
+            self.assertEqual(self.count_conversations(), before)
+            fresh = await self.call(client, 'huhua_resume_export', args)
+            self.assertEqual(self.count_conversations(), before + 1)
+            self.assertNotEqual(fresh['conversation_id'], saved['conversation_id'])
+            self.assertEqual(fresh['edit_url'], 'http://testserver/resume?session=' + fresh['conversation_id'] + '&template=' + template)
+            self.assertNotIn('edit_url_unavailable', fresh)
+            self.assertTrue((await self.web.get(fresh['download_url'])).content.startswith(b'%PDF-'))
+            got = await self.call(client, 'huhua_resume_get', {'conversation_id': fresh['conversation_id']})
+            self.assertEqual(got['untrusted_text']['resume']['projects'][0]['name'], '虚构项目')
+
+    async def test_export_without_write_scope_or_checkpointer_still_succeeds(self):
+        args = {'resume': draft(), 'template_id': 't001-jianyue'}
+        limited = self.tokens.create('a', '只导出', ['resume:export'])
+        before = self.count_conversations()
+        async with self.client(limited) as client:
+            result = await self.call(client, 'huhua_resume_export', args)
+        self.assertNotIn('edit_url', result)
+        self.assertIn('resume:write', result['edit_url_unavailable'])
+        self.assertTrue(result['download_url'])
+        self.service.checkpointer = lambda: None
+        async with self.client() as client:
+            result = await self.call(client, 'huhua_resume_export', args)
+        self.assertNotIn('edit_url', result)
+        self.assertIn('edit_url_unavailable', result)
+        self.assertTrue(result['download_url'])
+        self.assertEqual(self.count_conversations(), before)
+
+    async def test_instructions_tell_assistant_to_share_edit_url(self):
+        for text in ('edit_url', '点进去直接改', 'huhua_resume_get(conversation_id)', '不要拿旧稿覆盖'):
+            self.assertIn(text, self.server.instructions)
+
     async def test_all_seven_preview_tools_and_resources_complete_without_extra_scopes(self):
         template_preview.cache_clear()
         for row in templates_list()['templates']:
@@ -201,3 +250,8 @@ class MCPBatch17LocalTests(unittest.TestCase):
         self.assertEqual(section_diagnostics(data)[0]['path'], '/experience_section_title')
         self.assertEqual(data, before)
         self.assertEqual(section_diagnostics({}), [])
+
+    def test_editor_prompts_login_for_unreadable_linked_session(self):
+        script = os.path.join(os.path.dirname(__file__), 'resume_login_needed.dom.js')
+        result = subprocess.run(['node', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)

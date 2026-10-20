@@ -3,6 +3,7 @@
 from copy import deepcopy
 import json
 import os
+import shutil
 import subprocess
 import sys
 import unittest
@@ -341,6 +342,7 @@ class MCPBatch17LocalTests(unittest.TestCase):
         self.assertEqual(data, before)
         self.assertEqual(section_diagnostics({}), [])
 
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
     def test_editor_prompts_login_for_unreadable_linked_session(self):
         script = os.path.join(os.path.dirname(__file__), 'resume_login_needed.dom.js')
         result = subprocess.run(['node', script], capture_output=True, text=True)

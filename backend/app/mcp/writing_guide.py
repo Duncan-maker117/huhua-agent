@@ -9,6 +9,9 @@ ROLES = {'ai-pm', 'product-manager', 'backend', 'frontend', 'algorithm',
          'data-analyst', 'operations', 'design', 'general'}
 ALIASES = {'ai_pm': 'ai-pm', 'pm': 'product-manager', 'ops': 'operations',
            'data': 'data-analyst', 'other': 'general'}
+STANDARD_SECTIONS = ['教育背景', '实习经历', '工作经历', '项目经历', '校园经历', '开源贡献', '竞赛与荣誉', '技能']
+SECTION_RULES = ['使用标准栏目，不为迎合 JD 自创栏目名。',
+                 '单条分量不足或处于验证/计划阶段的经历不单独成栏，合并进相近栏目或省略。']
 LABEL_MEANINGS = {
     '问题': '用户或业务遇到的具体问题，以及本人发现问题的依据。',
     '决策': '本人选择的方案、方法和取舍；没有事实依据不补写决策原因。',
@@ -80,6 +83,7 @@ def writing_guide(role='general'):
         'role': resolved, 'source': f'role-playbooks/{resolved}.md',
         'screening_criteria': _section(text, '筛选者看什么') or _section(text, '通用判断'),
         'structure': structure,
+        'section_policy': {'standard_titles': list(STANDARD_SECTIONS), 'rules': list(SECTION_RULES)},
         'expression_rules': ['事实不增，表达自由；可重组和概括已确认事实。',
                              '不写无证据形容词，不升级职责、参与程度、环境或上线状态。',
                              '数字必须来自档案事实，保留时间范围、分母及测试环境。',

@@ -370,6 +370,7 @@ def intake_guidance(state: dict) -> dict | None:
     if kind == "basics":
         values = {**basics_values(state.get("intake_profile") or {}), **{
             k: v for k, v in basics_values(state.get("collected_info") or {}).items() if v}}
+        # 全空时 missing_fields 包含全部字段；它表示待填项，不表示已有档案。
         card = {"kind": "intake_basics", "title": "补充基本信息" if any(values.values()) else "基本信息", "values": values,
                 "missing_fields": [key for key, value in values.items() if not value]}
     else:

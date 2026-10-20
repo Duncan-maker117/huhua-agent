@@ -150,12 +150,16 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual({tool.name for tool in result.tools}, set(TOOL_SCOPES))
             for tool in result.tools:
                 self.assertEqual(tool.input_schema['type'], 'object')
+                self.assertRegex(tool.description, r'[\u4e00-\u9fff]')
                 self.assertIsNotNone(tool.annotations.read_only_hint)
                 self.assertFalse(tool.annotations.destructive_hint)
                 if tool.name == 'huhua_resume_export':
                     self.assertIn('联系方式由服务端从档案填入文件，不返回给助手', tool.description)
             templates = await self.call(client, 'huhua_templates_list')
             self.assertEqual(len(templates['templates']), 7)
+            self.assertEqual(templates['gallery_url'], 'http://testserver/resume')
+            for template in templates['templates']:
+                self.assertEqual(template['gallery_url'], 'http://testserver/resume?template=' + template['id'])
             self.assertIn('capacity', templates['templates'][0])
             self.assertIn('suitable_for', templates['templates'][0])
             self.assertFalse((await self.call(client, 'huhua_resume_get'))['has_data'])

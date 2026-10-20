@@ -7,6 +7,7 @@ import re
 from PIL import Image
 
 from app.services.renderer import list_templates, render_resume
+from app.services.pdf_fonts import font_resources
 
 _PHOTO_URL = re.compile(r"\Adata:image/(png|jpeg);base64,([A-Za-z0-9+/]+={0,2})\Z")
 _MAX_PHOTO_URL = 7 * 1024 * 1024
@@ -81,8 +82,12 @@ def _render(template_id: str, data: dict, finish):
     from weasyprint import HTML
     from weasyprint.urls import FatalURLFetchingError, URLFetcher, URLFetcherResponse
 
-    class PhotoOnlyFetcher(URLFetcher):
+    font_style, fonts = font_resources()
+
+    class ResumeAssetFetcher(URLFetcher):
         def fetch(self, url, headers=None):
+            if url in fonts:
+                return URLFetcherResponse(url, body=fonts[url], headers={'Content-Type': 'font/otf'})
             try:
                 content_type, content = _photo_resource(url)
             except (ValueError, TypeError):
@@ -104,9 +109,9 @@ def _render(template_id: str, data: dict, finish):
       p, li { orphans: 2; widows: 2; }
       .awards-compact { orphans: 1; widows: 1; }
     </style>"""
-    html = html.replace("</head>", style + "</head>")
+    html = html.replace("</head>", style + '<style>' + font_style + '</style></head>')
     try:
-        return finish(HTML(string=html, url_fetcher=PhotoOnlyFetcher()).render())
+        return finish(HTML(string=html, url_fetcher=ResumeAssetFetcher()).render())
     except FatalURLFetchingError:
         # WeasyPrint's fatal fetch error inherits BaseException; normalize only
         # this explicit renderer failure so the API can provide a retry path.

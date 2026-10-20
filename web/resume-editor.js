@@ -30,7 +30,7 @@
     session: null, mode: null, serverRevision: null, canSave: false,
     savedVersion: 0, saveTimer: null, saving: null, saveFailed: false,
     conflict: false, recovery: null, backupAvailable: true,
-    sessionInvalid: false, requireAccount: true, sampleSource: null, creatingDraft: false, createdDraftSession: null,
+    sessionInvalid: false, loginNeeded: false, requireAccount: true, sampleSource: null, creatingDraft: false, createdDraftSession: null,
   };
   const previewLoader = window.HuhuaTemplatePreview.createLoader({
     templates: () => state.templates.map(template => template.id), current: () => state.template?.id,
@@ -983,6 +983,7 @@
       const active = item.dataset.templateId === template.id;
       item.classList.toggle('active', active);
       item.setAttribute('aria-pressed', String(active));
+      if (active) item.scrollIntoView({block: 'nearest', inline: 'nearest'});
     }
     renderPreview();
   }
@@ -1182,6 +1183,21 @@
     finally { state.creatingDraft = false; if (trigger) trigger.disabled = !state.canSave && !state.requireAccount; }
   }
 
+  function showLoginNeeded() {
+    invalidatePreview(); previewBuffer.reset(); state.ready = false;
+    state.data = null; state.mode = null;
+    $('data-source').textContent = '需要登录';
+    $('btn-export').disabled = true;
+    $('btn-upload-photo').disabled = true;
+    setStatus('等待登录');
+    setSaveStatus('这份简历需要登录对应账号后查看。', true);
+    const choice = element('div', 'start-choice');
+    choice.append(element('h2', '', '这份简历需要登录对应账号后查看'),
+      element('p', '', '请登录创建这份简历的账号；登录成功后会回到当前链接继续编辑。'));
+    choice.append(button('登录账号', 'secondary-button', () => window.HuhuaAccount?.open('登录后查看并编辑这份简历。')));
+    editor.replaceChildren(choice);
+  }
+
   function showStartChoice() {
     invalidatePreview(); previewBuffer.reset(); state.ready = false;
     state.data = null;
@@ -1235,6 +1251,7 @@
       const account = await window.HuhuaAccount?.ready;
       state.requireAccount = account?.require_account !== false;
       let session = query.get('session_id') || query.get('session');
+      const linkedSession = Boolean(session);
       if (!session) session = window.HuhuaAccount?.rememberedSession();
       state.session = session;
       $('back-to-chat').href = session ? `/chat?session=${encodeURIComponent(session)}` : '/chat';
@@ -1256,6 +1273,8 @@
           // An expired or unrelated session must never prevent public template browsing.
           state.session = null; state.canSave = false; state.sessionInvalid = true;
           $('back-to-chat').href = '/chat';
+          // A linked draft that cannot be read must say so instead of looking like a lost resume.
+          state.loginNeeded = linkedSession;
         }
       }
       $('tpl-count').textContent = `(${state.templates.length})`;
@@ -1268,6 +1287,7 @@
         $('template-list').append(item);
       }
       if (currentData) activateData(currentData, 'personal');
+      else if (state.loginNeeded) showLoginNeeded();
       else if (window.HuhuaAccount?.guest() || !session) {
         const sample = await fetch('/api/resume/sample');
         if (sample.ok) activateData(await sample.json(), 'sample');
@@ -1290,6 +1310,8 @@
     setSaveStatus('登录已成功，当前体验待保存；请重试保留当前对话。', true);
   });
   window.addEventListener('huhua-account-changed', event => {
+    // Same URL, now signed in: reload so the linked draft is read with the new identity.
+    if (state.loginNeeded) { location.reload(); return; }
     invalidatePreview();
     notifyParent({type: 'resume-account-changed'});
     if (event.detail?.session_id && (!state.data || state.mode === 'sample')) {

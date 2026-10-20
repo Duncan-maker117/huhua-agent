@@ -427,6 +427,22 @@
 - 未完成/接手：由 Claude 按 README 在有网络环境执行两种 `--real`（真实编排模型 + 假工具），逐例复核工具选择、顺序、语义、真实耗时/token 及 400；先比案例/提示哈希，不把 stub 指标当模型表现。真实业务工具与跨用户轮次续接尚未验证。
 - 边界：未读真实 LLM 配置/调用真实模型，未访问 8833/8834；未改现有节点、前端、dist、依赖或另一 worktree；未 commit/push/部署。当前仅本地新增 spike 文件与本节追加；交付入口 `evaluation/agent-loop-spike/README.md`。
 
+## 2026-10-19 第十七批 m：MCP 体验与网页小修（batch17m）
+
+- 已完成：模板列表返回配置 origin 的总画廊/逐模板链接，`/resume?template=` 选中并滚动；测量/预览统一固定联系方式占位，中文说明要求留空手机邮箱、导出服务端填入；12 行 instructions 覆盖五条使用流程和原安全边界；writing guide 标准栏目规则，save/export 返回非改写式栏目诊断；游客/空档案不再显示空摘要及“改”。
+- 预览：本机七套含淡青平行均可渲染，未复现原部署端超时；补独立子进程 15 秒超时杀死回收、最多 2 并发，工具及模板资源返回安全超时与网页回退提示。导出渲染/联系方式填充和既有权限/限流保持原行为。固定占位是保守预算，超长联系方式/额外链接仍需核对最终导出页数。
+- 验证：指定离线全量 **2008 项，2006 通过、2 跳过、0 失败/错误，100.518s**；MCP 定向 63 项通过，DOM / Ruff / JS 语法 / diff 检查通过。新增 12 项及增量 DOM/协议断言，覆盖七模板真实 PNG、无额外 scope、超时进程回收、隐私、栏目不改写、链接与空表单。日志 `/tmp/huhua-b17m-full-tests-final.log`。
+- 失败与决策：旧 spy 改到新预览入口；联系方式占位多一行，单字临界分页测试移除一条填充行，仍严格断言 2 页→1 页；SDK 资源错误改用 ResourceError，避免隐藏超时原因。完整说明：`evaluation/persona-ux/batch17m-fix-notes.md`。
+- 接手边界：未访问 8833/8834，未调用真实模型，未改 dist，未 commit/push/部署。未验证真实 Codex 自动审批或线上超时根因；下一步如需线上验收须另行授权部署。本节仅追加，未重写既有交接。
+
+
+## 第十七批 r · 2026-10-19：PDF CJK 子集与预览超时（本地，未提交/部署）
+
+- 在 batch17m / HEAD 0a35e35 的 m 未提交改动上继续；其余 m 文件与两份只读源 TTC 的 SHA-256 不变。使用标准字符集构建 SC Regular/Bold CFF 子集（合计 7.18 MiB），保留原轮廓及完整系统字体回退；新增 scripts/prepare_pdf_fonts.py、PDF 固定字体资源白名单。未采用近似转 TTF 或 full_fonts。
+- 指定 Noto CJK + 强制 fontTools 的本机 3 次中位数：t001 3.093s → 0.688s、299495 → 125407 字节；七模板 0.581–0.852s。144 DPI 七模板与独立罕见字/繁体/假名/符号、400/700 探针均零像素差、文字一致、无缺字；完整字体回退仍慢（探针 3.016s）。这是 macOS arm64 实测，不是生产 4 核 Linux 达标证据。
+- 预览执行超时 Settings 默认90s，公共画廊排队默认300s，并发仍2；私人请求满槽仍503。同模板合并并发miss、异常不缓存；构建公共PNG并校验源码/字体/图片指纹，七图首次读取34ms、热缓存0.31ms。单张预览3次中位数1.034s；无预生成资源七张并发4.610s、7/7完成。
+- 新增11项回归；指定全量2019项，2017通过、2项原有私有样例跳过、0失败/错误，104.575s；日志 /tmp/huhua-b17r-full-verified.log。run_tests隔离公共预览目录，避免镜像内预生成PNG绕过旧超时断言；原测试断言未改。Ruff/diff通过。
+- 交付 evaluation/persona-ux/batch17r-fix-notes.md（方案表、Dockerfile.release插入层、上线/回退步骤）及 batch17r/ 下原新PDF/PNG/差异图/实测JSON。下一步在隔离生产镜像构建字体与七图、同4核Linux复测后再发布；发布包须补入两个构建脚本，旧allowlist未包含根scripts。原408ms HTTP500缺少异常证据，未声称已修复。未访问8833/8834、调用真实模型、改dist、commit/push/部署。
 
 ## 2026-10-19 第十七批第 1 期 P1b：编排节点与接线（batch17b）
 
@@ -554,3 +570,12 @@
 - 本次验证：指定全量重新通过，2190 项、2188 通过、2 原有跳过、0 失败/错误，83.312s，退出码 0；包含 P2h、12 项 P2l 和职责归属回归。4 文件 AST、Ruff、diff 检查通过。日志 evaluation/agent-loop-spike/p2l-full-tests-resumed.log；详情 p2l-notes.md 的中断后复核节。
 - 当前状态/未完成：代码、测试与说明均未提交；未做新真实回放，不能宣称真实 cold 已全过。测试进程已结束，未启动应用服务；未访问 8833/8834、调用真实模型、改其它 worktree/dist、commit/push/部署。本次没有新增失败做法。
 - 接手步骤：审阅当前 diff 和 evaluation/agent-loop-spike/p2l-notes.md 后交由集成任务处理；真实回放仍由负责方另行执行。
+
+
+## 2026-10-20 batch17b 合入 batch17m：临时合并验证
+
+- 目标与边界：整合 batch17b `0f0af61` 和 batch17m `d4a0aed`，保留编排/评测与 MCP/渲染/编辑器两边行为；AGENT_MODE 默认 off。仅使用已跟踪分支内容，没有复制相邻 worktree 的未跟踪字体、PNG/PDF 或 batch17r 产物；未改 deploy/、发布脚本，未 push/部署。
+- 冲突处理：mmr 的两边追加记录全部保留，按提交时间将 m/r 放在 spike 与 P1 之间；web/index.html 使用统一版本号 20261020-b17bm。其余共享文件自动合并，非重叠改动逐字节与对应父分支一致。
+- 验证：指定全量在临时合并树运行，Ran 2221 tests in 142.287s / OK (skipped=2)，退出码 0（2219 通过、2 跳过、0 失败/错误）；另在 AGENT_MODE=loop 下复用 5 项 MCP 草稿生命周期回归全过，独立 P2e 上下文 15 项全过。JS 语法及 diff 检查通过。无额外业务修复。
+- 接口：MCP save/export 新参数尾部可选，编排未直接调用它们；共享 PDF/测页签名、build_graph 与 canonical 保存契约保留，编辑器 session 参数和事件不变。预览执行超时默认 90s，公开预览排队 300s。
+- 本轮阻塞与接手：原 worktree 的 Git 元数据位于只读的 ../huhua agent/.git，无法创建 ORIG_HEAD.lock；本次会话未更新源 batch17b，也未生成 merge commit。临时目录 /private/tmp/huhua-b17bm-integration-6dbwu3u7 保留合并补丁、冲突文件、测试日志与 finish-merge.sh；在具备 Git 写权限的环境执行该脚本，会校验两支 HEAD/干净状态，完成实际合并、再次全量测试并提交中文 merge commit。此条记录描述临时验证，实际整合状态以 Git 为准。

@@ -110,6 +110,19 @@ const experience = {kind: 'intake_experiences', title: '经历清单', turn_id: 
   await submit();
   assert.equal(sent.at(-1).payload.intake.values.phone, '13900001234');
   assert.match(sent.at(-1).text, /手机：13900001234.*邮箱：returning@example.test/);
+  const basicNames = ['name', 'school', 'major', 'degree', 'graduation', 'location', 'availability', 'phone', 'email'];
+  for (const [label, values, missing] of [
+    ['guest', {}, basicNames], ['empty-profile', Object.fromEntries(basicNames.map(name => [name, ''])), basicNames],
+    ['legacy', {}, undefined], ['inconsistent-empty', {}, []],
+  ]) {
+    context.window.fixture({guidance: {...basics, turn_id: label, values, missing_fields: missing}}, sender);
+    assert.equal(find('intake-profile-summary'), undefined);
+    assert.equal(find('intake-edit-existing'), undefined);
+    assert.equal(find('intake-existing-fields').children.length, 0);
+    for (const name of basicNames) assert.equal(fields(name).length, 1);
+    fill('name', '空档案填写'); await submit();
+    assert.equal(sent.at(-1).payload.intake.values.name, '空档案填写');
+  }
   const catalog = {kind: 'intake_experiences', title: '从档案选经历', turn_id: 'catalog', items: [], selected_profile_ids: ['p1'],
     profile_items: [{id: 'p1', name: '检索工具', category: 'project', start: '2026-01', end: '至今', summary: '支持引用核对'},
       {id: 'p2', name: '校园活动', category: 'campus', summary: '协助登记'}]};

@@ -15,7 +15,7 @@ from app.mcp.server import MCPResume
 from app.mcp.writing_guide import ROLES, writing_guide
 from app.services.mcp_service import measure, templates_list
 from app.services.resume_capacity import measure_rendered_pages
-from app.services.resume_pdf import render_resume_pdf
+from app.services.mcp_preview import render_preview
 
 
 TEMPLATE = 't001-jianyue'
@@ -120,7 +120,7 @@ class MCPV2ProtocolTests(unittest.IsolatedAsyncioTestCase):
 
     def assert_no_render(self):
         # 同步 patch 由测试中的普通 with 使用。
-        return patch('app.services.mcp_service.render_resume_pdf', side_effect=AssertionError('拒绝请求不得渲染'))
+        return patch('app.services.mcp_service.render_preview', side_effect=AssertionError('拒绝请求不得渲染'))
 
     async def test_saved_preview_requires_resume_read_even_with_contacts_scope(self):
         pat = self.tokens.create('a', '仅联系方式', ['profile:contacts'])
@@ -145,7 +145,7 @@ class MCPV2ProtocolTests(unittest.IsolatedAsyncioTestCase):
         for scopes in ([], ['profile:contacts']):
             pat = self.tokens.create('a', '合成预览权限', scopes)
             async with self.client(pat) as client:
-                with patch('app.services.mcp_service.render_resume_pdf', wraps=render_resume_pdf) as renderer:
+                with patch('app.services.mcp_service.render_preview', wraps=render_preview) as renderer:
                     result = await client.call_tool('huhua_resume_preview', {'resume': data, 'template_id': TEMPLATE})
                     self.assertFalse(result.is_error, result.content)
                     serialized = json.dumps(renderer.call_args.args[1], ensure_ascii=False)
@@ -162,7 +162,7 @@ class MCPV2ProtocolTests(unittest.IsolatedAsyncioTestCase):
         pat = self.tokens.create('a', '读取和联系方式', ['resume:read', 'profile:contacts', 'resume:export'])
         args = {'conversation_id': saved['conversation_id'], 'template_id': TEMPLATE}
         async with self.client(pat) as client:
-            with patch('app.services.mcp_service.render_resume_pdf', wraps=render_resume_pdf) as renderer:
+            with patch('app.services.mcp_service.render_preview', wraps=render_preview) as renderer:
                 result = await client.call_tool('huhua_resume_preview', args)
                 self.assertFalse(result.is_error, result.content)
                 self.assertNotIn('13800001234', json.dumps(renderer.call_args.args[1]))
@@ -197,7 +197,7 @@ class MCPV2ProtocolTests(unittest.IsolatedAsyncioTestCase):
                 self.assertIn('429', error.content[0].text)
         pat = self.tokens.create('a', '渲染故障')
         async with self.client(pat) as client:
-            with patch('app.services.mcp_service.render_resume_pdf', side_effect=RuntimeError('synthetic-private-phone')):
+            with patch('app.services.mcp_service.render_preview', side_effect=RuntimeError('synthetic-private-phone')):
                 error = await self.call(client, 'huhua_resume_preview', {'resume': draft(), 'template_id': TEMPLATE}, error=True)
                 self.assertIn('503', error.content[0].text)
                 self.assertNotIn('synthetic-private-phone', str(error.content))
@@ -246,12 +246,14 @@ class MCPV2LayoutTests(unittest.TestCase):
 
     def test_real_overflow_has_pointer_and_one_character_saves_a_line(self):
         data = overflowing_draft()
+        # 预留联系方式后页眉新增一行，临界样例减少一行，仍严格验证删一字从两页变一页。
+        data['projects'][0]['polished_bullets'].pop(0)
         before = deepcopy(data)
         result = measure(data, TEMPLATE, 0)
         self.assertEqual(result['pages'], 2)
         diagnostics = result['diagnostics']
         self.assertFalse(diagnostics['estimated'])
-        path = '/projects/0/polished_bullets/34'
+        path = '/projects/0/polished_bullets/33'
         candidate = next(row for row in diagnostics['shorten_candidates'] if row['path'] == path)
         self.assertEqual(candidate['characters'], 1)
         self.assertTrue(candidate['estimated'] and candidate['near_wrap'])

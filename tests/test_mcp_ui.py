@@ -8,6 +8,12 @@ import unittest
 
 class MCPPanelTests(unittest.TestCase):
     @unittest.skipUnless(shutil.which('node'), 'node is not installed')
+    def test_gallery_link_selects_scrolls_and_ignores_invalid_template(self):
+        result = subprocess.run(['node', str(Path(__file__).with_name('mcp_gallery.dom.js'))],
+                                capture_output=True, text=True, timeout=20)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which('node'), 'node is not installed')
     def test_token_once_configs_revocation_inbox_edit_confirm_reject_and_badge(self):
         for timezone in ('Asia/Shanghai', 'America/New_York'):
             with self.subTest(timezone=timezone):

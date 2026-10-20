@@ -114,7 +114,17 @@ def import_receipt(turn):
     incomplete = re.compile(r"[？?]|(?:未|没有|没能|将|会|准备|打算|可以|建议|是否|要不要).{0,12}"
         + action + "|" + action + r".{0,12}(?:失败|未完成)")
     adopted = set()
-    for block in re.split(r"\n\s*\n", reply):
+    blocks = re.split(r"\n\s*\n", reply)
+    # 「…导入了两段：」与其后的列表之间常隔一个空行，视为同一段落再判定。
+    merged = []
+    for block in blocks:
+        lines = block.strip().splitlines()
+        if (merged and lines and all(re.match(r"\s*(?:[-*]|\d+[.)、])\s", line) for line in lines)
+                and re.search(r"[：:]\s*$", merged[-1]) and "\n" not in merged[-1].strip()):
+            merged[-1] = merged[-1].rstrip() + "\n" + block.strip()
+        else:
+            merged.append(block)
+    for block in merged:
         lines = block.strip().splitlines()
         # A completed-action heading governs its immediately following named list.
         if (len(lines) > 1 and completed.search(lines[0]) and not incomplete.search(lines[0])

@@ -22,6 +22,7 @@ def main():
             # explicitly enable confirmation and exercise the new default path.
             "LLM_PLAN_CONFIRM": "false",
             "AGENT_MODE": "off",
+            "CONTEXT_MAX_INPUT_TOKENS": "64000",
             "SMTP_HOST": "", "SMTP_PASSWORD": "", "SMTP_FROM": "",
             "EMAIL_PROVIDER": "smtp", "RESEND_API_KEY": "", "RESEND_FROM": "",
             "APP_ENV": "local", "REQUIRE_ACCOUNT": "false",

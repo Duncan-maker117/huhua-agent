@@ -10,6 +10,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 from pydantic_settings import BaseSettings
 
 from app.schemas.facts import FACT_SECTIONS
+from app.agents.context_memory import candidate_memory, compact_history
+from app.services.resume_facts import active_facts_for_writer
 
 RECENT_USER_TURNS = 3
 HISTORY_CHARS = 5000
@@ -95,7 +97,7 @@ def _items(data, *, facts=False):
                 "start_date", "end_date", "hidden", "tech_stack"))}
             active = [f for f in item.get("facts") or [] if isinstance(f, dict) and f.get("status", "active") == "active"]
             points = [f.get("text", "") for f in active] if facts else list(item.get("polished_bullets") or item.get("bullets") or [])
-            if not points:
+            if not points and not facts:
                 points = [item[key] for key in ("description", "summary", "highlights") if item.get(key)]
             row.update(point_count=len(points), first_sentences=_sentences(points))
             limits = [f.get("text", "") for f in active if f.get("kind") == "status_limit"]
@@ -106,11 +108,14 @@ def _items(data, *, facts=False):
 
 
 def _facts(data):
+    no_more_questions = bool(data.get("no_more_questions"))
+    verification_notes = data.get("verification_notes") or []
+    data = active_facts_for_writer(data)
     basic = data.get("basic_info") or {}
     return {"basic_info": _pick(basic, ("name", "objective", "location", "availability")),
             "contacts_present": {key: bool(basic.get(key)) for key in ("phone", "email")},
-            "no_more_questions": bool(data.get("no_more_questions")), **_items(data, facts=True),
-            "skills": data.get("skills") or [], "verification_notes": data.get("verification_notes") or []}
+            "no_more_questions": no_more_questions, **_items(data, facts=True),
+            "skills": data.get("skills") or [], "verification_notes": verification_notes}
 
 
 def _document(data):
@@ -177,33 +182,17 @@ def _asked(state):
 
 def input_context(state, sources, privacy):
     from app.agents.loop_followup import MAX_FOLLOWUP_ROUNDS, question_rounds, questions_allowed
-    messages = [(index, message) for index, message in enumerate(state.get("messages") or [])
+    messages = [message for message in state.get("messages") or []
                 if isinstance(message, (HumanMessage, AIMessage))]
-    user_indices = [index for index, message in messages if isinstance(message, HumanMessage)]
-    start = user_indices[-RECENT_USER_TURNS] if len(user_indices) >= RECENT_USER_TURNS else 0
-    history, remaining = [], HISTORY_CHARS
-    for index, message in reversed(messages):
-        if index < start or remaining < 160:
-            break
-        content = safe_data(message.content, privacy)
-        if isinstance(content, str):
-            content = _text(content, min(remaining - 120, 3200 if not history else 1200))
-            while len(_json(content)) > remaining - 120:
-                content = _text(content, len(content) // 2)
-        else:
-            content = _bounded(content, min(remaining - 120, 1200))
-        row = {"role": "user" if isinstance(message, HumanMessage) else "assistant", "content": content}
-        if isinstance(message, HumanMessage):
-            row["source_id"] = message.id or f"user-{index}"
-        remaining -= len(_json(row))
-        history.append(row)
-    history.reverse()
+    history = compact_history(state, privacy, recent_user_turns=RECENT_USER_TURNS)
     recent_ids = {row.get("source_id") for row in history}
     source_index = {"current": {"kind": sources["current"]["kind"]}} if "current" in sources else {}
-    indexed_sources = [(key, value) for key, value in sources.items() if key != "current"][-12:]
+    # IDs remain discoverable even when a source is older than the chat window.
+    # The originals stay server-side; candidate memory carries uncovered evidence.
+    indexed_sources = [(key, value) for key, value in sources.items() if key != "current"]
     for identifier, source in indexed_sources:
         row = {"kind": source["kind"]}
-        if identifier not in recent_ids and identifier != "current":
+        if identifier not in recent_ids and source["kind"] not in {"candidate", "user"}:
             row["preview"] = _text(safe_data(source["text"], privacy), 100)
         source_index[identifier] = row
     collected, document = state.get("collected_info") or {}, state.get("resume_data") or {}
@@ -229,6 +218,8 @@ def input_context(state, sources, privacy):
               "pending_plan": 250, "confirmed_plan": 250, "page_check": 200,
               "collected_info": 1200, "resume_data": 700, "jd_info": 400}
     data = {key: _bounded(value, limits[key]) for key, value in safe_data(data, privacy).items()}
-    return {"state": _bounded(data, STATE_CHARS), "source_count": len(sources) - int("current" in sources),
-            "omitted_sources": max(0, len(sources) - int("current" in sources) - len(indexed_sources)),
-            "sources": _bounded(safe_data(source_index, privacy), 1800), "history": history}
+    # Never feed the evidence block through _bounded/_sentences. The outer model
+    # boundary rejects overflow instead of discarding an experience or qualifier.
+    return {"candidate_memory": candidate_memory(state, privacy),
+            "state": _bounded(data, STATE_CHARS), "source_count": len(indexed_sources),
+            "omitted_sources": 0, "sources": safe_data(source_index, privacy), "history": history}

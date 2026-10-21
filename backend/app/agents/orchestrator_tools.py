@@ -151,7 +151,8 @@ def _source(state: dict, source_id: str) -> HumanMessage | None:
     humans = [m for m in state.get("messages") or [] if isinstance(m, HumanMessage)]
     if source_id == "current":
         return humans[-1] if humans else None
-    return next((m for m in humans if m.id == source_id), None)
+    return next((m for index, m in enumerate(state.get("messages") or [])
+                 if isinstance(m, HumanMessage) and (m.id or f"user-{index}") == source_id), None)
 
 
 def _source_parts(text: str) -> tuple[str, str]:
@@ -332,7 +333,8 @@ async def record_facts(state, args, ctx):
     source = _source(state, args.source_id)
     if source is None or not isinstance(source.content, str):
         return _error("unknown_source")
-    source_id = source.id or args.source_id
+    source_id = source.id or next(f"user-{index}" for index, message in enumerate(state.get("messages") or [])
+                                 if message is source)
     text, jd = _source_parts(source.content)
     candidate = source
     if jd and source.additional_kwargs.get("career_material_type") not in {"review", "reference"}:
@@ -341,6 +343,11 @@ async def record_facts(state, args, ctx):
     if (source_id in ctx.jd_sources or source_id in (state.get("non_candidate_message_ids") or [])
             or not _candidate_source_allowed(candidate)):
         return _error("not_candidate_material")
+    from app.agents.context_memory import invalidated_source_ids
+    if source_id in invalidated_source_ids(state):
+        # Projection hides obsolete evidence, but tools read the complete original.
+        # Do not recreate removed facts with fresh IDs from that historical source.
+        return _error("requires_current_confirmation", message="旧材料含已更正或撤回的信息，需要本轮重新明确提供后才能记录。")
     if source_id in ctx.recorded_sources:
         return ToolOutcome({"status": "unchanged", "code": "source_already_recorded"})
     if source.additional_kwargs.get("answers"):

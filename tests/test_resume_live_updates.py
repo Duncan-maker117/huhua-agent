@@ -259,7 +259,11 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
 
         async def public(messages):
             context = json.loads(messages[1].content.split("\n", 1)[1])
-            observed.append(context)
+            protected = [message for message in messages
+                         if message.additional_kwargs.get("candidate_memory")]
+            self.assertEqual(len(protected), 1)
+            memory = json.loads(protected[0].content)["candidate_memory"]
+            observed.append({"stage": context, "memory": memory})
             return AIMessage(content="已更新右侧经历和简历草稿。")
 
         model = SimpleNamespace(ainvoke=AsyncMock(side_effect=public))
@@ -277,8 +281,13 @@ class ResumeLiveUpdatesTest(unittest.IsolatedAsyncioTestCase):
         for limit in ("没有上线", "没有用户增长数据"):  # 限制只留在事实母版，不印进展示文本
             self.assertNotIn(limit, description)
             self.assertIn(limit, json.dumps(result["collected_info"]["projects"], ensure_ascii=False))
-        self.assertEqual(observed[0]["candidate_facts"]["projects"][0]["facts"][-1]["source_quote"], source)
-        self.assertTrue(observed[0]["resume_updated"])
+        item_id = result["collected_info"]["projects"][0]["item_id"]
+        sent_item = next(item for item in observed[0]["memory"]["active_evidence"]
+                         if item["section"] == "projects" and item["item_id"] == item_id)
+        self.assertEqual(sent_item["facts"][-1]["source_quote"], source)
+        for limit in ("没有上线", "没有用户增长数据"):
+            self.assertIn(limit, json.dumps(sent_item, ensure_ascii=False))
+        self.assertTrue(observed[0]["stage"]["resume_updated"])
 
     async def test_sparse_patch_keeps_other_projects_and_previous_actions(self):
         current = normalize_fact_store(self.paper_facts())

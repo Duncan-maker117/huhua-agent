@@ -1,6 +1,7 @@
 """Heading answers continue the same bounded interview; offline providers only."""
 import asyncio
 from copy import deepcopy
+from dataclasses import replace
 from importlib import import_module
 import json
 from types import SimpleNamespace
@@ -223,7 +224,7 @@ class P2kReplayTests(unittest.TestCase):
             facts = normalize_fact_store({"basic_info": {"phone": PHONE, "email": EMAIL}, "projects": [item]})
             return tools.ToolOutcome({"status": "ok"}, {"collected_info": facts,
                 "jd_info": {"role_profile": {"role_family": "ai_pm"}}})
-        specs = {**tools.TOOLS, "record_facts": SimpleNamespace(args_model=tools.TOOLS["record_facts"].args_model, handler=record)}
+        specs = {**tools.TOOLS, "record_facts": replace(tools.TOOLS["record_facts"], handler=record)}
         async def node(value, llm):
             script = ([{"content": "已按补充信息更新。"}] if value["messages"][-1].additional_kwargs.get("answers")
                       else [call("record_facts", source_id="current"), call("write_draft"), {"content": "初稿已生成。"}])

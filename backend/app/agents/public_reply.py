@@ -18,6 +18,7 @@ from langgraph.config import get_config, get_stream_writer
 
 from app.services.llm_compat import label_run
 from app.services.model_privacy import ContactTokenStream, redact_model_messages
+from app.agents.context_memory import ContextBudgetExceeded, candidate_memory, ensure_context_budget
 
 logger = logging.getLogger(__name__)
 PUBLIC_REPLY_EVENT = "public_reply_delta"
@@ -67,6 +68,17 @@ async def stream_public_reply(
     profile_enabled = ask_state is not None and tools_enabled(ask_state) and _profile_round < 2
     enabled = ask_state is not None
     tools_available = callable(getattr(llm, "bind_tools", None))
+    tools = []
+    memory_privacy = None
+    if ask_state is not None and _profile_round > 0:
+        # Profile imports can change the fact master in a recursive reply round.
+        # Never let a stale memory snapshot override the newly imported facts.
+        from app.services.model_privacy import ContactRedactor
+        memory_privacy = ContactRedactor()
+        messages = [message.model_copy(update={"content": json.dumps(
+            {"candidate_memory": candidate_memory(ask_state, memory_privacy)}, ensure_ascii=False)})
+            if getattr(message, "additional_kwargs", {}).get("candidate_memory") else message
+            for message in messages]
     if enabled:
         messages = [*messages, SystemMessage(content=COMPANY_CONTRACT + "\n" + question_context(ask_state, tools_available=tools_available))]
         if tools_available:
@@ -89,7 +101,8 @@ async def stream_public_reply(
         single_question = False
     if profile_enabled:
         messages = [*messages, SystemMessage(content=profile_contract(ask_state))]
-    messages = redact_model_messages(messages)
+    messages = redact_model_messages(messages, memory_privacy)
+    ensure_context_budget(messages, schemas=tools)
     llm = label_run(llm, "public_reply")
     reply_id = str(uuid4())
     try:
@@ -206,8 +219,14 @@ async def stream_public_reply(
         if calls:
             # 续写关闭思考：DeepSeek 思考模式要求回传上一轮 reasoning_content，而 LangChain 不保留它。
             from app.services.llm_compat import without_thinking
-            continuation = await stream_public_reply(without_thinking(original_llm), history, ask_state=working,
-                timeout=timeout, publish=False, _profile_round=_profile_round + 1)
+            try:
+                continuation = await stream_public_reply(without_thinking(original_llm), history, ask_state=working,
+                    timeout=timeout, publish=False, _profile_round=_profile_round + 1)
+            except ContextBudgetExceeded as exc:
+                # Import succeeded; a blocked follow-up model call must not
+                # discard its graph update or pretend the import never happened.
+                continuation = AIMessage(content=exc.message)
+                interrupted = True
             # 模型已逐一说明导入了哪几段时，不再重复确定性回执。
             if imported and not all(name in continuation.content for name in imported):
                 emit(("\n\n" if parts else "") + "已从档案导入：" + "、".join(imported) + "。")

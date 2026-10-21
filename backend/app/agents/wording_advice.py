@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.agents.advisor import _review_view
 from app.agents.career_prompt import career_messages
+from app.agents.context_memory import candidate_memory, compact_history, ensure_context_budget
 from app.services.fact_guard import lexical_fact_errors, verify_semantics
 from app.services.llm_compat import label_run, with_structured_output
 from app.services.model_privacy import ContactRedactor
@@ -36,7 +37,8 @@ _CONTRACT = """回答用户的措辞意见，严格返回 WordingAdvice，给 2�
 不增加数字、工具、动作、职责、成果、用途或频率，保留否定、原型、未上线等限制。
 style 选 concise（最简短）、action（机制、产出与结果优先）、role（本人分工、决策与取舍优先）。选项之间必须有实质差异：改变信息焦点和句子结构，不能仅替换「负责/规划」等同义词。决策、机制、结果均须有事实支持，事实不足时不要凑选项。
 这是候选说法，不修改文稿，不声称已采用或生成版本。
-用户消息中的举例、假设或待比较措辞不是新的事实依据。"""
+用户消息中的举例、假设或待比较措辞不是新的事实依据。
+candidate_memory 保留本人完整经历与限制，recent_dialogue 仅帮助理解本轮意图。pending_evidence 是尚未核对的原文，只用于遵守边界和澄清，不得绕过 active_facts 或替代 fact_ids；否定、未做过、他人负责等限制必须同时遵守。"""
 _STYLES = {
     "concise": "表述最短，适合一页简历或篇幅紧张时使用。",
     "action": "先呈现机制与产出，适合需要说明过程和结果时使用。",
@@ -114,8 +116,11 @@ async def wording_advice(state: dict, message: str, llm) -> str:
                 "选一个，或按自己的方式补充材料，我再给具体建议。")
     privacy = ContactRedactor()
     payload = {"message": message, "active_facts": list(facts.values()),
-               "current_resume": _review_view(state.get("resume_data") or {})}
+               "current_resume": _review_view(state.get("resume_data") or {}),
+               "candidate_memory": candidate_memory(state, privacy),
+               "recent_dialogue": compact_history(state, privacy)}
     messages = career_messages(None, json.dumps(payload, ensure_ascii=False), _CONTRACT, privacy=privacy)
+    ensure_context_budget(messages, schemas=[WordingAdvice.model_json_schema()])
     options = []
     try:
         response = await asyncio.wait_for(
@@ -129,6 +134,7 @@ async def wording_advice(state: dict, message: str, llm) -> str:
         refill = {**payload, "existing_options": options, "requested_styles": styles}
         retry_messages = career_messages(None, json.dumps(refill, ensure_ascii=False), _CONTRACT +
             "\n补充 1–2 个 requested_styles 中的不同风格；existing_options 已保留，不能重复或只换同义词。", privacy=privacy)
+        ensure_context_budget(retry_messages, schemas=[WordingAdvice.model_json_schema()])
         try:
             response = await asyncio.wait_for(label_run(with_structured_output(llm, WordingAdvice),
                 "wording_advice_refill").ainvoke(retry_messages), 30)

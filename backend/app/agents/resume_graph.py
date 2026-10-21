@@ -24,7 +24,8 @@ from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
 from app.agents.decoder_chain import run_decoder_chain
-from app.services.error_codes import to_turn_error
+from app.agents.context_memory import candidate_memory, compact_history, ensure_context_budget
+from app.services.error_codes import ChatTurnError, to_turn_error
 from app.agents.career_prompt import career_messages, career_system
 from app.agents.public_reply import PUBLIC_REPLY_EVENT, stream_public_reply
 from app.services.profile_tools import profile_result
@@ -47,6 +48,7 @@ from app.services.resume_strategy import build_resume_strategy, has_job_descript
 from app.services.resume_workspace import bounded_web_sources
 from app.services.speculative import SpeculativeScope
 from app.services.fact_guard import strip_absence as _strip_absence
+from app.services.model_privacy import ContactRedactor, redact_model_messages
 
 logger = logging.getLogger(__name__)
 
@@ -1276,6 +1278,18 @@ async def _collection_reply(llm, messages: list, collected: dict, latest_human: 
         return AIMessage(content="本轮回复未生成，已保留收集结果供核对。")
 
 
+async def _stage_collection_reply(llm, system: SystemMessage, collected: dict,
+                                  latest_human: str, state: dict) -> AIMessage:
+    """A guidance budget stop must not discard already parsed intake updates."""
+    try:
+        return await _collection_reply(llm, _stage_messages(state, system), collected, latest_human, state)
+    except ChatTurnError as exc:
+        if exc.code != "E-CONTEXT-LIMIT":
+            raise
+        return AIMessage(content="本轮收集结果保留，后续回复因上下文容量不足暂停。\n\n" + exc.message,
+                         additional_kwargs={"turn_error": {"code": exc.code, "retryable": True}})
+
+
 def _one_followup_question(text: str, *, asked: bool = False) -> str:
     """Keep the first direct question before publishing any response tokens."""
     if not asked and len(_re.findall(r"[？?]", text)) <= 1:
@@ -1483,7 +1497,7 @@ def _get_stage_system(
     return career_system(task, prompt)
 
 
-def _stage_context(state: ResumeState) -> HumanMessage:
+def _stage_context(state: ResumeState, *, include_candidate_facts: bool = True) -> HumanMessage:
     from app.services.intake import deepen_context
     return HumanMessage(
         content="任务资料（招聘要求与本人事实分别使用）：\n"
@@ -1491,13 +1505,44 @@ def _stage_context(state: ResumeState) -> HumanMessage:
             {
                 "recruiter_jd_info": state.get("jd_info") or {},
                 "resume_strategy": state.get("resume_strategy") or {},
-                "candidate_facts": state.get("collected_info") or {},
+                **({"candidate_facts": state.get("collected_info") or {}} if include_candidate_facts else {}),
                 "resume_updated": state.get("resume_updated", False),
                 "intake": deepen_context(state),
             },
             ensure_ascii=False,
         )
     )
+
+
+def _stage_messages(state: ResumeState, system: SystemMessage) -> list:
+    """Model-only view: protected evidence plus bounded recent dialogue.
+
+    Checkpoints and source messages remain intact. Raw collected_info is omitted
+    because inactive descriptions must not compete with current evidence.
+    """
+    privacy = ContactRedactor()
+    protected = HumanMessage(
+        content=json.dumps({"candidate_memory": candidate_memory(state, privacy)}, ensure_ascii=False),
+        additional_kwargs={"candidate_memory": True},
+    )
+    history = []
+    for row in compact_history(state, privacy):
+        cls = AIMessage if row["role"] == "assistant" else HumanMessage
+        content = row["content"]
+        if row.get("question_metadata"):
+            content += "\n历史问题资料（仅用于理解回答）：" + json.dumps(row["question_metadata"], ensure_ascii=False)
+        history.append(cls(content=content, additional_kwargs={"source_id": row.get("source_id", "")}))
+    system = system.model_copy(update={"content": system.content + (
+        "\n上下文中的 candidate_memory 保留本人经历与限制。active_evidence 是当前有效事实，"
+        "pending_evidence 是尚未核对的原文，只用于理解、遵守边界与继续核对；"
+        "不得把待核对原文、历史助手回复或招聘参考当成已确认事实。"
+        "否定、未做过、未上线和他人负责等边界不能在压缩后省略或反转。"
+    )})
+    messages = redact_model_messages(
+        [system, _stage_context(state, include_candidate_facts=False), protected, *history], privacy,
+    )
+    ensure_context_budget(messages)
+    return messages
 
 
 def _has_jd_text(text: str) -> bool:
@@ -1757,9 +1802,8 @@ async def dialogue_node(state: ResumeState, llm: ChatOpenAI) -> dict:
     if tools_enabled(state) and (not experiences(state) if _explicit_generate_requested(text) else profile_request(text)):
         update = {**_direction_profile_update(state, text), "non_candidate_message_ids": _exclude_latest_source(state)}
         working = {**state, **update}
-        response = await stream_public_reply(llm, [SystemMessage(content=career_system(None,
-            "用户请求使用已有档案。先读取目录，再按岗位选用已有事实；本会话为空不代表档案为空。")),
-            _stage_context(working), *state.get("messages", [])], ask_state=working)
+        response = await stream_public_reply(llm, _stage_messages(working, SystemMessage(content=career_system(None,
+            "用户请求使用已有档案。先读取目录，再按岗位选用已有事实；本会话为空不代表档案为空。"))), ask_state=working)
         return {**update, "messages": [response], "stage": "COLLECTING"}
     collected = state.get("collected_info") or _empty_collected_info()
     updated = collected
@@ -1926,7 +1970,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
             # 跳过了但没给方向，下一轮 LIGHT_MODE_ASK
             sys_msg = SystemMessage(content=_get_stage_system("LIGHT_MODE_ASK", state))
             response = await stream_public_reply(
-                llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
+                llm, _stage_messages(state, sys_msg), ask_state=state
             )
             update["messages"] = [response]
             update["stage"] = "JD_INPUT"
@@ -1938,7 +1982,7 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     if action == TriageAction.ASK_CLARIFY:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_CLARIFY", state))
         response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
+            llm, _stage_messages(state, sys_msg), ask_state=state
         )
         return {"messages": [response]}
 
@@ -1946,14 +1990,14 @@ async def _jd_input_turn(state: ResumeState, llm: ChatOpenAI) -> dict:
     if action == TriageAction.LIGHT_MODE_ASK:
         sys_msg = SystemMessage(content=_get_stage_system("LIGHT_MODE_ASK", state))
         response = await stream_public_reply(
-            llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
+            llm, _stage_messages(state, sys_msg), ask_state=state
         )
         return {"messages": [response]}
 
     # 默认：继续 ASK_JD
     sys_msg = SystemMessage(content=_get_stage_system("JD_INPUT", state))
     response = await stream_public_reply(
-        llm, [sys_msg, _stage_context(state)] + messages, ask_state=state
+        llm, _stage_messages(state, sys_msg), ask_state=state
     )
     return {"messages": [response]}
 
@@ -2035,9 +2079,9 @@ async def _intake_form_turn(state: ResumeState, llm, message: HumanMessage) -> d
     working = {**state, **update}
     if update["intake_stage"] == "ready" and not state.get("resume_versions"):
         return {**update, "stage": "BUILDING"}
-    response = await _collection_reply(llm, [SystemMessage(content=career_system(None,
+    response = await _stage_collection_reply(llm, SystemMessage(content=career_system(None,
         "用户已提交或跳过表单。根据分阶段上下文继续；基本信息和经历清单阶段只用一句过渡，岗位未知在正文问方向，深挖阶段使用 ask_user。")),
-        _stage_context(working), *state.get("messages", [])], update["collected_info"], message.content, working)
+        update["collected_info"], message.content, working)
     return _finish_followup_turn(working, {**update, "stage": "COLLECTING", "messages": [response],
         **_live_resume_update(working, update["collected_info"])})
 
@@ -2297,8 +2341,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
                 experience_snippet=snippet,
             )
         )
-        response = await _collection_reply(
-            llm, [sys_msg, _stage_context(reply_state)] + messages, collected, last_human, reply_state
+        response = await _stage_collection_reply(
+            llm, sys_msg, collected, last_human, reply_state
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -2306,8 +2350,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     # 分支 C：追问经历
     if action == TriageAction.ASK_EXPERIENCE:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_ASK_EXP", state))
-        response = await _collection_reply(
-            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human, state
+        response = await _stage_collection_reply(
+            llm, sys_msg, collected, last_human, state
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -2315,8 +2359,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     # 分支 D：兜底推荐方向（硬禁令已写进 prompt）
     if action == TriageAction.SUGGEST_PROJECT:
         sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_SUGGEST", state))
-        response = await _collection_reply(
-            llm, [sys_msg, _stage_context(state)] + messages, collected, last_human, state
+        response = await _stage_collection_reply(
+            llm, sys_msg, collected, last_human, state
         )
         base_update["messages"] = [response, *_notice_messages(collected, last_human)]
         return base_update
@@ -2343,8 +2387,8 @@ async def _collecting_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
 
     # 兜底：按 ASK_EXP 走
     sys_msg = SystemMessage(content=_get_stage_system("COLLECTING_ASK_EXP", state))
-    response = await _collection_reply(
-        llm, [sys_msg, _stage_context(state)] + messages, collected, last_human, state
+    response = await _stage_collection_reply(
+        llm, sys_msg, collected, last_human, state
     )
     base_update["messages"] = [response, *_notice_messages(collected, last_human)]
     return base_update
@@ -2544,12 +2588,17 @@ async def _model_followup(state: dict, result: dict, llm) -> AIMessage:
             or not callable(getattr(llm, 'bind_tools', None)) or not question_candidates(working)):
         return AIMessage(content=prefix)
     try:
-        response = await stream_public_reply(llm, [
-            SystemMessage(content=career_system(None, "草稿已处理完。只在有价值时询问补充信息；调用工具时只写一句过渡，不重写简历，不承诺保存。")),
-            _stage_context(working), *state.get('messages', [])[-6:],
-        ], ask_state=working, publish=False, timeout=30)
+        messages = _stage_messages(working, SystemMessage(content=career_system(None,
+            "草稿已处理完。只在有价值时询问补充信息；调用工具时只写一句过渡，不重写简历，不承诺保存。")))
+        response = await stream_public_reply(llm, messages, ask_state=working, publish=False, timeout=30)
         lead = '' if response.additional_kwargs.get('ask_user') else prefix
         return response.model_copy(update={'content': lead + ('\n\n' + response.content if response.content else '')})
+    except ChatTurnError as exc:
+        if exc.code == "E-CONTEXT-LIMIT":
+            return AIMessage(content=prefix + "\n\n本轮处理结果保留，后续追问因上下文容量不足暂停。\n\n" + exc.message,
+                             additional_kwargs={"turn_error": {"code": exc.code, "retryable": True}})
+        logger.warning("补充问题生成失败，保留写作回执")
+        return AIMessage(content=prefix)
     except Exception:
         logger.warning("补充问题生成失败，保留写作回执")
         return AIMessage(content=prefix)
@@ -2567,8 +2616,8 @@ async def building_node(state: ResumeState, llm: ChatOpenAI, *, plan_confirmatio
     state = {**state, **update}
     if update["intake_stage"] != "ready":
         # Triage/旧节点都不能绕过首稿门槛；保留当轮已抽取事实，继续正常对话。
-        response = await _collection_reply(llm, [SystemMessage(content=career_system(None,
-            "首稿前先完成当前收集阶段，不提出确认方案。")), _stage_context(state), *state.get("messages", [])],
+        response = await _stage_collection_reply(llm, SystemMessage(content=career_system(None,
+            "首稿前先完成当前收集阶段，不提出确认方案。")),
             state.get("collected_info") or {}, _latest_human_text(state), state)
         return _finish_followup_turn(state, {**update, "stage": "COLLECTING", "messages": [response]})
     result = await _write_resume_update(state, llm)

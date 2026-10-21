@@ -1,39 +1,41 @@
-# 胡话简历交接
+# Huhua Agent 交接
 
 ## 目标
-第十八批 c：给编排模式接入按需 use_skill，并同步删除技术栈与正文中的安全列举项。
+让用户真实经历、个人分工和“未做过／未上线／仅测试”等限制在长对话中持续可见，压缩重复对话，供 Claude 次日独立审查。
 
 ## 已完成
-- 启动解析 skills/flows 的 YAML frontmatter，校验必填字段并按 name 生成系统目录与 Literal 工具枚举。
-- use_skill 返回完整可信正文；同轮去重、跨轮重置，不占四次业务工具预算，不增加模型调用。开启同消息多调用，skill 先加载，其余有状态工具顺序执行。
-- metrics.skills 记录加载名称；沿用 tool_status 进度；两种 edit_resume 风险场景附 hint，已加载不提示。
-- 删除技术时保守缩减同条目 bullet 的技术列表；唯一技术/无法安全缩减原句保留并出回执；更新引用/hash/coverage，重复删除不增加版本。
-- 实测 write_draft 和模型改写的 edit_resume 均经过 resume_writer → career_messages('resume-write')，已加载新三条规则。
-- 24 项新回归通过；全量 2331 项（2329 通过、2 项既有跳过、0 失败），116.141 秒。8 个相关 Python 文件 Ruff 与 git diff --check 通过。
-- 6 个 skill 文件哈希未变，原 SYSTEM_PROMPT 字符串未改；差异与下批移出候选详见 batch18c-report.md。
+- 核对版本：原聊天目录 overhaul/tailor 是旧代码；采用最新 batch19a / 6fdae0a，并已先推送 origin/batch19a。
+- 在隔离工作树创建 codex/context-memory。新增每次模型调用的 candidate_memory：全部有效经历与原始引文、未覆盖原文、表单实际答案、未知状态、技能与约束；保留完整当前用户输入。
+- 压缩助手重复解释和历史导航；工具执行后刷新有效事实，同时保留工具调用/结果协议。
+- 撤回事实不再作为有效事实发出；旧来源重新入库由工具入口拦截。含歧义的原文保留待复核，防止连带丢失未抽取限制。
+- 编排、旧阶段公开回复和措辞建议增加调用前预算；超限明确提示，不静默截断经历。
+- 新增离线回归与合成测量脚本，设计/审查说明见 docs/development/2026-10-22-context-memory.md。
 
 ## 未完成
-授权的本地实现与离线验证已完成。真实模型命中率/流程选择没有回放；未 commit、push 或部署。
+- Claude 独立审查、真实模型长对话验证、合并 main 与部署均未执行。
 
 ## 失败做法
-- 将 skill 当业务工具计数或先执行写稿再加载，会浪费预算/导致同消息 hint 误判。
-- 原 batch18b 的“删技术后正文逐字不变”断言不再符合本批要求；已改成只删目标列表成员，同时保留保存、撤销与其他正文断言。
-- 指定虚拟环境没有 Ruff 模块，改用本机 /opt/homebrew/bin/ruff。
+- 只看原聊天目录会误判最新能力；最新主线已存在有限摘要。
+- 最近 3 轮、12 段经历、前三句和字符截断不能承担本人经历记忆。
+- 仅在提示中隐藏撤回事实不够，工具仍能读取原文并重新生成事实；已补工具入口保护。
+- 新结构需要同步更新真实模型输入测试；预算停止不能使本轮已经成功的写作或表单更新丢失。
 
 ## 关键决策与理由
-- 不并发修改业务状态；多 tool_calls 共享一轮模型调用并返回全部 ID。
-- 本地正文由系统提示明确授权为可信指令，不经 untrusted_data/资料字段清理；未知 name 严格拒绝。
-- 删除只改可识别列表，不调用模型；保留复合事实，不把删后的短句当成全量覆盖证明。
-- write_draft 尚无代码生成的 document_changes；日期/角色更正并非全部能进入 correction_applied 快捷路径，已如实记入报告。
+- 每次从现有状态重建投影；不新增数据库，不改写 checkpoint 或事实母版，不用额外 LLM 摘要造成语义漂移。
+- 所有原文事实享有同等保护，不依靠否定词黑名单；只做同来源、有证据的确定性去重。
+- 默认输入预算 64000，使用保守 UTF-8 序列化估算；部署须给输出/推理留余量。此计数不是服务商实际 token。
+- 来源不明的旧笔记及存在撤回冲突的原文需复核，不能作为确认完成的经历。
 
 ## 当前状态
-分支 batch18b，HEAD 1c5855e，本批未提交。开场已有 flows/、resume-write 修改及 3 个 prompt 文件保留。本批增加 flow_skills.py、test_batch18c.py 和报告。旧交接全文追加到 mmr-archive.md。
-日志 /private/tmp/huhua-b18c-full.log；测试使用隔离临时库及离线桩，没有本轮常驻服务。
+- 工作树：/Users/yikuaibanz1/.codex/worktrees/huhua-context/huhua agent
+- 分支：codex/context-memory；基线：6fdae0a（batch19a）。原旧工作树未提交改动未动。
+- 最终离线回归：2403 项，2401 通过、2 跳过；新增 51 项上下文测试。14 个 Python 文件 Ruff 与差异检查通过。合成样例12条经历/限制全部保留，较完整历史输入估算减少93.66%，不是实际模型费用。
+- 原交接全文已追加到 mmr-archive.md；不把旧历史任务当成本次已交付。
 
 ## 接手步骤
-1. 读 batch18c-report.md 并核对 git 状态；不要把开场 skill 修改当成本批改写。
-2. 全量：DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huhua agent/.venv/bin/python" scripts/run_tests.py。
-3. 若后续授权真实模型回放，重点核对 skills 命中、同消息加载、实际新增条目回执，以及删除后的正文/版本；不要只信最终回复。
+1. 进入上述工作树，核对 git status，阅读设计说明中的验证结果与审查重点。
+2. 查看 git diff 6fdae0a...HEAD，仅审本次上下文改动；不要以旧 overhaul/tailor 作基线。
+3. 用项目 Python 环境运行 scripts/run_tests.py；合成压缩探针为 scripts/evaluate_context_memory.py。
+4. 重点复核否定/分工保留、结构化旧答案、撤回再导入、工具后刷新和超限后更新保留，再决定真实模型验收与合并部署。
 
 ## 进行中记录
-- 2026-10-22：第十九批 a 已在 `batch19a` / `99abf96` 上完成本地实现：只读 `tailor.evidence`、主工作台独立 iframe 依据桥接、原话/JD/待确认卡片、会话开关、移动抽屉与草稿安全预填。新增 18 项回归；全量 2352 项（2350 通过、2 既有跳过），7 模板共 14 份导出/编辑器 HTML 改前改后逐字节相同，Ruff 与差异检查通过。无 commit/push/部署/真实模型/8833。本机 CLI 写缓存 EPERM、Chrome 启动 SIGABRT，未产出截图；接手先看 `batch19a-report.md`，按其中离线浏览器脚本补 1440/390px 视觉验收。日志 `/private/tmp/huhua-19a-full.log`；旧交接正文未改，本节为当前批次状态。

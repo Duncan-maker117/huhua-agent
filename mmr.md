@@ -1,35 +1,36 @@
 # 胡话简历交接
 
 ## 目标
-第十八批 b 修复轮 2：修复 run2 新增经历假成功、首稿技术罗列及残留连接词；查清旧版归因和排版错误，完成离线验证。
+第十八批 c：给编排模式接入按需 use_skill，并同步删除技术栈与正文中的安全列举项。
 
 ## 已完成
-- 只读 load_resume_session 与 checkpoint 核对 run2；导出虚构 fixture `tests/fixtures/batch18b_run2.json`，不依赖原库或凭据。
-- `627a06f` 独立源码离线复现 ok/changed=true 但工作经历为空；A 是 batch17b 已有问题。旧 item 范围只编辑命中的旧项目，未验证新增经历交付。
-- 本轮新经历或后续点名补入未写条目时，edit_resume 返回 insufficient + write_draft 路由，失败不改稿。所有成功编辑出口按真实 diff 生成回执，无 diff 为 unchanged。
-- 首稿路径实际经过清理；漏点是「并可通过」与「搭建 agent 能力」不匹配。已补正则、连接词/标点清理及具体动作边界，保留引用/hash/coverage 和幂等。
-- 原首稿口述出稿功能已被 coverage 标为 omitted；新增 uncovered_facts 回执及压缩优先级。完整写稿桩回放清理后恢复该功能要点。
-- 排版错误复现为 WeasyPrint 无法加载 libgobject-2.0-0；设置 DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib 后 run2 最终稿可测量。依赖失败明确返回 layout_renderer_unavailable，无页数或稿件写回。
-- 新增 16 项回归；batch18b 78 项通过。最终全量 2307 项：2305 通过、2 项既有私人材料跳过、0 失败；6 个 Python 文件 Ruff 与 git diff --check 通过。
+- 启动解析 skills/flows 的 YAML frontmatter，校验必填字段并按 name 生成系统目录与 Literal 工具枚举。
+- use_skill 返回完整可信正文；同轮去重、跨轮重置，不占四次业务工具预算，不增加模型调用。开启同消息多调用，skill 先加载，其余有状态工具顺序执行。
+- metrics.skills 记录加载名称；沿用 tool_status 进度；两种 edit_resume 风险场景附 hint，已加载不提示。
+- 删除技术时保守缩减同条目 bullet 的技术列表；唯一技术/无法安全缩减原句保留并出回执；更新引用/hash/coverage，重复删除不增加版本。
+- 实测 write_draft 和模型改写的 edit_resume 均经过 resume_writer → career_messages('resume-write')，已加载新三条规则。
+- 24 项新回归通过；全量 2331 项（2329 通过、2 项既有跳过、0 失败），116.141 秒。8 个相关 Python 文件 Ruff 与 git diff --check 通过。
+- 6 个 skill 文件哈希未变，原 SYSTEM_PROMPT 字符串未改；差异与下批移出候选详见 batch18c-report.md。
 
 ## 未完成
-本轮授权的本地修复和离线验证已完成；真实模型的新行为尚未重跑，未 commit / push / 部署。
+授权的本地实现与离线验证已完成。真实模型命中率/流程选择没有回放；未 commit、push 或部署。
 
 ## 失败做法
-- 只凭项目发生变化就返回 ok，会掩盖用户要求新增但未写入的经历。
-- 上轮 fixture 措辞与真实稿件不同，漏掉「并可」和空泛 agent 能力结尾；必须保留真实原句回归。
-- 仅提示遗漏数量不能阻止回复声称功能已写入；需明确列出未覆盖事实。
-- 首轮全量仅旧回执字典严格相等断言失败；已更新实际 diff 契约检查，保留不得重写和保存次数等断言。
+- 将 skill 当业务工具计数或先执行写稿再加载，会浪费预算/导致同消息 hint 误判。
+- 原 batch18b 的“删技术后正文逐字不变”断言不再符合本批要求；已改成只删目标列表成员，同时保留保存、撤销与其他正文断言。
+- 指定虚拟环境没有 Ruff 模块，改用本机 /opt/homebrew/bin/ruff。
 
 ## 关键决策与理由
-- 新增经历统一转 write_draft，避免局部编辑默默重写无关条目；保留事实供同轮继续调用。
-- 技术清单只在已完整被技术栈覆盖时删除，具体动作继续留正文。单纯技术栈增删仍逐字保留已有要点，防止轮 1 数据丢失回归。
-- 原模型参数没有保存在 checkpoint；旧版离线复现指令只证明同类缺陷，不冒充原始调用。
+- 不并发修改业务状态；多 tool_calls 共享一轮模型调用并返回全部 ID。
+- 本地正文由系统提示明确授权为可信指令，不经 untrusted_data/资料字段清理；未知 name 严格拒绝。
+- 删除只改可识别列表，不调用模型；保留复合事实，不把删后的短句当成全量覆盖证明。
+- write_draft 尚无代码生成的 document_changes；日期/角色更正并非全部能进入 correction_applied 快捷路径，已如实记入报告。
 
 ## 当前状态
-基线 HEAD 88f777e；本轮改动未提交，开场两个未跟踪 prompt 文件保留。`batch18b-report.md` 末尾「修复轮 2」含根因、历史证据和验证。原回放库未改写且保持 gitignore。最终日志 `/private/tmp/huhua-b18b-round2-final.log`，无本轮运行中的测试/服务。
+分支 batch18b，HEAD 1c5855e，本批未提交。开场已有 flows/、resume-write 修改及 3 个 prompt 文件保留。本批增加 flow_skills.py、test_batch18c.py 和报告。旧交接全文追加到 mmr-archive.md。
+日志 /private/tmp/huhua-b18c-full.log；测试使用隔离临时库及离线桩，没有本轮常驻服务。
 
 ## 接手步骤
-1. 核对 git 状态及报告；原 test_batch18b.py 和修复轮 1 回归保持不变。
-2. 后续若获授权再跑真实模型，核对新增经历路由、实际正文/版本与回执，不以对话宣称代替稿件。
-3. 本地排版进程需设置上述原生库路径；不要自动提交、推送或部署。
+1. 读 batch18c-report.md 并核对 git 状态；不要把开场 skill 修改当成本批改写。
+2. 全量：DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huhua agent/.venv/bin/python" scripts/run_tests.py。
+3. 若后续授权真实模型回放，重点核对 skills 命中、同消息加载、实际新增条目回执，以及删除后的正文/版本；不要只信最终回复。

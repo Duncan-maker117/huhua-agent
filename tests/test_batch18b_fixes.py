@@ -26,6 +26,11 @@ from test_batch18b import WriterStub, collected, document  # noqa: E402
 FIXTURE = json.loads((ROOT / 'tests/fixtures/batch18b_tech_edit.json').read_text())
 INSTRUCTION = FIXTURE['instruction']
 EXPECTED = ['MCP', 'Tool Calling', 'LangChain', 'FastAPI']
+EXPECTED_BODY = [
+    '负责后端与工具编排，项目采用 MCP 与 Tool Calling 方案，实现根据用户口述直接产出简历初稿',
+    '项目使用 longchain，并通过 MCP 接入 Claude 使用',
+    '完成一个帮学生写简历的 agent',
+]
 
 
 def replay_state(instruction=INSTRUCTION):
@@ -43,7 +48,7 @@ class StackEditReplayTests(unittest.IsolatedAsyncioTestCase):
         self.measure.start()
         self.addCleanup(self.measure.stop)
 
-    async def test_real_state_record_edit_save_and_undo_preserve_body(self):
+    async def test_real_state_record_edit_save_and_undo_preserve_unrelated_body(self):
         state = replay_state()
         before = deepcopy(state)
         project = state['resume_data']['projects'][0]
@@ -60,7 +65,9 @@ class StackEditReplayTests(unittest.IsolatedAsyncioTestCase):
         current = {**working, **outcome.update}
         actual = deepcopy(current['resume_data'])
         self.assertEqual(actual['projects'][0]['tech_stack'], EXPECTED)
+        self.assertEqual(actual['projects'][0]['polished_bullets'], EXPECTED_BODY)
         actual['projects'][0]['tech_stack'] = project['tech_stack']
+        actual['projects'][0]['polished_bullets'] = project['polished_bullets']
         self.assertEqual(stable(actual), stable(before['resume_data']))
         self.assertEqual(state, before)
         old_facts = before['collected_info']['projects'][0]['facts']
@@ -71,7 +78,11 @@ class StackEditReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sanitize_fact_history(current)['resume_data'], current['resume_data'])
         self.assertEqual(restore_payload(current)['resume_data'], before['resume_data'])
         iid = project['item_id']
-        self.assertEqual(current['resume_meta']['bullets'][iid], before['resume_meta']['bullets'][iid])
+        records = current['resume_meta']['bullets'][iid]
+        self.assertEqual(records[1:], before['resume_meta']['bullets'][iid][1:])
+        self.assertEqual(records[0]['text_hash'], text_hash(EXPECTED_BODY[0]))
+        self.assertEqual(records[0]['fact_ids'], before['resume_meta']['bullets'][iid][0]['fact_ids'])
+        self.assertEqual(records[0]['coverage_fact_ids'], [])
         self.assertEqual([row['text_hash'] for row in current['resume_meta']['tech_stack'][iid]],
                          [text_hash(name) for name in EXPECTED])
         # Exercise the canonical save sanitizer too, in the runner's temporary DB.
@@ -119,7 +130,7 @@ class StackEditReplayTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(outcome.result['status'], 'ok', outcome.result)
         self.assertEqual(outcome.update['resume_data']['projects'][0]['tech_stack'], EXPECTED)
         self.assertEqual(outcome.update['resume_data']['projects'][0]['polished_bullets'],
-                         state['resume_data']['projects'][0]['polished_bullets'])
+                         EXPECTED_BODY)
 
     async def test_removal_record_facts_never_deletes_compound_fact(self):
         state = replay_state('给那个项目的技术栈去掉记忆。')
@@ -132,7 +143,7 @@ class StackEditReplayTests(unittest.IsolatedAsyncioTestCase):
         current = {**state, **edited.update}
         self.assertEqual(current['collected_info'], before['collected_info'])
         self.assertEqual(sanitize_fact_history(current)['resume_data']['projects'][0]['polished_bullets'],
-                         before['resume_data']['projects'][0]['polished_bullets'])
+                         EXPECTED_BODY)
         self.assertEqual(current['resume_data']['projects'][0]['tech_stack'], ['MCP', 'Tool Calling', 'LangChain'])
 
     async def test_stack_limit_failure_keeps_all_existing_fields(self):
@@ -158,7 +169,7 @@ class StackEditReplayTests(unittest.IsolatedAsyncioTestCase):
         outcome = await graph._evaluating_turn_node(state, WriterStub())
         self.assertEqual(outcome['resume_data']['projects'][0]['tech_stack'], EXPECTED)
         self.assertEqual(outcome['resume_data']['projects'][0]['polished_bullets'],
-                         state['resume_data']['projects'][0]['polished_bullets'])
+                         EXPECTED_BODY)
 
 
 class StackTargetAndDeltaTests(unittest.TestCase):
@@ -197,8 +208,11 @@ class StackTargetAndDeltaTests(unittest.TestCase):
         edit = parse_stack_edit(state['resume_data'], '给那个项目的技术栈加上 longchain，去掉记忆。')
         data, meta = apply_stack_edit(state['resume_data'], state['resume_meta'], state['collected_info'], edit)
         self.assertEqual(data['projects'][0]['tech_stack'], ['MCP', 'Tool Calling', 'LangChain', 'Legacy SDK'])
-        self.assertEqual(data['projects'][0]['polished_bullets'], project['polished_bullets'])
-        self.assertEqual(meta['bullets'], state['resume_meta']['bullets'])
+        self.assertEqual(data['projects'][0]['polished_bullets'], EXPECTED_BODY)
+        iid = project['item_id']
+        self.assertEqual(meta['bullets'][iid][1:], state['resume_meta']['bullets'][iid][1:])
+        self.assertEqual(meta['bullets'][iid][0]['text_hash'], text_hash(EXPECTED_BODY[0]))
+        self.assertEqual(meta['bullets'][iid][0]['fact_ids'], state['resume_meta']['bullets'][iid][0]['fact_ids'])
 
     def test_invalid_addition_does_not_partially_apply_removal(self):
         edit = parse_stack_edit(replay_state()['resume_data'], '给那个项目的技术栈加上一个还没确定的框架，去掉记忆。')

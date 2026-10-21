@@ -14,6 +14,7 @@ from uuid import uuid4
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from app.agents.flow_skills import FLOW_SKILLS, FlowSkillName
 from app.services.ask_user import AskUser, is_closed, question_dimension
 from app.services.model_privacy import ContactRedactor
 from app.services.profile_tools import ReadProfile, UseProfileItems
@@ -48,6 +49,7 @@ class ToolContext:
     recorded_sources: set[str] = field(default_factory=set)
     corrected_sources: set[str] = field(default_factory=set)
     jd_sources: set[str] = field(default_factory=set)
+    loaded_skills: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,10 @@ class NoArgs(BaseModel):
 
 class SourceArgs(NoArgs):
     source_id: str = Field(min_length=1, max_length=128)
+
+
+class SkillArgs(NoArgs):
+    name: FlowSkillName
 
 
 class CompanyArgs(NoArgs):
@@ -196,7 +202,10 @@ def _register(name, args_model, description, progress):
             if name == 'edit_resume' and outcome.result.get('status') not in {'ok', 'partial', 'unchanged'}:
                 # A failed edit cannot publish a draft, metadata or fact patch.
                 outcome.update = {}
-            outcome.result = _safe_result(outcome.result, state, outcome.update, name)
+            # Repository instructions must retain literal tool/field names and
+            # must not pass through the candidate-data sanitizer.
+            if name != 'use_skill':
+                outcome.result = _safe_result(outcome.result, state, outcome.update, name)
             completed = outcome.result.get("status") in {"ok", "partial", "unchanged"}
             await status("completed", "处理完成" if completed else "本次处理未完成，请查看结果")
             outcome.events = [*events, *outcome.events]
@@ -217,6 +226,14 @@ def tool_schemas() -> list[dict]:
 async def execute_tool(name: str, state: dict, args: dict, ctx: ToolContext) -> ToolOutcome:
     spec = TOOLS.get(name)
     return await spec.handler(state, args, ctx) if spec else _error("unknown_tool")
+
+
+@_register("use_skill", SkillArgs, "加载对应场景的可信流程；与首个业务工具同轮调用，不占业务工具次数。", "正在查看做法…")
+async def use_skill(state, args, ctx):
+    if args.name in ctx.loaded_skills:
+        return ToolOutcome({'status': 'ok', 'name': args.name, 'message': '已加载'})
+    ctx.loaded_skills.append(args.name)
+    return ToolOutcome({'status': 'ok', 'name': args.name, 'body': FLOW_SKILLS[args.name].body})
 
 
 @_register("read_profile", ReadProfile, "读取本账号的档案目录，不自动采用。", "正在读取档案…")
@@ -334,7 +351,8 @@ async def record_facts(state, args, ctx):
         return ToolOutcome({"status": "ok", "collected_info": collected}, update)
     from app.services.tech_stack import parse_stack_edit, record_stack_edit
     tech_text = _candidate_evidence(text)
-    tech_edit = parse_stack_edit(state.get('resume_data') or {}, tech_text)
+    tech_edit = parse_stack_edit(state.get('resume_data') or {}, tech_text,
+                                excluded=(state.get('resume_meta') or {}).get('tech_stack_excluded'))
     if tech_edit:
         if tech_edit.get('error'):
             return ToolOutcome({'status': 'insufficient', 'message': tech_edit['error']})
@@ -944,25 +962,32 @@ async def edit_resume(state, args, ctx):
     from app.agents.resume_graph import _candidate_source_allowed
     literal = (_candidate_evidence(source.content) if source and isinstance(source.content, str)
                and _candidate_source_allowed(source) else '')
-    tech_edit = parse_stack_edit(data, literal)
+    tech_edit = parse_stack_edit(data, literal,
+                                excluded=(state.get('resume_meta') or {}).get('tech_stack_excluded'))
     if tech_edit:
+        def receipt(outcome):
+            if 'tech-stack' not in ctx.loaded_skills:
+                outcome.result['hint'] = "先 use_skill('tech-stack')"
+            return outcome
         if tech_edit.get('error'):
-            return ToolOutcome({'status': 'insufficient', 'message': tech_edit['error']})
+            return receipt(ToolOutcome({'status': 'insufficient', 'message': tech_edit['error']}))
         facts = item_facts(state.get('collected_info') or {}, tech_edit)
         if tech_edit['op'] in {'add', 'update'} and any(not supporting_ids(name, facts) for name in tech_edit['names']):
             recorded = await record_facts(state, {'source_id': 'current'}, ctx)
             if recorded.result.get('status') not in {'ok', 'unchanged'}:
-                return recorded
+                return receipt(recorded)
             state = {**state, **recorded.update}
         try:
             update = await stack_edit_update(state, literal, tech_edit)
         except ValueError as exc:
-            return ToolOutcome({'status': 'insufficient', 'code': str(exc),
+            return receipt(ToolOutcome({'status': 'insufficient', 'code': str(exc),
                                 'message': '技术栈超过 8 项，未修改稿件。' if str(exc) == 'tech_stack_limit'
-                                else '新增技术没有对应的用户事实，未修改稿件。'})
+                                else '新增技术没有对应的用户事实，未修改稿件。'}))
         if 'collected_info' in state:
             update['collected_info'] = state['collected_info']
-        return _document_outcome(update)
+        outcome = _document_outcome(update)
+        outcome.result['tech_stack_body_receipt'] = update.get('tech_stack_body_receipt', [])
+        return receipt(outcome)
     if source and (source.id or "current") in ctx.corrected_sources:
         return ToolOutcome({"status": "unchanged", "correction_applied": True})
     from app.services.fact_corrections import correction_pairs
@@ -977,6 +1002,7 @@ async def edit_resume(state, args, ctx):
         return ToolOutcome({"status": "ok", "restored": True, "version_id": update["version_id"]}, update)
     if pending := _new_experiences_for_edit(state, literal, args.instruction, ctx):
         return ToolOutcome({'status': 'insufficient', 'code': 'new_experience_requires_write_draft',
+                            **({'hint': "先 use_skill('add-experience')"} if 'add-experience' not in ctx.loaded_skills else {}),
                             'changed': False, 'pending_experiences': pending, 'next_tool': 'write_draft',
                             'message': '新经历已记录，但尚未写入稿件；请调用 write_draft 纳入这些经历，不能声称已新增。'})
     scope, targets = infer_edit_scope(data, args.instruction, state.get("collected_info"))

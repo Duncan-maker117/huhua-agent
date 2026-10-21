@@ -116,7 +116,7 @@ class OrchestratorToolsTest(unittest.IsolatedAsyncioTestCase):
                 self.assertNotIn('future_diagnostic', outcome.update)
 
     async def test_registry_and_source_only_strict_parameters(self):
-        self.assertEqual(set(tools.TOOLS), {"read_profile", "use_profile_items", "read_jd", "search_company",
+        self.assertEqual(set(tools.TOOLS), {"use_skill", "read_profile", "use_profile_items", "read_jd", "search_company",
             "record_facts", "ask_user", "propose_plan", "write_draft", "edit_resume", "check_layout"})
         schemas = {row["function"]["name"]: row["function"]["parameters"] for row in tools.tool_schemas()}
         for name in ("record_facts", "read_jd"):

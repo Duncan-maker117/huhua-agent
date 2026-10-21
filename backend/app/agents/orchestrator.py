@@ -15,6 +15,7 @@ from langgraph.graph.message import add_messages
 from openai import AsyncOpenAI
 from pydantic import ValidationError
 
+from app.agents.flow_skills import FLOW_SKILLS, skill_catalog
 from app.agents.orchestrator_context import OrchestratorSettings, input_context, project_tool_result
 from app.agents.orchestrator_spike import (
     ModelReply, SpikeProtocolError, TOKEN_FIELDS as SPIKE_TOKEN_FIELDS, thinking_body, validate_history,
@@ -47,8 +48,10 @@ tech_stack_receipt 是当前稿件技术栈的实际结果；别名按规范名�
 已写稿件以右侧最终保存的版本为准，不在保存完成前宣称已永久保存。只有问题工具可以生成问题卡，不从正文伪造卡片。"""
 
 DSML_MARKER = "<｜｜DSML｜｜"
+SYSTEM_PROMPT += "\n\n" + skill_catalog(FLOW_SKILLS)
 
 _PROGRESS = {
+    "use_skill": "正在查看做法…",
     "read_profile": "正在读取已有经历…", "use_profile_items": "正在选用相关经历…",
     "read_jd": "正在读岗位…", "search_company": "正在查询公司资料…",
     "record_facts": "正在记录你的经历…", "ask_user": "正在整理补充问题…",
@@ -78,7 +81,7 @@ class OrchestratorModel:
 
     async def complete(self, messages, *, mode, allow_tools, on_delta):
         kwargs = dict(model=self.model, messages=messages, tools=self.schemas,
-                      tool_choice="auto" if allow_tools else "none", parallel_tool_calls=False,
+                      tool_choice="auto" if allow_tools else "none", parallel_tool_calls=True,
                       stream=True, stream_options={"include_usage": True},
                       extra_body=thinking_body(mode, str(self.client.base_url)))
         if mode == "off":
@@ -409,11 +412,15 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
             if not (message.get("content") or "").strip() and not ("".join(parts) + public_buffer).strip():
                 status = "unavailable"
             break
-        for call in calls:
+        # Load same-message instructions first, even if the provider lists them
+        # after a write/stop tool. Stateful business tools remain sequential.
+        for call in sorted(calls, key=lambda c: (c.get("function") or {}).get("name") != "use_skill"):
             name = (call.get("function") or {}).get("name", "")
+            is_skill = name == "use_skill"
             result = {"status": "error", "code": "tool_budget_exceeded" if steps >= MAX_TOOL_STEPS else "turn_stopped"}
-            if steps < MAX_TOOL_STEPS and not stopped:
-                steps += 1
+            if is_skill or (steps < MAX_TOOL_STEPS and not stopped):
+                if not is_skill:
+                    steps += 1
                 tool_began = perf_counter()
                 automatic_start = len(ctx.automatic_tools)
                 spec = registry.get(name)
@@ -423,10 +430,10 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                 try:
                     if spec is None:
                         raise ValueError("unknown_tool")
-                    if pending_followup and name != "ask_user":
+                    if pending_followup and name not in {"ask_user", "use_skill"}:
                         raise ValueError("draft_followup_only")
                     args = spec.args_model.model_validate_json(call["function"]["arguments"])
-                    if pending_followup:
+                    if pending_followup and name == "ask_user":
                         # A model cannot replace the deterministic heading card
                         # with a different subject or a depth question.
                         args = spec.args_model.model_validate({"card": pending_followup})
@@ -445,7 +452,9 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                     if not isinstance(outcome.result, dict) or not isinstance(outcome.update, dict) or not isinstance(outcome.events, list):
                         raise TypeError("invalid_tool_outcome")
                     await apply_outcome(outcome)
-                    result, stopped = outcome.result, outcome.stop
+                    result = outcome.result
+                    if not is_skill:
+                        stopped = outcome.stop
                     if name == "use_profile_items" and result.get("status") == "ok":
                         imported.extend(n for n in result.get("imported") or [] if n not in imported)
                     if name == "write_draft" and "resume_data" in outcome.update:
@@ -467,17 +476,19 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
                 except Exception as exc:
                     result = {"status": "error", "code": "tool_error", "error_type": type(exc).__name__}
                 nested_seconds = sum(row["seconds"] for row in ctx.automatic_tools[automatic_start:])
-                tool_turns.append({"name": name if spec else "unknown_tool",
-                                   "seconds": round(max(0, perf_counter() - tool_began - nested_seconds), 4),
-                                   "status": result.get("status"), **({"code": result["code"]} if result.get("code") else {})})
-                if pending_followup and name != "write_draft":
+                if not is_skill:
+                    tool_turns.append({"name": name if spec else "unknown_tool",
+                                       "seconds": round(max(0, perf_counter() - tool_began - nested_seconds), 4),
+                                       "status": result.get("status"), **({"code": result["code"]} if result.get("code") else {})})
+                if pending_followup and name not in {"write_draft", "use_skill"}:
                     stopped = True
                 if spec:
                     emit({"type": "tool_status", "node": "orchestrator", "tool": name, "status": "completed",
                           "message": label.removeprefix("正在").rstrip("…") + (
                               "：处理完成" if result.get("status") == "ok" else "：已返回结果")})
             messages.append({"role": "tool", "tool_call_id": call["id"],
-                             "content": _safe_json({"untrusted_data": project_tool_result(name, result, privacy)}, privacy)})
+                             "content": _safe_json(result if is_skill else {
+                                 "untrusted_data": project_tool_result(name, result, privacy)}, privacy)})
     await finish_followup()
     publish_model(contact_stream.finish(), finish=True)
     if status != "completed":
@@ -498,7 +509,7 @@ async def run_orchestrator(state, model, *, registry, llm=None, emit=None, timeo
              if turns and all(row["usage"].get(key) is not None for row in turns) else None for key in TOKEN_FIELDS}
     metrics = {"model_calls": len(turns), "tool_steps": steps, "seconds": round(perf_counter() - started, 4),
                "fallback": retried, "status": status, "usage": usage, "turns": turns, "final_mode": final_mode,
-               "tools": [*tool_turns, *ctx.automatic_tools]}
+               "tools": [*tool_turns, *ctx.automatic_tools], "skills": list(ctx.loaded_skills)}
     logger.info("orchestrator_turn %s", json.dumps(metrics))
     final = AIMessage(content="".join(parts), id=reply_id, additional_kwargs={**final_metadata, "orchestrator": metrics})
     update["messages"] = add_messages(update.get("messages") or [], [final])

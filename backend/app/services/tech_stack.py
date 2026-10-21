@@ -86,7 +86,7 @@ def clean_stack_prose(text: str, stack: list[str]) -> str:
         r'(^|[，,；;。\n])\s*(?:并且|并|且|同时|以及|还)?\s*'
         r'(?:(?:(?:这个|该|本)?项目)?(?:使用|采用|用了|用到)(?:了)?\s*|(?:技术栈|技术|工具|框架)\s*[:：]\s*|(?=' + name + '))'
         + name + r'(?:\s*(?:[、,，/]|以及|和|与|及|\s)\s*' + name + r')*'
-        r'\s*(?:方案|技术|框架|工具|搭建\s*(?:agent|智能体)\s*能力)?\s*'
+        r'\s*(?:等)?\s*(?:技术栈|技术方案|方案|技术|框架|工具|搭建\s*(?:agent|智能体)\s*能力)?\s*'
         r'(?=$|[，,、；;。\n]|(?:并且|并|且|同时|以及|还)(?:可|能够|能)?(?:通过|用|实现|负责|完成|接入))', re.I)
     # The delimiter belongs to the remaining prose; no concrete use is matched.
     def remove(match):
@@ -309,10 +309,15 @@ def _edit_target(rows, instruction: str):
     return [row for row in rows if matches(row)] or [row for row in rows if matches(row, True)]
 
 
-def parse_stack_edit(data: dict, instruction: str) -> dict | None:
+def parse_stack_edit(data: dict, instruction: str, *, excluded: dict | None = None) -> dict | None:
     """Parse additions/removals as one bounded edit, without re-extracting facts."""
     rows = [(section, index, item) for section in SECTIONS
             for index, item in enumerate(data.get(section) or []) if not item.get('hidden')]
+    if excluded:
+        # Previously removed names can identify a retry without re-adding them.
+        rows = [(section, index, {**item, 'tech_stack': normalize_stack_unbounded([
+            *(item.get('tech_stack') or []), *(excluded.get(item.get('item_id')) or [])])})
+            for section, index, item in rows]
     if not rows:
         return None
     removal = re.search(r'去掉|删掉|删除|移除', instruction)
@@ -397,7 +402,70 @@ def record_stack_edit(collected: dict, edit: dict, quote: str, turn_id: str) -> 
     return result
 
 
-def apply_stack_edit(data: dict, meta: dict, collected: dict, edit: dict) -> tuple[dict, dict]:
+def remove_stack_mentions(text: str, stack: list[str], removed: set[str]) -> str:
+    """Delete list members only; a sole tool or a coupled action stays verbatim."""
+    names = normalize_stack_unbounded(stack)
+    variants = {variant: name for name in names
+                for variant in [name, *(key for key, value in ALIASES.items() if value == name)]}
+    if not variants:
+        return text
+    atom = r'(?:' + '|'.join(re.escape(v) for v in sorted(variants, key=len, reverse=True)) + r')(?![A-Za-z0-9_+#])'
+    separator = r'\s*(?:[、,，/]|以及|和|与|及)\s*'
+    listing = re.compile(
+        r'(?P<prefix>(?:基于|通过|采用|使用|用了|用到|借助|用)\s*|(?:技术栈|技术|工具|框架)\s*[:：]\s*|^)'
+        r'(?P<names>' + atom + r'(?:' + separator + atom + r')+)'
+        # Do not erase a member of a comparison/dependency (e.g. A 与 B 之间).
+        r'(?=\s*(?:$|[，,；;。\n]|方案|技术|框架|工具|搭建|实现|构建|开发|编写|完成|接入|调用|支持|处理|进行))', re.I)
+
+    def replace(match):
+        tokens = re.findall(atom, match['names'], re.I)
+        kept = [token for token in tokens if normalize_name(token).casefold() not in removed]
+        if not kept or len(kept) == len(tokens):
+            return match[0]
+        joiner = ' 与 ' if re.search(r'以及|和|与|及', match['names']) else '、'
+        body = ('、'.join(kept[:-1]) + joiner + kept[-1]) if len(kept) > 1 else kept[0]
+        return match['prefix'] + body
+
+    return listing.sub(replace, text)
+
+
+def _remove_item_stack_mentions(item, meta, facts, old_stack, removed, receipts):
+    from copy import deepcopy
+    from app.services.resume_versions import text_hash
+    iid = item.get('item_id')
+    field = 'polished_bullets' if 'polished_bullets' in item else 'bullets'
+    records = meta.get('bullets', {}).get(iid, [])
+    by_id = {f['id']: f for f in facts if f.get('id') and f.get('status', 'active') == 'active'}
+    citations, body = [], []
+    for index, line in enumerate(item.get(field) or []):
+        cleaned = remove_stack_mentions(line, old_stack, removed)
+        record = deepcopy(records[index]) if index < len(records) else {}
+        if cleaned != line and record:
+            if record.get('text_hash') != text_hash(line):
+                record = {}
+            else:
+                # Keep compound source facts, but never claim full coverage after
+                # deleting one component. Pure removed-tech citations fall away.
+                record['fact_ids'] = [fid for fid in record.get('fact_ids', []) if fid in by_id
+                    and not ((names := pure_stack(by_id[fid]['text'], bare=True))
+                             and all(name.casefold() in removed for name in names))]
+                record['coverage_fact_ids'] = []
+                record['text_hash'] = text_hash(cleaned)
+        body.append(cleaned)
+        citations.append(record)
+        mentioned = [name for name in sorted(removed) if _pattern(name).search(line)]
+        if mentioned:
+            retained = [name for name in mentioned if _pattern(name).search(cleaned)]
+            receipts.append({'name': item.get('name') or item.get('company') or '', 'bullet': index + 1,
+                'removed': [name for name in mentioned if name not in retained], 'retained': retained,
+                'message': ('保留仍提及该技术的原句：它是唯一技术或不属于可安全删减的列举，需确认改写。'
+                            if retained else '已同步删除要点中列举的技术，保留其余内容。')})
+    if body != (item.get(field) or []):
+        item[field] = body
+        meta.setdefault('bullets', {})[iid] = citations
+
+
+def apply_stack_edit(data: dict, meta: dict, collected: dict, edit: dict, *, body_receipt=None) -> tuple[dict, dict]:
     from copy import deepcopy
     from app.services.resume_versions import text_hash
     output, metadata = deepcopy(data), deepcopy(meta)
@@ -424,7 +492,10 @@ def apply_stack_edit(data: dict, meta: dict, collected: dict, edit: dict) -> tup
         item['tech_stack'] = stack
     else:
         item.pop('tech_stack', None)
-    # A stack edit never reprojects or rewrites existing body text or evidence.
+    if removed:
+        _remove_item_stack_mentions(item, metadata, facts,
+            data[edit['section']][edit['index']].get('tech_stack') or [], removed,
+            body_receipt if body_receipt is not None else [])
     return output, metadata
 
 
@@ -444,8 +515,9 @@ async def stack_edit_update(state: dict, instruction: str, edit: dict) -> dict:
     from app.services.resume_capacity import measure_rendered_pages
     from app.services.resume_review import resume_to_text
     from app.services.resume_versions import prepare_version
+    body_receipt = []
     data, meta = apply_stack_edit(state['resume_data'], state.get('resume_meta') or {},
-                                 state.get('collected_info') or {}, edit)
+                                 state.get('collected_info') or {}, edit, body_receipt=body_receipt)
     from app.services.fact_coverage import ensure_fact_coverage
     ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints_for_turn(state, instruction))
@@ -454,4 +526,5 @@ async def stack_edit_update(state: dict, instruction: str, edit: dict) -> dict:
     summary = ['已更新技术栈'] if result['changed'] else ['技术栈未变化']
     result['resume_meta'].update(page_check=measurement, change_summary=summary)
     result.update(stage='EVALUATING', resume_draft=resume_to_text(data), change_summary=summary, page_check=measurement)
+    result['tech_stack_body_receipt'] = body_receipt
     return result

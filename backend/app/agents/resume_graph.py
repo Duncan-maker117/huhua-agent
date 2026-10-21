@@ -3761,8 +3761,3 @@ async def _stream_agent_impl(
         fresh = key in fresh_replies and emitted_any and not reply.startswith("\n")
         yield ("\n\n" + reply) if fresh else reply
         emitted_any = True
-    # Only this turn's final metadata, after the save gate; history omits hints.
-    from app.agents.next_hint import filter_next_hint
-    if turn_replies and (hint := filter_next_hint(
-            turn_replies[-1].additional_kwargs.get("next_hint"), has_card=bool(pending_card(state.values)))):
-        yield {"type": "next_hint", "next_hint": hint}

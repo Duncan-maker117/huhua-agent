@@ -156,7 +156,6 @@
   }
   async function openConversation(id, options = {}) {
     if (!canNavigate()) return false;
-    resetInputHint();
     const turn = ++switchRequest;
     setBusy(true);
     setStatus('正在读取对话及简历…');
@@ -239,7 +238,6 @@
   }
   async function createConversation() {
     if (creating || !canNavigate()) return false;
-    resetInputHint();
     creating = true;
     const turn = ++switchRequest;
     setBusy(true);

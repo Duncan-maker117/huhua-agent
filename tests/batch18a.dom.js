@@ -5,7 +5,6 @@ const vm = require('node:vm');
 const path = require('node:path');
 const {fixture, tick} = require('./resume_embedded.dom.js');
 const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
-const hint = '帮我换成简约模板';
 const warning = '这份简历属于另一个账号。请退出当前账号，用生成它的邮箱登录后再打开此链接。';
 const reply = (body, status = 200) => ({ok: status < 400, status, headers: {get() {}}, json: async () => body});
 const text = node => [node.textContent, ...node.children.map(text)].join('|');
@@ -34,55 +33,6 @@ function chatFixture() {
   vm.runInNewContext(between('const emptyStateEl =', 'function renderAssistant('), f.context);
   vm.runInNewContext(between("inputEl.addEventListener('input'", '// A chip selects'), f.context);
   return f;
-}
-
-async function hintCheck() {
-  const f = chatFixture(), input = f.ids.get('input');
-  vm.runInNewContext(between('async function send(', 'const canvasState ='), f.context);
-  const defaults = input.placeholder;
-  let calls = 0, frames = [{content:'公开回复'}, {type:'next_hint',next_hint:hint}];
-  f.context.fetch = async () => {
-    calls++;
-    assert.equal(input.placeholder, defaults, 'sending clears the previous hint');
-    let read = false;
-    const value = new TextEncoder().encode(frames.map(frame => 'data: ' + JSON.stringify(frame) + '\n\n').join('') + 'data: [DONE]\n\n');
-    return {ok:true, body:{getReader:()=>({read:async()=>read ? {done:true} : (read=true,{done:false,value}),cancel:async()=>{}})}};
-  };
-  f.context.receiveInputHint(hint);
-  assert.equal(input.placeholder, hint + ' · Tab 采用');
-  assert.equal(await f.context.send('测试'), true, 'actual send handler consumes hint SSE');
-  assert.equal(input.placeholder, hint + ' · Tab 采用');
-  const key = options => { let prevented = false; for (const fn of input.handlers.keydown) fn({key:'Tab', preventDefault(){prevented=true;},...options}); return prevented; };
-  assert.equal(key({shiftKey:true}), false);
-  assert.equal(key({isComposing:true}), false);
-  assert.equal(key({}), true);
-  assert.equal(input.value, hint);
-  assert.deepEqual(f.selection, [hint.length,hint.length]);
-  assert.equal(calls, 1, 'Tab never sends');
-  assert.equal(input.placeholder, defaults);
-  assert.equal(key({}), false, 'nonempty Tab keeps native behavior');
-  f.context.receiveInputHint('补充一下这段实习的具体成果');
-  assert.equal(input.placeholder, defaults, 'incoming hint never overwrites a draft');
-  input.value = ''; f.context.receiveInputHint(hint);
-  input.value = '我'; for (const fn of input.handlers.input) fn();
-  input.value = ''; for (const fn of input.handlers.input) fn();
-  assert.equal(input.placeholder, defaults, 'deleting typed text does not revive a hint');
-  f.mobile = true; f.context.receiveInputHint(hint); f.fire('resize', {});
-  assert.equal(input.placeholder, hint);
-  f.context.resetInputHint(); assert.equal(input.placeholder, '贴 JD，或说说你的经历');
-  f.mobile = false; f.fire('resize', {});
-  frames = [{type:'next_hint',next_hint:hint}, {error:'保存失败'}];
-  assert.equal(await f.context.send('重试'), false);
-  assert.equal(input.placeholder, defaults, 'failed stream cannot publish a hint');
-  frames = [{type:'next_hint',next_hint:hint}];
-  const originalFetch = f.context.fetch;
-  f.context.fetch = async (...args) => {
-    const result = await originalFetch(...args);
-    f.context.currentTurn.cancelPromise = Promise.resolve().then(() => { f.context.currentTurn.cancelled = true; });
-    return result;
-  };
-  assert.equal(await f.context.send('取消'), false);
-  assert.equal(input.placeholder, defaults, 'cancelled turn cannot leave a hint');
 }
 
 async function editorCheck() {
@@ -145,14 +95,10 @@ async function chatCheck() {
     await f.ids.get('conversation-bar').children.find(n=>n.textContent==='退出登录').click();
     assert.equal(logout[0].returnToCurrent,true);
     assert.equal(f.replaced,undefined,'failed read preserves the original URL');
-    f.context.receiveInputHint(hint);
     await f.ids.get('btn-new-chat').click(); await settle();
-    assert.ok(!f.ids.get('input').placeholder.includes('Tab 采用'), 'new conversation clears hint');
     assert.equal(f.context.SESSION_ID,'own');
-    f.context.receiveInputHint(hint);
     await f.ids.get('conversation-list').children[0].children[0].click(); await settle();
     assert.equal(f.context.SESSION_ID,'another');
-    assert.ok(!f.ids.get('input').placeholder.includes('Tab 采用'), 'switching an existing conversation clears hint');
     assert.ok(!called.some(c=>c.url.includes('/another?from=')), 'source marker is scoped to the original link');
   }
 }
@@ -189,5 +135,5 @@ async function logoutCheck() {
   assert.equal(f.context.location.href,'/chat','ordinary logout keeps existing destination');
 }
 
-({hint:hintCheck,editor:editorCheck,chat:chatCheck,logout:logoutCheck}[process.argv[2]])()
+({editor:editorCheck,chat:chatCheck,logout:logoutCheck}[process.argv[2]])()
   .then(()=>console.log('batch18a DOM checks passed')).catch(error=>{console.error(error);process.exitCode=1;});

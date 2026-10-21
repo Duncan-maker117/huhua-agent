@@ -2869,7 +2869,7 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
     if tech_edit:
         if tech_edit.get('error'):
             return {'messages': [AIMessage(content=tech_edit['error'])]}
-        if tech_edit['op'] == 'add' and tech_edit['names']:
+        if tech_edit['op'] in {'add', 'update'} and tech_edit['names']:
             # Reuse the same original-message fact intake boundary as loop.
             from app.agents.orchestrator_tools import record_facts, ToolContext
             intake = await record_facts({**state, 'resume_data': data}, {'source_id': 'current'}, ToolContext(llm=llm))

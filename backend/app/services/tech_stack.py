@@ -67,12 +67,89 @@ def _pattern(name: str):
         re.escape(v) for v in sorted(set(variants), key=len, reverse=True)) + r')(?![A-Za-z0-9_+#])', re.I)
 
 
+def normalize_prose(text: str) -> str:
+    """Replace only bounded aliases from the same table used by stack fields."""
+    pattern = re.compile(r'(?<![A-Za-z0-9_+#.])(?:' + '|'.join(
+        re.escape(key) for key in sorted(ALIASES, key=len, reverse=True)) + r')(?![A-Za-z0-9_+#])', re.I)
+    return pattern.sub(lambda match: ALIASES[match[0].casefold()], text)
+
+
+def clean_stack_prose(text: str, stack: list[str]) -> str:
+    """Remove only complete name-list clauses covered by the visible stack."""
+    text = normalize_prose(text)
+    if not stack:
+        return text
+    if (names := pure_stack(text, bare=True)) and set(names) <= set(stack):
+        return ''
+    name = '(?:' + '|'.join(re.escape(n) for n in sorted(stack, key=len, reverse=True)) + ')'
+    listing = re.compile(
+        r'(^|[，,；;。\n])\s*(?:并|且)?\s*'
+        r'(?:(?:(?:这个|该|本)?项目)?(?:使用|采用|用了|用到)(?:了)?\s*|(?:技术栈|技术|工具|框架)\s*[:：]\s*|(?=' + name + '))'
+        + name + r'(?:\s*(?:[、,，/]|以及|和|与|及|\s)\s*' + name + r')*'
+        r'\s*(?:方案|技术|框架|工具)?\s*(?=$|[，,；;。\n]|(?:并|且)(?:通过|用|实现|负责|完成|接入))')
+    # The delimiter belongs to the remaining prose; no concrete use is matched.
+    def remove(match):
+        tail = text[match.end():]
+        # A comma may continue an incompletely covered list ("MCP, Rust").
+        # Only an independently identifiable action may follow a removed list.
+        if re.match(r'^[，,]\s*[^，,；;。\n]+', tail) and not re.match(
+                r'^[，,]\s*(?:并且|并|且|同时)?\s*(?:通过|用|实现|负责|完成|接入|开发|支持|构建|整理|项目)', tail):
+            return match[0]
+        return match[1]
+    cleaned = listing.sub(remove, text)
+    if cleaned == text:
+        return text
+    cleaned = re.sub(r'([，,；;。\n])[，,；;。\n\s]+', r'\1', cleaned).strip(' ，,；;。\n')
+    cleaned = re.sub(r'^(?:并且|并|且)(?=通过|用|实现|负责|完成|接入)', '', cleaned)
+    return cleaned + ('。' if cleaned and text.endswith('。') else '')
+
+
+def clean_item_prose(item: dict, facts: list[dict], meta: dict, *, indices=None) -> None:
+    from copy import deepcopy
+    from app.services.fact_coverage import text_covered
+    from app.services.resume_versions import text_hash
+    iid = item.get('item_id')
+    field = 'polished_bullets' if 'polished_bullets' in item else 'bullets'
+    records = meta.get('bullets', {}).get(iid, [])
+    by_id = {f['id']: f for f in facts if f.get('id') and f.get('status', 'active') == 'active'}
+    kept, citations = [], []
+    for index, line in enumerate(item.get(field) or []):
+        cleaned = clean_stack_prose(line, item.get('tech_stack') or []) if indices is None or index in indices else line
+        if not cleaned:
+            continue
+        record = deepcopy(records[index]) if index < len(records) else {}
+        if cleaned != line and record:
+            if record.get('text_hash') != text_hash(line):
+                record = {}
+            else:
+                # A pure list no longer supports the remaining action. Compound
+                # source facts remain citations, but lose unproved full coverage.
+                record['fact_ids'] = [fid for fid in record.get('fact_ids', []) if fid in by_id
+                                     and clean_stack_prose(by_id[fid]['text'], item.get('tech_stack') or [])]
+                record['coverage_fact_ids'] = [fid for fid in record.get('coverage_fact_ids', []) if fid in by_id
+                    and (cleaned == normalize_prose(line) or text_covered(normalize_prose(by_id[fid]['text']), [cleaned]))]
+                record['text_hash'] = text_hash(cleaned)
+        kept.append(cleaned)
+        citations.append(record)
+    if kept != (item.get(field) or []):
+        item[field] = kept
+        meta.setdefault('bullets', {})[iid] = citations
+    if indices is None and item.get('description'):
+        item['description'] = '\n'.join(cleaned for line in item['description'].splitlines()
+                                       if (cleaned := clean_stack_prose(line, item.get('tech_stack') or [])))
+
+
 def mention_position(name: str, quote: str) -> int | None:
     """Literal/alias matches only; reject negative, hypothetical and planned use."""
     for match in _pattern(name).finditer(quote):
         # A negation before a comma-separated list applies to the whole list.
         start = max(quote.rfind(mark, 0, match.start()) for mark in ('。', '；', ';', '\n')) + 1
         prefix = quote[start:match.start()]
+        # Separate edit clauses have separate polarity: removing one name does
+        # not negate an explicit addition after the comma.
+        additions = list(re.finditer(r'[，,]\s*(?:并|再|同时)?\s*(?:加上|添加|补上)\s*', prefix))
+        if additions:
+            prefix = prefix[additions[-1].end():]
         if NEGATIVE.search(prefix) or re.match(r'\s*(?:去掉|删掉|删除|移除|不用)', quote[match.end():]):
             continue
         return match.start()
@@ -151,29 +228,8 @@ def project_item_stack(item: dict, facts: list[dict], meta: dict, *, proposed=()
     cited = [f for f in active if f.get('id') in proposed_ids]
     names += [name for name in proposed if supporting_ids(name, cited)]
     field = 'polished_bullets' if 'polished_bullets' in item or ('description' in item and 'bullets' not in item) else 'bullets'
-    records = meta.setdefault('bullets', {}).get(iid, [])
-    kept, kept_records = [], []
-    for index, line in enumerate(item.get(field) or []):
-        record = records[index] if index < len(records) else {}
-        moved = pure_stack(line, bare=True)
-        if moved:
-            names += [name for name in moved if supporting_ids(name, active)]
-        else:
-            kept.append(line)
-            kept_records.append(record)
-    if kept != (item.get(field) or []):
-        item[field] = kept
-        meta['bullets'][iid] = kept_records
-    if field == 'polished_bullets' and item.get('description'):
-        lines = item['description'].splitlines()
-        kept_description = []
-        for line in lines:
-            moved = pure_stack(line, bare=True)
-            if moved:
-                names += [name for name in moved if supporting_ids(name, active)]
-            else:
-                kept_description.append(line)
-        item['description'] = '\n'.join(kept_description)
+    for line in [*(item.get(field) or []), *(item.get('description') or '').splitlines()]:
+        names += [name for name in pure_stack(line, bare=True) if supporting_ids(name, active)]
     if autofill:
         names += [name for fact in active for name in extract_stack(fact)]
     supported = {}
@@ -192,9 +248,11 @@ def project_item_stack(item: dict, facts: list[dict], meta: dict, *, proposed=()
     meta.setdefault('tech_stack', {})[iid] = [
         {'text_hash': text_hash(name), 'fact_ids': supported[name]} for name in stack]
 
+    clean_item_prose(item, active, meta)
 
-def stack_covers_fact(item: dict, records: list[dict], fact: dict) -> bool:
-    """A technology line covers a list, never the surrounding action/results."""
+
+def stack_covers_fact(item: dict, records: list[dict], fact: dict, *, bullet_records=()) -> bool:
+    """Lists live in the stack; compound facts still need a cited action body."""
     from app.services.resume_versions import text_hash
     names = pure_stack(fact.get('text', ''), bare=True)
     if not names:
@@ -202,40 +260,110 @@ def stack_covers_fact(item: dict, records: list[dict], fact: dict) -> bool:
         names = pure_stack('技术栈：' + match[1]) if match else []
     valid = {name for name, record in zip(item.get('tech_stack') or [], records)
              if record.get('text_hash') == text_hash(name) and fact['id'] in record.get('fact_ids', [])}
-    return bool(names) and set(names) <= valid
+    if names and set(names) <= valid:
+        return True
+    text = normalize_prose(fact.get('text', ''))
+    remaining = clean_stack_prose(text, sorted(valid))
+    if not remaining or remaining == text:
+        return False
+    from app.services.fact_coverage import text_covered
+    body = item.get('polished_bullets') or item.get('bullets') or []
+    cited_body = [line for line, record in zip(body, bullet_records)
+                  if record.get('text_hash') == text_hash(line) and fact['id'] in record.get('fact_ids', [])]
+    return text_covered(remaining, cited_body)
+
+
+def _edit_target(rows, instruction: str):
+    """Resolve the subject, separately from technology names in the operations."""
+    subject = re.split(r'技术栈|加上|添加|补上|去掉|删掉|删除|移除|用了|使用了|用到', instruction, maxsplit=1)[0]
+    def compact(value):
+        return re.sub(r'\s+|的', '', value).casefold()
+    named = [row for row in rows if (name := row[2].get('name') or row[2].get('company'))
+             and compact(name) in compact(subject)]
+    if named:
+        return named
+    if re.search(r'实习|工作经历|公司', subject):
+        rows = [row for row in rows if row[0] == 'work_experience']
+    elif '项目' in subject:
+        rows = [row for row in rows if row[0] == 'projects']
+    if len(rows) <= 1:
+        return rows
+    for _, _, item in rows:
+        for name in item.get('tech_stack') or []:
+            subject = _pattern(name).sub('', subject)
+    subject = re.sub(r'请|帮我|给|把|将|为|那个|这个|那段|这段|项目|工作经历|实习|经历|公司|的', ' ', subject)
+    terms = re.findall(r'[A-Za-z0-9_]+|[\u4e00-\u9fff]{2,}', subject.casefold())
+    if not terms:
+        return rows
+    def matches(row, body=False):
+        item = row[2]
+        text = item.get('name') or item.get('company') or ''
+        if body:
+            text += ' ' + ' '.join([item.get('description') or '', *(item.get('polished_bullets') or item.get('bullets') or [])])
+        return all(compact(term) in compact(text) for term in terms)
+    return [row for row in rows if matches(row)] or [row for row in rows if matches(row, True)]
 
 
 def parse_stack_edit(data: dict, instruction: str) -> dict | None:
-    """Resolve an explicit literal stack edit; ambiguity must not select all items."""
+    """Parse additions/removals as one bounded edit, without re-extracting facts."""
     rows = [(section, index, item) for section in SECTIONS
             for index, item in enumerate(data.get(section) or []) if not item.get('hidden')]
+    if not rows:
+        return None
     removal = re.search(r'去掉|删掉|删除|移除', instruction)
     addition = re.search(r'(?:技术栈\s*(?:加上|加|添加|补上|为|是|[:：])?\s*|(?:用了|使用了|用到(?:了)?)\s*)([^。；;\n]+)', instruction)
     marking = re.search(r'(?:标(?:注|一下)?|补充|加上|写上).{0,5}技术栈', instruction)
     if not removal and not addition and not marking:
         return None
-    named = [(s, i, item) for s, i, item in rows
-             if (name := item.get('name') or item.get('company')) and name.casefold() in instruction.casefold()]
-    if removal:
-        candidates = [(s, i, item) for s, i, item in named or rows
-                      if any(_pattern(name).search(instruction) for name in item.get('tech_stack') or [])
-                      or '技术栈' in instruction]
-    else:
-        candidates = named or rows
-    if len(candidates) != 1:
-        return {'error': '请指明要修改技术栈的项目或工作经历。'} if ('技术栈' in instruction or candidates) else None
-    section, index, item = candidates[0]
-    if removal:
-        names = [name for name in item.get('tech_stack') or [] if _pattern(name).search(instruction)]
-        if not names and '技术栈' in instruction:
-            names = list(item.get('tech_stack') or [])
-        if not names:
-            return None
-        return {'section': section, 'index': index, 'item_id': item.get('item_id'), 'op': 'remove', 'names': names}
-    names = pure_stack('技术栈：' + addition[1]) if addition else []
-    if not names and not marking:
+    if not removal and '技术栈' not in instruction:
+        # "新项目使用了 X 做 Y" is new experience material, not a delta on
+        # whichever document happens to exist already.
         return None
-    return {'section': section, 'index': index, 'item_id': item.get('item_id'), 'op': 'add', 'names': names}
+    # A generic delete instruction belongs here only when it names a stack term.
+    if not addition and not marking and '技术栈' not in instruction and not any(
+            _pattern(name).search(instruction) for _, _, item in rows for name in item.get('tech_stack') or []):
+        return None
+    candidates = _edit_target(rows, instruction)
+    if removal and '技术栈' not in instruction and len(candidates) > 1:
+        candidates = [row for row in candidates if any(_pattern(name).search(instruction)
+                      for name in row[2].get('tech_stack') or [])]
+    if len(candidates) != 1:
+        return {'error': '请指明要修改技术栈的项目或工作经历。'}
+    section, index, item = candidates[0]
+    added, removed = [], []
+    explicit_additions = list(re.finditer(
+        r'(?:加上|添加|补上)\s*(?:技术栈\s*)?(.+?)'
+        r'(?=[，,、\s]*(?:并|再|同时)?\s*(?:去掉|删掉|删除|移除|加上|添加|补上)|[。；;\n]|$)', instruction))
+    if explicit_additions:
+        for match in explicit_additions:
+            body = match[1].strip(' ，,、')
+            names = pure_stack('技术栈：' + body) if not NEGATIVE.search(body) else []
+            if not names:
+                return {'error': '没有识别到完整的新增技术名称，技术栈未修改。'}
+            added.extend(names)
+    elif addition:
+        body = re.split(r'(?:[，,、\s]*(?:并|再|同时)?\s*)?(?:去掉|删掉|删除|移除)', addition[1], maxsplit=1)[0]
+        body = body.strip(' ，,、')
+        removal_only = removal and body in {'', '全部', '整行'}
+        added = pure_stack('技术栈：' + body) if not removal_only and not NEGATIVE.search(body) else []
+        if not added and not marking and not removal_only:
+            return {'error': '没有识别到完整的新增技术名称，技术栈未修改。'} if '技术栈' in instruction else None
+    if removal:
+        after = re.split(r'[。；;\n]|加上|添加|补上', instruction[removal.end():], maxsplit=1)[0].strip(' ，,、')
+        before = instruction[:removal.start()].rsplit('，', 1)[-1].rsplit(',', 1)[-1]
+        requested = after or before
+        hits = [(name, match.span()) for name in item.get('tech_stack') or []
+                for match in _pattern(name).finditer(requested)]
+        removed = [name for name, (start, end) in hits if not any(
+            left <= start and end <= right and (left, right) != (start, end) for _, (left, right) in hits)]
+        if re.search(r'技术栈(?:全部|整行)?$', requested.strip()):
+            removed = list(item.get('tech_stack') or [])
+        # An unknown removal is a no-op, never permission to clear the stack.
+    if not added and not removed and not marking:
+        return {'error': '没有识别到可增删的技术名称，技术栈未修改。'} if '技术栈' in instruction else None
+    op = 'update' if added and removed else 'remove' if removed else 'add'
+    return {'section': section, 'index': index, 'item_id': item.get('item_id'), 'op': op,
+            'names': removed if op == 'remove' else added, 'remove_names': removed}
 
 
 def item_facts(collected: dict, edit: dict) -> list[dict]:
@@ -249,7 +377,7 @@ def record_stack_edit(collected: dict, edit: dict, quote: str, turn_id: str) -> 
     from copy import deepcopy
     from app.services.resume_facts import new_fact
     result = deepcopy(collected)
-    if edit.get('error') or edit['op'] != 'add' or not edit['names']:
+    if edit.get('error') or edit['op'] not in {'add', 'update'} or not edit['names']:
         return result
     owners = [item for section in ('projects', 'work_experience', 'internship')
               for item in result.get(section) or [] if item.get('item_id') == edit['item_id']]
@@ -271,23 +399,37 @@ def apply_stack_edit(data: dict, meta: dict, collected: dict, edit: dict) -> tup
     item = output[edit['section']][edit['index']]
     iid = item.get('item_id')
     excluded = metadata.setdefault('tech_stack_excluded', {}).setdefault(iid, [])
-    if edit['op'] == 'remove':
-        removed = {name.casefold() for name in edit['names']}
-        item['tech_stack'] = [name for name in item.get('tech_stack') or [] if name.casefold() not in removed]
-        excluded[:] = list(dict.fromkeys([*excluded, *sorted(removed)]))
-        old = {row.get('text_hash'): row for row in metadata.get('tech_stack', {}).get(iid, [])}
-        metadata.setdefault('tech_stack', {})[iid] = [old.get(text_hash(name), {}) for name in item['tech_stack']]
-        if not item['tech_stack']:
-            item.pop('tech_stack')
+    facts = item_facts(collected, edit)
+    added = (edit['names'] or [name for fact in facts for name in extract_stack(fact)]) if edit['op'] != 'remove' else []
+    if any(not supporting_ids(name, facts) for name in added):
+        raise ValueError('record_facts_first')
+    removed = {normalize_name(name).casefold() for name in
+               (edit['names'] if edit['op'] == 'remove' else edit.get('remove_names', []))}
+    kept = [name for name in item.get('tech_stack') or [] if name.casefold() not in removed]
+    stack = normalize_stack_unbounded([*kept, *added])
+    if len(stack) > MAX_ITEMS:
+        raise ValueError('tech_stack_limit')
+    excluded[:] = [name for name in dict.fromkeys([*excluded, *sorted(removed)])
+                   if name not in {n.casefold() for n in added}]
+    old = {row.get('text_hash'): row for row in metadata.get('tech_stack', {}).get(iid, [])}
+    metadata.setdefault('tech_stack', {})[iid] = [
+        old.get(text_hash(name), {'text_hash': text_hash(name), 'fact_ids': supporting_ids(name, facts)})
+        for name in stack]
+    if stack:
+        item['tech_stack'] = stack
     else:
-        facts = item_facts(collected, edit)
-        names = edit['names'] or [name for fact in facts for name in extract_stack(fact)]
-        if any(not supporting_ids(name, facts) for name in names):
-            raise ValueError('record_facts_first')
-        excluded[:] = [name for name in excluded if name not in {n.casefold() for n in names}]
-        item['tech_stack'] = normalize_stack([*(item.get('tech_stack') or []), *names])
-        project_item_stack(item, facts, metadata, autofill=False)
+        item.pop('tech_stack', None)
+    # A stack edit never reprojects or rewrites existing body text or evidence.
     return output, metadata
+
+
+def stack_receipt(data: dict) -> list[dict]:
+    """Describe the actual projected document, not rejected candidate prose."""
+    return [{'name': item.get('name') or item.get('company') or '',
+             'tech_stack': list(item['tech_stack']),
+             'message': '已按规范名 ' + '、'.join(item['tech_stack']) + ' 写入技术栈。'}
+            for section in SECTIONS for item in data.get(section) or []
+            if item.get('tech_stack') and not item.get('hidden')]
 
 
 async def stack_edit_update(state: dict, instruction: str, edit: dict) -> dict:
@@ -299,6 +441,8 @@ async def stack_edit_update(state: dict, instruction: str, edit: dict) -> dict:
     from app.services.resume_versions import prepare_version
     data, meta = apply_stack_edit(state['resume_data'], state.get('resume_meta') or {},
                                  state.get('collected_info') or {}, edit)
+    from app.services.fact_coverage import ensure_fact_coverage
+    ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints_for_turn(state, instruction))
     result = prepare_version(state['resume_data'], state.get('resume_meta') or {}, state.get('resume_versions') or [],
                              data, meta, label='技术栈更新')

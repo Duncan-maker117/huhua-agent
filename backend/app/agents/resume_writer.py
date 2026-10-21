@@ -105,7 +105,7 @@ violations.guard 是 JSON 诊断资料，semantic 中的失败维度和 unsuppor
 保留数量原单位与对象，不把「次」解释为调用/请求。无法安全修复就不返回该条，系统会回退为原事实文本。严格输出 RepairOutput。"""
 
 
-_TECH_CONTRACT = """项目和工作/实习的 tech_stack 是独立技术栈行，列出用户说过的技术、框架、协议或模型能力，最多8项，保持提及顺序；tech_stack_fact_ids 引用本经历支持每一项的 active facts。只可按确定性别名表修正拼写/大小写（longchain→LangChain、toolcalling/tool calling→Tool Calling、mcp→MCP），不能扩写用户未说过的技术。用户明确要求标技术栈或说项目用了哪些技术时必须填。纯技术清单放 tech_stack，不再生成“技术栈：…”或“技术：…”的 bullet；具体技术动作仍可留在要点中。"""
+_TECH_CONTRACT = """项目和工作/实习的 tech_stack 是独立技术栈行，列出用户说过的技术、框架、协议或模型能力，最多8项，保持提及顺序；tech_stack_fact_ids 引用本经历支持每一项的 active facts。只可按确定性别名表修正拼写/大小写（longchain→LangChain、toolcalling/tool calling→Tool Calling、mcp→MCP），不能扩写用户未说过的技术。用户明确要求标技术栈或说项目用了哪些技术时必须填。纯技术清单放 tech_stack，不再生成“技术栈：…”或“技术：…”的 bullet；技术栈已单独成行，要点写“用 X 做了什么”，不要单纯罗列“项目采用/使用 X、Y、Z”；正文技术名也用同一别名表的规范名，具体技术动作仍可留在要点中。"""
 _WRITE_CONTRACT += _TECH_CONTRACT
 _ONE_PASS_CONTRACT += _TECH_CONTRACT
 
@@ -1875,11 +1875,13 @@ async def _run_resume_writer(
                     output['verification_notes'].append(notice)
                 changes.append(notice)
         meta['labeled_slots'] = slot_assignments
-    from app.services.tech_stack import project_item_stack
+    from app.services.tech_stack import clean_item_prose, project_item_stack
     for section in ('projects', 'work_experience'):
         for item in output.get(section) or []:
             iid = item.get('item_id')
-            if iid in allowed and iid in items and scope != 'bullet':
+            if iid in allowed and iid in items and scope == 'bullet':
+                clean_item_prose(item, items[iid][1]['facts'], meta, indices=bullet_targets.get(iid, set()))
+            elif iid in allowed and iid in items:
                 written = writers.get(iid)
                 project_item_stack(item, items[iid][1]['facts'], meta,
                     proposed=written.tech_stack if written else (),

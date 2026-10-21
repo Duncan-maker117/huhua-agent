@@ -94,3 +94,33 @@ DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huh
 - `web/index.html`
 - `web/resume-editor.js`
 - `web/resume-workspace.js`
+
+
+## 修复轮
+
+完成日期：2026-10-21。保留 Claude 的 `LIST_ONLY`、`split_spaced` 和 `TechStackProseBoundaryTests`；原 `tests/test_batch18b.py` 无改动。本轮只做离线复现、代码修复与验证，未调用真实模型，未 commit / push / 部署。
+
+### 根因与回放证据
+
+1. **数据丢失是事实误删触发保存层清理。** 只读导出原 checkpoint：第二轮结束 `1f1cd068-4434-66c6-8008-17517aba4acb` 保留 4 项技术、3 条要点；第三轮图状态 `1f1cd068-c2f0-6500-800b-5b1394e6072f` 的稿件尚未变化，但 `record_facts` 已将整条「项目使用了 mcp 记忆 toolcalling longchain」标为 `deleted`，另录入 FastAPI。最终保存协调后的 `1f1cd068-c43c-6c42-800c-f9581b740bd2` 只剩 MCP 和 1 条要点。原 `parse_stack_edit` 只认完整经历名称，未分开项目和工作候选，且 removal 分支优先、不能执行复合增删；定位失败后 `record_facts` 继续通用模型提取，误删复合事实。`save_resume_session → protect_data → sanitize_fact_history` 随后清理失活来源及其正文引用。两次 `edit_resume insufficient` 本身没有产生正文更新。
+2. **正文缺少规范化与子句清理。** 原 `project_item_stack` 只迁移整条纯清单，无法移除混在动作要点里的「项目采用 MCP、记忆与 Tool Calling 方案」，也未把正文里的 longchain 替换成 LangChain。
+3. **误导来自 `write_draft` 的正文校验结果及上下文投影。** 第一轮 checkpoint `1f1cd067-316f-6816-8003-4b4c7c7318e0` 的 `guard_fallbacks` 为 `guard_repair_failed / unsupported_tool:LangChain`，同时稿件技术栈已经含 LangChain。`fact_guard._skill_supported` 原先未使用技术栈别名表；`_document_outcome` 会把该诊断放入 `write_draft` 工具结果，而 `orchestrator_context._items` 又未保留 `tech_stack` 和项目 `polished_bullets`。这解释了模型可见结果中的矛盾；未重跑真实模型去推测其内部原因。
+
+### 改动
+
+- 技术栈编辑按经历类型、名称子串及正文关键词确定唯一目标；一个项目与一段工作并存时，「那个项目」「简历 agent 那个项目」可直接定位项目；多项目仍有歧义即 insufficient。
+- 同一句增删作为一个事务执行，支持先加后删及先删后加。`record_facts` 只追加新增技术的原文事实，删除只记录呈现排除项；不删除包含其他技术或动作的复合事实。模糊技术栈指令不再落入通用提取；普通新经历叙述仍可进入正常事实录入。
+- 局部增删保持其他技术的次序、正文、引用和历史版本；不再调用整项投影重算。超过 8 项返回 insufficient，防止静默截断。未知删除不清空整行，删除「长期记忆」不误删另一个独立的「记忆」。`edit_resume` 的失败出口丢弃更新，阻止失败结果携带稿件/元数据/事实写回。
+- `normalize_prose` 仅用 `ALIASES` 和词边界确定性替换。写稿投影只删除已被技术栈完整覆盖的纯罗列子句，保留「通过 MCP 接入 Claude」等具体动作；整条只剩清单则删除该条。局部 bullet 重写只处理目标要点，技术栈增删保持既有要点逐字不变。
+- 清理时同步 bullet 引用、text_hash、coverage_fact_ids 和描述；覆盖检查支持同一复合事实由技术栈清单和带有效引用的正文动作共同覆盖，不能仅靠技术栈代替动作。重复投影结果幂等。
+- 正文工具来源校验复用同一别名表，保留否定、计划及名称边界检查。工具结果新增基于实际稿件的 `tech_stack_receipt`，明确说明「已按规范名 … LangChain … 写入技术栈」；压缩上下文保留技术栈和项目要点。写稿和编排提示同步说明独立技术栈行、要点写具体用法及实际结果优先。
+- 第二轮真实虚构人物状态导出为 `tests/fixtures/batch18b_tech_edit.json`，测试无需原数据库、凭据或真实模型。`evaluation/batch18b-live/` 仅只读使用并加入 `.gitignore`，不作为提交内容。
+
+### 测试数量与结果
+
+- 新增 **24 项**离线回归，覆盖真实状态 record→edit→保存回读→撤销、反复 insufficient 的逐字保留、原子增删、歧义与指代、8 项上限、失败出口、旧图路径、纯罗列与动作边界、正文别名、引用/hash/覆盖、幂等、指定 bullet 范围以及工具结果真实性。
+- batch18b 定向测试：**62 项通过，0 跳过**；日志 `/private/tmp/huhua-b18b-fix-focused.log`。
+- 指定全量命令：`DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huhua agent/.venv/bin/python" scripts/run_tests.py`。
+- 最终结果：**Ran 2291 tests in 365.965s — OK (skipped=2)**，即 **2289 通过、2 项既有私人基准材料跳过、0 失败/错误**。相对本轮基线 2267 项新增 24 项。最终日志 `/private/tmp/huhua-b18b-fix-final.log`。
+- 改动的 **10 个 Python 文件 Ruff 通过**，`git diff --check` 通过；原 `tests/test_batch18b.py` 无差异。测试脚本隔离数据库并清空模型/检索凭据，所有模型行为均为桩。
+- 本例离线验证最终技术栈为 `['MCP', 'Tool Calling', 'LangChain', 'FastAPI']`，原三条要点逐字保留。未改写原始回放数据库，未做真实模型或线上验证。

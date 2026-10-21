@@ -92,9 +92,9 @@ def _items(data, *, facts=False):
                 continue
             row = {"section": section, **_pick(item, (
                 "name", "company", "school", "role", "title", "major", "degree",
-                "start_date", "end_date", "hidden"))}
+                "start_date", "end_date", "hidden", "tech_stack"))}
             active = [f for f in item.get("facts") or [] if isinstance(f, dict) and f.get("status", "active") == "active"]
-            points = [f.get("text", "") for f in active] if facts else list(item.get("bullets") or [])
+            points = [f.get("text", "") for f in active] if facts else list(item.get("polished_bullets") or item.get("bullets") or [])
             if not points:
                 points = [item[key] for key in ("description", "summary", "highlights") if item.get(key)]
             row.update(point_count=len(points), first_sentences=_sentences(points))
@@ -140,7 +140,7 @@ def project_tool_result(name, result, privacy):
     # Decision/status fields come first so large optional diagnostics cannot crowd them out.
     projected = _pick(result, ("status", "code", "error_type", "changed", "restored", "version_id",
         "missing", "contacts_missing", "contacts_requested", "basics_complete", "imported", "message",
-        "followup", "followup_attached",
+        "followup", "followup_attached", "tech_stack_receipt",
         "uncovered", "incomplete", "rejected_count", "source_kind", "candidate_facts"))
     transforms = {"page_check": _page, "jd_info": _job, "collected_info": _facts,
                   "resume_data": _document, "plan": _plan}

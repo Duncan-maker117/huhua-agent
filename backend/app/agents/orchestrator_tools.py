@@ -191,6 +191,9 @@ def _register(name, args_model, description, progress):
             except Exception as exc:
                 # Provider/persistence errors can echo private source text.
                 outcome = _error("tool_exception", error_type=type(exc).__name__)
+            if name == 'edit_resume' and outcome.result.get('status') not in {'ok', 'partial', 'unchanged'}:
+                # A failed edit cannot publish a draft, metadata or fact patch.
+                outcome.update = {}
             outcome.result = _safe_result(outcome.result, state, outcome.update, name)
             completed = outcome.result.get("status") in {"ok", "partial", "unchanged"}
             await status("completed", "处理完成" if completed else "本次处理未完成，请查看结果")
@@ -330,11 +333,15 @@ async def record_facts(state, args, ctx):
     from app.services.tech_stack import parse_stack_edit, record_stack_edit
     tech_text = _candidate_evidence(text)
     tech_edit = parse_stack_edit(state.get('resume_data') or {}, tech_text)
-    if tech_edit and not tech_edit.get('error') and tech_edit['op'] == 'add' and tech_edit['names']:
+    if tech_edit:
+        if tech_edit.get('error'):
+            return ToolOutcome({'status': 'insufficient', 'message': tech_edit['error']})
+        # A display removal is not deletion of the multi-technology source fact.
         collected = record_stack_edit(state.get('collected_info') or {}, tech_edit, tech_text, source_id)
-        update = await _persist_intake(state, collected)
+        update = await _persist_intake(state, collected) if collected != state.get('collected_info') else {}
         ctx.recorded_sources.add(source_id)
-        return ToolOutcome({'status': 'ok', 'collected_info': collected}, update)
+        return ToolOutcome({'status': 'ok', 'collected_info': collected,
+                            'message': '技术栈编辑已识别，原事实保留；请用 edit_resume 应用到稿件。'}, update)
     from app.services.fact_corrections import correction_pairs
     pairs = correction_pairs(text, state.get("collected_info"))
     if pairs and state.get("resume_data"):
@@ -754,6 +761,7 @@ def _restore_unwritten_items(state, update, scope, targets):
 
 def _document_outcome(update):
     from app.services.resume_review import resume_to_text
+    from app.services.tech_stack import stack_receipt
     data = update["resume_data"]
     update.update(stage="EVALUATING", resume_draft=resume_to_text(data))
     diagnostic = update.get("writer_diagnostic") or {}
@@ -761,7 +769,8 @@ def _document_outcome(update):
     return ToolOutcome({"status": status, "changed": bool(update.get("changed")),
         "version_id": update.get("version_id"), "resume_data": data, "page_check": update.get("page_check"),
         "change_summary": update.get("change_summary", []), "writer_diagnostic": diagnostic,
-        "edit_contract": update.get("edit_contract", {}), "guard_fallbacks": update.get("guard_fallbacks", [])},
+        "edit_contract": update.get("edit_contract", {}), "guard_fallbacks": update.get("guard_fallbacks", []),
+        "tech_stack_receipt": stack_receipt(data)},
         # 写稿链路还返回 changed / writer_diagnostic 等诊断键；原图会忽略它们，这里只把状态字段交给编排合并。
         {key: value for key, value in update.items() if key in _state_fields()})
 
@@ -878,15 +887,17 @@ async def edit_resume(state, args, ctx):
         if tech_edit.get('error'):
             return ToolOutcome({'status': 'insufficient', 'message': tech_edit['error']})
         facts = item_facts(state.get('collected_info') or {}, tech_edit)
-        if tech_edit['op'] == 'add' and any(not supporting_ids(name, facts) for name in tech_edit['names']):
+        if tech_edit['op'] in {'add', 'update'} and any(not supporting_ids(name, facts) for name in tech_edit['names']):
             recorded = await record_facts(state, {'source_id': 'current'}, ctx)
             if recorded.result.get('status') not in {'ok', 'unchanged'}:
                 return recorded
             state = {**state, **recorded.update}
         try:
             update = await stack_edit_update(state, literal, tech_edit)
-        except ValueError:
-            return _error('record_facts_first')
+        except ValueError as exc:
+            return ToolOutcome({'status': 'insufficient', 'code': str(exc),
+                                'message': '技术栈超过 8 项，未修改稿件。' if str(exc) == 'tech_stack_limit'
+                                else '新增技术没有对应的用户事实，未修改稿件。'})
         if 'collected_info' in state:
             update['collected_info'] = state['collected_info']
         return _document_outcome(update)

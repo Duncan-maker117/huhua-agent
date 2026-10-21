@@ -120,6 +120,8 @@ async def conversation_detail(session_id: str, request: Request, response: Respo
         try:
             stored = load_conversation(owner, session_id)
         except ConversationNotFound:
+            from app.services.access_control import explain_other_account_link
+            explain_other_account_link(request, owner, session_id)
             raise HTTPException(status_code=404, detail="对话不存在或已删除") from None
         except Exception:
             logger.error("conversation metadata read failed")

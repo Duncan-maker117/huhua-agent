@@ -7,6 +7,7 @@
   const list = $('conversation-list');
   const resumeLinks = [...document.querySelectorAll('a[href="/resume"]')];
   const initialTarget = new URLSearchParams(location.search).get('session');
+  const mcpLink = new URLSearchParams(location.search).get('from') === 'mcp';
   const drafts = new Map();
   let conversations = [];
   let switchRequest = 0;
@@ -21,10 +22,18 @@
   backupButton.textContent = '下载本页恢复稿';
   backupButton.hidden = true;
   $('conversation-bar').append(backupButton);
+  const logoutButton = document.createElement('button');
+  logoutButton.type = 'button'; logoutButton.textContent = '退出登录'; logoutButton.hidden = true;
+  logoutButton.addEventListener('click', async () => {
+    try { await window.HuhuaAccount?.logout({returnToCurrent: true}); }
+    catch (error) { $('conversation-status').textContent = error.message; }
+  });
+  $('conversation-bar').append(logoutButton);
 
   function removeLocal(key) { try { localStorage.removeItem(key); } catch (_) { /* Storage may be blocked. */ } }
   function backupFor(id) { return chatBackups.get(id) || []; }
   function setStatus(message, error = false, retry = null) {
+    logoutButton.hidden = true;
     $('conversation-status').textContent = message;
     $('conversation-status').classList.toggle('error', error);
     retryAction = retry;
@@ -67,6 +76,7 @@
       const detail = body.detail;
       const error = new Error(typeof detail === 'string' ? detail : detail?.message || `暂时无法读取对话（${response.status}）`);
       error.status = response.status;
+      error.code = detail?.code;
       throw error;
     }
     return body;
@@ -146,11 +156,12 @@
   }
   async function openConversation(id, options = {}) {
     if (!canNavigate()) return false;
+    resetInputHint();
     const turn = ++switchRequest;
     setBusy(true);
     setStatus('正在读取对话及简历…');
     try {
-      const body = await request(`${endpoint}/${encodeURIComponent(id)}`);
+      const body = await request(`${endpoint}/${encodeURIComponent(id)}${mcpLink && id === initialTarget ? '?from=mcp' : ''}`);
       if (turn !== switchRequest) return false;
       if (body.session_id !== id || !Array.isArray(body.messages)) throw new Error('对话内容未完整返回，请重试。');
       activate(body);
@@ -158,6 +169,11 @@
       return true;
     } catch (error) {
       if (turn !== switchRequest) return false;
+      if (error.code === 'conversation_other_account') {
+        setStatus('这份简历属于另一个账号。请退出当前账号，用生成它的邮箱登录后再打开此链接。', true);
+        logoutButton.hidden = false;
+        return false;
+      }
       setStatus(error.message + (conversationReady ? ' 当前对话仍保留。' : ' 请重试或新建对话。'), true, () => openConversation(id, options));
       if (!conversationReady && window.HuhuaAccount?.guest() && [401, 403, 404].includes(error.status)) { await createConversation(); return conversationReady; }
       return false;
@@ -223,6 +239,7 @@
   }
   async function createConversation() {
     if (creating || !canNavigate()) return false;
+    resetInputHint();
     creating = true;
     const turn = ++switchRequest;
     setBusy(true);
@@ -319,6 +336,11 @@
     try {
       await window.HuhuaAccount?.ready;
       if (window.HuhuaAccount?.claimPending()) { setStatus('当前体验待保存到账号，请重试保留当前对话。'); return; }
+      if (initialTarget && mcpLink && !window.HuhuaAccount?.authenticated()) {
+        setStatus('这份简历需要登录对应账号后查看。');
+        window.HuhuaAccount?.open('登录后查看并编辑这份简历。');
+        return;
+      }
       if (window.HuhuaAccount?.requiresLogin() && !window.HuhuaAccount?.guest()) {
         setStatus('请先登录，登录后读取本人的聊天与档案。');
         return;
@@ -369,7 +391,7 @@
   });
   window.addEventListener('huhua-account-changed', () => {
     setBusy(false);
-    if (SESSION_ID) window.HuhuaAccount?.rememberSession(SESSION_ID);
+    if (SESSION_ID && conversationReady) window.HuhuaAccount?.rememberSession(SESSION_ID);
     setStatus('已登录，当前对话已保留；可以继续聊天或导出简历。');
     refreshList().catch(() => {});
     if (!conversationReady) initialise();

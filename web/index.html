@@ -9,13 +9,13 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261013-ui"/>
-<link rel="stylesheet" href="/static/account-profile.css?v=20261020-1"/>
-<script src="/static/account-profile.js?v=20261020-1"></script>
+<link rel="stylesheet" href="/static/account-profile.css?v=20261021-1"/>
+<script src="/static/account-profile.js?v=20261021-1"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
-<link rel="stylesheet" href="/static/web-research.css?v=20261020-1"/>
-<script src="/static/web-research.js?v=20261020-1"></script>
+<link rel="stylesheet" href="/static/web-research.css?v=20261021-1"/>
+<script src="/static/web-research.js?v=20261021-1"></script>
 <link rel="stylesheet" href="/static/tailwind.css?v=20261013-ui"/>
 <style>
   /* Design tokens: one purple for actions, neutral ink for text, quiet lines and shadows. */
@@ -58,7 +58,7 @@
     #chat-pane > .app-header .account-entry { padding-inline: 8px; font-size: 12px; }
   }
 </style>
-<link rel="stylesheet" href="/static/resume-workspace.css?v=20261020-1"/>
+<link rel="stylesheet" href="/static/resume-workspace.css?v=20261021-1"/>
 <link rel="stylesheet" href="/static/change-card.css?v=20261013-ui"/>
 </head>
 <body class="bg-background text-on-background overflow-hidden h-screen flex">
@@ -267,11 +267,11 @@
 </div>
 
 <script src="/static/change-card.js?v=20261014-ui1"></script>
-<script src="/static/resume-workspace.js?v=20261020-1"></script>
+<script src="/static/resume-workspace.js?v=20261021-1"></script>
 <script src="/static/resume-actions.js?v=20261014-ui1"></script>
 <script src="/static/template-preview.js?v=20261014-tpl1"></script>
 <script src="/static/chat-cancel.js?v=20261015-batch8"></script>
-<script src="/static/orchestrator-ui.js?v=20261020-1"></script>
+<script src="/static/orchestrator-ui.js?v=20261021-1"></script>
 <script>
 const API = '/api/chat/stream';
 const SESSION_KEY = 'huhua_session_id';
@@ -299,10 +299,17 @@ function saveMessages() {
 const emptyStateEl = document.getElementById('empty-state');
 const messagesEl = document.getElementById('messages');
 const inputEl = document.getElementById('input');
+let inputHint = '';
 function updateInputPlaceholder() {
-  inputEl.placeholder = window.matchMedia('(max-width: 640px)').matches
-    ? '贴 JD，或说说你的经历'
-    : '输入消息，Enter 发送 · 可粘贴或拖入 PDF/DOCX/JPG/PNG';
+  const mobile = window.matchMedia('(max-width: 640px)').matches;
+  inputEl.placeholder = inputHint && !inputEl.value
+    ? inputHint + (mobile ? '' : ' · Tab 采用')
+    : mobile ? '贴 JD，或说说你的经历' : '输入消息，Enter 发送 · 可粘贴或拖入 PDF/DOCX/JPG/PNG';
+}
+function resetInputHint() { inputHint = ''; updateInputPlaceholder(); }
+function receiveInputHint(hint) {
+  if (inputEl.value || typeof hint !== 'string' || !hint.trim()) return;
+  inputHint = hint; updateInputPlaceholder();
 }
 updateInputPlaceholder();
 window.addEventListener('resize', updateInputPlaceholder);
@@ -400,6 +407,7 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
   const sentAttachments = quickReply ? [] : [...attachments];
   const submittedSession = SESSION_ID;
   if (!text && sentAttachments.length === 0) return false;
+  resetInputHint();
 
   // 拼接附件到消息内容
   const attachmentPrefix = sentAttachments
@@ -495,6 +503,7 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
     let pending = '';
     let receivedDone = false;
     let streamFailed = false;
+    let nextHint = '';
     const consumeEvent = (event) => {
       const data = event.split(/\r?\n/)
         .filter(line => line.startsWith('data:'))
@@ -504,6 +513,7 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
       if (data === '[DONE]') { receivedDone = true; return; }
       let parsed;
       try { parsed = JSON.parse(data); } catch { return; }
+      if (parsed.type === 'next_hint') { nextHint = parsed.next_hint; return; }
       if (parsed.type === 'cancelled') { submittedTurn.cancelled = true; return; }
       if (parsed.type === 'meta') {
         if (parsed.workspace) lastWorkspaceMeta = parsed.workspace;
@@ -550,6 +560,7 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
     }
     if (!receivedDone) throw new Error('回复连接已断开，请重试。');
     completed = !streamFailed;
+    if (completed && !submittedTurn.cancelled && SESSION_ID === submittedSession) receiveInputHint(nextHint);
     if (completed) window.HuhuaWorkspace?.commitWebSources(lastWorkspaceMeta, submittedSession);
   } catch (e) {
     acceptTurn(false);
@@ -567,6 +578,7 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
     interrupted = true;
     completed = false;
     buffer = '已中断，本轮未修改简历';
+    resetInputHint();
   }
   if (renderFrame !== null) cancelAnimationFrame(renderFrame);
   renderAssistant(aiEl, buffer, interrupted);
@@ -847,10 +859,17 @@ sendBtn.addEventListener('click', async () => {
   }
   send();
 });
-inputEl.addEventListener('input', autoResize);
+inputEl.addEventListener('input', () => { resetInputHint(); autoResize(); });
 inputEl.addEventListener('keydown', e => {
   // 输入法组字期间的 Enter 不发送（isComposing / keyCode 229 双保险）
   if (e.isComposing || e.keyCode === 229) return;
+  if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey && !inputEl.value && inputHint) {
+    e.preventDefault();
+    inputEl.value = inputHint;
+    resetInputHint(); autoResize();
+    inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+    return;
+  }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
 });
 
@@ -1133,7 +1152,7 @@ window.addEventListener('resize', scaleSheet);
 window.addEventListener('huhua-account-reset', () => {
   currentController?.abort();
   unsavedChatSessions.clear(); chatBackups.clear(); chatRecoveries.clear(); messages.length = 0;
-  inputEl.value = ''; clearAttachments(); currentController = null;
+  inputEl.value = ''; resetInputHint(); clearAttachments(); currentController = null;
 });
 window.addEventListener('beforeunload', event => {
   if (unsavedChatSessions.size || inputEl.value.trim() || attachments.length || currentController) { event.preventDefault(); event.returnValue = ''; }
@@ -1150,6 +1169,6 @@ if (entryPanel === 'profile' || entryPanel === 'connect') {
 }
 
 </script>
-<script src="/static/conversation-history.js?v=20261015-home1"></script>
+<script src="/static/conversation-history.js?v=20261021-1"></script>
 </body>
 </html>

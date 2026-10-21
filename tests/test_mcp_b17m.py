@@ -65,7 +65,7 @@ class MCPBatch17ProtocolTests(unittest.IsolatedAsyncioTestCase):
         args = {'resume': draft(), 'template_id': template}
         async with self.client() as client:
             saved = await self.call(client, 'huhua_resume_save', args)
-            expected = 'http://testserver/resume?session=' + saved['conversation_id'] + '&template=' + template
+            expected = 'http://testserver/resume?session=' + saved['conversation_id'] + '&template=' + template + '&from=mcp'
             self.assertEqual(saved['edit_url'], expected)
             self.assertIn('/chat?session=', saved['conversation_url'])
             before = self.count_conversations()
@@ -77,7 +77,7 @@ class MCPBatch17ProtocolTests(unittest.IsolatedAsyncioTestCase):
             fresh = await self.call(client, 'huhua_resume_export', args)
             self.assertEqual(self.count_conversations(), before + 1)
             self.assertNotEqual(fresh['conversation_id'], saved['conversation_id'])
-            self.assertEqual(fresh['edit_url'], 'http://testserver/resume?session=' + fresh['conversation_id'] + '&template=' + template)
+            self.assertEqual(fresh['edit_url'], 'http://testserver/resume?session=' + fresh['conversation_id'] + '&template=' + template + '&from=mcp')
             self.assertNotIn('edit_url_unavailable', fresh)
             self.assertTrue((await self.web.get(fresh['download_url'])).content.startswith(b'%PDF-'))
             got = await self.call(client, 'huhua_resume_get', {'conversation_id': fresh['conversation_id']})

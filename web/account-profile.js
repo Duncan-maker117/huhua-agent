@@ -521,11 +521,23 @@
     section.append(calls); if (!calls.children.length) section.append(node('p', '尚无调用记录。', 'profile-muted'));
     content.append(section);
   }
+  async function logout({returnToCurrent = false} = {}) {
+    if (busy || !confirm('退出登录将清除本页未保存内容。请先确认聊天与简历已保存。')) return false;
+    const destination = returnToCurrent ? location.href : '/chat';
+    setBusy(true);
+    try {
+      await request('/api/account/logout', {}, 'POST');
+      clearPrivateCache(true);
+      window.dispatchEvent(new Event('huhua-account-reset'));
+      location.href = destination;
+      return true;
+    } finally { setBusy(false); }
+  }
   function renderProfile() {
     clearInterval(loginTimer); syncLoginControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile && profileView !== 'connections') return;
     const identity = node('div', undefined, 'profile-identity'); identity.append(node('strong', account.account?.email || '已登录'));
     if (profileView !== 'connections') identity.append(node('p', '本人唯一主档案 · ' + profile.revision + ' 次修订', 'profile-muted'));
-    identity.append(button('退出登录', () => { if (busy) return; if (!confirm('退出登录将清除本页未保存内容。请先确认聊天与简历已保存。')) return; mutate(async () => { await request('/api/account/logout', {}, 'POST'); clearPrivateCache(true); window.dispatchEvent(new Event('huhua-account-reset')); location.href = '/chat'; }, '已退出', false); })); content.append(identity);
+    identity.append(button('退出登录', () => logout().catch(error => say(error.message, true)))); content.append(identity);
     if (profileView === 'connections') { renderConnections(); return; }
     const actions = node('div', undefined, 'profile-actions');
     const confirmation = button('信息确认', () => { profileView = profileView === 'confirmations' ? 'facts' : 'confirmations'; renderProfile(); });
@@ -629,6 +641,6 @@
       }
     });
   }
-  window.HuhuaAccount = {ready, clearPrivateCache, refreshAccount, authenticated: () => Boolean(account.authenticated && !pendingClaim), guest: isGuest, claimPending: () => Boolean(pendingClaim), guestNotice, rememberedSession, rememberSession, requireLogin, requiresLogin: () => Boolean(account.require_account && (!account.authenticated || pendingClaim)), refreshIfOpen: () => { if (overlay && !overlay.hidden && account.authenticated && !busy) { if (content.querySelector('form')) say('聊天已保存。完成当前填写后可刷新档案，查看整理进度。'); else loadProfile(); } }, open};
+  window.HuhuaAccount = {ready, logout, clearPrivateCache, refreshAccount, authenticated: () => Boolean(account.authenticated && !pendingClaim), guest: isGuest, claimPending: () => Boolean(pendingClaim), guestNotice, rememberedSession, rememberSession, requireLogin, requiresLogin: () => Boolean(account.require_account && (!account.authenticated || pendingClaim)), refreshIfOpen: () => { if (overlay && !overlay.hidden && account.authenticated && !busy) { if (content.querySelector('form')) say('聊天已保存。完成当前填写后可刷新档案，查看整理进度。'); else loadProfile(); } }, open};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount); else mount();
 })();

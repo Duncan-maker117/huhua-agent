@@ -86,7 +86,7 @@ async def current_resume(request: Request, session_id: str = Query(..., descript
 
 
 async def _current_resume(request: Request, session_id: str):
-    owner = authorize_session(request, session_id)
+    owner = authorize_session(request, session_id, edit_link=True)
     if not session_can_read_checkpoint(session_id):
         try:
             assert_active_resume_session(session_id)

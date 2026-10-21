@@ -421,7 +421,7 @@ class MCPService:
         return result
 
     def edit_url(self, session_id, template_id):
-        return self.base_url() + '/resume?' + urlencode({'session': session_id, 'template': template_id})
+        return self.base_url() + '/resume?' + urlencode({'session': session_id, 'template': template_id, 'from': 'mcp'})
 
     async def save(self, principal, resume, citations, template_id, conversation_id=None, base_revision=None):
         template_check(template_id)

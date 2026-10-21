@@ -83,24 +83,29 @@ def clean_stack_prose(text: str, stack: list[str]) -> str:
         return ''
     name = '(?:' + '|'.join(re.escape(n) for n in sorted(stack, key=len, reverse=True)) + ')'
     listing = re.compile(
-        r'(^|[，,；;。\n])\s*(?:并|且)?\s*'
+        r'(^|[，,；;。\n])\s*(?:并且|并|且|同时|以及|还)?\s*'
         r'(?:(?:(?:这个|该|本)?项目)?(?:使用|采用|用了|用到)(?:了)?\s*|(?:技术栈|技术|工具|框架)\s*[:：]\s*|(?=' + name + '))'
         + name + r'(?:\s*(?:[、,，/]|以及|和|与|及|\s)\s*' + name + r')*'
-        r'\s*(?:方案|技术|框架|工具)?\s*(?=$|[，,；;。\n]|(?:并|且)(?:通过|用|实现|负责|完成|接入))')
+        r'\s*(?:方案|技术|框架|工具|搭建\s*(?:agent|智能体)\s*能力)?\s*'
+        r'(?=$|[，,、；;。\n]|(?:并且|并|且|同时|以及|还)(?:可|能够|能)?(?:通过|用|实现|负责|完成|接入))', re.I)
     # The delimiter belongs to the remaining prose; no concrete use is matched.
     def remove(match):
         tail = text[match.end():]
         # A comma may continue an incompletely covered list ("MCP, Rust").
         # Only an independently identifiable action may follow a removed list.
-        if re.match(r'^[，,]\s*[^，,；;。\n]+', tail) and not re.match(
-                r'^[，,]\s*(?:并且|并|且|同时)?\s*(?:通过|用|实现|负责|完成|接入|开发|支持|构建|整理|项目)', tail):
+        if re.match(r'^[，,、]', tail) and not re.match(
+                r'^[，,、\s]+(?:并且|并|且|同时|以及|还)?\s*(?:可|能够|能)?(?:通过|用|实现|负责|完成|接入|开发|支持|构建|整理|项目)', tail):
             return match[0]
         return match[1]
     cleaned = listing.sub(remove, text)
     if cleaned == text:
         return text
-    cleaned = re.sub(r'([，,；;。\n])[，,；;。\n\s]+', r'\1', cleaned).strip(' ，,；;。\n')
-    cleaned = re.sub(r'^(?:并且|并|且)(?=通过|用|实现|负责|完成|接入)', '', cleaned)
+    cleaned = re.sub(r'([，,、；;。\n])[，,、；;。\n\s]+', r'\1', cleaned).strip(' ，,、；;。\n')
+    # Only strip dangling conjunctions after a list was actually removed.
+    # Do not damage words such as 并发, 同时性, 还有待 or 还原.
+    cleaned = re.sub(r'^(?:(?:并且|并|且|同时|以及|还)[\s，,、；;]*)+'
+                     r'(?=(?:可|能够|能)?(?:通过|用|实现|负责|完成|接入|开发|支持|构建|整理))', '', cleaned)
+    cleaned = re.sub(r'^可通过', '通过', cleaned)
     return cleaned + ('。' if cleaned and text.endswith('。') else '')
 
 

@@ -124,3 +124,32 @@ DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huh
 - 最终结果：**Ran 2291 tests in 365.965s — OK (skipped=2)**，即 **2289 通过、2 项既有私人基准材料跳过、0 失败/错误**。相对本轮基线 2267 项新增 24 项。最终日志 `/private/tmp/huhua-b18b-fix-final.log`。
 - 改动的 **10 个 Python 文件 Ruff 通过**，`git diff --check` 通过；原 `tests/test_batch18b.py` 无差异。测试脚本隔离数据库并清空模型/检索凭据，所有模型行为均为桩。
 - 本例离线验证最终技术栈为 `['MCP', 'Tool Calling', 'LangChain', 'FastAPI']`，原三条要点逐字保留。未改写原始回放数据库，未做真实模型或线上验证。
+
+## 修复轮 2
+
+完成日期：2026-10-21。本轮只读取 `evaluation/batch18b-live/run2/` 的虚构人物记录，未改写回放数据库，未调用真实模型，未 commit / push / 部署。开场 HEAD 为 `88f777e`（修复轮 1 已提交）；原有未跟踪的两个 prompt 文件保留。
+
+### 根因与历史归因
+
+- **A 在 `627a06f`（batch17b）已存在，并非 batch18b 引入。** 旧版 `edit_resume` 按工具参数中的已有经历名称解析 `infer_edit_scope`，把旧稿作为 `base` 交给 `_write`；item 范围只处理选中的旧条目，`run_resume_writer` 只有 whole 范围会为事实母版中新出现的经历创建条目。既有项目发生变化就可以让整个工具返回 `ok`，没有验证用户要求新增的经历是否交付。run2 第二轮已录入 `internship`，但历史版本「局部修改」和 SQL 最终稿的 `work_experience` 都为空。
+- 历史确认另用 `git archive 627a06f` 导出隔离源码到 `/private/tmp/huhua-b18b-round2-baseline/`，输入 run2 第一稿、第二轮事实和第二稿要点的模型桩，以「加入实习，保留帮学生写简历的 agent」触发已有项目定位，得到 **`status=ok, changed=true, work_experience=[], label=局部修改`**。日志 `/private/tmp/huhua-b18b-round2-baseline.log`。这是旧版同类缺陷的离线复现；run2 checkpoint 没有保留原始 edit_resume 参数，不能把该复现指令说成当时模型的逐字调用。
+- **B 没有绕过修复轮 1 的清理入口，而是原句不匹配。** loop 的实际链路是 `write_draft → _write → run_tailor_pipeline → run_resume_writer → project_item_stack → clean_item_prose`。旧正则只允许罗列后紧接「并通过／并用／并实现…」，不认「并可通过」；结尾白名单也没有「搭建 agent 能力」。因此 run2 的两条完整原句均原样通过。上一轮 fixture 使用「…方案，通过…」等不同措辞，不能覆盖本次形态。修复后的回归既检查原始版本 1，也将其要点与引用作为 writer 桩输出，走完整 write_draft 链路，未替换清理函数或写稿流水线。
+- **事实覆盖检查当时已捕获遗漏，但回执未明确暴露内容。** 首轮 checkpoint `1f1cd09f-3e9c-6524-8003-f2dec6a40e55` 的 fact_coverage 为 8/10；「能根据用户口述直接出简历初稿」标为 omitted，原因是条数上限。要点对该事实的引用不等于完整覆盖。旧工具主要返回“另有 2 条信息未放进这一版”，最终模型仍声称该功能已写入。修复后回执明确列出 `uncovered_facts`，并优先保留在压缩上下文中；不能把这些事实说成已经落稿。
+- **C 是连接词清理同样漏了「可」。** 原规则只剥掉后接「通过／用／实现…」的并/且，不能处理「并可通过」。现在在删除罗列后确定性去掉开头的并、并且、且、同时、以及、还以及残余标点；「可通过」收为「通过」。不会截断「并发」「还原」「同时性」等实词。
+- **check_layout 第 3 轮 error 是本地 WeasyPrint 原生库加载失败。** run2 日志在测量附近反复输出 external libraries 提示；隔离进程不设置 `DYLD_FALLBACK_LIBRARY_PATH` 时，对 run2 最终稿直接复现 `OSError: cannot load library 'libgobject-2.0-0'`。设置 `/opt/homebrew/lib` 后，同一稿件成功渲染为 1 页。与技术栈数据格式无关。工具现在把 OSError/ImportError 明确返回为 `layout_renderer_unavailable`，不泄漏底层异常原文、不伪造页数、不写回失败结果；没有修改本机环境或安装依赖。
+
+### 修复行为
+
+1. `edit_resume` 遇到本轮已经 record_facts、但旧稿尚无对应条目的经历，或者后续点名要求补入该经历，返回 **insufficient / new_experience_requires_write_draft**，列出待写经历及 `next_tool=write_draft`；不调用局部 writer、不改稿、不增加版本。事实母版仍保留。旧备用经历不会阻塞不相关的局部编辑；原技术栈增删与撤销路径继续保留。
+2. 所有成功或 unchanged 的 edit_resume 出口统一比较实际 before/after 文档 diff，生成 `document_changes` 和 `change_summary`，只报告真实新增、删除、修改或顺序变化。没有 diff 一律 unchanged / changed=false，不再返回 ok 或沿用模型声称的改动。重复数字更正保留 `correction_applied`，同时明确本次没有新增改动。
+3. 技术清单必须已完整呈现在技术栈中才可删；新增「搭建 agent／智能体 能力」这一空泛结尾和「并可／并且可／同时可…」边界。保留「通过 MCP 接入 Claude 使用」及开发订单接口等具体动作，保持引用、hash 与 coverage 同步及重复投影幂等。不完整技术栈（如尚未收录 Rust）不会误删源要点。
+4. 原始版本 1 确定性清理后只剩「负责帮学生写简历 agent 的后端与工具编排」「通过 MCP 接入 Claude 使用」，覆盖检查仍明确标出缺失的口述出稿功能。完整 write_draft 离线桩回放则在清理后由已有覆盖修复机制恢复该功能要点，并在版本快照中保留清理后的正文。这是离线链路证据，不代表已重新验证真实模型回复。
+
+### Fixture 与验证
+
+- 用只读 SQLite URI、既有解密配置和 `app.services.session_store.load_resume_session(sid)` 核对实际稿件与历史版本，另外只读解码三个轮次的 checkpoint；精简导出为 `tests/fixtures/batch18b_run2.json`。只包含虚构事实、稿件、引用、约束和复现来源，不含凭据、账号会话或原始数据库。`evaluation/batch18b-live/` 仍被 Git 忽略。
+- 新增 `tests/test_batch18b_round2.py` **16 项**：新增经历不足回执、已有项目名称干扰、旧备用不误拦、后续点名补入、假成功无 diff、实际新增回执、原第三轮增删不丢要点、首稿两条精确原句与覆盖遗漏、连接词/标点组合、动作及不完整清单边界、完整 write_draft 与快照、遗漏事实压缩回执、渲染依赖失败及 run2 最终稿真实本地测量。
+- batch18b 定向 **78 项通过**，日志 `/private/tmp/huhua-b18b-round2-focused-final.log`。原 `tests/test_batch18b.py` 与修复轮 1 回归无改动。
+- 首轮全量的两项失败仅来自既有 `test_orchestrator_writing.py` 对旧回执字典的严格相等断言；已改为检查状态、已更正标记、changed=false、空 document_changes/摘要，并保留原有“不得重写”、保存次数、正文与事实不变断言。
+- 最终指定全量命令：`DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huhua agent/.venv/bin/python" scripts/run_tests.py`。结果 **Ran 2307 tests in 117.375s — OK (skipped=2)**，即 **2305 通过、2 项既有私人基准材料跳过、0 失败/错误**；日志 `/private/tmp/huhua-b18b-round2-final.log`。测试脚本使用隔离数据库并清空模型/检索凭据。
+- 改动的 **6 个 Python 文件 Ruff 通过**，`git diff --check` 通过；fixture JSON 与敏感字段检查通过；原回放目录保持忽略。没有本轮启动的服务或遗留测试进程。

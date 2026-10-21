@@ -136,7 +136,11 @@ class OrchestratorWritingTest(unittest.IsolatedAsyncioTestCase):
                                         outcome.update["resume_meta"]["bullets"]["work"]):
                     self.assertEqual(record["text_hash"], text_hash(line))
                     self.assertTrue(record["fact_ids"])
-                self.assertEqual(repeated.result, {"status": "unchanged", "correction_applied": True})
+                self.assertEqual(repeated.result["status"], "unchanged")
+                self.assertTrue(repeated.result["correction_applied"])
+                self.assertFalse(repeated.result["changed"])
+                self.assertEqual(repeated.result["document_changes"], [])
+                self.assertEqual(repeated.result["change_summary"], [])
                 self.assertFalse(repeated.update)
                 self.assertEqual(state, before)
 

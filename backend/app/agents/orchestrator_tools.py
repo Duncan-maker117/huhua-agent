@@ -191,6 +191,8 @@ def _register(name, args_model, description, progress):
             except Exception as exc:
                 # Provider/persistence errors can echo private source text.
                 outcome = _error("tool_exception", error_type=type(exc).__name__)
+            if name == 'edit_resume' and outcome.result.get('status') in {'ok', 'partial', 'unchanged'}:
+                _edit_diff_receipt(state, outcome)
             if name == 'edit_resume' and outcome.result.get('status') not in {'ok', 'partial', 'unchanged'}:
                 # A failed edit cannot publish a draft, metadata or fact patch.
                 outcome.update = {}
@@ -766,7 +768,11 @@ def _document_outcome(update):
     update.update(stage="EVALUATING", resume_draft=resume_to_text(data))
     diagnostic = update.get("writer_diagnostic") or {}
     status = "partial" if diagnostic.get("status") == "model_fallback" else "ok" if update.get("changed") else "unchanged"
+    coverage = (update.get('resume_meta') or {}).get('fact_coverage') or {}
+    omitted = [{'text': row['text'], 'reason': row.get('reason', '')}
+               for row in coverage.get('facts', []) if row.get('status') == 'omitted']
     return ToolOutcome({"status": status, "changed": bool(update.get("changed")),
+        "uncovered_facts": omitted,
         "version_id": update.get("version_id"), "resume_data": data, "page_check": update.get("page_check"),
         "change_summary": update.get("change_summary", []), "writer_diagnostic": diagnostic,
         "edit_contract": update.get("edit_contract", {}), "guard_fallbacks": update.get("guard_fallbacks", []),
@@ -867,7 +873,63 @@ def _missing_contacts(state):
     return [key for key in ("name", "phone", "email") if not str(basic.get(key) or "").strip()]
 
 
-@_register("edit_resume", EditArgs, "按编辑契约修改已有稿并保留可撤销版本；新事实须先 record_facts。", "正在修改简历…")
+def _edit_diff_receipt(state, outcome):
+    """Describe committed document changes, never the model's intended changes."""
+    from app.services.resume_versions import document_diff
+    before = state.get('resume_data') or {}
+    after = outcome.update.get('resume_data', before)
+    diff = document_diff(before, after)
+    labels = {'projects': '项目', 'work_experience': '工作经历', 'education': '教育背景',
+              'campus': '校园经历', 'open_source': '开源经历', 'awards': '获奖',
+              'basic_info': '基本信息', 'skills': '技能', 'skill_groups': '技能分组',
+              'certificates': '证书', 'summary': '摘要', 'self_evaluation': '自我评价',
+              'sections': '栏目', 'layout': '排版'}
+    receipt = []
+    for row in diff:
+        old, new = row['before'], row['after']
+        value = new or old or {}
+        name = (value.get('name') or value.get('company') or value.get('school') or '') if isinstance(value, dict) else ''
+        action = '新增' if old is None else '删除' if new is None else '调整顺序' if row.get('field') == 'order' else '修改'
+        receipt.append({'action': action, 'section': labels.get(row['section'], row['section']), 'name': name})
+    summary = [r['action'] + r['section'] + (f"「{r['name']}」" if r['name'] else '') for r in receipt]
+    outcome.result.update(changed=bool(diff), document_changes=receipt, change_summary=summary)
+    if not diff:
+        outcome.result.update(status='unchanged', message='本次编辑没有产生新的稿件变化，未新增或修改任何条目。')
+    if 'resume_data' in outcome.update:
+        outcome.update['diff'] = diff
+        outcome.update['change_summary'] = summary
+        outcome.update.setdefault('resume_meta', {})['change_summary'] = summary
+
+
+def _new_experiences_for_edit(state, literal, instruction, ctx):
+    """Find source-backed new entries referenced by this turn, not old backups."""
+    from app.schemas.facts import FACT_SECTIONS
+    from app.services.resume_facts import active_facts_for_writer
+    def compact(text):
+        return re.sub(r'\s+', '', text).casefold()
+    source_text = compact(literal)
+    pending = []
+    data = state.get('resume_data') or {}
+    for source_section in FACT_SECTIONS:
+        if source_section == 'education':
+            continue
+        section = 'work_experience' if source_section == 'internship' else source_section
+        existing = {row.get('item_id') for row in data.get(section) or []}
+        for item in active_facts_for_writer(state.get('collected_info') or {}).get(source_section) or []:
+            if item['item_id'] in existing or item.get('hidden') or not item.get('facts'):
+                continue
+            name = item.get('name') or item.get('company') or ''
+            mentioned = len(name) >= 2 and compact(name) in compact(instruction)
+            current = any((ctx.turn_id and fact.get('turn_id') == ctx.turn_id)
+                          or (len(quote := compact(fact.get('source_quote') or '')) >= 4 and quote in source_text)
+                          for fact in item['facts'])
+            if current or mentioned:
+                pending.append({'section': {'work_experience': '工作经历', 'projects': '项目',
+                    'campus': '校园经历', 'open_source': '开源经历', 'awards': '获奖'}.get(section, section), 'name': name})
+    return pending
+
+
+@_register("edit_resume", EditArgs, "修改已有条目并返回实际改动；新事实先 record_facts，新增经历须用 write_draft。", "正在修改简历…")
 async def edit_resume(state, args, ctx):
     from app.agents.tailor_pipeline import infer_edit_scope
     from app.services.resume_versions import restore_payload
@@ -913,6 +975,10 @@ async def edit_resume(state, args, ctx):
         _project_contacts(update["resume_data"], state.get("collected_info") or {})
         update.update(stage="EVALUATING", resume_draft=resume_to_text(update["resume_data"]))
         return ToolOutcome({"status": "ok", "restored": True, "version_id": update["version_id"]}, update)
+    if pending := _new_experiences_for_edit(state, literal, args.instruction, ctx):
+        return ToolOutcome({'status': 'insufficient', 'code': 'new_experience_requires_write_draft',
+                            'changed': False, 'pending_experiences': pending, 'next_tool': 'write_draft',
+                            'message': '新经历已记录，但尚未写入稿件；请调用 write_draft 纳入这些经历，不能声称已新增。'})
     scope, targets = infer_edit_scope(data, args.instruction, state.get("collected_info"))
     if scope == "item" and not targets:
         return ToolOutcome({"status": "insufficient", "missing": ["能唯一定位的经历名称或序号"]})
@@ -956,8 +1022,12 @@ async def check_layout(state, args, ctx):
         return ToolOutcome({"status": "insufficient", "missing": ["已有简历"]})
     constraints = constraints_for_turn(state, "")
     # Measure the current density, without the automatic density selection used by writing.
-    layout = await asyncio.to_thread(measure_resume_pdf_layout, constraints["template_id"],
-                                     state["resume_data"], constraints["page_limit"])
+    try:
+        layout = await asyncio.to_thread(measure_resume_pdf_layout, constraints["template_id"],
+                                         state["resume_data"], constraints["page_limit"])
+    except (OSError, ImportError) as exc:
+        return _error('layout_renderer_unavailable', error_type=type(exc).__name__,
+                      message='排版渲染依赖不可用，尚未测得页数；稿件未修改。')
     result = {**layout, "status": "rendered", "page_limit": constraints["page_limit"],
               "within_page_limit": layout["pages"] <= constraints["page_limit"],
               "template_id": constraints["template_id"], "data_hash": resume_data_hash(state["resume_data"]),

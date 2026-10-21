@@ -318,3 +318,23 @@ class StackSuffixListingTests(unittest.TestCase):
         for text in ('项目采用 MCP、记忆、Tool Calling、LangChain 技术栈', '项目采用 MCP、记忆、Tool Calling、LangChain 等技术栈'):
             self.assertEqual(clean_stack_prose(text, stack), '')
         self.assertEqual(clean_stack_prose('项目采用 MCP、Rust 技术栈', stack), '项目采用 MCP、Rust 技术栈')
+
+
+class LiveStackRegressionTests(unittest.TestCase):
+    """20261021-1 live replay: 「Tool Calling 和 LangChain」 put 「和」 in the stack."""
+
+    def test_conjunction_is_not_a_stack_item_and_trailing_clause_is_ignored(self):
+        from app.services.tech_stack import extract_stack, split_stack
+        quote = '我负责后端和工具编排，用了 MCP、记忆、Tool Calling 和 LangChain，能根据口述直接出初稿。'
+        self.assertEqual(extract_stack({'source_quote': quote}), ['MCP', '记忆', 'Tool Calling', 'LangChain'])
+        self.assertEqual(split_stack('Tool Calling和LangChain'), ['Tool Calling', 'LangChain'])
+        self.assertEqual(split_stack('mcp 与 longchain'), ['MCP', 'LangChain'])
+        self.assertEqual(split_stack('Spring Boot'), ['Spring Boot'])
+
+    def test_mechanism_suffix_is_removed_with_its_item(self):
+        stack = ['MCP', '记忆', 'Tool Calling', 'LangChain']
+        text = '使用 LangChain、Tool Calling、MCP 与记忆机制搭建 agent 后端与工具编排'
+        expected = '使用 LangChain、Tool Calling 与 MCP 搭建 agent 后端与工具编排'
+        self.assertEqual(remove_stack_mentions(text, stack, {'记忆'}), expected)
+        self.assertEqual(remove_stack_mentions(expected, stack, {'记忆'}), expected)
+        self.assertEqual(remove_stack_mentions('结合记忆机制与工具调用', stack, {'记忆'}), '结合记忆机制与工具调用')

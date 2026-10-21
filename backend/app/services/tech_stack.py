@@ -40,8 +40,14 @@ def normalize_stack(values: list[str]) -> list[str]:
     return result[:MAX_ITEMS]
 
 
+CONJUNCTIONS = {'和', '与', '及', '以及', 'and', '&'}
+# A clause after a comma ("…LangChain，能根据口述出初稿") ends the list.
+CLAUSE_START = re.compile(r'^(?:能|可以|可|并|还|用于|用来|实现|支持|负责|帮助|让|使|来|把|将|对|在|从|是|有)')
+
+
 def split_spaced(part: str) -> list[str]:
     """Split "mcp 记忆 toolcalling" when it names known items; keep "Spring Boot"."""
+    part = re.sub(r'(?<=[A-Za-z0-9])(以及|和|与|及)(?=[A-Za-z])', r' \1 ', part)
     tokens, result, i = part.split(), [], 0
     while i < len(tokens):
         pair = ' '.join(tokens[i:i + 2]).casefold()
@@ -52,7 +58,7 @@ def split_spaced(part: str) -> list[str]:
             result.append(tokens[i])
             i += 1
     if len(result) > 1 and any(token.casefold() in ALIASES for token in result):
-        return result
+        return [token for token in result if token.casefold() not in CONJUNCTIONS]
     return [part]
 
 
@@ -204,7 +210,9 @@ def extract_stack(fact: dict) -> list[str]:
     match = re.search(r'(?:技术栈\s*[:：为是]?|(?:使用|用了|用到|采用)(?:了|的技术(?:是)?)?)\s*(.+)', quote)
     if match:
         body = re.split(r'[。；;\n]', match[1])[0]
-        candidates += pure_stack('技术栈：' + body)
+        parts = SPLIT.split(body)
+        cut = next((i for i, part in enumerate(parts) if i and CLAUSE_START.match(part.strip())), len(parts))
+        candidates += pure_stack('技术栈：' + '、'.join(parts[:cut]))
     hits = [(position, name) for name in normalize_stack_unbounded(candidates)
             if (position := mention_position(name, quote)) is not None]
     return [name for position, name in sorted(hits, key=lambda row: row[0])
@@ -409,7 +417,9 @@ def remove_stack_mentions(text: str, stack: list[str], removed: set[str]) -> str
                 for variant in [name, *(key for key, value in ALIASES.items() if value == name)]}
     if not variants:
         return text
-    atom = r'(?:' + '|'.join(re.escape(v) for v in sorted(variants, key=len, reverse=True)) + r')(?![A-Za-z0-9_+#])'
+    # "记忆机制" names the same item as "记忆" inside a list.
+    atom = (r'(?:' + '|'.join(re.escape(v) for v in sorted(variants, key=len, reverse=True))
+            + r')(?![A-Za-z0-9_+#])(?:机制|能力)?')
     separator = r'\s*(?:[、,，/]|以及|和|与|及)\s*'
     listing = re.compile(
         r'(?P<prefix>(?:基于|通过|采用|使用|用了|用到|借助|用)\s*|(?:技术栈|技术|工具|框架)\s*[:：]\s*|^)'
@@ -419,12 +429,15 @@ def remove_stack_mentions(text: str, stack: list[str], removed: set[str]) -> str
 
     def replace(match):
         tokens = re.findall(atom, match['names'], re.I)
-        kept = [token for token in tokens if normalize_name(token).casefold() not in removed]
+        kept = [token for token in tokens
+                if normalize_name(re.sub(r'(?:机制|能力)$', '', token)).casefold() not in removed]
         if not kept or len(kept) == len(tokens):
             return match[0]
         joiner = ' 与 ' if re.search(r'以及|和|与|及', match['names']) else '、'
         body = ('、'.join(kept[:-1]) + joiner + kept[-1]) if len(kept) > 1 else kept[0]
-        return match['prefix'] + body
+        following = match.string[match.end():match.end() + 1]
+        space = ' ' if re.search(r'[A-Za-z0-9]$', body) and re.match(r'[\u4e00-\u9fff]', following) else ''
+        return match['prefix'] + body + space
 
     return listing.sub(replace, text)
 

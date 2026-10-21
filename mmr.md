@@ -34,3 +34,6 @@
 1. 读 batch18c-report.md 并核对 git 状态；不要把开场 skill 修改当成本批改写。
 2. 全量：DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib "/Users/yikuaibanz1/Desktop/sth/huhua agent/.venv/bin/python" scripts/run_tests.py。
 3. 若后续授权真实模型回放，重点核对 skills 命中、同消息加载、实际新增条目回执，以及删除后的正文/版本；不要只信最终回复。
+
+## 进行中记录
+- 2026-10-22：第十九批 a 已在 `batch19a` / `99abf96` 上完成本地实现：只读 `tailor.evidence`、主工作台独立 iframe 依据桥接、原话/JD/待确认卡片、会话开关、移动抽屉与草稿安全预填。新增 18 项回归；全量 2352 项（2350 通过、2 既有跳过），7 模板共 14 份导出/编辑器 HTML 改前改后逐字节相同，Ruff 与差异检查通过。无 commit/push/部署/真实模型/8833。本机 CLI 写缓存 EPERM、Chrome 启动 SIGABRT，未产出截图；接手先看 `batch19a-report.md`，按其中离线浏览器脚本补 1440/390px 视觉验收。日志 `/private/tmp/huhua-19a-full.log`；旧交接正文未改，本节为当前批次状态。

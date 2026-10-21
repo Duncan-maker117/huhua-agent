@@ -729,6 +729,7 @@
     const downloading = id === 'export';
     if (downloading) id = 'resume'; // Old saved workspace projections remain usable.
     if (!tabs.some(([key]) => key === id)) return;
+    if (id !== 'resume') window.HuhuaEvidence?.close(false);
     active = id; if (user && streaming) interactedDuringTurn = true;
     renderTabs(); $('workspace-body').scrollTop = 0;
     if (id === 'resume') requestAnimationFrame(() => callbacks.resize?.());
@@ -758,12 +759,18 @@
       emptyText.textContent = collected ? '资料都还在。选好方案，或在对话里说「生成草稿」，这里就会铺开 A4。' : '贴 JD 或聊项目，经历确认后这里会铺开 A4。';
     }
     updateStatus();
+    if (changed) syncEvidence();
+  }
+  function syncEvidence() {
+    window.HuhuaEvidence?.update(workspace, resumeData, callbacks.session?.(),
+      !workspace.resume?.version || workspace.resume.version === paintedVersion);
   }
   function reset() {
     askDrafts.clear(); planStyles.clear(); intakeDrafts.clear(); answeredGuidance.clear();
     webSourceSession = null;
     resumeData = null; workspace = {}; active = 'jd'; stage = 'JD_INPUT'; hasWorkspace = false; hasResume = false;
     paintedVersion = null; status = ''; streaming = false; interactedDuringTurn = false; paintedDuringTurn = false;
+    window.HuhuaEvidence?.reset();
     renderJd(); renderExperiences(); renderReview(); renderSuggestions(); renderGuidance(); renderTabs(); updateStatus();
   }
   function canvasResult(body) {
@@ -773,6 +780,7 @@
     const changed = hasResume && version !== paintedVersion;
     status = hasResume ? (changed ? '简历已更新 · 已同步到预览' : '当前简历已同步') : (hasWorkspace ? '资料已同步 · 补充经历后逐步成稿' : '补充经历，简历会逐步成稿');
     paintedVersion = version;
+    syncEvidence();
     if (streaming) paintedDuringTurn = true;
     renderJd(); renderReview(); renderSuggestions(); updateStatus();
   }
@@ -782,6 +790,7 @@
     renderGuidance(); renderSuggestions(); updateStatus();
   }
   function setMobileOpen(value) {
+    if (!value) window.HuhuaEvidence?.close(false);
     const pane = $('canvas-pane'); pane.classList.toggle('is-open', value);
     $('btn-toggle-canvas').setAttribute('aria-expanded', String(value));
     $('btn-toggle-canvas').setAttribute('aria-controls', 'canvas-pane');
@@ -793,7 +802,11 @@
     requestAnimationFrame(() => callbacks.resize?.());
   }
   function init(options = {}) {
-    callbacks = options; reset();
+    callbacks = options;
+    window.HuhuaEvidence?.init({fill(value) {
+      callbacks.fillInput?.(value); setMobileOpen(false);
+    }, locate, statusLabels: STATUS_LABEL});
+    reset();
     window.addEventListener('huhua-account-reset', () => { webSourceCache.clear(); });
     $('btn-close-workspace').addEventListener('click', () => setMobileOpen(false));
     $('canvas-pane').addEventListener('keydown', event => {

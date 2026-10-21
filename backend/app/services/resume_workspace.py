@@ -350,6 +350,40 @@ def _open_questions(values: dict, canonical: dict, plan: dict, meta: dict) -> li
     return []
 
 
+def _evidence_index(collected: dict, meta: dict) -> dict:
+    """Only project facts cited by hash-validated, current document metadata.
+
+    Quotes follow the workspace's existing contact policy (no redaction here).
+    Retain inactive citations for review; a missing citation stays missing.
+    """
+    referenced = {
+        fid for field in ('bullets', 'tech_stack')
+        for records in (meta.get(field) or {}).values()
+        for record in records if isinstance(record, dict)
+        for fid in record.get('fact_ids') or [] if isinstance(fid, str)
+    }
+    facts = {}
+    for section in ('projects', 'work_experience', 'internship', 'education', 'campus', 'open_source', 'awards'):
+        for item in collected.get(section) or []:
+            if not isinstance(item, dict):
+                continue
+            for fact in item.get('facts') or []:
+                if not isinstance(fact, dict):
+                    continue
+                # Fact storage uses id; accept fact_id in older imported snapshots.
+                fid = fact.get('id') or fact.get('fact_id')
+                if not isinstance(fid, str) or fid not in referenced:
+                    continue
+                facts[fid] = {
+                    'item_id': item.get('item_id') or '',
+                    'kind': fact.get('kind') or '',
+                    'text': fact.get('text') or '',
+                    'source_quote': fact.get('source_quote') or '',
+                    'active': fact.get('status', 'active') == 'active',
+                }
+    return {'facts': facts}
+
+
 def tailor_metadata(values: dict, canonical: dict) -> dict:
     """UI contract uses sanitized committed snapshots, never an ahead checkpoint diff."""
     from app.services.resume_versions import document_diff, valid_bullet_metadata
@@ -377,6 +411,7 @@ def tailor_metadata(values: dict, canonical: dict) -> dict:
     return {'version_id': meta.get('version_id'), 'diff': diff,
             'change_summary': copy.deepcopy(meta.get('change_summary') or []),
             'match_plan': copy.deepcopy(plan), 'questions': _open_questions(values, canonical, plan, meta),
+            'evidence': _evidence_index(values.get('collected_info') or {}, meta),
             'resume_meta': meta, 'session_constraints': copy.deepcopy(values.get('session_constraints') or {}),
             'page_check': copy.deepcopy(meta.get('page_check') or {}),
             'can_undo': bool(history)}

@@ -65,8 +65,8 @@ def _review_view(data: dict) -> dict:
     view = {"basic_info": {"name_present": bool(basic.get("name")),
                            "contact_present": bool(basic.get("phone") or basic.get("email")),
                            "objective": basic.get("objective") or ""}}
-    for section, fields in (("projects", ("name", "role", "start_date", "end_date", "polished_bullets")),
-                            ("work_experience", ("company", "title", "start_date", "end_date", "bullets")),
+    for section, fields in (("projects", ("name", "role", "start_date", "end_date", "polished_bullets", "tech_stack")),
+                            ("work_experience", ("company", "title", "start_date", "end_date", "bullets", "tech_stack")),
                             ("education", ("school", "degree", "major", "start_date", "end_date", "highlights"))):
         rows = []
         for index, item in enumerate(data.get(section) or []):

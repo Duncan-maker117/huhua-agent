@@ -602,6 +602,17 @@ async def guard_bullets(bullets: list[dict], facts: list[dict], *, user_skills=(
         cited = [index[ref] for ref in refs if ref in index]
         if bullet.get("item_id") and any(f.get("item_id") != bullet["item_id"] for f in cited):
             errors.append("wrong_experience_fact")
+        if bullet.get('claim_kind') == 'tech_stack' or re.fullmatch(
+                r'/(?:projects|work_experience)/\d+/tech_stack(?:/\d+)?', str(identifier)):
+            from app.services.tech_stack import SPLIT, normalize_stack_unbounded, supporting_ids
+            names = normalize_stack_unbounded(SPLIT.split(bullet.get('text', '')))
+            errors.extend('unsupported_tech:' + name for name in names if not supporting_ids(name, cited))
+            if not names:
+                errors.append('empty_tech_stack')
+            output.append({'id': identifier, 'text': bullet.get('text', ''), 'fact_ids': refs,
+                           'lexical_errors': list(dict.fromkeys(errors)), 'semantic': None,
+                           'verdict': 'fail' if errors else 'pass'})
+            continue
         sources = [_source_quote(f) for f in cited]
         source = "\n".join(sources)
         role_context = "\n".join(_source_quote(f) for f in index.values()

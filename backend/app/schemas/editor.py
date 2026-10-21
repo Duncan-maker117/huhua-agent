@@ -47,6 +47,14 @@ class EducationItem(BaseModel):
 
 
 class WorkItem(BaseModel):
+    tech_stack: list[str] = Field(default_factory=list, max_length=8, exclude_if=lambda value: not value)
+
+    @field_validator("tech_stack", mode="before")
+    @classmethod
+    def normalize_tech_stack(cls, values: list[str]) -> list[str]:
+        from app.services.tech_stack import normalize_stack
+        return normalize_stack(values) if isinstance(values, list) and all(isinstance(v, str) for v in values) else values
+
     item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)
     company: str = ""
     title: str = ""
@@ -59,6 +67,14 @@ class WorkItem(BaseModel):
 
 
 class ProjectItem(BaseModel):
+    tech_stack: list[str] = Field(default_factory=list, max_length=8, exclude_if=lambda value: not value)
+
+    @field_validator("tech_stack", mode="before")
+    @classmethod
+    def normalize_tech_stack(cls, values: list[str]) -> list[str]:
+        from app.services.tech_stack import normalize_stack
+        return normalize_stack(values) if isinstance(values, list) and all(isinstance(v, str) for v in values) else values
+
     positioning: str = Field(default="", exclude_if=lambda value: not value)
     project_type: str = Field(default="", exclude_if=lambda value: not value)
     item_id: str | None = Field(default=None, pattern=r"^[0-9a-f-]{36}$", exclude_if=lambda value: value is None)

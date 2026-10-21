@@ -116,7 +116,7 @@ def preserve_wording_scope(before: dict, after: dict, targets) -> dict:
         for item in result.get(section) or []:
             new = changed.get(item.get('item_id'))
             if new is not None:
-                for field in ('bullets', 'polished_bullets', 'description'):
+                for field in ('bullets', 'polished_bullets', 'description', 'tech_stack'):
                     if field in new:
                         item[field] = deepcopy(new[field])
     return result
@@ -193,8 +193,8 @@ def _preserve_supported_body(state: dict, base_data: dict) -> dict:
     active_refs = {fact['id'] for section in ('projects', 'work_experience', 'internship', 'education', 'campus', 'open_source', 'awards')
                    for item in source.get(section) or [] for fact in item.get('facts') or []}
     for section, source_sections, body_fields in (
-        ('projects', ('projects',), ('description', 'polished_bullets')),
-        ('work_experience', ('work_experience', 'internship'), ('description', 'bullets')),
+        ('projects', ('projects',), ('description', 'polished_bullets', 'tech_stack')),
+        ('work_experience', ('work_experience', 'internship'), ('description', 'bullets', 'tech_stack')),
         ('open_source', ('open_source',), ('bullets',)),
     ):
         active_items = {item['item_id'] for source_section in source_sections
@@ -575,9 +575,10 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         if scoped != data:
             data = scoped
             measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
-        for item_id, records in (state.get('resume_meta') or {}).get('bullets', {}).items():
-            if item_id not in targets:
-                meta.setdefault('bullets', {})[item_id] = deepcopy(records)
+        for key in ('bullets', 'tech_stack', 'tech_stack_excluded'):
+            for item_id, records in (state.get('resume_meta') or {}).get(key, {}).items():
+                if item_id not in targets:
+                    meta.setdefault(key, {})[item_id] = deepcopy(records)
     coverage = ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     version = prepare_version(state.get('resume_data') or {}, state.get('resume_meta') or {},
                                state.get('resume_versions') or [], data, meta,

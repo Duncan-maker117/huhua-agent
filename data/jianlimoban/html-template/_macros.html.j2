@@ -41,6 +41,7 @@
 .contact { line-height: 1.4; }
 .contact-token, .contact-link { display: inline-block; white-space: nowrap; overflow-wrap: normal; word-break: normal; }
 .contact a, .contact-links a { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
+.tech-stack { font-size: .95em; line-height: 1.45; margin: 2px 0 3px; break-after: avoid; overflow-wrap: anywhere; }
 .contribution-link { white-space: nowrap; font-weight: 400; }
 {%- endmacro %}
 
@@ -61,6 +62,11 @@
   <span class="item-title"><span data-field-path="/projects/{{ index }}/name">{{ p.name }}</span>{% if p.positioning %} ｜ <span data-field-path="/projects/{{ index }}/positioning">{{ p.positioning }}</span>{% endif %}{% if p.project_type %} ｜ <span data-field-path="/projects/{{ index }}/project_type">{{ p.project_type }}</span>{% elif p.role %} ｜ <span class="item-role" data-field-path="/projects/{{ index }}/role">{{ p.role }}</span>{% endif %}</span>
   {{ date_range(p, 'projects', index) }}
 </div>
+{{ tech_stack(p, 'projects', index) }}
+{%- endmacro %}
+
+{% macro tech_stack(item, section, index) -%}
+{% if item.tech_stack %}<div class="tech-stack" data-field-path="/{{ section }}/{{ index }}/tech_stack"><strong>技术栈：</strong>{{ item.tech_stack | join('、') }}</div>{% endif %}
 {%- endmacro %}
 
 {#- 技能：短分组合行，保留原分组及技能编辑路径。 -#}

@@ -1,3 +1,4 @@
+{% import '_macros.html.j2' as m with context %}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -62,6 +63,7 @@
   ul { margin-left: 18px; }
   li { font-size: 9.5pt; margin-bottom: 3px; color: #333; }
   .desc { font-size: 9.5pt; color: #333; padding: 0 8px; }
+.tech-stack { font-size: .95em; line-height: 1.45; margin: 2px 0 3px; break-after: avoid; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -95,13 +97,14 @@
 
   {% if work_experience %}
   <div class="section-title">工作经历</div>
-  {% for job in work_experience %}
+  {% for job in work_experience %}{% set tech_job_index = job._source_index %}
   <div class="item">
     <div class="item-header">
       <span class="item-title">{{ job.company }}　{{ job.title }}</span>
       <span class="item-date">{{ job.start_date }}—{{ job.end_date }}</span>
     </div>
-    {% if job.bullets %}
+    {{ m.tech_stack(job, 'work_experience', tech_job_index) }}
+          {% if job.bullets %}
     <ul>
       {% for b in job.bullets %}<li>{{ b }}</li>{% endfor %}
     </ul>
@@ -112,13 +115,14 @@
 
   {% if projects %}
   <div class="section-title">校园实践</div>
-  {% for p in projects %}
+  {% for p in projects %}{% set tech_project_index = p._source_index %}
   <div class="item">
     <div class="item-header">
       <span class="item-title">{{ p.name }}{% if p.role %}　{{ p.role }}{% endif %}</span>
       <span class="item-date">{{ p.start_date }}—{{ p.end_date }}</span>
     </div>
-    {% if p.description %}<div class="item-sub">{{ p.description }}</div>{% endif %}
+    {{ m.tech_stack(p, 'projects', tech_project_index) }}
+          {% if p.description %}<div class="item-sub">{{ p.description }}</div>{% endif %}
   </div>
   {% endfor %}
   {% endif %}

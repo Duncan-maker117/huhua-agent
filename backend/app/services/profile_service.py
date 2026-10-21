@@ -48,8 +48,8 @@ class ProfileValidationError(ValueError):
 NARRATIVE_NGRAM_SIZE = 2
 NARRATIVE_DUPLICATE_THRESHOLD = 0.82
 NARRATIVE_FIELDS = {
-    "project": {"description", "result", "tool", "deliverable"},
-    "work": {"description", "result", "deliverable"},
+    "project": {"description", "result", "tool", "deliverable", "tech_stack"},
+    "work": {"description", "result", "deliverable", "tech_stack"},
     "campus": {"description", "result"},
     "open_source": {"description", "result", "summary"},
 }
@@ -1355,6 +1355,10 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                     # Explicitly selecting the exact same fact establishes its
                     # source, while a different manual value remains unbound.
                     bind(item, collection, field, fact)
+            elif category in {'project', 'work'} and field == 'tech_stack':
+                from app.services.tech_stack import split_stack, normalize_stack
+                item['tech_stack'] = normalize_stack([*(item.get('tech_stack') or []), *split_stack(value)])
+                bind(item, collection, 'tech_stack', fact)
             elif category in {"campus", "open_source", "awards"} and field == "link":
                 link = {"text": value, "url": value}
                 if link not in item.setdefault("links", []):
@@ -1416,7 +1420,7 @@ _PROJECTION_CATEGORIES = {"basic_info": "basic", "basic": "basic", "education": 
                           "projects": "project", "work_experience": "work", "campus": "campus", "open_source": "open_source", "awards": "awards",
                           "skills": "skill", "skill_groups": "skill"}
 _PROJECTION_IDENTITIES = {"project": "name", "education": "school", "work": "company", "campus": "name", "open_source": "name", "awards": "name"}
-_PROSE_FIELDS = {"description", "bullets", "polished_bullets", "highlights", "content", "text"}
+_PROSE_FIELDS = {"description", "bullets", "polished_bullets", "tech_stack", "highlights", "content", "text"}
 
 
 def _contains_invalid_value(text, token):
@@ -1466,7 +1470,13 @@ def _invalidation_applies(rule, text, *, category=None, subject=None, field=None
     token = rule.get("value", "")
     if rule.get("category") == "basic" and rule.get("field") == "phone":
         return _contains_phone(text, token)
-    if not _contains_invalid_value(text, token):
+    tech_match = False
+    if field == 'tech_stack':
+        from app.services.tech_stack import mention_position
+        tech_match = mention_position(text, token) is not None
+        if tech_match and mention_position(text, rule.get('current_value') or '') is not None:
+            return False
+    if not tech_match and not _contains_invalid_value(text, token):
         return False
     # Full contact details remain private regardless of which résumé field
     # they were copied into. Do not apply this exception to partial numbers.
@@ -1615,7 +1625,8 @@ def sanitize_projection(db, account_id, projection):
                         result[raw_field] = ""
             return result
         if isinstance(value, list):
-            return [cleaned for item in value if (cleaned := walk(item, scope)) is not None]
+            return [cleaned for item in value if (cleaned := walk(item, scope)) is not None
+                    and (scope.get('field') != 'tech_stack' or cleaned)]
         if isinstance(value, str):
             return clean_text(value, scope)
         return copy.deepcopy(value)

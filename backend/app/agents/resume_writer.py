@@ -73,7 +73,7 @@ writer 必须依据同一个 match_plan 写目标 items，每条 bullet 引用�
 保留数量原单位及对象（人/次/个/条），「20次」不得改成「20次调用/请求」。开源贡献每个PR的本人贡献与结果都要保留，标题用仓库名；教育与竞赛荣誉按结构字段保留，不能压成一句。
 每条选择不同的有效动作或产出，勿把同一背景/目标换句话重复成多条。只写资料明确的原因、频率和产物用途，不把现象反推成因、不把“有时”写成“经常”，也不把“原型”写成“未上线”。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；每条 active 事实须由正文或结构字段覆盖；因方案或篇幅无法展示的事实必须明确列为备用并说明原因。
-writer.items 必须是数组，每项只含 item_id、section、title、bullets；title 含 name/role，可含定位 positioning 及其 fact_ids；
+writer.items 必须是数组，每项含 item_id、section、title、bullets，可含 tech_stack、tech_stack_fact_ids；title 含 name/role，可含定位 positioning 及其 fact_ids；
 bullets 是数组，每项须有 text 与 fact_ids 数组，可有 req_ids、flags、needs_metric、metric_question。
 writer.skill_groups 必须是“类别名: 字符串数组”的 JSON 对象，没有已证实技能时给 {}，不要给数组或单个字符串。
 match_plan.requirements、experience_plan、questions 也必须是数组；不要添加 schema 之外的解释字段。
@@ -103,6 +103,11 @@ violations.guard 是 JSON 诊断资料，semantic 中的失败维度和 unsuppor
 结合原 instruction、scope、targets、constraints 和 capacity_budget 修复，容量只是估计，不代表已经符合实际页数。只写有原文支持的原因、频率、用途，不补原因、不升级频率、不添加用途，不把原型写成未上线。
 用户要求保留且有事实支持的本人工作、团队分工和状态，压缩时须合并表达保留，不能只挑最显眼的动作。功能实现与实际验证是不同动作，不能用功能名代替用户要求保留的测试或检查；每条 active 事实须由正文或结构字段覆盖；因方案或篇幅无法展示的事实必须明确列为备用并说明原因。
 保留数量原单位与对象，不把「次」解释为调用/请求。无法安全修复就不返回该条，系统会回退为原事实文本。严格输出 RepairOutput。"""
+
+
+_TECH_CONTRACT = """项目和工作/实习的 tech_stack 是独立技术栈行，列出用户说过的技术、框架、协议或模型能力，最多8项，保持提及顺序；tech_stack_fact_ids 引用本经历支持每一项的 active facts。只可按确定性别名表修正拼写/大小写（longchain→LangChain、toolcalling/tool calling→Tool Calling、mcp→MCP），不能扩写用户未说过的技术。用户明确要求标技术栈或说项目用了哪些技术时必须填。纯技术清单放 tech_stack，不再生成“技术栈：…”或“技术：…”的 bullet；具体技术动作仍可留在要点中。"""
+_WRITE_CONTRACT += _TECH_CONTRACT
+_ONE_PASS_CONTRACT += _TECH_CONTRACT
 
 
 def _numeric_fact(fact: dict) -> bool:
@@ -1765,6 +1770,15 @@ async def _run_resume_writer(
     coverage_caps = {row.item_id: target_caps[row.item_id] for row in plan.experience_plan
                      if row.item_id in target_caps} if writer_diagnostic.get("status") != "model_fallback" else {}
     indexed_output = {item["item_id"]: (section, item) for section in SECTIONS for item in output.get(section) or []}
+    from app.services.tech_stack import project_item_stack
+    for section in ('projects', 'work_experience'):
+        for item in output.get(section) or []:
+            iid = item.get('item_id')
+            if iid in allowed and iid in items and scope != 'bullet':
+                written = writers.get(iid)
+                project_item_stack(item, items[iid][1]['facts'], meta,
+                    proposed=written.tech_stack if written else (),
+                    proposed_ids=written.tech_stack_fact_ids if written else ())
     await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
     report = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
     missing = []
@@ -1861,6 +1875,15 @@ async def _run_resume_writer(
                     output['verification_notes'].append(notice)
                 changes.append(notice)
         meta['labeled_slots'] = slot_assignments
+    from app.services.tech_stack import project_item_stack
+    for section in ('projects', 'work_experience'):
+        for item in output.get(section) or []:
+            iid = item.get('item_id')
+            if iid in allowed and iid in items and scope != 'bullet':
+                written = writers.get(iid)
+                project_item_stack(item, items[iid][1]['facts'], meta,
+                    proposed=written.tech_stack if written else (),
+                    proposed_ids=written.tech_stack_fact_ids if written else ())
     await cite_entailed_facts(output, meta, collected_info, model, item_ids=allowed)
     coverage = ensure_fact_coverage(output, meta, collected_info, withheld=withheld, caps=coverage_caps)
     coverage["restored"] = restored_count
@@ -1873,7 +1896,7 @@ async def _run_resume_writer(
             continue
         section, item = indexed_output[item_id]
         field = 'polished_bullets' if section == 'projects' else 'bullets'
-        if item.get('hidden') or not item.get(field):
+        if item.get('hidden') or not (item.get(field) or item.get('tech_stack')):
             name = item.get('company') or item.get('name') or item_id
             notice = f'方案中保留的「{name}」未能形成通过事实校验的正文，请在核对页检查这段经历。'
             changes.insert(0, notice)
@@ -1883,7 +1906,7 @@ async def _run_resume_writer(
             writer_diagnostic.setdefault('undelivered_items', []).append(item_id)
     if coverage["restored"]:
         writer_diagnostic["coverage_restored"] = coverage["restored"]
-    if coverage["restored"] or slot_assignments:
+    if coverage["restored"] or slot_assignments or meta.get("tech_stack"):
         changed_items = [{"section": section, "item_id": item["item_id"]}
                          for section in SECTIONS for index, item in enumerate(output.get(section, []))
                          if item.get("item_id") and (item != before_items.get(item["item_id"])

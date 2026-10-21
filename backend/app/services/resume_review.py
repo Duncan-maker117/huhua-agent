@@ -58,6 +58,8 @@ def resume_to_text(data: dict) -> str:
             dates = ' — '.join(str(item.get(k) or '') for k in ('start_date', 'end_date')).strip(' —')
             if dates:
                 lines.append(dates)
+            if key in {'projects', 'work_experience'} and item.get('tech_stack'):
+                lines.append('技术栈：' + '、'.join(item['tech_stack']))
             bullets = item.get("bullets") or item.get("polished_bullets") or []
             if key in {"campus", "awards", "open_source"}:
                 bullets = [bullet for _, bullet in item["_display_bullets"]]

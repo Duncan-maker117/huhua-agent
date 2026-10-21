@@ -327,7 +327,7 @@ def compose_interviewer_reply(state: dict, *, match_plan: dict | None = None,
     parts = [lead]
     if explain and reasons:
         parts.append("\n**这版的思路**：" + " ".join(reasons[:3]))
-        in_draft = {fid for rows in (state.get("resume_meta") or {}).get("bullets", {}).values()
+        in_draft = {fid for key in ('bullets', 'tech_stack') for rows in (state.get("resume_meta") or {}).get(key, {}).values()
                     for bullet in rows if isinstance(bullet, dict) for fid in bullet.get("fact_ids") or []}
         for row in [r for r in transferable if not in_draft or in_draft.intersection(r.get("fact_ids") or [])][:2]:
             req = req_text.get(row.get("req_id")) or row.get("text") or ""

@@ -177,6 +177,9 @@
     for (const [section, field] of [['projects', 'polished_bullets'], ['work_experience', 'bullets'], ['campus', 'bullets'], ['open_source', 'bullets'], ['awards', 'bullets']]) {
       for (const item of list(resumeData?.[section])) {
         if (!item || item.hidden === true) continue;
+        const techRecords = list(workspace.tailor?.resume_meta?.tech_stack?.[item.item_id]);
+        list(item.tech_stack).forEach((name, index) => rows.push({itemId:item.item_id,
+          itemName:plain(item.name || item.company) || '经历', text:'技术栈：' + plain(name), meta:techRecords[index] || {}}));
         const records = list(evidence[item.item_id]);
         list(item[field]).forEach((text, index) => {
           if (plain(text).trim()) rows.push({itemId: item.item_id, itemName: plain(item.name || item.company) || '经历', text: plain(text), meta: records[index] || {}});

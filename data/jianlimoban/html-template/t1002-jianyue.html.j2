@@ -84,13 +84,14 @@
   </div>
 
   {% elif section.kind == 'work_experience' %}
-  {% for job in work_experience %}{% set job_index = job._source_index %}
+  {% for job in work_experience %}{% set tech_job_index = job._source_index %}{% set job_index = job._source_index %}
   <div class="item">
     <ul>
       {% if job.start_date or job.end_date %}<li>实习时间：{% if job.start_date %}<span data-field-path="/work_experience/{{ job_index }}/start_date">{{ job.start_date }}</span>{% endif %}{% if job.start_date and job.end_date %}—{% endif %}{% if job.end_date %}<span data-field-path="/work_experience/{{ job_index }}/end_date">{{ job.end_date }}</span>{% endif %}。</li>{% endif %}
       <li>单位：<span data-field-path="/work_experience/{{ job_index }}/company">{{ job.company }}</span>。</li>
       <li>职务：<span data-field-path="/work_experience/{{ job_index }}/title">{{ job.title }}</span>。</li>
-      {% if job.bullets %}
+      {{ m.tech_stack(job, 'work_experience', tech_job_index) }}
+          {% if job.bullets %}
       {% for b in job.bullets %}<li><span data-field-path="/work_experience/{{ job_index }}/bullets/{{ loop.index0 }}">{{ b }}</span></li>{% endfor %}
       {% endif %}
     </ul>

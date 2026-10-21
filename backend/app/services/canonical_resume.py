@@ -177,7 +177,25 @@ async def save_canonical_resume(session_id: str, expected_revision: str, data: d
             session_constraints if session_constraints is not None else authoritative.get("session_constraints"),
             previous_state=row.resume_state)
         from app.services.resume_versions import valid_bullet_metadata
-        if "bullets" in state["resume_meta"]:
+        if source == 'editor':
+            from app.services.tech_stack import project_item_stack
+            previous_items = {item.get('item_id'): item for group in ('projects', 'work_experience')
+                              for item in current.get(group) or []}
+            sources = {item.get('item_id'): item for group in ('projects', 'work_experience', 'internship')
+                       for item in facts.get(group) or []}
+            for group in ('projects', 'work_experience'):
+                for item in canonical.get(group) or []:
+                    iid = item.get('item_id')
+                    old = previous_items.get(iid) or next((row for row in current.get(group) or []
+                        if (row.get('name') or row.get('company')) == (item.get('name') or item.get('company'))), {})
+                    if item.get('tech_stack') == old.get('tech_stack'):
+                        continue
+                    excluded = state['resume_meta'].setdefault('tech_stack_excluded', {}).setdefault(iid, [])
+                    kept = {name.casefold() for name in item.get('tech_stack') or []}
+                    excluded[:] = list(dict.fromkeys([*[name for name in excluded if name not in kept],
+                        *[name.casefold() for name in old.get('tech_stack') or [] if name.casefold() not in kept]]))
+                    project_item_stack(item, sources.get(iid, {}).get('facts') or [], state['resume_meta'], autofill=False)
+        if "bullets" in state["resume_meta"] or 'tech_stack' in state['resume_meta']:
             state["resume_meta"] = valid_bullet_metadata(canonical, state["resume_meta"])
         pre_sanitization = copy.deepcopy(canonical)
         protected = protect_data(owner, {**state, "resume_data": canonical}, db=db)

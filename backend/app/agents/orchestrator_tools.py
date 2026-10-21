@@ -87,7 +87,7 @@ def _safe_result(result: dict, state: dict, update: dict, tool: str) -> dict:
     current = {**state, **update}
     profile = (current.get("jd_info") or {}).get("role_profile") or {}
     hidden = {"id", "item_id", "fact_id", "fact_ids", "req_id", "req_ids", "slot_id", "slot_ids",
-              "coverage_fact_ids", "text_hash", "profile_refs", "sources", "turn_id", "source_id",
+              "coverage_fact_ids", "tech_stack_fact_ids", "text_hash", "profile_refs", "sources", "turn_id", "source_id",
               "profile_statement_fact_ids", "labeled_slots", "slot_trace", "slot_lines", "edit_contract"}
     names = {}
 
@@ -327,6 +327,14 @@ async def record_facts(state, args, ctx):
         update = await _persist_intake(state, collected)
         ctx.recorded_sources.add(source_id)
         return ToolOutcome({"status": "ok", "collected_info": collected}, update)
+    from app.services.tech_stack import parse_stack_edit, record_stack_edit
+    tech_text = _candidate_evidence(text)
+    tech_edit = parse_stack_edit(state.get('resume_data') or {}, tech_text)
+    if tech_edit and not tech_edit.get('error') and tech_edit['op'] == 'add' and tech_edit['names']:
+        collected = record_stack_edit(state.get('collected_info') or {}, tech_edit, tech_text, source_id)
+        update = await _persist_intake(state, collected)
+        ctx.recorded_sources.add(source_id)
+        return ToolOutcome({'status': 'ok', 'collected_info': collected}, update)
     from app.services.fact_corrections import correction_pairs
     pairs = correction_pairs(text, state.get("collected_info"))
     if pairs and state.get("resume_data"):
@@ -736,6 +744,11 @@ def _restore_unwritten_items(state, update, scope, targets):
         meta["change_summary"] = update.get("change_summary", [])
         for holder in (update, meta):
             holder["omitted"] = [row for row in holder.get("omitted") or [] if row.get("item_id") not in restored]
+        from app.services.tech_stack import project_item_stack
+        for section in ('projects', 'work_experience'):
+            for item in data.get(section) or []:
+                if item.get('item_id') in restored:
+                    project_item_stack(item, items[item['item_id']][1]['facts'], meta)
         ensure_fact_coverage(data, meta, state.get("collected_info") or {})
 
 
@@ -854,6 +867,29 @@ async def edit_resume(state, args, ctx):
     if not data:
         return ToolOutcome({"status": "insufficient", "missing": ["已有简历"]})
     source = _source(state, "current")
+    from app.services.tech_stack import parse_stack_edit, stack_edit_update, item_facts, supporting_ids
+    # Authority is the actual user message, never the tool's paraphrased instruction.
+    from app.agents.fact_extractor import _candidate_evidence
+    from app.agents.resume_graph import _candidate_source_allowed
+    literal = (_candidate_evidence(source.content) if source and isinstance(source.content, str)
+               and _candidate_source_allowed(source) else '')
+    tech_edit = parse_stack_edit(data, literal)
+    if tech_edit:
+        if tech_edit.get('error'):
+            return ToolOutcome({'status': 'insufficient', 'message': tech_edit['error']})
+        facts = item_facts(state.get('collected_info') or {}, tech_edit)
+        if tech_edit['op'] == 'add' and any(not supporting_ids(name, facts) for name in tech_edit['names']):
+            recorded = await record_facts(state, {'source_id': 'current'}, ctx)
+            if recorded.result.get('status') not in {'ok', 'unchanged'}:
+                return recorded
+            state = {**state, **recorded.update}
+        try:
+            update = await stack_edit_update(state, literal, tech_edit)
+        except ValueError:
+            return _error('record_facts_first')
+        if 'collected_info' in state:
+            update['collected_info'] = state['collected_info']
+        return _document_outcome(update)
     if source and (source.id or "current") in ctx.corrected_sources:
         return ToolOutcome({"status": "unchanged", "correction_applied": True})
     from app.services.fact_corrections import correction_pairs

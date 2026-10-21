@@ -354,6 +354,8 @@ def execute_edit_plan(
             moved.update(fields)
             moved["company" if destination == "work_experience" else "name"] = name
             body = item.get("polished_bullets") or item.get("bullets") or (item.get("description") or "").splitlines()
+            if destination in {'projects', 'work_experience'} and item.get('tech_stack'):
+                moved['tech_stack'] = deepcopy(item['tech_stack'])
             moved["polished_bullets" if destination == "projects" else "bullets"] = deepcopy(body)
             if destination == "projects":
                 moved["description"] = ""

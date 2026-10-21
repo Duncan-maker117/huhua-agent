@@ -340,7 +340,7 @@ def sanitize_fact_history(state, *, original=None):
                 stale_hashes = {entry.get("text_hash") for entry in records if set(entry.get("fact_ids") or []) - active}
                 facts = obsolete.get(item_id, [])
                 for field in ("name", "school", "company", "degree", "major", "role", "title", "start_date",
-                              "end_date", "duration", "summary", "pr", "level", "date", "description", "raw_description", "highlights", "bullets", "polished_bullets"):
+                              "end_date", "duration", "summary", "pr", "level", "date", "description", "raw_description", "highlights", "bullets", "polished_bullets", "tech_stack"):
                     value = item.get(field)
                     # A literal active replacement owns its scalar slot. E.g.
                     # 专业「计算机科学与技术」 is also a near-match to the superseded
@@ -353,6 +353,12 @@ def sanitize_fact_history(state, *, original=None):
                                        and (not isinstance(text, str) or hashlib.sha256(text.encode()).hexdigest() not in stale_hashes)]
                     elif unsupported(value, facts, field):
                         item[field] = ""
+                tech_records = meta.get('tech_stack', {}).get(item_id, [])
+                if tech_records and item.get('tech_stack'):
+                    from app.services.tech_stack import supporting_ids
+                    own_facts = [f for group in sections for row in (result.get('collected_info') or {}).get(group, [])
+                                 if row.get('item_id') == item_id for f in row.get('facts', [])]
+                    item['tech_stack'] = [name for name in item['tech_stack'] if supporting_ids(name, own_facts)]
                 visible = item.get("polished_bullets") if section == "projects" else item.get("bullets")
                 hashes[item_id] = {hashlib.sha256(line.encode()).hexdigest() for line in visible or [] if isinstance(line, str)}
         for item_id, records in list(bullets.items()):

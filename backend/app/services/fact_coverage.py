@@ -218,6 +218,9 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                     # remains usable; new drafts carry validated coverage IDs.
                     covered = not hidden and (entailed or text_covered(text, referenced_body or cited_body
                                                                       or (displayed_body if not records else [])))
+                from app.services.tech_stack import stack_covers_fact
+                if not hidden and stack_covers_fact(item, meta.get('tech_stack', {}).get(item_id, []), fact):
+                    covered = True
                 reason = ""
                 # resume_bullet removes header echoes. Test the original
                 # source-backed identity before treating an empty body as omitted.

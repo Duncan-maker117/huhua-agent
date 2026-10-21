@@ -87,7 +87,10 @@ def writing_guide(role='general'):
         'expression_rules': ['事实不增，表达自由；可重组和概括已确认事实。',
                              '不写无证据形容词，不升级职责、参与程度、环境或上线状态。',
                              '数字必须来自档案事实，保留时间范围、分母及测试环境。',
-                             '每个事实性字段引用 fact_ids；缺少素材的标签省略。'],
+                             '每个事实性字段引用 fact_ids；缺少素材的标签省略。',
+                             'projects/work_experience 的 tech_stack 是可选字符串数组（最多8项），标题下独立显示技术栈，空则省略。',
+                             '只填用户说过的技术；只允许确定性拼写/大小写规范化，如 longchain→LangChain、toolcalling→Tool Calling、mcp→MCP。去重并保持用户提及顺序，不补技术。',
+                             '每项技术用 /projects/0/tech_stack/0 或 /work_experience/0/tech_stack/0 的 citations 引用 fact_ids；check_facts 的 id 也用此路径。纯技术清单不写成 bullet。'],
         'role_expression': _section(text, '表达'),
         'example_notice': '以下名称、日期与内容全部虚构，只演示格式，绝不能移入用户简历或作为事实来源。',
         # 整个对象可以直接通过 MCPResume 校验，标签保留在字符串正文中。

@@ -393,9 +393,9 @@
     container.append(wrapper);
     controls.set(path, {wrapper, input});
     input.addEventListener('input', () => {
-      setValue(input.dataset.inputPath, input.value);
+      setValue(input.dataset.inputPath, options.parse ? options.parse(input.value) : input.value);
       options.onInput?.(input.value);
-      changed(input.dataset.inputPath, input.value);
+      changed(input.dataset.inputPath, options.preview ? options.preview(input.value) : input.value);
     });
     return wrapper;
   }
@@ -663,6 +663,15 @@
     education.append(button('＋ 添加教育经历', 'add-button', () => changeStructure(() => data.education.push({school: '', major: '', degree: '', start_date: '', end_date: '', highlights: ''}))));
   }
 
+  function techStackField(container, item, section, index) {
+    const parse = value => [...new Set(value.split(/[,，、;；\n]+/).map(part => part.trim()).filter(Boolean))];
+    field(container, '技术栈', pointer(section, index, 'tech_stack'), (item.tech_stack || []).join('、'), {
+      full: true, placeholder: '用逗号或顿号分隔，只填实际使用过的技术',
+      parse, // The server applies the limit after alias normalization and deduplication.
+      preview: value => parse(value).length ? '技术栈：' + parse(value).join('、') : '',
+    });
+  }
+
   function buildWorkContent(work) {
     const data = state.data;
     data.work_experience.forEach((item, index) => {
@@ -672,6 +681,7 @@
       for (const [key, label, full] of [['company', '公司 / 组织', true], ['title', '岗位', true], ['start_date', '开始时间'], ['end_date', '结束时间']]) {
         field(grid, label, pointer('work_experience', index, key), item[key], {full});
       }
+      techStackField(grid, item, 'work_experience', index);
       stringList(box, item.bullets, ['work_experience', index, 'bullets'], '经历要点', true);
     });
     work.append(button('＋ 添加工作 / 实习经历', 'add-button', () => changeStructure(() => data.work_experience.push({company: '', title: '', start_date: '', end_date: '', bullets: ['']}))));
@@ -686,6 +696,7 @@
       for (const [key, label, full] of [['name', '项目名称', true], ['role', '担任角色', true], ['start_date', '开始时间'], ['end_date', '结束时间']]) {
         field(grid, label, pointer('projects', index, key), item[key], {full});
       }
+      techStackField(grid, item, 'projects', index);
       if (item.polished_bullets.length) {
         stringList(box, item.polished_bullets, ['projects', index, 'polished_bullets'], '项目要点', true, () => {
           if (!item.polished_bullets.length) item.description = '';

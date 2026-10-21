@@ -182,8 +182,11 @@ class Batch10Test(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(project['name'], '校园二手交易系统')
                 self.assertEqual((project['start_date'], project['end_date']), ('2025.03', '2025.06'))
                 body = ' '.join(project['polished_bullets'])
-                for value in ('商品发布', '搜索接口', 'Spring Boot', 'MySQL', '3 人', '登录', '同学', '实验室', '只给班里演示'):
+                for value in ('商品发布', '搜索接口', '3 人', '登录', '同学', '实验室', '只给班里演示'):
                     self.assertIn(value, body)
+                # Batch 18b moves a pure technology list into the independent line.
+                self.assertEqual(project['tech_stack'], ['Spring Boot', 'MySQL'])
+                self.assertNotIn('技术栈：', body)
                 self.assertNotIn('没有真实用户', body)  # Batch 11b: absence stays a guard constraint.
                 self.assertNotIn('2025.', body)
                 self.assertNotIn('2025.', project['description'])

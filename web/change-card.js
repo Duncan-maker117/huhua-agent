@@ -1,7 +1,7 @@
 /* "本次修改" card under an assistant reply: per-experience before/after bullets, per-op receipts, one-click undo. */
 (() => {
   'use strict';
-  const FIELDS = {name: '名称', role: '角色', company: '公司', position: '职位', title: '职位', start_date: '开始时间', end_date: '结束时间', school: '学校', degree: '学历', major: '专业'};
+  const FIELDS = {tech_stack: '技术栈', name: '名称', role: '角色', company: '公司', position: '职位', title: '职位', start_date: '开始时间', end_date: '结束时间', school: '学校', degree: '学历', major: '专业'};
   const SECTIONS = {projects: '项目', work_experience: '工作 / 实习', education: '教育', skills: '技能', skill_groups: '技能', basic_info: '基本信息', certificates: '证书', self_evaluation: '个人总结', sections: '栏目设置', campus: '校园经历', open_source: '开源贡献', awards: '竞赛荣誉', summary: '定位', layout: '排版'};
   const MARKER = /^\s*(✅|⚠️?|❌)\s*/u;
   const cards = [];
@@ -51,7 +51,8 @@
     });
     const fields = [];
     for (const [key, label] of Object.entries(FIELDS)) {
-      const from = text(before?.[key]), to = text(after?.[key]);
+      const from = key === 'tech_stack' ? (before?.[key] || []).join('、') : text(before?.[key]);
+      const to = key === 'tech_stack' ? (after?.[key] || []).join('、') : text(after?.[key]);
       if (from !== to && (before && after)) fields.push(`${label}：${from || '空'} → ${to || '空'}`);
     }
     return {tag, title: titleOf(before, after), removed, rows, fields};

@@ -185,6 +185,10 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
             )
             p = doc.add_paragraph()
             p.add_run(line).bold = True
+            if job.get('tech_stack'):
+                tech = doc.add_paragraph()
+                tech.add_run('技术栈：').bold = True
+                tech.add_run('、'.join(job['tech_stack']))
             for b in job.get("bullets") or []:
                 doc.add_paragraph(b, style="List Bullet")
     elif kind in {"projects", "campus"}:
@@ -204,6 +208,10 @@ def _add_section_body(doc, data: dict[str, Any], section: dict[str, Any]) -> Non
             )
             p = doc.add_paragraph()
             p.add_run(line).bold = True
+            if kind == 'projects' and proj.get('tech_stack'):
+                tech = doc.add_paragraph()
+                tech.add_run('技术栈：').bold = True
+                tech.add_run('、'.join(proj['tech_stack']))
             bullets = proj.get("polished_bullets" if kind == "projects" else "bullets") or []
             if bullets:
                 for b in bullets:

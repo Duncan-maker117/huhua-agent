@@ -123,6 +123,10 @@ def normalize_fact_store(collected: dict | None) -> dict:
                         fact = new_fact(value, kind=kind, quote=value, source=source)
                         fact["field"] = field
                         facts.append(fact)
+                for name in item.get('tech_stack') or []:
+                    fact = new_fact(name, kind='method_tool', quote=name, source=source)
+                    fact['dimension'] = 'tech_stack'
+                    facts.append(fact)
                 for fact in facts:
                     for key in ("profile_refs", "profile_fact_refs", "source_ids", "source_id", "profile_fact_id"):
                         if item.get(key):
@@ -182,7 +186,7 @@ def _editor_texts(item: dict, section: str) -> list[str]:
 
 
 def _editor_statements(item: dict, section: str) -> list[str]:
-    statements = _editor_texts(item, section)
+    statements = _editor_texts(item, section) + list(item.get("tech_stack") or [])
     for field in ("description", "role", "title", "degree", "major", "start_date", "end_date", "duration", "highlights",
                   "summary", "pr", "level", "date"):
         value = item.get(field)
@@ -258,11 +262,21 @@ def append_editor_facts(previous_facts: dict, old_draft: dict, new_draft: dict,
             by_id[item_id] = target
             if "links" in item:
                 target["links"] = copy.deepcopy(item["links"])
+            if section in {'projects', 'work_experience', 'internship'} and 'tech_stack' in item:
+                target['tech_stack'] = copy.deepcopy(item['tech_stack'])
             old_texts = set(_editor_statements(old, section))
+            # Editing the stack input explicitly confirms its complete new list.
+            # This also preserves retained MCP-sourced names without treating
+            # untouched MCP prose as new candidate facts.
+            if item.get('tech_stack') != old.get('tech_stack'):
+                old_texts.difference_update(old.get('tech_stack') or [])
             already = {fact.get("text") for fact in target.get("facts", []) if fact.get("status", "active") == "active"}
             for value in _editor_statements(item, section):
                 if value not in old_texts and value not in already:
-                    target.setdefault("facts", []).append(new_fact(value, quote=value, source="editor", turn_id=turn_id))
+                    fact = new_fact(value, quote=value, source="editor", turn_id=turn_id)
+                    if value in (item.get('tech_stack') or []):
+                        fact.update(kind='method_tool', dimension='tech_stack')
+                    target.setdefault("facts", []).append(fact)
                     already.add(value)
             for field in FACT_FIELDS[section]:
                 value = item.get(field)

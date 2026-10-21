@@ -15,7 +15,7 @@ Category = Literal["basic", "education", "project", "work", "campus", "open_sour
 FactField = Literal[
     "name", "phone", "email", "location", "objective", "school", "degree",
     "major", "start_date", "end_date", "company", "title", "role", "status",
-    "description", "result", "skill", "preference", "tool", "deliverable",
+    "description", "result", "skill", "preference", "tool", "deliverable", "tech_stack",
     "summary", "pr", "level", "date", "highlights", "link", "github", "website", "availability",
 ]
 
@@ -39,8 +39,8 @@ class ArchiveProposal(BaseModel):
         allowed = {
             "basic": {"name", "phone", "email", "location", "objective", "link", "github", "website", "availability"},
             "education": {"school", "degree", "major", "start_date", "end_date", "highlights", "description", "result"},
-            "project": {"name", "role", "status", "start_date", "end_date", "description", "result", "tool", "deliverable"},
-            "work": {"company", "title", "role", "start_date", "end_date", "description", "result", "deliverable"},
+            "project": {"name", "role", "status", "start_date", "end_date", "description", "result", "tool", "deliverable", "tech_stack"},
+            "work": {"company", "title", "role", "start_date", "end_date", "description", "result", "deliverable", "tech_stack"},
             "campus": {"name", "role", "description", "result", "link", "start_date", "end_date"},
             "open_source": {"name", "summary", "pr", "description", "result", "link", "start_date", "end_date"},
             "awards": {"name", "level", "date", "description", "result", "link"},

@@ -33,6 +33,15 @@ def valid_bullet_metadata(data: dict, meta: dict) -> dict:
                 records.append(matches.popleft() if matches else {})
             if any(records):
                 valid[item['item_id']] = records
+    tech = {}
+    for section in ('projects', 'work_experience'):
+        for item in data.get(section) or []:
+            by_hash = {row.get('text_hash'): row for row in result.get('tech_stack', {}).get(item.get('item_id'), [])}
+            rows = [by_hash.get(text_hash(name), {}) for name in item.get('tech_stack') or []]
+            if any(rows):
+                tech[item['item_id']] = rows
+    if 'tech_stack' in result or tech:
+        result['tech_stack'] = tech
     result['bullets'] = valid
     return result
 

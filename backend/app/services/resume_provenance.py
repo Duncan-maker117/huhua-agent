@@ -60,9 +60,9 @@ def _item_index(data):
 
 def _content_signature(collection, item):
     """Exact substantive content, excluding only display identity and empty defaults."""
-    fields = {"projects": ("role", "start_date", "end_date", "description", "polished_bullets"),
+    fields = {"projects": ("role", "start_date", "end_date", "description", "polished_bullets", "tech_stack"),
               "education": ("degree", "major", "start_date", "end_date", "highlights"),
-              "work_experience": ("title", "start_date", "end_date", "bullets"),
+              "work_experience": ("title", "start_date", "end_date", "bullets", "tech_stack"),
               "campus": ("role", "start_date", "end_date", "bullets"),
               "open_source": ("summary", "pr", "start_date", "end_date", "bullets"),
               "awards": ("level", "date", "bullets")}[collection]

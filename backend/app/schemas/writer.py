@@ -110,6 +110,8 @@ class WrittenBullet(WriterSchema):
 class WrittenItem(WriterSchema):
     item_id: str
     section: Literal["projects", "work_experience", "campus", "open_source", "awards"]
+    tech_stack: list[str] = Field(default_factory=list, description="只列本经历用户原文中的技术名，最多8项；不自由扩写")
+    tech_stack_fact_ids: list[str] = Field(default_factory=list, description="每项技术的本经历 active fact_ids")
     title: WrittenTitle = Field(default_factory=WrittenTitle)
     bullets: list[WrittenBullet] = Field(default_factory=list, description=LABELED_SELECTION)
 

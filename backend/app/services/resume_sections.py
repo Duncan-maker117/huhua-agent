@@ -56,7 +56,7 @@ def visible_items(data: dict[str, Any], kind: str) -> list[tuple[int, dict[str, 
             if placeholder_name(item.get(field, "")):
                 item[field] = "[待补]"
         # Descriptive pending labels are intake UI only, never resume prose.
-        for field in ("role", "title", "description", "summary", "highlights", "bullets", "polished_bullets"):
+        for field in ("role", "title", "description", "summary", "highlights", "bullets", "polished_bullets", "tech_stack"):
             value = item.get(field)
             def clean(text):
                 for label in PLACEHOLDER_NAMES.values():

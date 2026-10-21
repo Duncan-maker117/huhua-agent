@@ -276,7 +276,11 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
             facts = item.get("facts") or []
             for field in {fact.get("field") for fact in facts if fact.get("field")}:
                 values = [fact["text"] for fact in facts if fact.get("field") == field and fact.get("status", "active") == "active"]
-                item[field] = values[-1] if values else ""
+                if field == 'tech_stack':
+                    from app.services.tech_stack import normalize_stack, split_stack
+                    item[field] = normalize_stack([name for value in values for name in split_stack(value)])
+                else:
+                    item[field] = values[-1] if values else ""
             from app.services.resume_field_hygiene import role_body, sourced_role
             from app.services.candidate_language import without_wording_constraints
             body = [cleaned for fact in facts if fact.get("status", "active") == "active"
@@ -290,7 +294,7 @@ def _serialize_to_resume_data(state: "ResumeState") -> dict:
         return item
 
     def _presentation(item: dict) -> dict:
-        return {key: copy.deepcopy(item[key]) for key in ("item_id", "hidden", "links") if key in item}
+        return {key: copy.deepcopy(item[key]) for key in ("item_id", "hidden", "links", "tech_stack") if key in item}
 
     def _edu(e: dict) -> dict:
         from app.services.education_fields import clean_education_item
@@ -435,6 +439,11 @@ def _preserve_saved_resume_metadata(data: dict, saved: dict) -> dict:
             for field in ("hidden", "links"):
                 if field not in item and field in old:
                     item[field] = copy.deepcopy(old[field])
+            if section in {'projects', 'work_experience'}:
+                if old.get('tech_stack'):
+                    item['tech_stack'] = copy.deepcopy(old['tech_stack'])
+                else:
+                    item.pop('tech_stack', None)
             if section == "projects" and old.get("description") == item.get("description") and old.get("polished_bullets"):
                 item["polished_bullets"] = copy.deepcopy(old["polished_bullets"])
 
@@ -2855,6 +2864,24 @@ async def _evaluating_turn_impl(state: ResumeState, llm: ChatOpenAI, scope: Spec
         result = await _update_without_writer(state, text, repair_dates=True)
         return {**result, 'stage': 'EVALUATING', 'resume_draft': resume_to_text(result['resume_data']),
                 'messages': [AIMessage(content='最终稿已放到右侧「写简历」，沿用已确认的事实和删改要求。' + export_capability(result['resume_data']))]}
+    from app.services.tech_stack import parse_stack_edit, stack_edit_update
+    tech_edit = parse_stack_edit(data, text)
+    if tech_edit:
+        if tech_edit.get('error'):
+            return {'messages': [AIMessage(content=tech_edit['error'])]}
+        if tech_edit['op'] == 'add' and tech_edit['names']:
+            # Reuse the same original-message fact intake boundary as loop.
+            from app.agents.orchestrator_tools import record_facts, ToolContext
+            intake = await record_facts({**state, 'resume_data': data}, {'source_id': 'current'}, ToolContext(llm=llm))
+            if intake.result.get('status') not in {'ok', 'unchanged'}:
+                return {'messages': [AIMessage(content='技术栈事实未能记录，请核对原文。')]}
+            state = {**state, **intake.update}
+        try:
+            update = await stack_edit_update({**state, 'resume_data': data}, text, tech_edit)
+        except ValueError:
+            return {'messages': [AIMessage(content='技术栈没有对应的用户事实，未写入。')]}
+        return {**update, 'collected_info': state.get('collected_info') or collected,
+                'messages': [AIMessage(content='已更新技术栈。')]}
     from app.services.fact_corrections import correction_pairs
     pairs = correction_pairs(text, collected)
     if pairs:
@@ -3357,9 +3384,10 @@ async def stream_agent(
         from app.services.resume_versions import prepare_version
         version = prepare_version(before['resume_data'], before.get('resume_meta') or {},
                                   before.get('resume_versions') or [], data, values.get('resume_meta') or {}, label='局部修改')
-        for item_id, records in (before.get('resume_meta') or {}).get('bullets', {}).items():
-            if item_id not in targets:
-                version['resume_meta'].setdefault('bullets', {})[item_id] = copy.deepcopy(records)
+        for key in ('bullets', 'tech_stack', 'tech_stack_excluded'):
+            for item_id, records in (before.get('resume_meta') or {}).get(key, {}).items():
+                if item_id not in targets:
+                    version['resume_meta'].setdefault(key, {})[item_id] = copy.deepcopy(records)
         return {**values, **version, 'resume_draft': resume_to_text(data)}
 
     source = _stream_agent_impl(messages, session_id, llm, task, web_sources, protect_final=protect_final, answers=answers, plan_choice=plan_choice, intake=intake)

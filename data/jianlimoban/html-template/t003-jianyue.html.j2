@@ -1,3 +1,4 @@
+{% import '_macros.html.j2' as m with context %}
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -131,6 +132,7 @@
   li { font-size: 9.5pt; color: #333; margin-bottom: 3px; }
   .desc { font-size: 9.5pt; color: #333; }
   .skill-text-row { font-size: 9.5pt; color: #333; margin-bottom: 3px; }
+.tech-stack { font-size: .95em; line-height: 1.45; margin: 2px 0 3px; break-after: avoid; overflow-wrap: anywhere; }
 </style>
 </head>
 <body>
@@ -209,13 +211,14 @@
       {% if work_experience %}
       <div class="m-section">
         <div class="m-section-title">实习经历</div>
-        {% for job in work_experience %}
+        {% for job in work_experience %}{% set tech_job_index = job._source_index %}
         <div class="item">
           <div class="item-header">
             <span class="item-title">{{ job.company }}</span>
             <span class="item-date">{{ job.start_date }} — {{ job.end_date }}</span>
           </div>
           {% if job.title %}<div class="item-sub">{{ job.title }}</div>{% endif %}
+          {{ m.tech_stack(job, 'work_experience', tech_job_index) }}
           {% if job.bullets %}
           <ul>
             {% for b in job.bullets %}<li>{{ b }}</li>{% endfor %}
@@ -229,12 +232,13 @@
       {% if projects %}
       <div class="m-section">
         <div class="m-section-title">校园经历</div>
-        {% for p in projects %}
+        {% for p in projects %}{% set tech_project_index = p._source_index %}
         <div class="item">
           <div class="item-header">
             <span class="item-title">{{ p.name }}{% if p.role %}　{{ p.role }}{% endif %}</span>
             <span class="item-date">{{ p.start_date }} — {{ p.end_date }}</span>
           </div>
+          {{ m.tech_stack(p, 'projects', tech_project_index) }}
           {% if p.description %}
           <ul>
             <li>{{ p.description }}</li>

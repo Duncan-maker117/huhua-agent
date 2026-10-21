@@ -82,13 +82,13 @@ def _only_generic(term: str) -> bool:
 
 def named_terms(message: str, labels: list[str] | None = None) -> list[dict]:
     """[{term, label}]：label 是同一子句里点名的条目名（可为空）。"""
-    labels = [str(l) for l in labels or [] if l]
+    labels = [str(label) for label in labels or [] if label]
     found: list[dict] = []
     for segment in _SEGMENT.split(message or ""):
         segment = segment.strip()
         if not segment:
             continue
-        label = next((l for l in sorted(labels, key=len, reverse=True) if l.casefold() in segment.casefold()), "")
+        label = next((name for name in sorted(labels, key=len, reverse=True) if name.casefold() in segment.casefold()), "")
         pieces: list[str] = []
         if (match := _EMPHASIS.search(segment)):
             pieces = _LIST_SPLIT.split(match.group(1))
@@ -97,7 +97,7 @@ def named_terms(message: str, labels: list[str] | None = None) -> list[dict]:
         for piece in pieces:
             term = _clean(piece, labels)
             if (len(term) < 2 or _only_generic(term) or _FIELD_WORDS.search(term)
-                    or any(_fold(term) == _fold(l) for l in labels)):
+                    or any(_fold(term) == _fold(label) for label in labels)):
                 continue
             if not any(row["term"] == term for row in found):
                 found.append({"term": term, "label": label})
@@ -106,7 +106,7 @@ def named_terms(message: str, labels: list[str] | None = None) -> list[dict]:
 
 def item_text(item: dict) -> str:
     parts = []
-    for key in ("polished_bullets", "bullets", "highlights"):
+    for key in ("polished_bullets", "bullets", "highlights", "tech_stack"):
         value = item.get(key)
         if isinstance(value, list):
             parts.extend(str(v.get("text", "")) if isinstance(v, dict) else str(v) for v in value)

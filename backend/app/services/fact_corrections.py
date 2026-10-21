@@ -141,7 +141,7 @@ def apply_experience_merges(store: dict, merges: list[dict]) -> None:
                     continue
                 known = {fact['id'] for fact in target['facts']}
                 target['facts'].extend(deepcopy(fact) for fact in source.get('facts', []) if fact['id'] not in known)
-                for key in ('raw_notes', 'links'):
+                for key in ('raw_notes', 'links', 'tech_stack'):
                     values = target.setdefault(key, [])
                     values.extend(deepcopy(value) for value in source.get(key, []) if value not in values)
                 audit = {
@@ -282,7 +282,9 @@ def apply_literal_corrections(collected: dict, data: dict, meta: dict, pairs: li
         for section in FACT_SECTIONS:
             for item in draft.get(section, []):
                 records = references.get(item.get('item_id'), [])
-                for field in ('bullets', 'polished_bullets'):
+                for field in ('bullets', 'polished_bullets', 'tech_stack'):
+                    records = (metadata.get('tech_stack', {}).get(item.get('item_id'), []) if field == 'tech_stack'
+                               else references.get(item.get('item_id'), []))
                     for index, text in enumerate(item.get(field) or []):
                         record = records[index] if index < len(records) else {}
                         cited = set(record.get('fact_ids') or []) & replacements.keys()
@@ -294,6 +296,9 @@ def apply_literal_corrections(collected: dict, data: dict, meta: dict, pairs: li
                             if unrelated and len(old_pattern.findall(text)) > 1:
                                 return {'error': '同一句中有多个相同旧值，无法安全定位片段；当前正文未更改。'}
                             item[field][index] = _replace(text, pair)
+                            if field == 'tech_stack':
+                                from app.services.tech_stack import normalize_name
+                                item[field][index] = normalize_name(item[field][index])
                             changed_texts.append(item[field][index])
                             record['text_hash'] = text_hash(item[field][index])
                             record.pop('coverage_fact_ids', None)

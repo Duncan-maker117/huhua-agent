@@ -19,8 +19,8 @@ MEMORY_EXPORT_PROMPT = """请导出你确实记得的、与我本人求职相关
 category 与对应 field 的合法枚举如下（必须匹配）：
 basic: name, phone, email, location, objective, link, github, website, availability
 education: school, degree, major, start_date, end_date, highlights, description, result
-project: name, role, status, start_date, end_date, description, result, tool, deliverable
-work: company, title, role, start_date, end_date, description, result, deliverable
+project: name, role, status, start_date, end_date, description, result, tool, deliverable, tech_stack
+work: company, title, role, start_date, end_date, description, result, deliverable, tech_stack
 campus: name, role, description, result, link, start_date, end_date
 open_source: name, summary, pr, description, result, link, start_date, end_date
 awards: name, level, date, description, result, link

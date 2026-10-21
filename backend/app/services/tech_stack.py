@@ -1,0 +1,308 @@
+"""Deterministic technology names and item-scoped, original-quote evidence.
+
+Writers only project active facts. Explicit chat additions enter through
+record_facts; direct editor input uses the existing append_editor_facts boundary.
+"""
+from __future__ import annotations
+
+import re
+
+ALIASES = {
+    'mcp': 'MCP', 'toolcalling': 'Tool Calling', 'tool calling': 'Tool Calling',
+    'longchain': 'LangChain', 'langchain': 'LangChain', 'langgraph': 'LangGraph',
+    'rag': 'RAG', 'llm': 'LLM', 'python': 'Python', 'java': 'Java',
+    'fastapi': 'FastAPI', 'react': 'React', 'vue': 'Vue', 'typescript': 'TypeScript',
+    'javascript': 'JavaScript', 'mysql': 'MySQL', 'postgresql': 'PostgreSQL',
+    'redis': 'Redis', 'docker': 'Docker', '长期记忆': '长期记忆', '记忆': '记忆',
+}
+# Chinese capability words are ordinary prose too ("帮用户记忆单词"); only an
+# explicit list may turn them into stack items.
+LIST_ONLY = {'长期记忆', '记忆'}
+MAX_ITEMS = 8
+SECTIONS = ('projects', 'work_experience')
+SPLIT = re.compile(r'[,，、;；\n]+')
+LABEL = re.compile(r'^\s*(?:[-*•]\s*)?(?:技术栈|技术|工具|框架|tech\s*stack)\s*[:：]\s*', re.I)
+NEGATIVE = re.compile(r'没(?:有)?(?:用|使用|接入)?|未(?:使用|用|接入)?|不(?:使用|用|是)|不含|不涉及|去掉|删除|移除|计划|打算|拟用|准备|考虑|希望|待接入|如果|假设|例如|比如|推荐|可选|候选|要求|需要掌握|想学')
+
+
+def normalize_name(value: str) -> str:
+    value = re.sub(r'\s+', ' ', value).strip(' \t。；;，,、`')
+    return ALIASES.get(value.casefold(), value)
+
+
+def normalize_stack(values: list[str]) -> list[str]:
+    result, seen = [], set()
+    for value in values:
+        name = normalize_name(value)
+        if name and name.casefold() not in seen:
+            result.append(name)
+            seen.add(name.casefold())
+    return result[:MAX_ITEMS]
+
+
+def split_spaced(part: str) -> list[str]:
+    """Split "mcp 记忆 toolcalling" when it names known items; keep "Spring Boot"."""
+    tokens, result, i = part.split(), [], 0
+    while i < len(tokens):
+        pair = ' '.join(tokens[i:i + 2]).casefold()
+        if i + 1 < len(tokens) and pair in ALIASES:
+            result.append(' '.join(tokens[i:i + 2]))
+            i += 2
+        else:
+            result.append(tokens[i])
+            i += 1
+    if len(result) > 1 and any(token.casefold() in ALIASES for token in result):
+        return result
+    return [part]
+
+
+def split_stack(value: str) -> list[str]:
+    return normalize_stack([token for part in SPLIT.split(value) for token in split_spaced(part.strip())])
+
+
+def _pattern(name: str):
+    variants = [key for key, value in ALIASES.items() if value == normalize_name(name)]
+    variants.append(name)
+    return re.compile(r'(?<![A-Za-z0-9_+#.])(?:' + '|'.join(
+        re.escape(v) for v in sorted(set(variants), key=len, reverse=True)) + r')(?![A-Za-z0-9_+#])', re.I)
+
+
+def mention_position(name: str, quote: str) -> int | None:
+    """Literal/alias matches only; reject negative, hypothetical and planned use."""
+    for match in _pattern(name).finditer(quote):
+        # A negation before a comma-separated list applies to the whole list.
+        start = max(quote.rfind(mark, 0, match.start()) for mark in ('。', '；', ';', '\n')) + 1
+        prefix = quote[start:match.start()]
+        if NEGATIVE.search(prefix) or re.match(r'\s*(?:去掉|删掉|删除|移除|不用)', quote[match.end():]):
+            continue
+        return match.start()
+    return None
+
+
+def quote_of(fact: dict) -> str:
+    return str(fact.get('source_quote') or fact.get('text') or '')
+
+
+def supporting_ids(name: str, facts: list[dict]) -> list[str]:
+    return [fact['id'] for fact in facts if fact.get('id') and fact.get('status', 'active') == 'active'
+            and mention_position(name, quote_of(fact)) is not None
+            and (not fact.get('replaces') or mention_position(name, fact.get('text', '')) is not None)]
+
+
+def pure_stack(text: str, *, bare: bool = False) -> list[str]:
+    """Only a list of names moves out of bullets; action sentences stay intact."""
+    match = LABEL.match(text)
+    if not match and not bare:
+        return []
+    body = text[match.end():] if match else text
+    body = re.sub(r'^(?:(?:这个|该)?项目)?(?:使用|用了|采用|用到)(?:了)?\s*', '', body)
+    parts = [token for part in SPLIT.split(body.strip().rstrip('。')) for token in split_spaced(part.strip())]
+    if not parts or any(not p.strip() or len(p.strip()) > 48 or re.search(
+            r'使用|采用|基于|接入|实现|开发|构建|完成|负责|支持|用于|通过|进行|借助|调用|编程|涉及|提交|重叠|估算|为|已|尚|不|以及|等|[:：。！？!?]', p) for p in parts):
+        return []
+    if any(not re.fullmatch(r'[A-Za-z0-9\u4e00-\u9fff+#./ _()（）-]+', p.strip()) for p in parts):
+        return []
+    # Without an explicit heading, a lone unknown word/sentence is not a list.
+    if not match and len(parts) == 1 and parts[0].strip().casefold() not in ALIASES:
+        return []
+    # Without an explicit heading, require recognisable names, not prose.
+    if not match and any(p.strip().casefold() not in ALIASES and not re.fullmatch(
+            r'[A-Za-z][A-Za-z0-9+#. /_-]{0,47}', p.strip()) for p in parts):
+        return []
+    return normalize_stack(parts)
+
+
+def extract_stack(fact: dict) -> list[str]:
+    if fact.get('field') and fact['field'] != 'tech_stack':
+        return []
+    quote = quote_of(fact)
+    candidates = [name for name in dict.fromkeys(ALIASES.values()) if name not in LIST_ONLY]
+    candidates += pure_stack(quote, bare=fact.get('dimension') == 'tech_stack' or fact.get('field') == 'tech_stack')
+    # Explicit use/list syntax also supports technologies outside the alias map.
+    match = re.search(r'(?:技术栈\s*[:：为是]?|(?:使用|用了|用到|采用)(?:了|的技术(?:是)?)?)\s*(.+)', quote)
+    if match:
+        body = re.split(r'[。；;\n]', match[1])[0]
+        candidates += pure_stack('技术栈：' + body)
+    hits = [(position, name) for name in normalize_stack_unbounded(candidates)
+            if (position := mention_position(name, quote)) is not None]
+    return [name for position, name in sorted(hits, key=lambda row: row[0])
+            if not any(other != name and name in other and start <= position < start + len(other)
+                       for start, other in hits)]
+
+
+def normalize_stack_unbounded(values):
+    result, seen = [], set()
+    for value in values:
+        name = normalize_name(value)
+        if name and name.casefold() not in seen:
+            result.append(name)
+            seen.add(name.casefold())
+    return result
+
+
+def project_item_stack(item: dict, facts: list[dict], meta: dict, *, proposed=(), proposed_ids=(),
+                       autofill: bool = True) -> None:
+    """Validate proposals, migrate list bullets, and preserve per-name citations."""
+    from app.services.resume_versions import text_hash
+    iid = item.get('item_id')
+    active = [f for f in facts if f.get('status', 'active') == 'active']
+    excluded = set(meta.get('tech_stack_excluded', {}).get(iid, []))
+    names = list(item.get('tech_stack') or [])
+    cited = [f for f in active if f.get('id') in proposed_ids]
+    names += [name for name in proposed if supporting_ids(name, cited)]
+    field = 'polished_bullets' if 'polished_bullets' in item or ('description' in item and 'bullets' not in item) else 'bullets'
+    records = meta.setdefault('bullets', {}).get(iid, [])
+    kept, kept_records = [], []
+    for index, line in enumerate(item.get(field) or []):
+        record = records[index] if index < len(records) else {}
+        moved = pure_stack(line, bare=True)
+        if moved:
+            names += [name for name in moved if supporting_ids(name, active)]
+        else:
+            kept.append(line)
+            kept_records.append(record)
+    if kept != (item.get(field) or []):
+        item[field] = kept
+        meta['bullets'][iid] = kept_records
+    if field == 'polished_bullets' and item.get('description'):
+        lines = item['description'].splitlines()
+        kept_description = []
+        for line in lines:
+            moved = pure_stack(line, bare=True)
+            if moved:
+                names += [name for name in moved if supporting_ids(name, active)]
+            else:
+                kept_description.append(line)
+        item['description'] = '\n'.join(kept_description)
+    if autofill:
+        names += [name for fact in active for name in extract_stack(fact)]
+    supported = {}
+    for name in normalize_stack_unbounded(names):
+        refs = supporting_ids(name, active)
+        if refs and name.casefold() not in excluded:
+            supported[name] = refs
+    def order(name):
+        return next((i, mention_position(name, quote_of(f))) for i, f in enumerate(active)
+                    if f['id'] in supported[name])
+    stack = sorted(supported, key=order)[:MAX_ITEMS]
+    if stack:
+        item['tech_stack'] = stack
+    else:
+        item.pop('tech_stack', None)
+    meta.setdefault('tech_stack', {})[iid] = [
+        {'text_hash': text_hash(name), 'fact_ids': supported[name]} for name in stack]
+
+
+def stack_covers_fact(item: dict, records: list[dict], fact: dict) -> bool:
+    """A technology line covers a list, never the surrounding action/results."""
+    from app.services.resume_versions import text_hash
+    names = pure_stack(fact.get('text', ''), bare=True)
+    if not names:
+        match = re.fullmatch(r'(?:.*?项目)?(?:使用|用了|采用)(?:了)?\s*(.+)', fact.get('text', '').rstrip('。'))
+        names = pure_stack('技术栈：' + match[1]) if match else []
+    valid = {name for name, record in zip(item.get('tech_stack') or [], records)
+             if record.get('text_hash') == text_hash(name) and fact['id'] in record.get('fact_ids', [])}
+    return bool(names) and set(names) <= valid
+
+
+def parse_stack_edit(data: dict, instruction: str) -> dict | None:
+    """Resolve an explicit literal stack edit; ambiguity must not select all items."""
+    rows = [(section, index, item) for section in SECTIONS
+            for index, item in enumerate(data.get(section) or []) if not item.get('hidden')]
+    removal = re.search(r'去掉|删掉|删除|移除', instruction)
+    addition = re.search(r'(?:技术栈\s*(?:加上|加|添加|补上|为|是|[:：])?\s*|(?:用了|使用了|用到(?:了)?)\s*)([^。；;\n]+)', instruction)
+    marking = re.search(r'(?:标(?:注|一下)?|补充|加上|写上).{0,5}技术栈', instruction)
+    if not removal and not addition and not marking:
+        return None
+    named = [(s, i, item) for s, i, item in rows
+             if (name := item.get('name') or item.get('company')) and name.casefold() in instruction.casefold()]
+    if removal:
+        candidates = [(s, i, item) for s, i, item in named or rows
+                      if any(_pattern(name).search(instruction) for name in item.get('tech_stack') or [])
+                      or '技术栈' in instruction]
+    else:
+        candidates = named or rows
+    if len(candidates) != 1:
+        return {'error': '请指明要修改技术栈的项目或工作经历。'} if ('技术栈' in instruction or candidates) else None
+    section, index, item = candidates[0]
+    if removal:
+        names = [name for name in item.get('tech_stack') or [] if _pattern(name).search(instruction)]
+        if not names and '技术栈' in instruction:
+            names = list(item.get('tech_stack') or [])
+        if not names:
+            return None
+        return {'section': section, 'index': index, 'item_id': item.get('item_id'), 'op': 'remove', 'names': names}
+    names = pure_stack('技术栈：' + addition[1]) if addition else []
+    if not names and not marking:
+        return None
+    return {'section': section, 'index': index, 'item_id': item.get('item_id'), 'op': 'add', 'names': names}
+
+
+def item_facts(collected: dict, edit: dict) -> list[dict]:
+    sections = ('work_experience', 'internship') if edit['section'] == 'work_experience' else ('projects',)
+    return [fact for section in sections for item in collected.get(section) or []
+            if item.get('item_id') == edit['item_id'] for fact in item.get('facts') or []]
+
+
+def record_stack_edit(collected: dict, edit: dict, quote: str, turn_id: str) -> dict:
+    """Only record_facts calls this narrow intake adapter with original user text."""
+    from copy import deepcopy
+    from app.services.resume_facts import new_fact
+    result = deepcopy(collected)
+    if edit.get('error') or edit['op'] != 'add' or not edit['names']:
+        return result
+    owners = [item for section in ('projects', 'work_experience', 'internship')
+              for item in result.get(section) or [] if item.get('item_id') == edit['item_id']]
+    if len(owners) != 1:
+        return result
+    owner = owners[0]
+    for name in edit['names']:
+        if not supporting_ids(name, owner.get('facts') or []) and mention_position(name, quote) is not None:
+            fact = new_fact(name, kind='method_tool', quote=quote, turn_id=turn_id)
+            fact['dimension'] = 'tech_stack'
+            owner.setdefault('facts', []).append(fact)
+    return result
+
+
+def apply_stack_edit(data: dict, meta: dict, collected: dict, edit: dict) -> tuple[dict, dict]:
+    from copy import deepcopy
+    from app.services.resume_versions import text_hash
+    output, metadata = deepcopy(data), deepcopy(meta)
+    item = output[edit['section']][edit['index']]
+    iid = item.get('item_id')
+    excluded = metadata.setdefault('tech_stack_excluded', {}).setdefault(iid, [])
+    if edit['op'] == 'remove':
+        removed = {name.casefold() for name in edit['names']}
+        item['tech_stack'] = [name for name in item.get('tech_stack') or [] if name.casefold() not in removed]
+        excluded[:] = list(dict.fromkeys([*excluded, *sorted(removed)]))
+        old = {row.get('text_hash'): row for row in metadata.get('tech_stack', {}).get(iid, [])}
+        metadata.setdefault('tech_stack', {})[iid] = [old.get(text_hash(name), {}) for name in item['tech_stack']]
+        if not item['tech_stack']:
+            item.pop('tech_stack')
+    else:
+        facts = item_facts(collected, edit)
+        names = edit['names'] or [name for fact in facts for name in extract_stack(fact)]
+        if any(not supporting_ids(name, facts) for name in names):
+            raise ValueError('record_facts_first')
+        excluded[:] = [name for name in excluded if name not in {n.casefold() for n in names}]
+        item['tech_stack'] = normalize_stack([*(item.get('tech_stack') or []), *names])
+        project_item_stack(item, facts, metadata, autofill=False)
+    return output, metadata
+
+
+async def stack_edit_update(state: dict, instruction: str, edit: dict) -> dict:
+    """One version transaction, preserving the pre-edit document and metadata."""
+    import asyncio
+    from app.agents.tailor_pipeline import constraints_for_turn
+    from app.services.resume_capacity import measure_rendered_pages
+    from app.services.resume_review import resume_to_text
+    from app.services.resume_versions import prepare_version
+    data, meta = apply_stack_edit(state['resume_data'], state.get('resume_meta') or {},
+                                 state.get('collected_info') or {}, edit)
+    measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints_for_turn(state, instruction))
+    result = prepare_version(state['resume_data'], state.get('resume_meta') or {}, state.get('resume_versions') or [],
+                             data, meta, label='技术栈更新')
+    summary = ['已更新技术栈'] if result['changed'] else ['技术栈未变化']
+    result['resume_meta'].update(page_check=measurement, change_summary=summary)
+    result.update(stage='EVALUATING', resume_draft=resume_to_text(data), change_summary=summary, page_check=measurement)
+    return result

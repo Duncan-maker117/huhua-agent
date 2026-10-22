@@ -203,7 +203,7 @@ class RetainedUpdatesOnBudgetStopTests(unittest.IsolatedAsyncioTestCase):
                     for key in ("resume_data", "resume_meta", "collected_info", "resume_versions", "version_id"):
                         self.assertEqual(result[key], written[key])
                     self.assertEqual(result["stage"], "EVALUATING")
-                    self.assertIn("后续追问因上下文容量不足暂停", result["messages"][-1].content)
+                    self.assertIn("后续追问先暂停", result["messages"][-1].content)
                     self.assertEqual(result["messages"][-1].additional_kwargs["turn_error"]["code"], "E-CONTEXT-LIMIT")
                     self.assertEqual(model.calls, [])
                     self.assertEqual(state, before)
@@ -227,7 +227,7 @@ class RetainedUpdatesOnBudgetStopTests(unittest.IsolatedAsyncioTestCase):
                     result = await graph._collecting_turn_node(state, model)
                 self.assertEqual(result["collected_info"]["projects"][0]["facts"][-1]["source_quote"], source)
                 self.assertIn("反馈清单", json.dumps(result["resume_data"], ensure_ascii=False))
-                self.assertIn("后续回复因上下文容量不足暂停", result["messages"][0].content)
+                self.assertIn("后续回复先暂停", result["messages"][0].content)
                 self.assertEqual(model.calls, [])
                 self.assertEqual(state, before)
 
@@ -247,7 +247,7 @@ class RetainedUpdatesOnBudgetStopTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(saved["role"], "仅整理反馈")
                 self.assertIn("没有上线", json.dumps(saved, ensure_ascii=False))
                 self.assertIn("项目乙", json.dumps(result["resume_data"], ensure_ascii=False))
-                self.assertIn("后续回复因上下文容量不足暂停", result["messages"][0].content)
+                self.assertIn("后续回复先暂停", result["messages"][0].content)
                 self.assertEqual(model.calls, [])
                 self.assertEqual(state, before)
 

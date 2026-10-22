@@ -1286,7 +1286,7 @@ async def _stage_collection_reply(llm, system: SystemMessage, collected: dict,
     except ChatTurnError as exc:
         if exc.code != "E-CONTEXT-LIMIT":
             raise
-        return AIMessage(content="本轮收集结果保留，后续回复因上下文容量不足暂停。\n\n" + exc.message,
+        return AIMessage(content="本轮收集结果已保留，后续回复先暂停。\n\n" + exc.message,
                          additional_kwargs={"turn_error": {"code": exc.code, "retryable": True}})
 
 
@@ -2595,7 +2595,7 @@ async def _model_followup(state: dict, result: dict, llm) -> AIMessage:
         return response.model_copy(update={'content': lead + ('\n\n' + response.content if response.content else '')})
     except ChatTurnError as exc:
         if exc.code == "E-CONTEXT-LIMIT":
-            return AIMessage(content=prefix + "\n\n本轮处理结果保留，后续追问因上下文容量不足暂停。\n\n" + exc.message,
+            return AIMessage(content=prefix + "\n\n本轮处理结果已保留，后续追问先暂停。\n\n" + exc.message,
                              additional_kwargs={"turn_error": {"code": exc.code, "retryable": True}})
         logger.warning("补充问题生成失败，保留写作回执")
         return AIMessage(content=prefix)

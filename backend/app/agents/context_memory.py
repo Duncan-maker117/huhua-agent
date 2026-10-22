@@ -24,12 +24,12 @@ class ContextSettings(BaseSettings):
     # This is the INPUT allowance. Deployments must reserve output tokens too.
     model_config = SettingsConfigDict(extra="ignore", env_file=str(Path(__file__).resolve().parents[2] / ".env"),
                                       env_file_encoding="utf-8")
-    CONTEXT_MAX_INPUT_TOKENS: int = Field(default=64000, ge=1024)
+    CONTEXT_MAX_INPUT_TOKENS: int = Field(default=150000, ge=1024)
 
 
 class ContextBudgetExceeded(ChatTurnError):
     def __init__(self):
-        super().__init__("E-CONTEXT-LIMIT", "本次资料超过安全上下文容量，已停止后续模型处理；不会通过删减经历或限制来继续。请减少本轮参考材料，或联系管理员提高上下文输入预算后重试。")
+        super().__init__("E-CONTEXT-LIMIT", "这一轮要处理的资料太多，我先停在这里，不会为了继续而删减你的经历或限制。已经完成的修改都保留着。可以少贴一些参考材料，或把长材料分几次发给我。")
 
 
 def _json_default(value):

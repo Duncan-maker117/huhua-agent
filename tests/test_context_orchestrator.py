@@ -165,7 +165,7 @@ class ContextLoopTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(model.calls, 1)
         self.assertEqual(reply.additional_kwargs["profile_update"]["collected_info"], imported)
         self.assertTrue(reply.additional_kwargs["public_reply_interrupted"])
-        self.assertIn("上下文", reply.content)
+        self.assertIn("资料太多", reply.content)
 
 
 if __name__ == "__main__":

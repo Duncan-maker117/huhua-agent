@@ -10,7 +10,7 @@ async (page) => {
     if (!passed) throw new Error(name + ': ' + detail);
   };
   page.on('pageerror', error => errors.push(error.message));
-  await page.route('**/*', route => {
+  await page.context().route('**/*', route => {
     const url = new URL(route.request().url());
     if (url.hostname !== 'huhua-19a.test') return route.abort();
     if (url.pathname === '/fixture.json') return route.fulfill({contentType: 'application/json', path: '/private/tmp/huhua-19a-browser-fixture.json'});
@@ -39,6 +39,8 @@ async (page) => {
   // The sheet iframe is CSS-scaled and Playwright mis-hit-tests inside it. Map the span's rect to the
   // screen and use a real mouse click, which also exercises the iframe -> parent focus change.
   const tap = async index => {
+    // The bridge marks a field clickable only after describe -> ready -> state.
+    await field(index).and(page.frameLocator('#live-sheet').locator('[data-evidence-state]')).waitFor();
     const r = await field(index).evaluate(el => { const b = el.getBoundingClientRect(); return {x: b.left + 4, y: (b.top + b.bottom) / 2}; });
     const frame = await sheet();
     await page.mouse.click(frame.x + r.x * frame.scale, frame.y + r.y * frame.scale);
@@ -58,7 +60,7 @@ async (page) => {
   await page.keyboard.press('Escape');
   check('escape-focus', await card.isHidden() && await page.locator('#live-sheet').evaluate(el => el === document.activeElement));
   await page.locator('#input').fill('保留草稿');
-  await tap(1);
+  await tap(1); await card.getByText('你后来更正过这里的说法').waitFor({timeout: 5000}).catch(() => {});
   check('pending-explanation', (await card.textContent()).includes('你后来更正过这里的说法'));
   await card.getByRole('button', {name: '回答这个问题'}).click();
   check('prefill-preserves-draft', (await page.locator('#input').inputValue()).startsWith('保留草稿\n'));

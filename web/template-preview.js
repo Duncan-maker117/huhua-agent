@@ -121,9 +121,19 @@
       if (measuring) window.performance.clearMarks('huhua-template-switch-start');
       measuring = false;
     }
+    function loadDocument(frame, html) {
+      // Navigating an attached srcdoc frame also adds entries to the page's
+      // joint session history, even while the preview is hidden. Recreate only
+      // its child browsing context so Back still returns straight to the page
+      // before the workspace. Keep the element, sandbox and buffer references.
+      const parent = frame.parentNode, next = frame.nextSibling;
+      if (parent) frame.remove();
+      frame.srcdoc = html;
+      if (parent) parent.insertBefore(frame, next);
+    }
     function reset() {
       cancelSwitch();
-      for (const frame of frames) frame.srcdoc = '';
+      for (const frame of frames) if (frame.srcdoc) loadDocument(frame, '');
     }
     function show(html, isCurrent, commit) {
       cancel();
@@ -148,7 +158,7 @@
               });
           }, {once: true});
         })();<\/script>`;
-        target.srcdoc = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, bridge + '</body>') : html + bridge;
+        loadDocument(target, /<\/body>/i.test(html) ? html.replace(/<\/body>/i, bridge + '</body>') : html + bridge);
       });
     }
     window.addEventListener('message', event => {

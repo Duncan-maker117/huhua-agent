@@ -47,3 +47,6 @@ class TemplatePreviewTests(unittest.TestCase):
 
     def test_fonts(self):
         self.check_dom("fonts")
+
+    def test_history(self):
+        self.check_dom("history")

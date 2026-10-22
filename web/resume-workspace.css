@@ -1,8 +1,18 @@
 /* A compact, read-only companion to the conversation; purple identifies actions. */
 html, body, main { width: 100%; max-width: 100%; min-width: 0; }
-body { height: 100dvh; }
+html { height: 100%; overflow: hidden; }
+body { height: 100vh; height: var(--chat-viewport-height, 100dvh); }
 main, #chat-pane, #chat-body, #messages, #composer-wrap { min-height: 0; min-width: 0; }
 #chat-body { overflow: hidden; align-items: stretch; }
+/* Reserve the message scroller's vertical padding even when a form is tall. */
+#composer-wrap { display: flex; flex-direction: column; max-height: calc(100% - 64px); }
+#command-bar, #composer-links { flex-shrink: 0; }
+#guidance-dock { flex-shrink: 1; min-height: 0; }
+#composer-links:not(:has(a:not(.hidden))) { display: none; }
+:root[data-chat-short-viewport] #messages { padding-block: 8px; }
+:root[data-chat-short-viewport] #empty-state { padding-top: 8px; }
+:root[data-chat-short-viewport] #composer-wrap { max-height: calc(100% - 16px); }
+:root[data-chat-short-viewport] #input { max-height: 56px; }
 #chat-body > #empty-state, #chat-body > #composer-wrap { width: 100%; max-width: min(100%, 56rem); margin-inline: auto; }
 #chat-body > #messages { width: 100%; max-width: min(100%, 48rem); margin-inline: auto; }
 #composer-links { flex-wrap: wrap; gap: 10px 22px; }
@@ -99,19 +109,23 @@ main, #chat-pane, #chat-body, #messages, #composer-wrap { min-height: 0; min-wid
   #canvas-pane > div:first-child { padding-left: 16px; padding-right: 16px; flex-wrap: wrap; }
 }
 @media (max-width: 1023px) {
-  #canvas-pane.is-open { display: flex !important; position: fixed; inset: 0; width: 100%; height: 100dvh; z-index: 70; }
+  /* Constrain the whole flex layout; messages/cards scroll above the composer. */
+  body { position: fixed; top: var(--chat-viewport-top, 0px); left: 0; right: 0; }
+  #canvas-pane.is-open { display: flex !important; position: fixed; inset: var(--chat-viewport-top, 0px) 0 auto; width: 100%; height: var(--chat-viewport-height, 100dvh); z-index: 70; }
+  #input { font-size: 16px; max-height: min(160px, calc(var(--chat-viewport-height, 100dvh) * .2)); overflow-y: auto; }
+  #composer-wrap { padding-bottom: max(10px, env(safe-area-inset-bottom)); }
   #btn-close-workspace { display: inline-block; }
   #canvas-pane > div:first-child { flex-wrap: wrap; padding: 14px 16px 10px; gap: 9px; }
   #workspace-body { padding: 18px 16px; }
   #stage-rail { padding-left: 12px; padding-right: 12px; }
 }
 @media (max-width: 640px) {
-  #composer-wrap { padding: 0 12px 10px; }
+  #composer-wrap { padding: 0 12px max(10px, env(safe-area-inset-bottom)); }
   #guidance-dock { padding: 10px 12px; margin-bottom: 8px; max-height: 29dvh; }
   #guidance-dock h2 { font-size: 13px; }
   #command-surface { padding: 6px; border-radius: 18px; }
   #command-surface > .flex { gap: 8px; }
-  #command-surface textarea { font-size: 15px; }
+  #command-surface textarea { font-size: 16px; }
   #command-surface .items-start { padding-left: 8px; padding-right: 8px; gap: 8px; }
   #composer-wrap > div:last-child { gap: 15px; }
   #btn-send { width: 40px; height: 40px; }
@@ -298,6 +312,9 @@ main, #chat-pane, #chat-body, #messages, #composer-wrap { min-height: 0; min-wid
 .intake-profile-choice-summary { font-size: 12px; line-height: 1.55; color: #645e72; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .intake-hint { margin: 0 0 10px; font-size: 12px; color: #8a8398; }
 .intake-selection-error { margin-top: 8px; font-size: 12px; color: #b42318; }
+@media (max-width: 1023px) {
+  .ask-text, .ask-other-input, .intake-field input, .intake-field select { font-size: 16px; }
+}
 @media (max-width: 640px) {
   .intake-field, .intake-card[data-intake="basics"] .intake-field:has([name="name"]) { grid-column: span 3; }
   .intake-field:has([name="name"]), .intake-field:has([name="summary"]), .intake-field:has([name="availability"]) { grid-column: 1 / -1; }

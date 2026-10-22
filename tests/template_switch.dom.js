@@ -207,10 +207,44 @@ async function fonts() {
     resolveFonts(); await settle(); assert.equal(messages.length, 1, 'late fonts cannot double-commit');
   }
 }
-const checks = {cache, hover, revision, rapid, staleNetwork, idle, fallback:(editor) => idle(editor, false), reset, failed, interactions, fonts};
+async function history() {
+  const f = fixture('index.html'), children = [];
+  const parent = {insertBefore(frame, next) {
+    const index = next ? children.indexOf(next) : children.length;
+    children.splice(index, 0, frame); frame.parentNode = parent;
+    frame.contentWindow = {}; // A new child browsing context, same DOM element.
+  }};
+  const frames = ['live-sheet', 'live-sheet-back'].map(id => f.ids.get(id));
+  let attachedNavigations = 0, writes = 0;
+  for (const frame of frames) {
+    let source = '';
+    Object.defineProperty(frame, 'srcdoc', {get: () => source, set: value => {
+      writes++; if (frame.parentNode) attachedNavigations++; source = value;
+    }});
+    Object.defineProperty(frame, 'nextSibling', {get: () => children[children.indexOf(frame) + 1] || null});
+    frame.remove = () => { children.splice(children.indexOf(frame), 1); frame.parentNode = null; };
+    parent.insertBefore(frame, null);
+  }
+  f.run('template-preview.js');
+  const buffer = f.window.HuhuaTemplatePreview.createBuffer(...frames, () => {});
+  buffer.reset(); buffer.reset();
+  assert.equal(writes, 0, 'empty session resets never navigate blank frames');
+  for (let version = 0; version < 4; version++) {
+    const shown = buffer.show(html('version-' + version), () => true);
+    const target = frames.find(frame => frame.style.visibility === 'hidden');
+    const token = Number(target.srcdoc.match(/token: (\d+)/)[1]);
+    f.fire('message', {source:target.contentWindow, data:{type:'huhua-preview-loaded',token,height:1300}});
+    assert.equal(await shown, true);
+    assert.deepEqual(children, frames, 'buffers remain in the original DOM order');
+  }
+  buffer.reset();
+  assert.equal(attachedNavigations, 0, 'preview updates and resets do not navigate attached frames');
+  assert.equal(writes, 6); assert.ok(frames.every(frame => frame.srcdoc === ''));
+}
+const checks = {cache, hover, revision, rapid, staleNetwork, idle, fallback:(editor) => idle(editor, false), reset, failed, interactions, fonts, history};
 (async () => {
   const scenario = process.argv[2] || 'staleNetwork';
-  if (['fonts','interactions'].includes(scenario)) await checks[scenario]();
+  if (['fonts','interactions','history'].includes(scenario)) await checks[scenario]();
   else for (const editor of [false, true]) await checks[scenario](editor);
   console.log('template switch DOM checks passed');
 })().catch(error => { console.error(error); process.exitCode = 1; });

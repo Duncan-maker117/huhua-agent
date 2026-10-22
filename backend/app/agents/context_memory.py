@@ -24,7 +24,7 @@ class ContextSettings(BaseSettings):
     # This is the INPUT allowance. Deployments must reserve output tokens too.
     model_config = SettingsConfigDict(extra="ignore", env_file=str(Path(__file__).resolve().parents[2] / ".env"),
                                       env_file_encoding="utf-8")
-    CONTEXT_MAX_INPUT_TOKENS: int = Field(default=150000, ge=1024)
+    CONTEXT_MAX_INPUT_TOKENS: int = Field(default=300000, ge=1024)
 
 
 class ContextBudgetExceeded(ChatTurnError):

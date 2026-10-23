@@ -30,11 +30,26 @@ def normalize_name(value: str) -> str:
     return ALIASES.get(value.casefold(), value)
 
 
+def is_technology_name(value: str) -> bool:
+    """A literal quote proves use, not that an arbitrary phrase is a technology."""
+    name = normalize_name(value)
+    if not name or len(name) > 48 or re.search(r'[，,；;：:。！？!?\n]|我们|本人|门槛|让|提供素材|编写简历|用来|用于', name):
+        return False
+    if name.casefold() in ALIASES:
+        return True
+    if re.fullmatch(r'[A-Za-z0-9+#./ _()\-]+', name):
+        return len(name.split()) <= 4 and not re.search(r'\b(?:we|our|to|for|with|build|create)\b', name, re.I)
+    return bool(len(name) <= 16 and re.fullmatch(
+        r'(?:向量(?:数据库|检索)|检索增强生成|提示词(?:工程)?|大语言模型|多模态模型|深度学习|机器学习|'
+        r'自然语言处理|计算机视觉|知识图谱|强化学习|微调|函数调用|智能体|多智能体|工作流|'
+        r'语音识别|语音合成|关系型数据库|消息队列|分布式缓存)', name))
+
+
 def normalize_stack(values: list[str]) -> list[str]:
     result, seen = [], set()
     for value in values:
         name = normalize_name(value)
-        if name and name.casefold() not in seen:
+        if is_technology_name(name) and name.casefold() not in seen:
             result.append(name)
             seen.add(name.casefold())
     return result[:MAX_ITEMS]
@@ -197,7 +212,7 @@ def pure_stack(text: str, *, bare: bool = False) -> list[str]:
     if not match and any(p.strip().casefold() not in ALIASES and not re.fullmatch(
             r'[A-Za-z][A-Za-z0-9+#. /_-]{0,47}', p.strip()) for p in parts):
         return []
-    return normalize_stack(parts)
+    return normalize_stack(parts) if all(is_technology_name(part) for part in parts) else []
 
 
 def extract_stack(fact: dict) -> list[str]:
@@ -248,7 +263,7 @@ def project_item_stack(item: dict, facts: list[dict], meta: dict, *, proposed=()
     supported = {}
     for name in normalize_stack_unbounded(names):
         refs = supporting_ids(name, active)
-        if refs and name.casefold() not in excluded:
+        if refs and is_technology_name(name) and name.casefold() not in excluded:
             supported[name] = refs
     def order(name):
         return next((i, mention_position(name, quote_of(f))) for i, f in enumerate(active)
@@ -531,6 +546,8 @@ async def stack_edit_update(state: dict, instruction: str, edit: dict) -> dict:
     body_receipt = []
     data, meta = apply_stack_edit(state['resume_data'], state.get('resume_meta') or {},
                                  state.get('collected_info') or {}, edit, body_receipt=body_receipt)
+    from app.services.resume_preflight import preflight_resume
+    data, meta, _ = preflight_resume(data, meta, state.get('collected_info') or {})
     from app.services.fact_coverage import ensure_fact_coverage
     ensure_fact_coverage(data, meta, state.get('collected_info') or {})
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints_for_turn(state, instruction))

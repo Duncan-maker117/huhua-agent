@@ -131,18 +131,19 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("private-provider-body", str(logs.output))
         self.assertNotIn("原始材料", str(logs.output))
 
-    async def test_four_tool_budget_and_one_final_with_all_ids_answered(self):
-        model = Model([{"calls": [{"name": "check_layout", "id": f"c{i}"} for i in range(7)]}, {"content": "结束"}])
+    async def test_mutation_budget_and_one_final_with_all_ids_answered(self):
+        count = loop.MAX_TOOL_STEPS + 3
+        model = Model([{"calls": [{"name": "propose_plan", "id": f"c{i}"} for i in range(count)]}, {"content": "结束"}])
         tools = registry()
         events = []
         result = await loop.run_orchestrator(state(), model, registry=tools, emit=events.append)
-        self.assertEqual(tools["check_layout"].handler.await_count, 4)
+        self.assertEqual(tools["propose_plan"].handler.await_count, loop.MAX_TOOL_STEPS)
         self.assertFalse(model.requests[-1]["allow_tools"])
         tool_messages = [m for m in model.requests[-1]["messages"] if m["role"] == "tool"]
-        self.assertEqual(len(tool_messages), 7)
+        self.assertEqual(len(tool_messages), count)
         self.assertEqual(json.loads(tool_messages[-1]["content"])["untrusted_data"]["code"], "tool_budget_exceeded")
-        self.assertEqual(result["messages"][-1].additional_kwargs["orchestrator"]["tool_steps"], 4)
-        self.assertEqual(len([e for e in events if e["type"] == "tool_status"]), 8)
+        self.assertEqual(result["messages"][-1].additional_kwargs["orchestrator"]["tool_steps"], loop.MAX_TOOL_STEPS)
+        self.assertEqual(len([e for e in events if e["type"] == "tool_status"]), 2 * loop.MAX_TOOL_STEPS)
 
     async def test_stop_blocks_remaining_batch_and_streams_final_without_tool_prose(self):
         tools = registry(ask_user=AsyncMock(return_value=ToolOutcome({"status": "ok"}, {}, [], stop=True)))
@@ -159,7 +160,7 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_company_limit_and_original_source_validation(self):
         tools = registry()
-        entries = [call("search_company", name="某公司"), call("search_company", name="某公司"),
+        entries = [call("search_company", name="某公司"), call("search_company", name="另一家虚构公司"),
                    call("record_facts", source_id="absent"), call("record_facts", source_id="current"), {"content": "已核对"}]
         model = Model(entries)
         value = state()
@@ -180,14 +181,14 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
     async def test_one_protocol_fallback_preserves_prior_tools_and_counts_all_requests(self):
         tools = registry()
         model = Model([call("read_profile"), BadRequest("private-error"), call("use_profile_items", item_ids=["p"]),
-                       call("check_layout"), {"content": "完成"}])
+                       *[call("check_layout") for _ in range(loop.MAX_MODEL_CALLS - 4)], {"content": "完成"}])
         result = await loop.run_orchestrator(state(), model, registry=tools)
-        self.assertEqual([r["mode"] for r in model.requests], ["thinking", "thinking", "off", "off", "off"])
+        self.assertEqual([r["mode"] for r in model.requests], ["thinking", "thinking"] + ["off"] * (loop.MAX_MODEL_CALLS - 2))
         self.assertFalse(model.requests[-1]["allow_tools"])
         self.assertEqual(tools["read_profile"].handler.await_count, 1)
         self.assertFalse(any("reasoning_content" in m for m in model.requests[2]["messages"]))
         metrics = result["messages"][-1].additional_kwargs["orchestrator"]
-        self.assertEqual(metrics["model_calls"], 5)
+        self.assertEqual(metrics["model_calls"], loop.MAX_MODEL_CALLS)
         self.assertTrue(metrics["fallback"])
         self.assertIsNone(metrics["usage"]["prompt_tokens"])
 
@@ -245,25 +246,22 @@ class OrchestratorTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(len(model.requests), 2)
                 tools['write_draft'].handler.assert_not_awaited()
 
-    async def test_dsml_only_reply_retries_once_and_never_replays_pseudo_calls(self):
+    async def test_dsml_only_reply_at_hard_limit_gets_local_final_without_extra_request(self):
         fake = loop.DSML_MARKER + 'invoke name="write_draft">private pseudo call'
-        for second, expected_status in (('已完成核对。', 'completed'), (fake, 'unavailable')):
-            with self.subTest(second=second):
-                # Consume the entire normal budget before the one text retry.
-                model = Model([*[call('check_layout') for _ in range(4)],
-                               {'content': fake, 'deltas': list(fake)}, {'content': second}])
-                tools, events = registry(), []
-                result = await loop.run_orchestrator(state(), model, registry=tools, emit=events.append)
-                final = result['messages'][-1]
-                self.assertEqual(len(model.requests), loop.MAX_MODEL_CALLS + 1)
-                self.assertEqual([r['allow_tools'] for r in model.requests], [True] * 4 + [False, False])
-                self.assertEqual(final.additional_kwargs['orchestrator']['status'], expected_status)
-                self.assertNotIn(loop.DSML_MARKER, final.content)
-                self.assertNotIn('private pseudo call', str(model.requests[-1]['messages']))
-                self.assertEqual(sum('请直接用文字' in m.get('content', '') for m in model.requests[-1]['messages']), 1)
-                self.assertEqual(tools['check_layout'].handler.await_count, 4)
-                tools['write_draft'].handler.assert_not_awaited()
-                self.assertEqual(''.join(e['content'] for e in events if e['type'] == loop.PUBLIC_REPLY_EVENT), final.content)
+        model = Model([*[call('check_layout') for _ in range(loop.MAX_MODEL_CALLS - 1)],
+                       {'content': fake, 'deltas': list(fake)}, {'content': '不能额外调用'}])
+        tools, events = registry(), []
+        result = await loop.run_orchestrator(state(), model, registry=tools, emit=events.append)
+        final = result['messages'][-1]
+        self.assertEqual(len(model.requests), loop.MAX_MODEL_CALLS)
+        self.assertEqual([r['allow_tools'] for r in model.requests], [True] * (loop.MAX_MODEL_CALLS - 1) + [False])
+        self.assertEqual(final.additional_kwargs['orchestrator']['status'], 'unavailable')
+        self.assertTrue(final.content)
+        self.assertNotIn(loop.DSML_MARKER, final.content)
+        self.assertNotIn('private pseudo call', str(model.requests[-1]['messages']))
+        tools['check_layout'].handler.assert_awaited_once()
+        tools['write_draft'].handler.assert_not_awaited()
+        self.assertEqual(''.join(e['content'] for e in events if e['type'] == loop.PUBLIC_REPLY_EVENT), final.content)
 
     async def test_auto_reply_with_prose_before_dsml_does_not_retry_or_lose_prose(self):
         model = Model([{'content': '已核对。' + loop.DSML_MARKER + 'invoke>private pseudo call'}])

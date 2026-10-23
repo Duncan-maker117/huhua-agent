@@ -63,7 +63,7 @@ async def model_slot():
     except TimeoutError:
         raise HTTPException(503, "生成任务较多，请稍后重试") from None
     try:
-        async with asyncio.timeout(get_settings().CHAT_TIMEOUT_SECONDS):
+        async with asyncio.timeout(get_settings().chat_turn_timeout_seconds):
             yield
     finally:
         _slots.release()

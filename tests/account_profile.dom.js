@@ -1,6 +1,12 @@
 const assert = require('node:assert/strict');
 const {fixture, tick} = require('./resume_embedded.dom.js');
 const f = fixture('index.html');
+const create = f.document.createElement;
+f.document.createElement = tag => {
+  const element = create(tag);
+  element.prepend = (...nodes) => { for (const n of nodes) n.parentElement = element; element.children.unshift(...nodes); };
+  return element;
+};
 f.context.clearInterval = () => {}; f.context.setInterval = () => 1;
 f.context.location.search = '?session_id=synthetic-profile';
 const facts = [

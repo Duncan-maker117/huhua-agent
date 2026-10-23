@@ -76,6 +76,19 @@ class ImportMemory(BaseModel):
     text: str
 
 
+class ConfirmationItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["inbox", "conflict"]
+    id: str = Field(min_length=1, max_length=128)
+    expected_revision: int | str
+
+
+class BatchConfirmations(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    action: Literal["accept", "reject"]
+    items: list[ConfirmationItem] = Field(min_length=1, max_length=500)
+
+
 async def _extract_memory(payload, context, account_id):
     from app.agents.profile_archivist import make_archivist
     from app.api.resume import _llm_for_graph
@@ -138,6 +151,16 @@ async def import_memory(req: ImportMemory, request: Request, db=Depends(get_db))
     except Exception:
         raise HTTPException(503, detail={"code": "archive_unavailable", "message": "记忆导入暂时无法整理，请保留输入并重试"}) from None
     return _call(db, profile_memory.propose_memory, account_id, parsed)
+
+
+@router.post("/import-memory/{batch_id}/undo")
+def undo_memory_import(batch_id: str, request: Request, db=Depends(get_db)):
+    return _call(db, profile_memory.undo_import, _account(request), batch_id)
+
+
+@router.post("/confirmations/batch")
+def batch_confirmations(req: BatchConfirmations, request: Request, db=Depends(get_db)):
+    return _call(db, archive.batch_confirmations, _account(request), **req.model_dump())
 
 
 @router.post("/facts")

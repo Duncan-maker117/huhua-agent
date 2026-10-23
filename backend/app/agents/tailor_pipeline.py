@@ -378,8 +378,13 @@ async def apply_deterministic_update(state: dict, base_data: dict, instruction: 
         changed_ids = changed_bullet_items(previous, data)
         if deduplicate_resume(data, meta, item_ids=changed_ids):
             ensure_fact_coverage(data, meta, state.get('collected_info') or {})
+    from app.services.resume_preflight import preflight_resume, quality_edit_requested
+    from app.services.resume_dedup import changed_bullet_items
+    quality = quality_edit_requested(instruction)
+    data, meta, _ = preflight_resume(data, meta, state.get('collected_info') or {}, merge=quality,
+        body_ids=None if quality else changed_bullet_items(state.get('previous_resume_data', current), data))
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
-    version = prepare_version(state.get('previous_resume_data', current), state.get('resume_meta') or {}, state.get('resume_versions') or [],
+    version = prepare_version(state.get('previous_resume_data', current), state.get('previous_resume_meta', state.get('resume_meta')) or {}, state.get('resume_versions') or [],
                               data, meta, label='确认资料更新')
     diagnostic = {'status': 'not_called', 'reason': 'deterministic_only'}
     version['resume_meta'].update(page_check=measurement, writer_diagnostic=diagnostic,
@@ -428,6 +433,8 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         data, meta = preserved['resume_data'], preserved['resume_meta']
         if protected_rewrite:
             data = preserve_wording_scope(state['resume_data'], data, targets)
+        from app.services.resume_preflight import preflight_resume
+        data, meta, _ = preflight_resume(data, meta, state.get('collected_info') or {})
         measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)
         diff = document_diff(state['resume_data'], data)
         if diff:
@@ -472,7 +479,9 @@ async def run_tailor_pipeline(state: dict, base_data: dict, llm, *, structured_l
         cleaned = sanitize_fact_history({'collected_info': state.get('collected_info') or {},
                                          'resume_data': data, 'resume_meta': meta})
         sanitizer_changed |= cleaned['resume_data'] != data
-        return cleaned['resume_data'], valid_bullet_metadata(cleaned['resume_data'], cleaned['resume_meta'])
+        from app.services.resume_preflight import preflight_resume
+        data, meta, _ = preflight_resume(cleaned['resume_data'], cleaned['resume_meta'], state.get('collected_info') or {})
+        return data, meta
 
     data, meta = sanitize(data, meta)
     measurement = await asyncio.to_thread(measure_rendered_pages, data, constraints)

@@ -88,6 +88,9 @@ def can_ask_user(state: dict) -> bool:
 
 def question_dimension(identifier: str = "", prompt: str = "") -> str:
     """稳定维度覆盖旧问句与模型新 slug，优先识别题干中的同义表述。"""
+    if identifier.startswith("dup-"):
+        # 重复确认题按条目对关闭，题干里的经历名称不能让它落入其他维度。
+        return identifier
     from app.config import get_settings
     if getattr(get_settings(), "AGENT_MODE", "off") == "loop":
         from app.services.answer_facts import answer_field
@@ -120,6 +123,9 @@ def subject_key(subject: str, state: dict) -> str:
         aliases = [str(item.get(key) or "").strip().casefold() for key in ("item_id", "name", "company", "school")]
         if subject and subject in aliases:
             return str(item.get("item_id") or subject)
+        if subject and any(subject in {str(row.get('item_id', '')).casefold(), str(row.get('name', '')).casefold()}
+                           for row in item.get('merged_from') or []):
+            return str(item.get('item_id') or subject)
     if not subject and len(items) == 1:
         return str(items[0].get("item_id") or items[0].get("name") or items[0].get("company") or "")
     return subject
@@ -128,10 +134,42 @@ def subject_key(subject: str, state: dict) -> str:
 def is_closed(state: dict, subject: str, identifier: str = "", prompt: str = "") -> bool:
     subject = subject_key(subject, state)
     dimension = question_dimension(identifier, prompt)
+    from app.services.experience_fields import confirmation_requests
+    pending = [row for row in confirmation_requests(state.get('collected_info') or {})
+               if row['item_id'] == subject and
+               ('dates' if row['field'] in {'start_date', 'end_date', 'dates'} else row['field']) == dimension]
+    if pending and not any(row.get('confirmation_attempts') for row in pending):
+        # A submitted but unparseable header is not an answered dimension.
+        return False
+    if dimension in draft_dimensions(state, subject):
+        return True
     dimensions = {"dates", "start_date", "end_date"} if dimension == "dates" else {dimension}
     return any((not row.get("subject") or not subject or subject_key(row["subject"], state) == subject)
                and (row.get("id") == identifier or row.get("dimension") in dimensions)
                for row in state.get("closed_questions") or [])
+
+
+def draft_dimensions(state: dict, subject: str) -> set[str]:
+    """Only explicit, nonempty labels in the corresponding visible item count."""
+    key = subject_key(subject, state)
+    aliases = (state.get('resume_meta') or {}).get('merged_items') or {}
+    items = [row for section in ('projects', 'work_experience', 'campus', 'open_source', 'awards')
+             for row in (state.get('resume_data') or {}).get(section) or []
+             if not row.get('hidden') and (key == row.get('item_id') or key in aliases.get(row.get('item_id'), [])
+                 or str(subject).casefold() in {str(row.get('name', '')).casefold(), str(row.get('company', '')).casefold()})]
+    if len(items) != 1:
+        return set()
+    item = items[0]
+    labels = {'问题': 'problem', '决策': 'decision', '迭代': 'iteration', '评测': 'evaluation',
+              '技术': 'tech_stack', '技术栈': 'tech_stack', '现状': 'status', '分工': 'my_work'}
+    known = set()
+    for line in item.get('polished_bullets') or item.get('bullets') or []:
+        match = re.match(r'^\s*(' + '|'.join(labels) + r')\s*[:：]\s*(.+)', line)
+        if match and not re.fullmatch(r'待补充|未知|暂无|待确认|未提供|待填写|[-—]', match[2].strip(' 。')):
+            known.add(labels[match[1]])
+    if item.get('tech_stack'):
+        known.add('tech_stack')
+    return known
 
 
 def validate_card(arguments, state: dict, turn_id: str) -> dict:

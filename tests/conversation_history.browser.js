@@ -6,7 +6,7 @@ async (page) => {
   const errors = [];
   const requests = [];
   const check = (value, label) => { if (!value) throw new Error(label); checks.push(label); };
-  const baseUrl = 'http://127.0.0.1:8765';
+  const baseUrl = 'https://huhua-conversations.fixture';
   const fixtures = new Map([
     ['history-a', {session_id: 'history-a', title: 'A · 产品经理岗位', updated_at: '2026-10-02T06:00:00Z', stage: 'EVALUATING', has_data: true,
       jd_text: 'A 产品经理 JD', collected_info: {skills: ['A 能力']}, resume_data: {basic_info: {name: 'A 保存的简历'}},
@@ -31,6 +31,9 @@ async (page) => {
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
   await page.unroute('**/api/**');
+  await page.route(baseUrl + '/chat**', route => route.fulfill({path: 'web/index.html'}));
+  await page.route(baseUrl + '/resume**', route => route.fulfill({path: 'web/resume.html'}));
+  await page.route(baseUrl + '/static/**', route => route.fulfill({path: 'web/' + route.request().url().split('/static/')[1].split('?')[0]}));
   await page.route('https://fonts.googleapis.com/**', route => route.fulfill({contentType: 'text/css', body: ''}));
   await page.addInitScript(() => {
     if (window !== window.top) return;
@@ -54,6 +57,8 @@ async (page) => {
           if (!fixtures.has(claim)) { await route.fulfill({status: 404, json: {detail: '旧会话不存在'}}); return; }
           await route.fulfill({json: fixtures.get(claim)});
         } else {
+          const empty = [...fixtures.values()].find(item => !item.has_data && !item.messages.length);
+          if (empty) return route.fulfill({json: empty});
           const id = 'history-new-' + (++newCount);
           const data = {session_id: id, title: '新对话 ' + newCount, updated_at: '2026-10-02T07:00:00Z', stage: 'JD_INPUT', has_data: false, messages: [], resume_data: {}};
           fixtures.set(id, data);
@@ -61,7 +66,7 @@ async (page) => {
         }
       } else {
         if (listFailed) { await route.fulfill({status: 503, json: {detail: '模拟历史读取失败'}}); return; }
-        await route.fulfill({json: {conversations: [...fixtures.values()], retention_days: 0}});
+        await route.fulfill({json: {conversations: [...fixtures.values()].filter(item => item.has_data || item.messages.length), retention_days: 0}});
       }
     } else if (path.startsWith('/api/chat/conversations/')) {
       const id = decodeURIComponent(path.split('/').at(-1));
@@ -101,7 +106,11 @@ async (page) => {
   await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
   await page.goto(baseUrl + '/chat');
   await ready();
-  check(page.url().split('session=')[1] === 'history-a', '迁移旧浏览器活动会话并写入 URL');
+  check(page.url().split('session=')[1] === 'history-new-1', '无 session 时新建空对话，不自动打开本地记录或最近历史');
+  check(await page.locator('.bubble-user').count() === 0, '新入口不恢复旧聊天消息');
+  await openHistory();
+  check(await page.locator('.conversation-item').count() === 2, '空对话不出现在历史列表');
+  await select('history-a');
   check(await page.locator('.bubble-ai strong').textContent() === 'A 已有简历', '从数据库恢复原始 Markdown');
   check(!requests.some(r => r.path === '/api/account/claim-browser'), '账号认领必须由用户显式触发');
   check(await page.evaluate(() => localStorage.getItem('huhua_chat_backup:history-a') === null && localStorage.getItem('huhua_messages') === null), '启动清理旧明文全文缓存');
@@ -128,10 +137,16 @@ async (page) => {
   check(requests.filter(r => r.method === 'DELETE').length === deleteCount && fixtures.has('history-a'), '新建对话绝不删除旧会话');
   check(await page.locator('.bubble-user').count() === 0 && await page.locator('#workspace-panel-jd').isVisible() && await page.locator('#live-sheet').evaluate(el => el.srcdoc === ''), '新对话清空消息和简历画布，默认显示岗位入口');
   check(!(await page.locator('#workspace-body').textContent()).includes('B 保存的简历') && !(await page.locator('#guidance-dock').isVisible()) && await page.locator('#btn-export-docx').isDisabled(), '新对话不残留旧工作区、追问或可导出状态');
+  const postsBefore = requests.filter(r => r.method === 'POST' && r.path === '/api/chat/conversations').length;
+  await page.locator('#input').fill('尚未发送的草稿');
+  await page.locator('#btn-new-chat').click();
+  check(requests.filter(r => r.method === 'POST' && r.path === '/api/chat/conversations').length === postsBefore, '当前空对话点击新对话不请求创建');
+  check(await page.locator('#input').inputValue() === '尚未发送的草稿', '复用当前空对话保留输入草稿');
+  await select('history-a');
   createFailed = true;
   await page.locator('#btn-new-chat').click();
   await page.waitForFunction(() => document.getElementById('conversation-status').textContent.includes('模拟数据库不可用'));
-  check(page.url().split('session=')[1] === 'history-new-1', '新建失败不伪造已创建或丢失当前会话');
+  check(page.url().split('session=')[1] === 'history-a', '新建失败不伪造已创建或丢失当前会话');
   createFailed = false;
   await select('history-a');
   await page.reload();

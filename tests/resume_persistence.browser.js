@@ -50,11 +50,8 @@ async (page) => {
 
   await page.route('**/api/account/me', route => route.fulfill({json:{authenticated:false, require_account:false, login_available:false}}));
   await page.goto(`${baseUrl}/resume?session=${session}`);
-  await page.getByRole('button', {name: '查看模板样例', exact: true}).waitFor();
-  check(sampleReads === 0, '没有个人简历时不自动取样例');
-  check(await page.locator('#btn-export').isDisabled(), '选择开始方式前不能导出占位样例');
-  await page.getByRole('button', {name: '查看模板样例', exact: true}).click();
   await input('/basic_info/name').waitFor();
+  check(sampleReads === 1, '没有个人简历时默认展示样例而不是空白页');
   check((await page.locator('#sample-notice').textContent()).includes('未保存到你的会话'), '明确展示样例来源和未保存状态');
   check((await page.locator('#btn-export').textContent()).includes('导出样例'), '样例导出有独立标签');
   await input('/basic_info/name').fill('只在样例中修改');
@@ -143,8 +140,8 @@ async (page) => {
   check(await page.evaluate((key) => sessionStorage.getItem(key) === null, 'huhua_editor_draft:' + session), '已删会话404清除自动恢复备份');
   check(await input('/basic_info/name').inputValue() === '会话删除后的本页草稿', '已删会话仍保留本页草稿可手动下载');
   await page.reload();
-  await page.getByRole('button', {name: '查看模板样例', exact: true}).waitFor();
-  check(await page.getByRole('button', {name: '新建空白草稿', exact: true}).isDisabled(), '已删会话刷新不能复活为空白草稿');
+  await page.getByRole('button', {name: '新建我的空白草稿', exact: true}).waitFor();
+  check(await page.getByRole('button', {name: '新建我的空白草稿', exact: true}).isDisabled(), '已删会话刷新不能复活为空白草稿');
   check(await page.locator('#draft-recovery').isHidden(), '已删会话刷新不提供个人草稿恢复');
   const report = {passed: checks.length, checks, mocked_writes: writes, peak_writes: peakWrites, scope: '独立浏览器；GET/PUT current全部mock，render/sample/Word使用本地API，未访问真实用户会话或模型。'};
   await page.evaluate((value) => { window.__resumePersistenceCheck = value; }, report);

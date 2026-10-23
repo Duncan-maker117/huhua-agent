@@ -62,6 +62,9 @@ _intake_saver = __import__("contextvars").ContextVar("tailor_intake_saver", defa
 async def _persist_intake(state: dict, collected: dict) -> dict:
     """Commit validated facts before any fallible public reply or writer call."""
     from app.agents.tailor_pipeline import constraints_for_turn
+    from app.services.experience_fields import canonicalize_catalog_names, merge_normalized_experiences
+    if canonicalize_catalog_names(collected, state.get('profile_items')):
+        merge_normalized_experiences(collected, state.get('collected_info') or {})
     update = {"collected_info": collected,
               "session_constraints": constraints_for_turn(state, _latest_human_text(state))}
     from app.services.intake import intake_update
@@ -675,7 +678,8 @@ def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
             label = item_identity(source_item)
             if not source_item.get(identity_field):
                 continue
-            existing = known.get(label)
+            from app.services.experience_fields import matching_item
+            existing = matching_item(target_items, source_item, section)
             if existing is None:
                 target_items.append(copy.deepcopy(source_item))
                 known[label] = target_items[-1]
@@ -733,7 +737,8 @@ def _merge_imported_candidate(collected: dict, imported: dict) -> dict:
         if note not in notes:
             notes.append(note)
     result["verification_notes"] = notes[:30]
-    return result
+    from app.services.experience_fields import merge_normalized_experiences
+    return merge_normalized_experiences(normalize_fact_store(result), collected)
 
 
 def _apply_explicit_project_removals(collected: dict, text: str) -> dict:

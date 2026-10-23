@@ -171,6 +171,7 @@ _PHASES = (
 
 def _phase_label(text: str) -> str:
     """Current stage word. A plan or a denial does not count as the stage."""
+    text = re.sub(r'https?://[^\s，。；;<>]+', '', text or '', flags=re.I)
     for clause in re.split(r"[，,。；;\n]", text or ""):
         if re.search(r"计划|准备|打算|并非|不是", clause):
             continue

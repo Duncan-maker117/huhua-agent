@@ -141,6 +141,12 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
 
     async def checkpoint(self, session_id, **updates):
         values = {**_init_state(), **updates}
+        # Match the chat API, which records submission before writing a checkpoint.
+        with self.factory() as db:
+            conversation = db.get(Conversation, session_id)
+            owner = conversation.owner_hash if conversation else None
+        if any(isinstance(message, HumanMessage) for message in values.get("messages", [])):
+            touch_conversation(session_id, "测试消息", owner)
         await self.graph.aupdate_state({"configurable": {"thread_id": session_id}}, values, as_node="building")
         with self.factory() as db:
             row = db.get(ResumeSession, session_id)
@@ -166,7 +172,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
         second = await self.create()
         self.assertNotEqual(first, second)
         ids = {item["session_id"] for item in (await self.client.get("/api/chat/conversations")).json()["conversations"]}
-        self.assertEqual(ids, {first, second})
+        self.assertEqual(ids, {first})
         self.assertEqual((await self.detail(first)).json()["messages"], [{"role": "user", "content": "原来的材料"}])
         empty = (await self.detail(second)).json()
         self.assertEqual(empty["messages"], [])
@@ -175,6 +181,63 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
             saved = db.get(Conversation, first)
             self.assertEqual(len(saved.owner_hash), 64)
             self.assertNotEqual(saved.owner_hash, self.client.cookies.get(WORKSPACE_COOKIE))
+
+    async def test_empty_conversation_is_hidden_but_can_be_opened_explicitly(self):
+        sid = await self.create()
+        self.assertEqual((await self.client.get("/api/chat/conversations")).json()["conversations"], [])
+        detail = (await self.detail(sid)).json()
+        self.assertEqual(detail["messages"], [])
+        self.assertFalse(detail["has_data"])
+        self.assertFalse(detail["has_messages"])
+
+    async def test_create_reuses_only_own_active_empty_conversation(self):
+        sid = await self.create()
+        self.assertEqual(await self.create(), sid)
+        with self.factory() as db:
+            self.assertEqual(db.query(Conversation).count(), 1)
+            self.assertEqual(db.query(ResumeSession).count(), 1)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app), base_url="http://testserver") as other:
+            self.assertNotEqual(await self.create(other), sid)
+        with self.factory() as db:
+            db.get(ResumeSession, sid).stage = DELETED_STAGE
+            db.commit()
+        self.assertNotEqual(await self.create(), sid)
+
+    async def test_submission_is_listed_even_without_checkpoint_and_survives_state_saves(self):
+        sid = await self.create()
+        touch_conversation(sid, "已提交但生成失败", self.owner())
+        # A subsequent empty state save must not erase the submission marker.
+        save_resume_session(sid, {}, stage="JD_INPUT", collected_info={})
+        listed = (await self.client.get("/api/chat/conversations")).json()["conversations"]
+        self.assertEqual([item["session_id"] for item in listed], [sid])
+        self.assertTrue(listed[0]["has_messages"])
+        self.assertFalse(listed[0]["has_data"])
+        self.assertNotEqual(await self.create(), sid)
+
+    async def test_resume_without_messages_is_listed_and_never_reused(self):
+        for payload, draft in (({"basic_info": {"name": "测试姓名"}}, ""), ({}, "已有纯文本简历")):
+            sid = await self.create()
+            save_resume_session(sid, payload, draft, stage="JD_INPUT")
+            listed = (await self.client.get("/api/chat/conversations")).json()["conversations"]
+            self.assertIn(sid, [item["session_id"] for item in listed])
+            self.assertNotEqual(await self.create(), sid)
+
+    async def test_legacy_empty_is_reused_but_legacy_touched_chat_is_preserved(self):
+        sid = await self.create()
+        with self.factory() as db:
+            row = db.get(ResumeSession, sid)
+            created = db.get(Conversation, sid).created_at
+            row.resume_state = {"title_source": "auto", "auto_title": "新对话"}
+            row.updated_at = created - timedelta(microseconds=1)
+            db.commit()
+        self.assertEqual((await self.client.get("/api/chat/conversations")).json()["conversations"], [])
+        self.assertEqual(await self.create(), sid)
+        with self.factory() as db:
+            db.get(ResumeSession, sid).updated_at = created + timedelta(seconds=1)
+            db.commit()
+        listed = (await self.client.get("/api/chat/conversations")).json()["conversations"]
+        self.assertEqual([item["session_id"] for item in listed], [sid])
+        self.assertNotEqual(await self.create(), sid)
 
     async def test_separate_browsers_cannot_list_read_or_claim_each_others_sessions(self):
         private = await self.create()
@@ -185,6 +248,8 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await other.get("/api/chat/conversations")).json()["conversations"], [])
             self.assertEqual((await other.post("/api/chat/conversations", json={"session_id": private})).status_code, 404)
             own = await self.create(other)
+            other_owner = hashlib.sha256(other.cookies.get(WORKSPACE_COOKIE).encode()).hexdigest()
+            touch_conversation(own, "另一浏览器的消息", other_owner)
             self.assertEqual([item["session_id"] for item in (await other.get("/api/chat/conversations")).json()["conversations"]], [own])
         self.assertEqual([item["session_id"] for item in (await self.client.get("/api/chat/conversations")).json()["conversations"]], [private])
 
@@ -249,6 +314,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
             row.updated_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=20)
             db.commit()
         second = await self.create()
+        touch_conversation(second, "第二条输入", self.owner())
         before = (await self.client.get("/api/chat/conversations")).json()["conversations"]
         self.assertEqual(before[0]["session_id"], second)
         touch_conversation(first, "后续输入不能改标题", self.owner())
@@ -259,6 +325,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_committed_stream_updates_title_from_latest_state_each_turn(self):
         sid = await self.create()
+        touch_conversation(sid, "虚构测试", self.owner())
         values = {"stage": "COLLECTING", "jd_info": {}, "collected_info": {}, "resume_data": {}}
 
         async def events(*args, **kwargs):
@@ -311,6 +378,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
                 row = db.get(ResumeSession, sid)
                 row.resume_state = {}
                 row.updated_at = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=5)
+                db.get(Conversation, sid).created_at = row.updated_at - timedelta(days=1)
                 db.get(Conversation, sid).title = " ".join(message.split())[:40]
                 db.commit()
                 before = row.updated_at
@@ -375,6 +443,7 @@ class ConversationPersistenceTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_durable_reopen_can_continue_same_chat_without_crossing_or_trusting_client_history(self):
         first = await self.create()
+        touch_conversation(first, "第一份JD", self.owner())
         second = await self.create()
         canonical = {"basic_info": {"name": "测试候选人"}, "projects": [{"name": "课程原型", "description": "画了5个界面，未上线"}]}
         facts = {"projects": canonical["projects"], "skills": ["Python"]}

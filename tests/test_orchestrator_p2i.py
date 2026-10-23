@@ -74,7 +74,7 @@ class P2iTests(unittest.IsolatedAsyncioTestCase):
         finally:
             graph._intake_saver.reset(token)
         item = result["resume_data"]["projects"][0]
-        for field, expected in (("name", "文档比对工具"), ("start_date", "2025-04"), ("end_date", "至今"), ("role", "独立开发者")):
+        for field, expected in (("name", "文档比对工具"), ("start_date", "2025.04"), ("end_date", "至今"), ("role", "独立开发者")):
             self.assertEqual(item[field], expected)
         self.assertNotEqual(result["version_id"], "v-original")
         self.assertEqual(result["resume_meta"]["bullets"], value["resume_meta"]["bullets"])
@@ -82,14 +82,14 @@ class P2iTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("已记下：经历名称", result["messages"][-1].content)
         self.assertIn("稿子已更新", result["messages"][-1].content)
 
-    def test_answer_projection_is_idempotent_bound_to_subject_and_off_unchanged(self):
+    def test_answer_projection_is_idempotent_bound_to_subject_and_shared_by_default(self):
         value = answer_state()
         message = value["messages"][-1]
         original = deepcopy(value["collected_info"])
         applied = apply_answers(original, message, project_fields=True)
         self.assertEqual(applied, apply_answers(applied, message, project_fields=True))
         self.assertEqual(original, value["collected_info"])
-        self.assertEqual(apply_answers(original, message)["projects"][0]["name"], "项目（待补名称）")
+        self.assertEqual(apply_answers(original, message)["projects"][0]["name"], "文档比对工具")
         for fact in applied["projects"][0]["facts"][-4:]:
             self.assertEqual(fact["turn_id"], message.id)
             self.assertEqual(fact["sources"][0]["question_id"], fact["question_id"])
@@ -235,7 +235,7 @@ class P2iGraphTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("已记下：经历名称", reply)
         stored = self.store.load_resume_session(self.session)
         self.assertEqual(stored["collected_info"]["projects"][0]["name"], "文档比对工具")
-        self.assertEqual(stored["resume_data"]["projects"][0]["start_date"], "2025-04")
+        self.assertEqual(stored["resume_data"]["projects"][0]["start_date"], "2025.04")
         snapshot = (await compiled.aget_state(config)).values
         self.assertEqual(len(snapshot["closed_questions"]), 3)
         self.assertEqual(snapshot["messages"][-1].content, reply)
@@ -335,12 +335,18 @@ class P2iOfflineReplayTests(unittest.TestCase):
                 self.assertEqual({q["id"] for q in card["questions"]},
                                  {"dates"} if name == "aipm" else {"name", "dates", "role"})
                 self.assertTrue(module.delivered(turns[first + 1]))
-                self.assertEqual({q["id"] for q in turns[first + 1]["workspace"]["guidance"]["questions"]}, {"problem"})
+                # A labeled problem already present in the draft is not asked again.
+                from app.services.ask_user import draft_dimensions
+                draft = turns[first + 1]['resume_data']
+                known = draft_dimensions({'resume_data': draft}, draft['projects'][0]['item_id'])
+                self.assertFalse({q['id'] for q in turns[first + 1]['workspace']['guidance']['questions']} & known)
                 self.assertTrue(module.delivered(turns[-1]), turns[-1])
                 item = turns[-1]["resume_data"]["projects"][0]
                 expected = module.INTAKE["items"][0]
                 for field, key in (("name", "name"), ("start_date", "start"), ("end_date", "end"), ("role", "role")):
-                    self.assertEqual(item[field], expected[key])
+                    from app.services.resume_preflight import normalize_date
+                    self.assertEqual(normalize_date(item[field]) if field.endswith('_date') else item[field],
+                                     normalize_date(expected[key]) if field.endswith('_date') else expected[key])
                 self.assertTrue(item["positioning"])
                 meta = turns[-1]["workspace"]["tailor"]["resume_meta"]
                 for bullet, evidence in zip(item["polished_bullets"], meta["bullets"][item["item_id"]]):

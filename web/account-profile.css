@@ -108,3 +108,16 @@
 .profile-memory-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .profile-memory-result:empty { display: none; }
 .profile-memory-result { padding: 10px 12px; border-radius: 10px; background: #f6f3ff; font-size: 12.5px; color: #3c2a7a; }
+.profile-batch-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px; background: #f6f3ff; border: 1px solid #e6e2ee; border-radius: 10px; }
+.profile-selection { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; cursor: pointer; padding: 5px 0; }
+.profile-selection input { flex: none; width: 18px; height: 18px; accent-color: #5423e7; }
+.profile-selection span, .profile-confirm-group, .profile-batch-failures, .profile-import-history { min-width: 0; overflow-wrap: anywhere; }
+.profile-batch-toolbar > .profile-selection { flex-basis: 100%; }
+/* Per-card checkbox sits in the corner; its label stays for screen readers only. */
+.profile-selectable { position: relative; padding-right: 48px; }
+.profile-selection-compact { position: absolute; top: 12px; right: 12px; padding: 4px; }
+.profile-selection-compact span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.profile-confirm-group { margin-top: 16px; }
+.profile-batch-failures ul { padding-left: 20px; }
+.profile-batch-toolbar button:disabled { opacity: .5; cursor: default; }
+.profile-memory-prompt, .profile-memory-answer { box-sizing: border-box; min-width: 0; }

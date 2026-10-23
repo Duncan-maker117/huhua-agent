@@ -137,14 +137,15 @@ class StructuredAnswerTests(unittest.TestCase):
         summary = next(f for f in facts if f['question_id'] == 'summary')
         self.assertEqual(summary['text'], '现在已经上线了')
         self.assertFalse(summary.get('field'))
-        self.assertEqual(next(f for f in facts if f.get('field') == 'start_date')['text'], '2026-08')
+        self.assertEqual(next(f for f in facts if f.get('field') == 'start_date')['text'], '2026.08')
 
     def test_free_text_and_duplicate_subject_need_explicit_binding(self):
         question = {'id': 'decision', 'prompt': '关键决策是什么？', 'kind': 'text'}
         state, message, result = self.submitted([question], [{'id':'decision', 'value':'先体验后登录'}])
         self.assertTrue(any(f['text'] == '先体验后登录' for f in result['projects'][0]['facts']))
         duplicate = deepcopy(state['collected_info'])
-        duplicate['projects'].append({**deepcopy(duplicate['projects'][0]), 'item_id':'another'})
+        duplicate['projects'][0]['role'] = '产品设计'
+        duplicate['projects'].append({**deepcopy(duplicate['projects'][0]), 'item_id':'another', 'role': '开发'})
         self.assertEqual(apply_answers(duplicate, message), duplicate)
         message.additional_kwargs['answer_card']['subject'] = 'another'
         bound = apply_answers(duplicate, message)

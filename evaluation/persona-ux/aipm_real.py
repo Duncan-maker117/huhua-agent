@@ -170,7 +170,7 @@ def _visible_claims(data):
     visible = deepcopy(data)
     headings = []
     for p in base_checks.visible_items(visible, 'projects'):
-        if p.get('name') == '胡话简历' and p.get('start_date') == '2025-09':
+        if p.get('name') == '胡话简历' and p.get('start_date') in {'2025-09', '2025.09'}:
             p.pop('start_date')  # Only the separately confirmed header date.
         headings.extend(str(p.get(k) or '') for k in ('positioning', 'project_type'))
     return '\n'.join([base_checks.resume_text(visible), *headings])
@@ -202,7 +202,7 @@ def evaluate_persona(persona, turns, **kwargs):
     # do not license body metrics. Chinese quantities are checked as well.
     conditions = [
         ('common.rounds_complete', bool(turns) and all(t.get('status') == 'ok' and t.get('sse_done') for t in turns) and drafted, 'writer 成稿、正文引用/hash 与每轮 SSE'),
-        ('heading', project.get('start_date') == '2025-09' and project.get('end_date') == '至今' and bool(project.get('positioning')), str({k: project.get(k) for k in ('name', 'start_date', 'end_date', 'positioning')})),
+        ('heading', project.get('start_date') in {'2025-09', '2025.09'} and project.get('end_date') == '至今' and bool(project.get('positioning')), str({k: project.get(k) for k in ('name', 'start_date', 'end_date', 'positioning')})),
         ('labels', 2 <= len(bullets) <= 4 and len(labels & {'问题', '决策', '关键决策', '迭代', '现状'}) >= 2 and not re.search(r'^(?:问题|决策|关键决策|迭代|现状)：(?:问题|决策|迭代|现状)：', body, re.M), body),
         ('real_pains', pains >= 2, f'{pains} 个真实痛点；{problem}'),
         ('mcp_decision', any(label in {'决策', '关键决策'} and 'mcp' in text.casefold() for label, text in labeled), body),

@@ -181,7 +181,7 @@ class IntakeUnitTest(unittest.TestCase):
         self.assertEqual(state["intake_stage"], "target")
         facts = state["collected_info"]
         self.assertEqual(facts["basic_info"]["availability"], "每周4天，3个月")
-        self.assertEqual(facts["education"][0]["end_date"], "2027-06")
+        self.assertEqual(facts["education"][0]["end_date"], "2027.06")
         for fact in facts["basic_info_facts"] + facts["education"][0]["facts"]:
             self.assertEqual(fact["turn_id"], "self-1")
             self.assertEqual(fact["source"], "chat")
@@ -261,7 +261,7 @@ class IntakeUnitTest(unittest.TestCase):
         self.assertEqual(len([f for f in item["facts"] if f.get("text") == "需要抽取的原话" and not f.get("field")]), 1)
         self.assertIn("需要抽取的原话", item["raw_notes"])
         self.assertTrue(
-            all(f["turn_id"] == "form" for f in item["facts"] if f.get("field"))
+            all(f["turn_id"] == "form" for f in item["facts"] if f.get("field") and f['status'] == 'active')
         )
 
     def test_schema_accepts_contacts_rejects_empty_names_and_invalid_months(self):
@@ -540,7 +540,7 @@ class IntakeFlowTest(unittest.IsolatedAsyncioTestCase):
         )
         item = state["resume_data"]["projects"][0]
         self.assertEqual(item["name"], "胡话简历")
-        self.assertEqual(item["start_date"], "2026-07")
+        self.assertEqual(item["start_date"], "2026.07")
         self.assertEqual(item["end_date"], "至今")
         self.assertNotIn("[待补]", item["name"])
         self.assertEqual(len(state["collected_info"]["projects"]), 1)
@@ -660,7 +660,7 @@ class IntakeFlowTest(unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(Exception):
                 await self.turn("经历清单：胡话简历", intake=payload)
             saved = persist.call_args.args[1]
-        self.assertEqual(saved["projects"][0]["start_date"], "2026-07")
+        self.assertEqual(saved["projects"][0]["start_date"], "2026.07")
         state = await self.turn("经历清单：胡话简历", intake=payload)
         self.assertEqual(len(state["collected_info"]["projects"]), 1)
 

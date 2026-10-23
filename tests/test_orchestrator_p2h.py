@@ -87,15 +87,15 @@ class P2hLoopTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([r["name"] for r in result["messages"][-1].additional_kwargs["orchestrator"]["tools"]],
                          ["write_draft", "ask_user"])
 
-    async def test_tool_budget_attaches_card_without_fifth_model_tool(self):
+    async def test_tool_budget_attaches_card_without_an_extra_model_tool(self):
         value = followup_state()
         specs = self.draft_tools(value)
-        model = Model([call("check_layout"), call("check_layout"), call("check_layout"),
+        model = Model([{'calls': [{'name': 'propose_plan'} for _ in range(loop.MAX_TOOL_STEPS - 1)]},
                        call("write_draft"), {"content": "完成。"}])
         result = await loop.run_orchestrator(value, model, registry=specs)
         self.assertTrue(pending_card({**value, **result}))
         metrics = result["messages"][-1].additional_kwargs["orchestrator"]
-        self.assertEqual((metrics["tool_steps"], metrics["model_calls"]), (4, 5))
+        self.assertEqual((metrics["tool_steps"], metrics["model_calls"]), (loop.MAX_TOOL_STEPS, len(model.requests)))
         self.assertEqual(len([r for r in metrics["tools"] if r.get("automatic")]), 1)
         raw = next(m for m in model.requests[-1]["messages"] if m.get("role") == "tool"
                    and json.loads(m["content"])["untrusted_data"].get("followup_attached"))
@@ -105,12 +105,12 @@ class P2hLoopTests(unittest.IsolatedAsyncioTestCase):
         from test_orchestrator import BadRequest
         value = followup_state()
         specs = self.draft_tools(value)
-        model = Model([BadRequest("protocol"), call("check_layout"), call("check_layout"),
+        model = Model([BadRequest("protocol"), *[call("check_layout") for _ in range(loop.MAX_MODEL_CALLS - 3)],
                        call("write_draft"), {"content": "完成。"}])
         result = await loop.run_orchestrator(value, model, registry=specs)
         self.assertTrue(pending_card({**value, **result}))
         metrics = result["messages"][-1].additional_kwargs["orchestrator"]
-        self.assertEqual((metrics["tool_steps"], metrics["model_calls"]), (3, 5))
+        self.assertEqual((metrics["tool_steps"], metrics["model_calls"]), (1, loop.MAX_MODEL_CALLS))
 
     async def test_followup_survives_text_only_invalid_ask_and_final_failure(self):
         value = followup_state()
@@ -208,33 +208,16 @@ class P2hWritingTests(unittest.IsolatedAsyncioTestCase):
         self.enterContext(patch("app.agents.tailor_pipeline.measure_rendered_pages", side_effect=measured))
         self.enterContext(patch("app.services.resume_capacity.measure_rendered_pages", side_effect=measured))
 
-    def test_campus_identity_merge_is_same_turn_unique_and_preserves_fact_sources(self):
+    def test_campus_identity_does_not_merge_a_same_turn_placeholder(self):
         value = campus_facts()
-        original = {f["id"]: deepcopy(f) for row in value["campus"] for f in row["facts"]}
+        original = deepcopy(value)
         tools._bind_campus_identity(value)
-        self.assertEqual(len(value["campus"]), 1)
-        self.assertEqual(value["campus"][0]["item_id"], "named")
-        self.assertEqual(value["campus"][0]["merged_from"][0]["item_id"], "unnamed")
-        self.assertEqual({f["id"]: f for f in value["campus"][0]["facts"]}, original)
-        for variant in ("ambiguous", "other_turn", "mixed_turns", "different_period", "named_source"):
-            current = campus_facts()
-            if variant == "ambiguous":
-                current["campus"].append({**deepcopy(current["campus"][0]), "item_id": "another"})
-            if variant == "other_turn":
-                for fact in current["campus"][0]["facts"]:
-                    fact["turn_id"] = "earlier"
-            if variant == "mixed_turns":
-                current["campus"][1]["facts"][1]["turn_id"] = "earlier"
-            if variant == "different_period":
-                current["campus"][1]["start_date"] = "2024.03"
-            if variant == "named_source":
-                current["campus"][1]["name"] = "另一个社团"
-            before = deepcopy(current)
-            tools._bind_campus_identity(current)
-            self.assertEqual(current, before, variant)
+        self.assertEqual(value, original)
 
     async def test_record_facts_binds_campus_before_persistence_then_writes_plain(self):
         facts = campus_facts()
+        for row in facts['campus']:
+            row['profile_item_id'] = 'fictional-campus-archive'
         saved = []
         async def persist(value, collected):
             saved.append(deepcopy(collected))
@@ -265,6 +248,8 @@ class P2hWritingTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_empty_body_fallback_is_deterministic_cited_versioned_and_measured(self):
         facts = campus_facts()
+        for row in facts['campus']:
+            row['profile_item_id'] = 'fictional-campus-archive'
         tools._bind_campus_identity(facts)
         value = state(collected_info=facts, confirmed_plan={"bullet_style": "plain"})
         data = graph._serialize_to_resume_data({**value, "messages": []})
@@ -297,6 +282,8 @@ class P2hWritingTests(unittest.IsolatedAsyncioTestCase):
     def test_fallback_respects_backup_zero_hidden_scope_and_deleted_facts(self):
         for variant in ("backup", "zero", "hidden", "item_scope", "bullet_scope", "deleted"):
             facts = campus_facts()
+            for row in facts['campus']:
+                row['profile_item_id'] = 'fictional-campus-archive'
             tools._bind_campus_identity(facts)
             value = state(collected_info=facts)
             data = graph._serialize_to_resume_data({**value, "messages": []})

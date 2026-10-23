@@ -34,7 +34,7 @@ f.context.fetch = async (url, options = {}) => {
   if (url === '/api/profile/import-memory') {
     assert.equal(options.method, 'POST'); assert.deepEqual(JSON.parse(options.body), {text: pasted});
     if (importFails) return response({detail: {message: '整理暂不可用'}}, 503);
-    return new Promise(resolve => { release = () => resolve(response({imported_count: 2, duplicate_count: 1, warnings: ['已截断，请分批导入。']})); });
+    return new Promise(resolve => { release = () => resolve(response({added_count: 2, conflict_count: 1, uncertain_count: 1, duplicate_count: 1, warnings: ['已截断，请分批导入。']})); });
   }
   throw new Error('unexpected route ' + url);
 };
@@ -60,20 +60,20 @@ const submit = async () => { for (const fn of form().handlers.submit) await fn({
   assert.ok(nodes().some(n => n.textContent.includes('输入已保留')));
   importFails = false;
   const pending = submit(); await tick();
-  assert.equal(button('提交到待确认').disabled, true);
+  assert.equal(button('导入档案').disabled, true);
   await submit();
   assert.equal(requests.filter(r => r.url === '/api/profile/import-memory').length, 2);
   release(); await pending;
   const result = nodes().find(n => n.className === 'profile-memory-result');
   assert.equal(result.attributes['aria-live'], 'polite');
-  assert.ok(result.textContent.includes('2 条进入待确认'));
+  assert.ok(result.textContent.includes('已加入档案 2 条'));
   assert.ok(result.textContent.includes('1 条重复'));
   assert.ok(result.textContent.includes('已截断'));
-  assert.ok(!result.textContent.includes('已加入档案'));
+  assert.ok(result.textContent.includes('1 条冲突、1 条不确定'));
   assert.equal(paste.value, pasted);
   await button('查看待确认信息').click();
   assert.ok(nodes().some(n => n.textContent === '来自 AI 助手的建议'));
-  assert.ok(nodes().some(n => n.className === 'profile-card profile-inbox-item'));
+  assert.ok(nodes().some(n => String(n.className).split(' ').includes('profile-inbox-item')));
   assert.ok(!requests.some(r => /\/accept$|\/facts$/.test(r.url)));
   console.log('memory import DOM checks passed');
 })().catch(error => { console.error(error); process.exitCode = 1; });

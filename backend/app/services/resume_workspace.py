@@ -388,6 +388,15 @@ def tailor_metadata(values: dict, canonical: dict) -> dict:
     """UI contract uses sanitized committed snapshots, never an ahead checkpoint diff."""
     from app.services.resume_versions import document_diff, valid_bullet_metadata
     meta = valid_bullet_metadata(canonical, values.get('resume_meta') or {})
+    if precheck := meta.get('precheck'):
+        from app.services.resume_capacity import resume_data_hash
+        from app.services.resume_preflight import precheck_context_hash
+        if (precheck.get('data_hash') != resume_data_hash(canonical)
+                or precheck.get('context_hash') != precheck_context_hash(values)):
+            # Keep provenance, but never display old issues/counts for a new draft/JD.
+            meta['precheck'] = {**precheck, 'status': 'stale', 'issues': [],
+                                'counts': {'error': 0, 'warning': 0, 'info': 0},
+                                'reason': 'document_or_evidence_changed'}
     page = meta.get('page_check') or {}
     if page:
         from app.services.resume_capacity import normalize_session_constraints, resume_data_hash

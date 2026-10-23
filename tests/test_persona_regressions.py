@@ -228,6 +228,7 @@ class PersonaRegressions(unittest.IsolatedAsyncioTestCase):
         facts = deepcopy(state['collected_info'])
         other = deepcopy(facts['work_experience'][0])
         other['item_id'] = 'different'
+        other['company'] = '另一虚构公司'
         facts['work_experience'].append(other)
         self.assertIn('error', apply_literal_corrections(facts, state['resume_data'], state['resume_meta'], pairs))
         self.assertEqual(correction_pairs('不要把6 场改 4 场'), [])

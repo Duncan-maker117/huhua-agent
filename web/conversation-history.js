@@ -16,6 +16,7 @@
   let deleting = false;
   let retryAction = null;
   let activeTitle = '新对话';
+  let activeHasContent = false;
   const backupButton = document.createElement('button');
   backupButton.id = 'btn-chat-backup';
   backupButton.type = 'button';
@@ -116,6 +117,7 @@
     rememberDraft();
     resetCanvas();
     SESSION_ID = body.session_id;
+    activeHasContent = Boolean(body.has_messages || body.has_data || body.resume_draft?.trim());
     activeTitle = body.title || '新对话';
     $('conversation-title').textContent = activeTitle;
     $('conversation-title').title = activeTitle;
@@ -238,6 +240,12 @@
   }
   async function createConversation() {
     if (creating || !canNavigate()) return false;
+    if (conversationReady && !activeHasContent && !canvasState.hasData
+        && !messages.some(message => message.role === 'user')) {
+      closeDrawer();
+      inputEl.focus();
+      return true;
+    }
     creating = true;
     const turn = ++switchRequest;
     setBusy(true);
@@ -345,8 +353,7 @@
       }
       await refreshList();
       if (token !== switchRequest) return;
-      const target = initialTarget || window.HuhuaAccount?.rememberedSession() || (!window.HuhuaAccount?.guest() ? LEGACY_SESSION_ID || conversations[0]?.session_id : null);
-      if (target) await openConversation(target, {close: false});
+      if (initialTarget) await openConversation(initialTarget, {close: false});
       else await createConversation();
     } catch (error) {
       if (token !== switchRequest) return;

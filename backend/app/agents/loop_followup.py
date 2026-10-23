@@ -80,4 +80,10 @@ def answer_receipt(before, after, message, *, updated, has_card):
         recorded = "已处理本轮回答；不知道或跳过的维度已关闭，没有新增可采用的事实。"
     draft = "稿子已更新。" if updated else "稿子未更新。" if before.get("resume_data") else "本轮尚未生成稿子。"
     next_step = "可填写本轮补充卡。" if has_card else "下一步在右侧查看现有稿子。" if after.get("resume_data") else "可继续提供一段真实经历。"
+    from app.services.experience_fields import confirmation_requests
+    pending = [row for row in confirmation_requests(after.get('collected_info') or {}) if row.get('turn_id') == message.id]
+    if pending:
+        recorded = ('已保存可确认的字段。' if facts else '') + '部分字段未能解析，原话已保留待确认，没有写成要点。'
+        if not has_card:
+            next_step = '请按原话确认具体的名称、角色或起止年月。'
     return recorded + draft + next_step

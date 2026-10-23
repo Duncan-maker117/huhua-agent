@@ -17,9 +17,9 @@ def needs_polish(bullet: str, *, source_quotes=(), siblings=()) -> list[str]:
     text = str(bullet or "").strip()
     reasons = []
     # 「3篇初稿由本人撰写」 is formal attribution, not an oral first-person lead.
-    if re.search(r"我(?:们)?|^本人", text):
+    if re.search(r"我(?:们)?|(?:^|[：:，,；;。])\s*本人", text):
         reasons.append("first_person")
-    if re.search(r"帮.{0,10}做|(?:写|拍|做|排版|完成|制作|使用)过|[过了][。！!]?\s*$", text):
+    if re.search(r"叫做|名字是|名字叫|这个|那个|就是|然后|帮.{0,10}做|做了几个关键决定|是市面上当时体验过|(?:写|拍|做|排版|完成|制作|使用)过|[过了][。！!]?\s*$", text):
         reasons.append("colloquial")
     if len(normalize_text(text)) < 8 and not re.search(r"\d|[一二两三四五六七八九十]+(?:篇|条|张|个)", text) and not _OBJECT.search(text):
         reasons.append("short_fragment")

@@ -51,24 +51,18 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
         for key in ("phone", "email"):
             self.assertNotIn(basic[key], str(value))
 
-    def assert_merged(self, collected, original, message, turn_id):
-        self.assertEqual(len(collected["campus"]), 1)
-        item = collected["campus"][0]
-        source, target = original["campus"]
-        self.assertEqual((item["name"], item["item_id"]), (target["name"], target["item_id"]))
-        self.assertEqual((item["start_date"], item["end_date"]), ("2026.03", "2026.04"))
-        self.assertEqual({f["id"]: f for f in item["facts"]},
-                         {f["id"]: f for row in original["campus"] for f in row["facts"]})
-        self.assertEqual(sum(f["kind"] == "status_limit" for f in item["facts"]), 3)
-        self.assertEqual(set(item["raw_notes"]), {n for row in original["campus"] for n in row["raw_notes"]})
-        self.assertEqual(item["merged_from"], [{"item_id": source["item_id"], "section": "campus",
-            "name": source["name"], "source_quote": message, "turn_id": turn_id}])
+    def assert_independent(self, collected, original, message, turn_id):
+        self.assertEqual(len(collected['campus']), 2)
+        self.assertEqual([row['item_id'] for row in collected['campus']], [row['item_id'] for row in original['campus']])
+        self.assertEqual({f['id']: (f['text'], f.get('source_quote')) for row in collected['campus'] for f in row['facts']},
+                         {f['id']: (f['text'], f.get('source_quote')) for row in original['campus'] for f in row['facts']})
+        self.assertFalse(any(row.get('merged_from') for row in collected['campus']))
 
-    def test_snapshot_merge_preserves_every_fact_source_limit_and_audit(self):
+    def test_snapshot_keeps_same_message_experiences_independent(self):
         facts, previous, message, turn_id = split_case()
         original = deepcopy(facts)
         merge_new_experience_identities(facts, previous, message, turn_id)
-        self.assert_merged(facts, original, message, turn_id)
+        self.assert_independent(facts, original, message, turn_id)
         once = deepcopy(facts)
         merge_new_experience_identities(facts, previous, message, turn_id)
         self.assertEqual(facts, once)
@@ -84,11 +78,11 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
         target["links"] = ["https://example.invalid/target"]
         original = deepcopy(facts)
         merge_new_experience_identities(facts, previous, message, turn_id)
-        self.assert_merged(facts, original, message, turn_id)
-        self.assertEqual(set(facts["campus"][0]["links"]),
-                         {"https://example.invalid/source", "https://example.invalid/target"})
+        self.assert_independent(facts, original, message, turn_id)
+        self.assertEqual(facts["campus"][0]["links"], ["https://example.invalid/source"])
+        self.assertEqual(facts["campus"][1]["links"], ["https://example.invalid/target"])
 
-    def test_same_rule_supports_other_experience_sections_without_cross_section_join(self):
+    def test_shared_turn_never_joins_placeholders_in_any_section(self):
         for section in ("projects", "work_experience", "internship", "open_source", "awards"):
             with self.subTest(section=section):
                 facts, _, message, turn_id = split_case()
@@ -98,9 +92,9 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
                 target[FACT_LABELS[section]] = target.pop("name")
                 facts[section] = [source, target]
                 merge_new_experience_identities(facts, {}, message, turn_id)
-                self.assertEqual(len(facts[section]), 1)
-                self.assertEqual(facts[section][0]["item_id"], target["item_id"])
-                self.assertEqual(facts[section][0]["merged_from"][0]["section"], section)
+                self.assertEqual(len(facts[section]), 2)
+                self.assertEqual(facts[section][0]["item_id"], source["item_id"])
+                self.assertEqual(facts[section][1]["item_id"], target["item_id"])
 
     def test_ambiguous_historical_conflicting_and_ungrounded_pairs_never_merge(self):
         variants = ("extra_named", "extra_placeholder", "old_other_candidate", "old_source", "old_target",
@@ -159,13 +153,18 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
         finally:
             graph._intake_saver.reset(token)
         self.assertEqual(outcome.result["status"], "ok")
-        self.assert_merged(outcome.update["collected_info"], facts, message, turn_id)
-        self.assert_merged(saver.await_args.args[0]["collected_info"], facts, message, turn_id)
+        self.assert_independent(outcome.update["collected_info"], facts, message, turn_id)
+        self.assert_independent(saver.await_args.args[0]["collected_info"], facts, message, turn_id)
         self.assert_private(outcome.result)
         return {**value, **outcome.update}
 
-    async def test_record_snapshot_then_real_writer_pipeline_with_offline_writer(self):
+    async def test_record_snapshot_then_explicit_identity_confirmation_and_offline_writer(self):
         recorded = await self.record_snapshot()
+        from app.services.fact_corrections import apply_experience_merges
+        source, target = recorded['collected_info']['campus']
+        apply_experience_merges(recorded['collected_info'], [{'section': 'campus', 'target_item_id': target['item_id'],
+            'name': target['name'], 'source_item_ids': [source['item_id']],
+            'source_quote': '把校园经历（待补组织名）和校园读书社合并', 'turn_id': 'confirmed-identity'}])
         for invented in (False, True):
             with self.subTest(invented=invented):
                 model = Writer(invented=invented)
@@ -196,7 +195,7 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
                 self.assert_private(outcome.result)
                 self.assertNotIn("FactSlots", [name for name, _ in model.requests])
 
-    async def test_old_collecting_path_uses_same_message_join_and_fresh_turn(self):
+    async def test_old_collecting_path_keeps_independent_items_and_fresh_turn(self):
         facts, previous, message, _ = split_case()
         calls = []
 
@@ -213,9 +212,9 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
         with patch("app.agents.fact_extractor.extract_facts_patch", side_effect=extract):
             for _ in range(2):
                 result = await graph._extract_info_from_message(message, previous, object())
-                self.assertEqual(len(result["campus"]), 1)
-                self.assertEqual(result["campus"][0]["merged_from"][0]["turn_id"], calls[-1])
-                self.assertEqual(len(result["campus"][0]["facts"]), 8)
+                self.assertEqual(len(result["campus"]), 2)
+                self.assertTrue(all(f["turn_id"] == calls[-1] for row in result["campus"] for f in row["facts"]))
+                self.assertEqual(sum(len(row["facts"]) for row in result["campus"]), 8)
         self.assertNotEqual(calls[0], calls[1])
 
     async def test_record_entry_does_not_join_old_items_or_name_outside_current_message(self):
@@ -236,7 +235,7 @@ class P2lTests(unittest.IsolatedAsyncioTestCase):
                 with patch("app.agents.fact_extractor.extract_facts_patch", AsyncMock(return_value=extracted_patch(facts))):
                     outcome = await tools.record_facts(value, {"source_id": "current"}, tools.ToolContext(llm=object()))
                 self.assertEqual(outcome.result["status"], "ok")
-                self.assertEqual(len(outcome.update["collected_info"]["campus"]), len(facts["campus"]))
+                self.assertEqual(len(outcome.update["collected_info"]["campus"]), 2)  # Exact duplicate named rows can coalesce.
 
     async def test_collecting_rejects_old_items_and_name_only_in_external_material(self):
         for variant in ("old_source", "name_absent", "external_name", "conflicting_dates"):

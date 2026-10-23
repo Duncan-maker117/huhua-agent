@@ -1,4 +1,5 @@
 """Literal education values shared by intake, legacy reads and rendering."""
+from copy import deepcopy
 import re
 
 
@@ -33,6 +34,24 @@ def clean_education_value(field: str, value: str) -> str:
 
 def clean_education_item(item: dict) -> dict:
     return {key: clean_education_value(key, value) for key, value in item.items()}
+
+
+def recover_education_identity(item: dict) -> None:
+    """Recover a literal school/major/degree header retained as a single fact."""
+    school = item.get('school')
+    if not school:
+        return
+    for fact in list(item.get('facts') or []):
+        if fact.get('status', 'active') != 'active' or fact.get('field'):
+            continue
+        match = re.search(re.escape(school) + r'\s+([\w与和]{2,30})\s+(本科|硕士|博士|大专|专科)(?=\s|$)', fact['text'])
+        if not match:
+            continue
+        for field, value in (('major', match[1]), ('degree', match[2])):
+            if not item.get(field):
+                item[field] = value
+                item['facts'].append({**deepcopy(fact), 'id': fact['id'] + '__' + field,
+                                      'field': field, 'kind': 'context', 'text': value})
 
 
 def clean_resume_education(data: dict) -> dict:

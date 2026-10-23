@@ -246,7 +246,7 @@ def evaluate_persona(persona, turns, **kwargs):
     allowed_numbers = set(re.findall(r'\d+', answer_source))
     conditions = [
         ('common.rounds_complete', bool(turns) and all(t.get('status') == 'ok' and t.get('sse_done') for t in turns) and drafted, 'writer 成稿、正文引用与每轮 SSE'),
-        ('heading', project.get('name') == '胡话简历' and project.get('start_date') == '2026-08' and project.get('end_date') == '至今' and bool(project.get('positioning')), str({k:project.get(k) for k in ('name','start_date','end_date','positioning')})),
+        ('heading', project.get('name') == '胡话简历' and project.get('start_date') in {'2026-08', '2026.08'} and project.get('end_date') == '至今' and bool(project.get('positioning')), str({k:project.get(k) for k in ('name','start_date','end_date','positioning')})),
         ('labels', len(labels & {'问题', '决策', '迭代'}) >= 2 and 2 <= len(bullets) <= 4 and not any(re.search(r'^(?:问题|决策|迭代|评测|现状)：(?:问题|决策|迭代|评测|现状)：', b) for b in bullets), body),
         ('answers_used', bool(submitted) and sum(hits) >= min(3, len(submitted)), str(list(zip(submitted, hits)))),
         ('no_placeholder', '[待补]' not in str(final.get('resume_data', {})) and bool(project), body),

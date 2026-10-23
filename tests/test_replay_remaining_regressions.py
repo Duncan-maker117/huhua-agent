@@ -114,7 +114,9 @@ class PersonalCompressionRegression(unittest.IsolatedAsyncioTestCase):
 
 
 SHORT = '整理用户反馈并分类，记录测试样例和已有功能限制。'
-LONG = SHORT + '按原始记录逐项核对用户反馈分类与测试样例，并记录已有功能的限制。' * 4
+# Keep capacity pressure without relying on duplicated prose (preflight removes it).
+LONG = SHORT + ''.join(f'按原始记录{mode}核对用户反馈分类与测试样例，并记录已有功能的限制。'
+                       for mode in ('逐项', '逐条', '分组', '分类'))
 
 
 def three_line_fixture():

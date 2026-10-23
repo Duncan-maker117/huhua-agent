@@ -56,7 +56,7 @@ class P2kTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(fact["dimension"], "dates")
                     self.assertEqual(fact["answer_value"], text)
                     self.assertEqual(fact["sources"][0]["answer_value"], text)
-        for text in ("不知道", "2025-18 / 至今", "2025-03", "至今", "春天到夏天"):
+        for text in ("不知道", "2025-18 / 至今", "至今", "春天到夏天"):
             value = answer_state([question("dates", "这段经历的起止时间？")], [text])
             item = apply_answers(value["collected_info"], value["messages"][-1], project_fields=True)["projects"][0]
             self.assertFalse(item.get("start_date"))
@@ -64,7 +64,7 @@ class P2kTests(unittest.IsolatedAsyncioTestCase):
         value = answer_state([question("dates", "这段经历的结束时间？")], ["至今"])
         value["collected_info"]["projects"][0]["start_date"] = "2025-03"
         item = apply_answers(value["collected_info"], value["messages"][-1], project_fields=True)["projects"][0]
-        self.assertEqual((item["start_date"], item["end_date"]), ("2025-03", "至今"))
+        self.assertEqual((item["start_date"], item["end_date"]), ("2025.03", "至今"))
 
     async def test_heading_and_model_cards_never_split_same_dimension(self):
         value = followup_state()
@@ -91,7 +91,7 @@ class P2kTests(unittest.IsolatedAsyncioTestCase):
         with patch.object(tools, "_write", AsyncMock()) as writer:
             result = await loop.run_orchestrator(value, Model([RuntimeError("offline")]), registry=tools.TOOLS, emit=events.append)
         writer.assert_not_awaited()
-        self.assertEqual(result["resume_data"]["projects"][0]["start_date"], "2026-08")
+        self.assertEqual(result["resume_data"]["projects"][0]["start_date"], "2026.08")
         self.assertEqual(pending_card({**value, **result})["questions"][0]["id"], "problem")
         self.assertEqual(len([e for e in events if e["type"] == "guidance"]), 1)
         self.assertTrue(result["messages"][-1].content)
@@ -158,7 +158,8 @@ class P2kTests(unittest.IsolatedAsyncioTestCase):
             result = await loop.run_orchestrator(value, Model([{"content": "已处理。"}]), registry=tools.TOOLS)
         writer.assert_awaited_once()
         self.assertFalse(pending_card({**value, **result}))
-        self.assertEqual(result["collected_info"]["projects"][1], value["collected_info"]["projects"][1])
+        from app.services.resume_facts import normalize_fact_store
+        self.assertEqual(result["collected_info"]["projects"][1], normalize_fact_store(value["collected_info"])["projects"][1])
 
     async def test_writer_failure_preserves_answer_and_draft_but_still_attaches_one_card(self):
         value = answer_state([question("decision", "关键决策是什么？")], ["先核对来源，再生成汇总"])

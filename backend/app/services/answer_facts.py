@@ -1,10 +1,13 @@
 """本人提交的结构化答案直接入事实；题干仅作为语境，不能充当经历证据。"""
-from copy import deepcopy
 import re
 
 from app.services.ask_user import question_dimension, subject_key
 from app.services.resume_facts import new_fact, normalize_fact_store
 from app.schemas.facts import FACT_LABELS, FACT_SECTIONS
+from app.services.experience_fields import (
+    merge_normalized_experiences, normalize_field, parse_dates, require_confirmation,
+    matching_item, names_match,
+)
 
 
 def answer_field(identifier: str, prompt: str) -> str:
@@ -26,14 +29,7 @@ def answer_field(identifier: str, prompt: str) -> str:
 
 
 def answer_dates(value: str, target: dict) -> dict:
-    date = r"\d{4}(?:[年./-](?:0?[1-9]|1[0-2])月?)?"
-    match = re.fullmatch(rf"\s*({date})\s*(?:至|到|[-–—~～/]|\s)\s*({date}|至今)\s*", value)
-    if match:
-        return dict(zip(("start_date", "end_date"), match.groups()))
-    missing = [field for field in ("start_date", "end_date") if not target.get(field)]
-    if len(missing) == 1 and re.fullmatch(date + (r"|至今" if missing[0] == "end_date" else ""), value.strip()):
-        return {missing[0]: value.strip()}
-    return {}
+    return parse_dates(value, target)
 
 
 def append_answer(target: dict, value: str, *, message, question_id: str,
@@ -55,7 +51,7 @@ def append_answer(target: dict, value: str, *, message, question_id: str,
     target["facts"].append(fact)
 
 
-def apply_answers(collected: dict, message, *, project_fields: bool = False) -> dict:
+def apply_answers(collected: dict, message, *, project_fields: bool = True) -> dict:
     result = normalize_fact_store(collected)
     answers = message.additional_kwargs.get("answers") or {}
     card = message.additional_kwargs.get("answer_card") or {}
@@ -64,7 +60,9 @@ def apply_answers(collected: dict, message, *, project_fields: bool = False) -> 
     subject = str(card.get("subject") or "").strip().casefold()
     if subject:
         aliases = [item for section in FACT_SECTIONS for item in result.get(section) or []
-                   if subject in {str(item.get(field) or "").strip().casefold() for field in ("item_id", "name", "company", "school")}]
+                   if subject in {str(item.get(field) or "").strip().casefold() for field in ("item_id", "name", "company", "school")}
+                   or any(subject in {str(row.get('item_id', '')).casefold(), str(row.get('name', '')).casefold()}
+                          for row in item.get('merged_from') or [])]
         if len(aliases) != 1:
             return result
     key = subject_key(card.get("subject", ""), {"collected_info": result})
@@ -77,6 +75,10 @@ def apply_answers(collected: dict, message, *, project_fields: bool = False) -> 
     questions = {q["id"]: q for q in card.get("questions") or []}
     for answer in answers.get("items") or []:
         question = questions.get(answer.get("id"))
+        if question and (answer.get('skipped') or answer.get('unknown')):
+            for row in target.get('field_confirmations') or []:
+                if 'confirm_' + row['field'] == question['id']:
+                    row['confirmation_attempts'] = 1
         if not question or answer.get("skipped") or answer.get("unknown"):
             continue
         dimension = question_dimension(question["id"], question["prompt"])
@@ -93,6 +95,9 @@ def apply_answers(collected: dict, message, *, project_fields: bool = False) -> 
             if project_fields:
                 from app.agents.interviewer import NO_ANSWER
                 if NO_ANSWER.fullmatch(value.strip()) or value.strip() in {"不确定", "未知"}:
+                    for row in target.get('field_confirmations') or []:
+                        if 'confirm_' + row['field'] == question['id']:
+                            row['confirmation_attempts'] = 1
                     continue
             if project_fields and (field := answer_field(question["id"], question["prompt"])):
                 from app.services.candidate_language import placeholder_name
@@ -100,36 +105,42 @@ def apply_answers(collected: dict, message, *, project_fields: bool = False) -> 
                 value = value.strip()
                 if not value or NO_ANSWER.fullmatch(value) or value in {"不确定", "未知"}:
                     continue
+                if any(f.get('turn_id') == message.id and f.get('question_id') == question['id']
+                       and f.get('answer_value') == value for f in target.get('facts') or []):
+                    continue
                 if field == "dates":
                     from app.schemas.facts import FACT_FIELDS
                     dates = answer_dates(value, target) if len(set(values)) == 1 else {}
                     if dates and all(key in FACT_FIELDS[section] for key in dates):
                         for key, date in dates.items():
-                            _write_field(target, key, date, message)
-                            fact = next(f for f in reversed(target["facts"]) if f.get("field") == key
-                                        and f.get("turn_id") == message.id)
+                            fact = _write_field(target, key, date, message, source_quote=value)
                             provenance = {"question_id": question["id"], "question_prompt": question["prompt"],
                                           "dimension": dimension, "answer_value": value}
                             fact.update(provenance)
                             fact["sources"][0].update(provenance)
                     else:
-                        append_answer(target, value, message=message, question_id=question["id"],
-                                      prompt=question["prompt"], dimension=dimension, kind="context")
+                        require_confirmation(target, field, value, fact={'turn_id': message.id,
+                            'question_id': question['id'], 'question_prompt': question['prompt']})
                     continue
                 field = FACT_LABELS[section] if field == "name" else "title" if field == "role" and section in {"work_experience", "internship"} else field
                 from app.schemas.facts import FACT_FIELDS
                 projectable = field in FACT_FIELDS[section] and len(set(values)) == 1
+                quote = value
+                value = normalize_field(field, value)
                 if field == FACT_LABELS[section]:
-                    projectable = projectable and placeholder_name(target.get(field, ""))
-                if field in {"start_date", "end_date"}:
-                    projectable = projectable and bool(re.fullmatch(r"\d{4}(?:[年./-](?:0?[1-9]|1[0-2])月?)?|至今", value))
-                    projectable = projectable and not (field == "start_date" and value == "至今")
-                if not projectable:
-                    append_answer(target, value, message=message, question_id=question["id"],
-                                  prompt=question["prompt"], dimension=dimension, kind="context")
+                    candidate = {**target, field: value}
+                    existing = matching_item([row for row in result.get(section) or [] if row is not target], candidate, section)
+                    if existing:
+                        value = existing[field]
+                    elif names_match(target.get(field), value):
+                        value = target[field]
+                    projectable = projectable and (not target.get(field) or placeholder_name(target[field])
+                                                    or names_match(target[field], value))
+                if not projectable or not value:
+                    require_confirmation(target, field, quote, fact={'turn_id': message.id,
+                        'question_id': question['id'], 'question_prompt': question['prompt']})
                     continue
-                _write_field(target, field, value, message)
-                fact = target["facts"][-1]
+                fact = _write_field(target, field, value, message, source_quote=quote)
                 provenance = {"question_id": question["id"], "question_prompt": question["prompt"],
                               "dimension": dimension}
                 fact.update(provenance)
@@ -137,7 +148,7 @@ def apply_answers(collected: dict, message, *, project_fields: bool = False) -> 
                 continue
             append_answer(target, value, message=message, question_id=question["id"],
                           prompt=question["prompt"], dimension=dimension, kind=kind)
-    return deepcopy(result)
+    return merge_normalized_experiences(normalize_fact_store(result), collected)
 
 
 def project_answer_fields(data: dict, collected: dict) -> None:
@@ -145,15 +156,17 @@ def project_answer_fields(data: dict, collected: dict) -> None:
     from app.services.candidate_language import placeholder_name
     for section in FACT_SECTIONS:
         for source in collected.get(section) or []:
-            target = next((item for item in data.get("work_experience" if section == "internship" else section) or []
-                           if item.get("item_id") == source.get("item_id")), None)
-            if target is None:
-                continue
-            for fact in source.get("facts") or []:
-                field = fact.get("field")
-                if (field not in {FACT_LABELS[section], "start_date", "end_date", "role", "title"}
-                        or not fact.get("question_id") or fact.get("status", "active") != "active"):
-                    continue
-                if field == FACT_LABELS[section] and not placeholder_name(target.get(field, "")):
-                    continue
-                target[field] = fact["text"]
+            targets = [item for item in data.get("work_experience" if section == "internship" else section) or []
+                       if item.get("item_id") in {source.get("item_id"), *[row.get('item_id') for row in source.get('merged_from') or []]}]
+            for target in targets:
+                label = FACT_LABELS[section]
+                if source.get('merged_from') and (placeholder_name(target.get(label, '')) or names_match(target.get(label), source.get(label))):
+                    target[label] = source.get(label, '')
+                for fact in source.get("facts") or []:
+                    field = fact.get("field")
+                    if (field not in {label, "start_date", "end_date", "role", "title"}
+                            or not fact.get("question_id") or fact.get("status", "active") != "active"):
+                        continue
+                    if field == label and not placeholder_name(target.get(field, "")):
+                        continue
+                    target[field] = normalize_field(field, fact["text"]) or ''

@@ -35,7 +35,8 @@ class Settings(BaseSettings):
     # margin below the provider's free tier; zero must not mean unlimited.
     AUTH_EMAIL_DAILY_LIMIT: int = Field(default=90, gt=0)
     AUTH_EMAIL_MONTHLY_LIMIT: int = Field(default=2800, gt=0)
-    CHAT_TIMEOUT_SECONDS: float = Field(default=150.0, gt=0)
+    CHAT_TIMEOUT_SECONDS: float = Field(default=360.0, gt=0)
+    WRITE_DRAFT_TIMEOUT_SECONDS: float = Field(default=150.0, gt=0)
     MODEL_MAX_CONCURRENT: int = Field(default=3, gt=0)
     ACCOUNT_DAILY_TURN_LIMIT: int = Field(default=80, gt=0)
     ARCHIVE_POLL_SECONDS: float = Field(default=10.0, gt=0)
@@ -103,6 +104,14 @@ class Settings(BaseSettings):
     def LLM_TEMPERATURE(self) -> float:
         """Compatibility accessor for existing evaluation scripts."""
         return self.LLM_CHAT_TEMPERATURE
+
+    @property
+    def chat_turn_timeout_seconds(self) -> float:
+        # Older installations explicitly set CHAT_TIMEOUT_SECONDS=150. In loop
+        # mode reserve one ordinary call before/after the full writer deadline.
+        if self.AGENT_MODE == 'loop':
+            return max(self.CHAT_TIMEOUT_SECONDS, self.WRITE_DRAFT_TIMEOUT_SECONDS + 180.0)
+        return self.CHAT_TIMEOUT_SECONDS
 
     def validate_runtime(self):
         if self.APP_ENV == "production":

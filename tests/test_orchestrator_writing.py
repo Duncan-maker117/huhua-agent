@@ -57,7 +57,9 @@ class OrchestratorWritingTest(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(body)
                 self.assertTrue(all(line.startswith(("问题：", "决策：", "迭代：", "技术：", "现状：")) for line in body), body)
                 for key in ("name", "role", "start_date", "end_date"):
-                    self.assertEqual(project[key], FIXTURE[persona]["project"][key])
+                    from app.services.resume_preflight import normalize_date
+                    expected = FIXTURE[persona]["project"][key]
+                    self.assertEqual(project[key], normalize_date(expected) if key.endswith('_date') else expected)
                 self.assertTrue(project.get("positioning"))
                 if persona == "aipm_real":
                     pain = next(line for line in body if line.startswith("问题："))
@@ -141,7 +143,11 @@ class OrchestratorWritingTest(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(repeated.result["changed"])
                 self.assertEqual(repeated.result["document_changes"], [])
                 self.assertEqual(repeated.result["change_summary"], [])
-                self.assertFalse(repeated.update)
+                # An unchanged body still receives its fresh, read-only checklist.
+                self.assertEqual(set(repeated.update), {'resume_meta'})
+                self.assertEqual({k: v for k, v in repeated.update['resume_meta'].items() if k != 'precheck'},
+                                 outcome.update['resume_meta'])
+                self.assertEqual(repeated.result['counts'], repeated.update['resume_meta']['precheck']['counts'])
                 self.assertEqual(state, before)
 
     async def test_direct_edit_uses_user_correction_not_model_argument(self):

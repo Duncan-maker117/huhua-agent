@@ -175,6 +175,51 @@ main, #chat-pane, #chat-body, #messages, #composer-wrap { min-height: 0; min-wid
 .match-item-name { display: block; font-size: 11px; color: #645e72; margin-bottom: 2px; }
 .match-bullet { display: block; width: 100%; max-width: 100%; padding: 6px 9px; border: 1px solid #ded3f2; border-radius: 7px; background: #faf8fe; color: #3c00bd; font-size: 12.5px; line-height: 1.65; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
 .match-bullet:hover { background: #eee6ff; border-color: #aa8ddf; }
+/* Resume scan (核对): three tiles, JD coverage bar, grouped issues. */
+.scan { margin-top: 4px; }
+.scan-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.scan-tile { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 12px; border: 1px solid #e6e2ee; border-radius: 12px; background: #fff; }
+.scan-tile-title { font-size: 12px; font-weight: 600; color: #474255; }
+.scan-tile-value { font-size: 18px; font-weight: 700; line-height: 1.3; color: #1d1a26; }
+.scan-tile-hint { font-size: 11px; line-height: 1.55; color: #7c7089; }
+.scan-tile.is-ok .scan-tile-value { color: #1f7a4d; }
+.scan-tile.is-warning { border-color: #f0dcb4; background: #fffaf0; }
+.scan-tile.is-warning .scan-tile-value { color: #865c1e; }
+.scan-tile.is-error { border-color: #f1c4c4; background: #fff6f6; }
+.scan-tile.is-error .scan-tile-value { color: #b42318; }
+.scan-tile.is-unknown .scan-tile-value { color: #7c7089; }
+.scan-tile.is-info { background: #faf8fe; }
+.scan-tile.is-info .scan-tile-value { color: #493263; }
+.scan-stale { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; background: #f6f3fb; font-size: 12.5px; color: #4d4560; }
+.scan-coverage { margin-top: 12px; padding: 12px 14px; border: 1px solid #e6e2ee; border-radius: 12px; background: #fff; }
+.scan-coverage-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.scan-coverage-title { font-size: 12px; font-weight: 600; color: #474255; }
+.scan-coverage-value { font-size: 15px; font-weight: 700; color: #1d1a26; font-variant-numeric: tabular-nums; }
+.scan-bar { display: flex; height: 8px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #f1eef5; }
+.scan-bar > span { height: 100%; }
+.scan-bar-direct, .scan-dot-direct { background: #5423e7; }
+.scan-bar-transferable, .scan-dot-transferable { background: #e0a43a; }
+.scan-bar-gap, .scan-dot-gap { background: #d6d0df; }
+.scan-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 11px; color: #645e72; }
+.scan-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.scan-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+.scan-issues { margin-top: 16px; }
+.scan-issues h4 { font-size: 13px; font-weight: 650; color: #493263; }
+.scan-issue { margin-top: 8px; padding: 12px 14px; border: 1px solid #e6e2ee; border-left-width: 3px; border-radius: 10px; background: #fff; min-width: 0; }
+.scan-issue.scan-error { border-left-color: #d92d20; }
+.scan-issue.scan-warning { border-left-color: #e0a43a; }
+.scan-issue.scan-info { border-left-color: #b9b0c7; }
+.scan-issue-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.scan-badge { flex: 0 0 auto; padding: 1px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #f1eef5; color: #4d4560; }
+.scan-error .scan-badge { background: #fde8e7; color: #b42318; }
+.scan-warning .scan-badge { background: #fff1d6; color: #865c1e; }
+.scan-issue-where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #645e72; }
+.scan-issue-message { margin-top: 6px; font-size: 13px; line-height: 1.7; color: #1d1a26; overflow-wrap: anywhere; }
+.scan-issue-suggestion { margin-top: 3px; font-size: 12px; line-height: 1.7; color: #645e72; overflow-wrap: anywhere; }
+.scan-issue-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.scan-action { min-height: 28px; padding: 4px 10px; font-size: 12px; }
+#canvas-pane .scan-action:focus-visible { outline: 2px solid #7659f6; outline-offset: 2px; }
+@media (max-width: 520px) { .scan-tiles { grid-template-columns: 1fr; } .scan-tile { flex-direction: row; flex-wrap: wrap; align-items: baseline; column-gap: 8px; } .scan-tile-hint { flex-basis: 100%; } }
 .review-check { margin: 8px 0; padding: 12px 14px; }
 .review-ask { display: block; max-width: 100%; text-align: left; white-space: normal; line-height: 1.6; margin-top: 8px; }
 .guidance-question-block + .guidance-question-block { margin-top: 12px; padding-top: 10px; border-top: 1px solid #efe9f8; }

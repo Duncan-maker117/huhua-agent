@@ -182,7 +182,8 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
         section = "work_experience" if source_section == "internship" else source_section
         for original in source.get(source_section) or []:
             item_id = original["item_id"]
-            item = next((row for row in data.get(section) or [] if row.get("item_id") == item_id), None)
+            canonical_id = next((key for key, ids in meta.get('merged_items', {}).items() if item_id in ids), item_id)
+            item = next((row for row in data.get(section) or [] if row.get("item_id") == canonical_id), None)
             field = "polished_bullets" if section == "projects" else "bullets"
             hidden = item is None or item.get("hidden") or (visible_sections is not None and section not in visible_sections)
             facts = original.get("facts") or []
@@ -203,7 +204,7 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                 if section == "education" or fact_field:
                     covered = not hidden and text_covered(text or fact["text"], headers + displayed_body)
                 else:
-                    records = meta.get("bullets", {}).get(item_id, [])
+                    records = meta.get("bullets", {}).get(canonical_id, [])
                     own_ids = {row["id"] for row in facts}
                     referenced_body = [value for value, record in zip(body, records)
                                        if record.get("text_hash") == text_hash(value) and record.get("fact_ids")
@@ -219,8 +220,8 @@ def ensure_fact_coverage(data: dict, meta: dict, collected: dict, *, repair_ids=
                     covered = not hidden and (entailed or text_covered(text, referenced_body or cited_body
                                                                       or (displayed_body if not records else [])))
                 from app.services.tech_stack import stack_covers_fact
-                if not hidden and stack_covers_fact(item, meta.get('tech_stack', {}).get(item_id, []), fact,
-                                                   bullet_records=meta.get('bullets', {}).get(item_id, [])):
+                if not hidden and stack_covers_fact(item, meta.get('tech_stack', {}).get(canonical_id, []), fact,
+                                                   bullet_records=meta.get('bullets', {}).get(canonical_id, [])):
                     covered = True
                 reason = ""
                 # resume_bullet removes header echoes. Test the original

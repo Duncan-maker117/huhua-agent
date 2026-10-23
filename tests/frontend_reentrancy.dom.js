@@ -141,7 +141,7 @@ async function review() {
 }
 async function undo() {
   const f = dom('index.html'); f.run('change-card.js');
-  const options = {session: () => 'synthetic-session'}, meta = {diff:[{section:'summary',field:'summary'}]};
+  const options = {session: () => 'synthetic-session'}, meta = {diff:[{section:'summary',field:'summary',before:'旧定位',after:'新定位'}]};
   const card = f.window.HuhuaChangeCard.create(meta, options), button = buttons(card,'撤销这次修改')[0];
   let reads = 0, wait = deferred();
   f.context.fetch = async () => { reads++; return wait.promise; };

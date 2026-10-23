@@ -54,6 +54,7 @@ from app.services.chat_turns import ChatTurn, active_turns, current_turn
 logger = logging.getLogger(__name__)
 
 _active_streams: set[asyncio.Task] = set()
+SSE_HEARTBEAT_SECONDS = 15.0
 
 
 async def _complete_on_disconnect(source, turn: ChatTurn | None = None):
@@ -100,7 +101,15 @@ async def _complete_on_disconnect(source, turn: ChatTurn | None = None):
     _active_streams.add(task)
     task.add_done_callback(_active_streams.discard)
     try:
-        while (event := await queue.get()) is not end:
+        while True:
+            try:
+                event = await asyncio.wait_for(queue.get(), SSE_HEARTBEAT_SECONDS)
+            except TimeoutError:
+                # SSE comments keep idle proxies alive without creating chat text.
+                yield ': heartbeat\n\n'
+                continue
+            if event is end:
+                break
             if isinstance(event, Exception):
                 raise event
             yield event

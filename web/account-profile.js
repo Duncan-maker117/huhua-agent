@@ -16,6 +16,10 @@
   let profile = null, overlay, content, status, opener, returnFocus, busy = false, loadVersion = 0;
   let profileView = 'facts', entryPanel = '';
   let inbox = {items: [], pending_count: 0}, connections = {tokens: [], recent_calls: []};
+  let syncConfirmationControls = () => {};
+  let confirmationButton = null;
+  const selectedConfirmations = new Set();
+  let confirmationFailures = [];
   let loginTimer, syncLoginControls = () => {};
   let loginReason = '', guestSession = null, pendingClaim = null;
   const guestSessionKey = 'huhua_guest_session_id';
@@ -101,11 +105,11 @@
     return value;
   }
   function say(message, error = false) { if (status) { status.textContent = message; status.classList.toggle('error', error); } }
-  function setBusy(value) { busy = value; content?.setAttribute('aria-busy', String(value)); content?.querySelectorAll('button,input,textarea,select').forEach(n => { n.disabled = value; }); syncLoginControls(); }
+  function setBusy(value) { busy = value; content?.setAttribute('aria-busy', String(value)); content?.querySelectorAll('button,input,textarea,select').forEach(n => { n.disabled = value; }); syncLoginControls(); syncConfirmationControls(); }
   async function mutate(action, success, refresh = true) {
     if (busy) return;
     setBusy(true); say('正在保存…');
-    try { await action(); if (refresh) await loadProfile(); say(success); }
+    try { await action(); confirmationFailures = []; if (refresh) await loadProfile(); say(success); }
     catch (error) {
       if (error.status === 409) { await loadProfile(); say('资料已被另一处更新，已载入最新内容，请重新核对。', true); }
       else say(error.message, true);
@@ -124,6 +128,7 @@
   }
   function close() { if (pendingClaim) { say('当前对话尚待关联，请点击重试；内容仍保留。', true); return; } overlay.hidden = true; if (account.authenticated) content.replaceChildren(); clearInterval(loginTimer); (returnFocus || opener)?.setAttribute('aria-expanded', 'false'); (returnFocus || opener)?.focus(); }
   async function open(reason = '', panel = '', trigger = opener) {
+    selectedConfirmations.clear(); confirmationFailures = [];
     entryPanel = panel === 'connect' || panel === 'profile' ? panel : '';
     profileView = entryPanel === 'connect' ? 'connections' : new URLSearchParams(location.search).get('profile') === 'inbox' ? 'confirmations' : 'facts';
     loginReason = panel === 'connect' ? '登录后可生成 MCP 令牌，连接你的 AI 助手。' : typeof reason === 'string' ? reason : '';
@@ -266,8 +271,9 @@
     const sources = Array.isArray(fact.sources) ? fact.sources : [];
     if (!sources.length) details.append(node('p', '来源记录：' + (fact.source_ids || []).join('、')));
     for (const source of sources) {
-      const line = node('div'); line.append(node('p', source.kind === 'manual' ? '手动填写' : '对话中补充'));
+      const line = node('div'); line.append(node('p', source.kind === 'memory_import' ? '来自其他 AI 导入' : source.kind === 'manual' ? '手动填写' : '对话中补充'));
       if (source.excerpt) line.append(node('blockquote', text(source.excerpt)));
+      if (source.evidence) line.append(node('p', '原始依据：' + source.evidence));
       if (source.recorded_at) line.append(node('p', '记录于 ' + source.recorded_at));
       if (source.session_id) { const link = node('a', '打开来源对话'); link.href = '/chat?session=' + encodeURIComponent(source.session_id); line.append(link); }
       details.append(line);
@@ -293,6 +299,7 @@
     const body = node('div', undefined, 'profile-fact-body');
     const label = fact.field === 'name' && fact.category !== 'basic' ? '名称' : fieldNames[fact.field] || fact.field;
     body.append(node('strong', label, 'profile-field-name'), node('p', factValue(fact), 'profile-value'), sourceDetails(fact));
+    if ((fact.sources || []).some(source => source.kind === 'memory_import')) body.append(node('span', '来自其他 AI 导入', 'profile-muted'));
     const actions = node('div', undefined, 'profile-actions profile-field-actions');
     actions.append(button('更正', () => editFact(card, fact)), button('删除', () => {
       const confirmBox = node('div', undefined, 'profile-notice');
@@ -351,6 +358,9 @@
   }
   function renderConflict(conflict) {
     const card = node('article', undefined, 'profile-card conflict'); card.append(node('p', '需要你确认', 'profile-eyebrow'), node('h3', [conflict.subject, fieldNames[conflict.field] || conflict.field].filter(Boolean).join(' · ')), node('p', '原记录：' + text(conflict.current_value)), node('p', '新说法：' + text(conflict.proposed_value)));
+    card.dataset.conflictId = conflict.id;
+    if (conflict.import_batch_id) card.append(node('p', '来自其他 AI 导入', 'profile-muted'));
+    if (conflict.evidence) card.append(node('blockquote', conflict.evidence, 'profile-source'));
     const actions = node('div', undefined, 'profile-actions');
     const resolve = (choice, value) => mutate(() => request('/api/profile/conflicts/' + encodeURIComponent(conflict.id) + '/resolve', {choice, value, expected_revision: conflict.expected_revision}, 'POST'), '冲突已处理。');
     actions.append(button('保留原记录', () => resolve('keep')), button('采用新说法', () => resolve('replace')), button('我来更正', () => {
@@ -360,16 +370,113 @@
   }
   function renderInboxItem(item) {
     const card = node('article', undefined, 'profile-card profile-inbox-item'); card.dataset.inboxId = item.id;
-    card.append(node('p', 'AI 助手建议 · 待你确认', 'profile-eyebrow'), node('h3', (categories[item.category] || item.category) + ' · ' + item.subject + ' · ' + (fieldNames[item.field] || item.field)), node('p', item.value, 'profile-value'));
+    const origin = item.import_batch_id ? '来自其他 AI 导入 · 内容不确定，待你确认' : item.source_kind === 'memory_import' ? '来自其他 AI 导入 · 待你确认' : 'AI 助手建议 · 待你确认';
+    card.append(node('p', origin, 'profile-eyebrow'), node('h3', (categories[item.category] || item.category) + ' · ' + item.subject + ' · ' + (fieldNames[item.field] || item.field)), node('p', factValue(item) || '尚未提供内容，请改一下再确认', 'profile-value'));
     const evidence = node('div', undefined, 'profile-source'); evidence.append(node('strong', '助手提供的依据（尚未核实）'), node('blockquote', item.evidence)); card.append(evidence);
     const actions = node('div', undefined, 'profile-actions');
-    const accept = value => mutate(() => request('/api/account/mcp/inbox/' + encodeURIComponent(item.id) + '/accept', value === undefined ? {} : {value}, 'POST'), '已确认。若与已有资料冲突，请在信息确认中继续核对。');
+    const accept = value => mutate(() => request('/api/account/mcp/inbox/' + encodeURIComponent(item.id) + '/accept', {expected_revision: item.expected_revision, ...(value === undefined ? {} : {value})}, 'POST'), '已确认。若与已有资料冲突，请在信息确认中继续核对。');
     actions.append(button('确认', () => accept(), false), button('改一下再确认', () => {
-      const form = node('form', undefined, 'profile-form'); const value = inputField(form, '确认进入档案的内容', item.value, 'textarea'); value.maxLength = 4000;
+      const form = node('form', undefined, 'profile-form'); const value = inputField(form, '确认进入档案的内容', factValue(item), 'textarea'); value.maxLength = 4000;
       const submit = node('button', '确认修改并加入档案', 'profile-button'); submit.type = 'submit'; form.append(submit, button('取消', renderProfile));
       form.addEventListener('submit', event => { event.preventDefault(); if (form.reportValidity()) return accept(value.value.trim()); }); actions.replaceChildren(form); value.focus();
     }), button('不要', () => mutate(() => request('/api/account/mcp/inbox/' + encodeURIComponent(item.id) + '/reject', {}, 'POST'), '已拒绝，未加入档案。')));
     card.append(actions); return card;
+  }
+  function pendingCount() { return (profile?.conflicts || []).length + (inbox.pending_count || 0); }
+  function updateConfirmationBadge() {
+    const confirmation = confirmationButton;
+    if (!confirmation) return;
+    confirmation.replaceChildren(); confirmation.textContent = '信息确认';
+    if (pendingCount()) {
+      const badge = node('span', String(pendingCount()), 'profile-confirm-badge');
+      badge.setAttribute('aria-label', pendingCount() + ' 条待确认'); confirmation.append(badge);
+    }
+  }
+  function renderConfirmations() {
+    const entries = [...(inbox.items || []).map(item => ({kind: 'inbox', item})),
+      ...(profile.conflicts || []).map(item => ({kind: 'conflict', item}))];
+    const key = entry => entry.kind + ':' + entry.item.id;
+    const keys = new Set(entries.map(key));
+    for (const id of selectedConfirmations) if (!keys.has(id)) selectedConfirmations.delete(id);
+    if (confirmationFailures.length) {
+      const failures = node('div', undefined, 'profile-notice profile-batch-failures'); failures.setAttribute('role', 'alert');
+      failures.append(node('strong', '以下条目未处理，其余所选已生效：'));
+      const list = node('ul');
+      for (const failure of confirmationFailures) list.append(node('li', failure.label + '：' + failure.message));
+      failures.append(list); content.append(failures);
+    }
+    if (!entries.length) { content.append(node('p', '没有待确认的信息。', 'profile-muted')); return; }
+    const controls = [], checks = [];
+    function selector(label, subset, compact = false) {
+      const wrap = node('label', undefined, compact ? 'profile-selection profile-selection-compact' : 'profile-selection'); const input = node('input'); input.type = 'checkbox';
+      input.setAttribute('aria-label', label); wrap.append(input, node('span', label));
+      input.addEventListener('change', () => { for (const entry of subset) { if (input.checked) selectedConfirmations.add(key(entry)); else selectedConfirmations.delete(key(entry)); } syncConfirmationControls(); });
+      checks.push({input, subset}); return wrap;
+    }
+    const toolbar = node('div', undefined, 'profile-batch-toolbar'); toolbar.append(selector('全选待确认信息', entries));
+    async function runBatch(action) {
+      if (busy) return;
+      const chosen = entries.filter(entry => selectedConfirmations.has(key(entry)));
+      if (!chosen.length) return;
+      setBusy(true); say('正在处理所选信息…');
+      try {
+        const result = await request('/api/profile/confirmations/batch', {action, items: chosen.map(({kind, item}) => ({kind, id: item.id, expected_revision: item.expected_revision}))}, 'POST');
+        confirmationFailures = result.results.filter(row => row.status === 'failed').map(row => {
+          const item = chosen.find(entry => entry.kind === row.kind && entry.item.id === row.id)?.item;
+          return {...row, label: item ? item.subject + ' · ' + (fieldNames[item.field] || item.field) : row.id};
+        });
+        selectedConfirmations.clear();
+        await loadProfile();
+        const count = action === 'accept' ? result.accepted_count : result.rejected_count;
+        const stale = confirmationFailures.filter(row => row.code === 'revision_conflict').length;
+        const other = confirmationFailures.length - stale;
+        const conflicts = result.results.filter(row => row.archive_result === 'conflict').length;
+        say(`已${action === 'accept' ? '确认' : '拒绝'} ${count} 条` + (stale ? `，${stale} 条因档案已更新需重新查看` : '')
+          + (other ? `，${other} 条未处理，原因见下方` : '') + (conflicts ? `，其中 ${conflicts} 条与已有档案冲突，请继续核对` : '') + '。', Boolean(confirmationFailures.length));
+      } catch (error) {
+        if (error.status === 409) await loadProfile();
+        say(error.message, true);
+      } finally { setBusy(false); }
+    }
+    for (const [action, label] of [['accept', '确认所选'], ['reject', '不要所选']]) {
+      const control = button(label + '（0）', () => runBatch(action), action !== 'accept'); controls.push({control, label}); toolbar.append(control);
+    }
+    content.append(toolbar, node('p', '确认冲突项会采用新说法；不要冲突项会保留原记录。空白或占位内容需先修改。', 'profile-muted'));
+    const groups = new Map();
+    for (const entry of entries) {
+      const title = entry.kind === 'conflict' ? '与已有档案冲突' : entry.item.import_batch_id || entry.item.source_kind === 'memory_import' ? '来自其他 AI 导入' : '来自 AI 助手的建议';
+      if (!groups.has(title)) groups.set(title, []);
+      groups.get(title).push(entry);
+    }
+    for (const [title, subset] of groups) {
+      const group = node('section', undefined, 'profile-confirm-group'); group.append(node('h3', title, 'profile-section-title'), selector('选择整组：' + title, subset));
+      for (const entry of subset) {
+        const card = entry.kind === 'conflict' ? renderConflict(entry.item) : renderInboxItem(entry.item);
+        card.classList.add('profile-selectable');
+        card.prepend(selector('选择：' + entry.item.subject + ' · ' + (fieldNames[entry.item.field] || entry.item.field), [entry], true)); group.append(card);
+      }
+      content.append(group);
+    }
+    syncConfirmationControls = () => {
+      for (const {input, subset} of checks) {
+        const count = subset.filter(entry => selectedConfirmations.has(key(entry))).length;
+        input.checked = count === subset.length; input.indeterminate = count > 0 && count < subset.length; input.disabled = busy;
+      }
+      for (const {control, label} of controls) { control.textContent = `${label}（${selectedConfirmations.size}）`; control.disabled = busy || !selectedConfirmations.size; }
+    };
+    syncConfirmationControls();
+  }
+  async function undoMemoryImport(batchId) {
+    if (busy) return;
+    setBusy(true); say('正在撤销这次导入…');
+    try {
+      const result = await request('/api/profile/import-memory/' + encodeURIComponent(batchId) + '/undo', {}, 'POST');
+      confirmationFailures = [];
+      await loadProfile();
+      say(`已撤销 ${result.deleted_count} 条新导入的信息` + (result.cancelled_count ? `，取消 ${result.cancelled_count} 条待确认信息` : '')
+        + (result.changed_count ? `；${result.changed_count} 条后来已更正，予以保留` : '') + '。');
+    } catch (error) { say(error.message, true); }
+    finally { setBusy(false); }
   }
   async function copyMcp(value) {
     try { await navigator.clipboard.writeText(value); say('已复制。'); }
@@ -380,7 +487,7 @@
     const form = node('form', undefined, 'profile-card profile-form profile-memory-import');
     form.dataset.profileForm = 'memory-import';
     form.append(node('h2', '从其他 AI 导入', 'profile-section-title'),
-      node('p', '让你常用的 AI 把它记得的你的经历整理出来，再交给胡话简历。导入的内容先进「信息确认」，你采纳后才进档案。', 'profile-muted'));
+      node('p', '让你常用的 AI 把它记得的你的经历整理出来。明确的信息导入即加入档案，重复内容自动跳过；只有冲突和不确定内容需要确认。可以单条更正、删除或撤销这次导入。', 'profile-muted'));
     const step1 = node('div', undefined, 'profile-memory-step');
     const step1Head = node('div', undefined, 'profile-memory-step-head');
     step1Head.append(node('span', '1', 'profile-memory-step-index'), node('strong', '复制提示词，发给 ChatGPT / Claude / 豆包 / Kimi / DeepSeek'));
@@ -396,7 +503,7 @@
     answer.setAttribute('aria-label', '粘贴 AI 的回答');
     const hint = node('p', '', 'profile-muted profile-memory-hint');
     step2.append(step2Head, answer, hint);
-    const submit = node('button', '提交到待确认', 'profile-button'); submit.type = 'submit';
+    const submit = node('button', '导入档案', 'profile-button'); submit.type = 'submit';
     const actionsRow = node('div', undefined, 'profile-memory-actions');
     actionsRow.append(submit, button('取消', () => { if (!busy) renderProfile(); }));
     const result = node('p', '', 'profile-memory-result'); result.setAttribute('role', 'status'); result.setAttribute('aria-live', 'polite');
@@ -416,19 +523,27 @@
     form.addEventListener('submit', async event => {
       event.preventDefault(); if (busy || !form.reportValidity()) return;
       if (!answer.value.trim()) { say('请先粘贴 AI 的回答。', true); return; }
-      setBusy(true); say('正在整理记忆，结果将进入待确认…');
+      setBusy(true); say('正在导入档案…');
       try {
         const response = await request('/api/profile/import-memory', {text: answer.value}, 'POST');
-        const count = Number(response.imported_count) || 0, duplicates = Number(response.duplicate_count) || 0;
-        result.textContent = `${count} 条进入待确认。` + (duplicates ? `${duplicates} 条重复或已存在，未重复添加。` : '')
-          + (response.warnings || []).join(' ') + (count ? '请到「信息确认」核对后采纳。' : '可检查回答内容，或到「信息确认」查看已有建议。');
+        const count = Number(response.added_count) || 0, duplicates = Number(response.duplicate_count) || 0;
+        const pending = [[response.conflict_count, '冲突'], [response.uncertain_count, '不确定']].filter(([value]) => Number(value) > 0).map(([value, label]) => `${Number(value)} 条${label}`).join('、');
+        result.textContent = `已加入档案 ${count} 条` + (duplicates ? `，${duplicates} 条重复已跳过` : '') + '。' + (pending ? pending + '，需要确认。' : '')
+          + (response.warnings || []).join(' ');
         say(result.textContent);
+        if (response.batch_id) {
+          const undo = button('撤销这次导入', () => undoMemoryImport(response.batch_id)); form.append(undo);
+        }
         if (!form.querySelector('.profile-memory-review')) {
           const review = button('查看待确认信息', async () => {
             if (busy) return;
             profileView = 'confirmations'; await loadProfile();
           }); review.classList.add('profile-memory-review'); form.append(review);
         }
+        try {
+          [profile, inbox] = await Promise.all([request('/api/profile'), request('/api/account/mcp/inbox')]);
+          updateConfirmationBadge();
+        } catch (_) { say(result.textContent + ' 计数暂未刷新，请点击刷新档案。', true); }
       } catch (error) { result.textContent = error.message + ' 输入已保留，可重试。'; say(result.textContent, true); }
       finally { setBusy(false); copy.disabled = !prompt.value; }
     });
@@ -534,20 +649,20 @@
     } finally { setBusy(false); }
   }
   function renderProfile() {
-    clearInterval(loginTimer); syncLoginControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile && profileView !== 'connections') return;
+    clearInterval(loginTimer); syncLoginControls = () => {}; syncConfirmationControls = () => {}; syncAccountPresentation(); content.replaceChildren(); if (!profile && profileView !== 'connections') return;
     const identity = node('div', undefined, 'profile-identity'); identity.append(node('strong', account.account?.email || '已登录'));
     if (profileView !== 'connections') identity.append(node('p', '本人唯一主档案 · ' + profile.revision + ' 次修订', 'profile-muted'));
     identity.append(button('退出登录', () => logout().catch(error => say(error.message, true)))); content.append(identity);
     if (profileView === 'connections') { renderConnections(); return; }
     const actions = node('div', undefined, 'profile-actions');
     const confirmation = button('信息确认', () => { profileView = profileView === 'confirmations' ? 'facts' : 'confirmations'; renderProfile(); });
+    confirmationButton = confirmation;
     confirmation.classList.add('profile-confirm-button'); confirmation.setAttribute('aria-expanded', String(profileView === 'confirmations'));
-    const pendingCount = (profile.conflicts || []).length + (inbox.pending_count || 0);
-    if (pendingCount) { const badge = node('span', String(pendingCount), 'profile-confirm-badge'); badge.setAttribute('aria-label', pendingCount + ' 条待确认'); confirmation.append(badge); }
     actions.append(confirmation, button('补充一条信息', addFact, false), button('从其他 AI 导入', importMemory), button('刷新档案', loadProfile), button('导入此浏览器旧对话', () => {
       const note = node('div', undefined, 'profile-notice'); note.append(node('p', '把此浏览器凭证下可认领的旧对话关联到当前账号，并整理其中明确的本人信息。只导入你自己的资料。'));
       note.append(button('确认导入本人旧对话', () => mutate(() => request('/api/account/claim-browser', {}, 'POST'), '已认领可导入的旧对话，整理状态见下方。')), button('取消', renderProfile)); actions.replaceChildren(note);
     })); content.append(actions);
+    updateConfirmationBadge();
     const imports = profile.import_status || {};
     if (imports.pending || imports.running || imports.failed || imports.completed) {
       const notice = node('section', undefined, 'profile-notice'); notice.setAttribute('aria-label', '旧对话导入状态');
@@ -563,14 +678,19 @@
     if (profileView === 'confirmations') {
       content.append(button('返回已有信息', () => { profileView = 'facts'; renderProfile(); }));
       content.append(node('h2', '待确认信息', 'profile-section-title'));
-      if (!pendingCount) content.append(node('p', '没有待确认的信息。', 'profile-muted'));
-      content.append(node('h3', '来自 AI 助手的建议', 'profile-section-title'));
-      if (!inbox.items?.length) content.append(node('p', '没有来自 AI 助手的待确认建议。', 'profile-muted'));
-      for (const item of inbox.items || []) content.append(renderInboxItem(item));
-      for (const conflict of profile.conflicts || []) content.append(renderConflict(conflict));
+      renderConfirmations();
       return;
     }
     content.append(node('h2', '已有信息', 'profile-section-title'));
+    if (profile.memory_imports?.length) {
+      const imports = node('details', undefined, 'profile-source profile-import-history'); imports.append(node('summary', '其他 AI 导入记录'));
+      for (const batch of profile.memory_imports) {
+        const row = node('div', undefined, 'profile-notice'); row.dataset.importBatchId = batch.id;
+        row.append(node('p', `${batch.recorded_at} · 新写入 ${batch.added_count} 条`),
+          button('撤销这次导入', () => undoMemoryImport(batch.id))); imports.append(row);
+      }
+      content.append(imports);
+    }
     for (const update of profile.updates || []) {
       const notice = node('div', undefined, 'profile-notice');
       notice.append(node('strong', '已更新 · ' + update.subject + ' · ' + (fieldNames[update.field] || update.field)), node('p', factValue({value: update.previous_value, proficiency: update.previous_proficiency}) + ' → ' + factValue(update)));

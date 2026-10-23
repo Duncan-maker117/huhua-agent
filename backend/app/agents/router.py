@@ -82,7 +82,7 @@ class PlannedOperation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     op: Literal["delete_item", "hide_item", "set_field", "cap_bullets", "remove_section",
-                "set_constraint", "clean_format", "move_item", "rewrite", "compress", "refocus"]
+                "set_constraint", "clean_format", "move_item", "merge_duplicates", "rewrite", "compress", "refocus"]
     target: str = ""
     args: dict[str, Any] = Field(default_factory=dict)
 

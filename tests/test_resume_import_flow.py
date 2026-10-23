@@ -78,7 +78,7 @@ class ResumeImportFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(data["skills"]), 5)
         self.assertEqual(len(data["certificates"]), 2)
         self.assertEqual(data["projects"][0]["role"], "独立开发者")
-        self.assertEqual(data["projects"][1]["end_date"], "2026.7")
+        self.assertEqual(data["projects"][1]["end_date"], "2026.07")
         self.assertIn("draft.md：2026.7", "\n".join(data["verification_notes"]))
         self.assertNotIn("候选技能与奖项暂未写入", result["messages"][-1].content)
         self.assertEqual(len(result["collected_info"]["imported_documents"]), 2)

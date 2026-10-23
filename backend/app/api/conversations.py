@@ -141,6 +141,7 @@ async def conversation_detail(session_id: str, request: Request, response: Respo
                 "session_id": session_id,
                 "title": stored["title"],
                 "messages": _public_messages(values),
+                "has_messages": stored["has_messages"],
                 "jd_text": values.get("jd_text") or "",
                 "jd_info": values.get("jd_info") or {},
                 "collected_info": values.get("collected_info") or {},

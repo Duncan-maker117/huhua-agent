@@ -173,26 +173,38 @@ def profile_dimensions(item):
     return known
 
 
-def _write_field(target: dict, field: str, value: str, message: HumanMessage):
+def _write_field(target: dict, field: str, value: str, message: HumanMessage, *, source_quote=None):
     if not value:
         return  # 空白表示本轮不补充，不删除已有事实。
+    from app.services.experience_fields import normalize_field, require_confirmation
+    quote = value if source_quote is None else source_quote
+    value = normalize_field(field, value) if target.get('item_id') else value
+    if value is None:
+        require_confirmation(target, field, quote, fact={'turn_id': message.id or ''})
+        return
     for old in target.setdefault("facts", []):
         if old.get("field") == field and old.get("status", "active") == "active":
             if old.get("text") == value and old.get("turn_id") == message.id:
                 target[field] = value
-                return
+                return old
             old["status"] = "superseded"
     fact = new_fact(value, kind="role" if field in {"role", "title"} else "context",
-                    quote=value, turn_id=message.id or "", source_name="用户本人填写")
+                    quote=quote, turn_id=message.id or "", source_name="用户本人填写")
     labels = {"name": "名称", "company": "名称", "school": "学校", "major": "专业", "degree": "学历",
               "start_date": "开始时间", "end_date": "结束时间", "role": "角色", "title": "角色",
               "intake_type": "经历类型", "location": "城市", "availability": "可实习时间"}
     provenance = {"question_id": field, "question_prompt": labels.get(field, field),
-                  "answer_value": value, "item_id": target.get("item_id", "")}
+                  "answer_value": quote, "item_id": target.get("item_id", "")}
     fact.update(provenance)
     fact["sources"][0].update(provenance)
-    target["facts"].append({**fact, "field": field})
+    fact['field'] = field
+    target["facts"].append(fact)
     target[field] = value
+    target['field_confirmations'] = [row for row in target.get('field_confirmations') or []
+                                    if row['field'] not in {field, 'dates' if field in {'start_date', 'end_date'} else field}]
+    if not target['field_confirmations']:
+        target.pop('field_confirmations')
+    return fact
 
 
 def apply_submission(state: dict, submission: dict, message: HumanMessage) -> dict:
@@ -254,6 +266,9 @@ def apply_submission(state: dict, submission: dict, message: HumanMessage) -> di
                               prompt="一句话简介", kind="action")
                 target["intake_summary"] = row["summary"]
                 target["raw_notes"] = list(dict.fromkeys([*target.get("raw_notes", []), row["summary"]]))
+    from app.services.experience_fields import merge_normalized_experiences, canonicalize_catalog_names
+    canonicalize_catalog_names(collected, state.get('profile_items'))
+    collected = merge_normalized_experiences(normalize_fact_store(collected), state.get('collected_info') or {})
     return {"collected_info": collected, "intake_progress": progress}
 
 

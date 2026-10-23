@@ -85,7 +85,7 @@ class FollowupAnswerBindingTest(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(llm.payload["followup_target"], {"item_id": "work-1", "section": "work_experience", "name": "星禾科技"})
 
     async def test_unique_normalized_name_match_does_not_require_name_in_answer(self):
-        for name in (" 星禾科技 ", "星禾", "星禾科技行政岗位"):
+        for name in (" 星禾科技 ", "星禾—科技", "星禾　科技"):
             with self.subTest(name=name):
                 result = await extract_facts_patch(ANSWER, store(), FakeLLM(item_patch(name)))
                 self.assertEqual(result["rejected"], [])
@@ -94,7 +94,8 @@ class FollowupAnswerBindingTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_ambiguous_name_cannot_be_resolved_by_followup_target(self):
         data = targeted_store()
-        data["work_experience"].append({"item_id": "work-2", "company": "星禾科技分公司", "facts": []})
+        data["work_experience"][0]["title"] = "采购助理"
+        data["work_experience"].append({"item_id": "work-2", "company": "星禾科技", "title": "行政助理", "facts": []})
         result = await extract_facts_patch(ANSWER, data, FakeLLM(item_patch()))
         self.assertFalse(result["items"])
         self.assertIn("item_name_not_in_candidate_message", [r["reason"] for r in result["rejected"]])

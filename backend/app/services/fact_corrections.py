@@ -9,45 +9,13 @@ from app.services.resume_versions import text_hash
 
 
 def merge_new_experience_identities(store: dict, previous: dict, evidence: str, turn_id: str) -> None:
-    """Join the sole new placeholder/name pair from one message, without guessing across history."""
-    from app.schemas.facts import FACT_LABELS
-    from app.services.candidate_language import placeholder_name
+    """Compatibility hook: a shared message never proves experience identity.
 
-    if not turn_id:
-        return
-    old_ids = {row['item_id'] for section in FACT_SECTIONS for row in previous.get(section, [])}
-    for section in FACT_SECTIONS:
-        if section == 'education':
-            continue
-        items = store.get(section) or []
-        if len(items) != 2 or any(row['item_id'] in old_ids for row in items):
-            continue
-        label = FACT_LABELS[section]
-        placeholders = [row for row in items if placeholder_name(row.get(label, ''))]
-        named = [row for row in items if row.get(label) and not placeholder_name(row[label])]
-        if len(placeholders) != 1 or len(named) != 1:
-            continue
-        source, target = placeholders[0], named[0]
-        if target[label] not in evidence:
-            continue
-        if any(not row.get('facts') or any(
-                fact.get('turn_id') != turn_id or fact.get('source') != 'chat'
-                or any(origin.get('turn_id') != turn_id or origin.get('source') != 'chat'
-                       for origin in fact.get('sources') or [])
-                for fact in row['facts']) for row in items):
-            continue
-        conflict = False
-        for field in ('start_date', 'end_date', 'date'):
-            periods = [{str(value) for value in [row.get(field), *[
-                fact['text'] for fact in row['facts'] if fact.get('field') == field
-                and fact.get('status', 'active') == 'active']] if value} for row in (source, target)]
-            if any(len(values) > 1 for values in periods) or (periods[0] and periods[0] != periods[1]):
-                conflict = True
-        if conflict:
-            continue
-        apply_experience_merges(store, [{'section': section, 'name': target[label],
-            'target_item_id': target['item_id'], 'source_item_ids': [source['item_id']],
-            'source_quote': evidence, 'turn_id': turn_id}])
+    Placeholders stay independent until explicitly identified by the user (or
+    bound to the same archive item); ordinary name normalization handles only
+    exact, non-conflicting identities.
+    """
+    return
 
 
 def recover_experience_merges(patch: dict, evidence: str, outline: list[dict], turn_id: str) -> None:
@@ -132,13 +100,35 @@ def apply_experience_merges(store: dict, merges: list[dict]) -> None:
                        if row['item_id'] == merge['target_item_id']), None)
         if target is None:
             continue
-        confirmed_fields = {f['field']: f['text'] for f in target.get('facts', [])
-                            if f.get('field') and f.get('status', 'active') == 'active'}
+        from app.services.resume_field_hygiene import sourced_role
+        role_key = 'title' if section in {'work_experience', 'internship'} else 'role'
+        role = sourced_role(target.get('facts') or [], target.get(role_key, ''))
+        if role:
+            target[role_key] = role
+        confirmed_fields = {key: target[key] for key in ('role', 'title', 'start_date', 'end_date') if target.get(key)}
+        confirmed_fields.update({f['field']: f['text'] for f in target.get('facts', [])
+                                 if f.get('field') and f.get('status', 'active') == 'active'})
+        for key in ('role', 'title', 'start_date', 'end_date'):
+            if confirmed_fields.get(key):
+                target[key] = confirmed_fields[key]
         source_ids = set(merge['source_item_ids'])
         for source_section in FACT_SECTIONS:
             for source in store.get(source_section, [])[:]:
                 if source['item_id'] not in source_ids:
                     continue
+                source = deepcopy(source)
+                source_role = sourced_role(source.get('facts') or [], source.get(role_key, ''))
+                if source_role:
+                    source[role_key] = source_role
+                conflicts = target.setdefault('merge_conflicts', {})
+                for field in ('role', 'title', 'degree', 'major', 'start_date', 'end_date'):
+                    incoming = source.get(field)
+                    if incoming and target.get(field) and incoming != target[field]:
+                        conflicts[field] = list(dict.fromkeys([*(conflicts.get(field) or []), target[field], incoming]))
+                    elif incoming and not target.get(field):
+                        target[field] = incoming
+                for key, values in (source.get('merge_conflicts') or {}).items():
+                    conflicts[key] = list(dict.fromkeys([*(conflicts.get(key) or []), *values]))
                 known = {fact['id'] for fact in target['facts']}
                 target['facts'].extend(deepcopy(fact) for fact in source.get('facts', []) if fact['id'] not in known)
                 for key in ('raw_notes', 'links', 'tech_stack'):
@@ -151,7 +141,9 @@ def apply_experience_merges(store: dict, merges: list[dict]) -> None:
                 }
                 if audit not in target.setdefault('merged_from', []):
                     target['merged_from'].append(audit)
-                store[source_section].remove(source)
+                target['merged_from'].extend(deepcopy(old) for old in source.get('merged_from') or []
+                                             if old not in target['merged_from'])
+                store[source_section][:] = [row for row in store[source_section] if row['item_id'] != source['item_id']]
         target[FACT_LABELS[section]] = merge['name']
         # Imported placeholder labels and old classification instructions are
         # audit history, not active resume claims after a merge.

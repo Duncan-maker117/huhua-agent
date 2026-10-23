@@ -396,7 +396,7 @@ def purge_expired_resume_session(session_id: str, retention_days: int) -> None:
 def make_resume_state(collected_info, resume_meta=None, resume_versions=None, session_constraints=None,
                       *, previous_state=None):
     """Facts and document metadata share their document's SQL transaction."""
-    title_metadata = {key: previous_state[key] for key in ("title_source", "auto_title")
+    title_metadata = {key: previous_state[key] for key in ("title_source", "auto_title", "has_messages")
                       if previous_state and key in previous_state}
     return copy.deepcopy({**title_metadata, "authoritative": True, "collected_info": collected_info or {},
                           "resume_meta": resume_meta or {}, "resume_versions": (resume_versions or [])[-10:],

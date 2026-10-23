@@ -117,7 +117,7 @@ class OrchestratorToolsTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_registry_and_source_only_strict_parameters(self):
         self.assertEqual(set(tools.TOOLS), {"use_skill", "read_profile", "use_profile_items", "read_jd", "search_company",
-            "record_facts", "ask_user", "propose_plan", "write_draft", "edit_resume", "check_layout"})
+            "record_facts", "ask_user", "propose_plan", "write_draft", "edit_resume", "check_layout", "check_resume"})
         schemas = {row["function"]["name"]: row["function"]["parameters"] for row in tools.tool_schemas()}
         for name in ("record_facts", "read_jd"):
             self.assertEqual(set(schemas[name]["properties"]), {"source_id"})
@@ -360,7 +360,9 @@ class OrchestratorToolsTest(unittest.IsolatedAsyncioTestCase):
         with patch.object(tools, "_write", AsyncMock(return_value=written)) as write:
             result = await tools.write_draft({"collected_info": facts}, {}, tools.ToolContext())
         write.assert_awaited_once()
-        self.assertEqual(result.result, {"status": "ok", "contacts_missing": ["phone", "email"]})
+        self.assertEqual(result.result["status"], "ok")
+        self.assertEqual(result.result["contacts_missing"], ["phone", "email"])
+        self.assertEqual(result.result["experience_inventory"]["included"], [])
         self.assertTrue(result.stop)
 
     async def test_draft_real_pipeline_guard_privacy_and_no_intake_stage_gate(self):

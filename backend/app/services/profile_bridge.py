@@ -338,7 +338,8 @@ def sanitize_fact_history(state, *, original=None):
                 item_id = item.get("item_id")
                 records = bullets.get(item_id) or []
                 stale_hashes = {entry.get("text_hash") for entry in records if set(entry.get("fact_ids") or []) - active}
-                facts = obsolete.get(item_id, [])
+                merged_ids = set(meta.get('merged_items', {}).get(item_id, [])) | {item_id}
+                facts = [fact for source_id in merged_ids for fact in obsolete.get(source_id, [])]
                 for field in ("name", "school", "company", "degree", "major", "role", "title", "start_date",
                               "end_date", "duration", "summary", "pr", "level", "date", "description", "raw_description", "highlights", "bullets", "polished_bullets", "tech_stack"):
                     value = item.get(field)
@@ -357,7 +358,7 @@ def sanitize_fact_history(state, *, original=None):
                 if tech_records and item.get('tech_stack'):
                     from app.services.tech_stack import supporting_ids
                     own_facts = [f for group in sections for row in (result.get('collected_info') or {}).get(group, [])
-                                 if row.get('item_id') == item_id for f in row.get('facts', [])]
+                                 if row.get('item_id') in merged_ids for f in row.get('facts', [])]
                     item['tech_stack'] = [name for name in item['tech_stack'] if supporting_ids(name, own_facts)]
                 visible = item.get("polished_bullets") if section == "projects" else item.get("bullets")
                 hashes[item_id] = {hashlib.sha256(line.encode()).hexdigest() for line in visible or [] if isinstance(line, str)}

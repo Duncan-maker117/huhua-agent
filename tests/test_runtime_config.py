@@ -1,7 +1,6 @@
 import sys
 import unittest
 import asyncio
-from types import SimpleNamespace
 from unittest.mock import patch
 from pathlib import Path
 
@@ -21,7 +20,7 @@ class RuntimeConfigTests(unittest.TestCase):
                 valid.model_copy(update=changes).validate_runtime()
 
     def test_limits_must_be_positive(self):
-        for field in ("MODEL_MAX_CONCURRENT", "ACCOUNT_DAILY_TURN_LIMIT", "CHAT_TIMEOUT_SECONDS", "ARCHIVE_POLL_SECONDS"):
+        for field in ("MODEL_MAX_CONCURRENT", "ACCOUNT_DAILY_TURN_LIMIT", "CHAT_TIMEOUT_SECONDS", "WRITE_DRAFT_TIMEOUT_SECONDS", "ARCHIVE_POLL_SECONDS"):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 Settings(_env_file=None, **{field: 0})
 
@@ -29,7 +28,7 @@ class RuntimeConfigTests(unittest.TestCase):
 class RuntimeLimitTests(unittest.IsolatedAsyncioTestCase):
     async def test_timeout_releases_concurrency_slot(self):
         from app.services.runtime_limits import model_slot
-        settings = SimpleNamespace(MODEL_MAX_CONCURRENT=1, CHAT_TIMEOUT_SECONDS=.02)
+        settings = Settings(_env_file=None, AGENT_MODE='off', MODEL_MAX_CONCURRENT=1, CHAT_TIMEOUT_SECONDS=.02)
         with patch("app.services.runtime_limits.get_settings", return_value=settings):
             with self.assertRaises(TimeoutError):
                 async with model_slot():
@@ -40,7 +39,7 @@ class RuntimeLimitTests(unittest.IsolatedAsyncioTestCase):
     async def test_full_concurrency_reports_busy_without_entering(self):
         from app.services.runtime_limits import model_slot
         from fastapi import HTTPException
-        settings = SimpleNamespace(MODEL_MAX_CONCURRENT=1, CHAT_TIMEOUT_SECONDS=5)
+        settings = Settings(_env_file=None, AGENT_MODE='off', MODEL_MAX_CONCURRENT=1, CHAT_TIMEOUT_SECONDS=5)
         with patch("app.services.runtime_limits.get_settings", return_value=settings):
             async with model_slot():
                 with self.assertRaises(HTTPException) as raised:

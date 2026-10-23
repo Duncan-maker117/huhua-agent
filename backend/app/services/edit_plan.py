@@ -286,7 +286,7 @@ def _constraint_overrides(args: dict, instruction: str) -> tuple[dict, str]:
 
 def execute_edit_plan(
     data: dict, constraints: Mapping[str, Any] | None, edit_plan: Sequence[dict], *,
-    collected_info: dict | None = None, instruction: str = "",
+    collected_info: dict | None = None, instruction: str = "", resume_meta: dict | None = None,
 ) -> dict:
     """Apply deterministic ops on copies and batch resolvable writer ops.
 
@@ -297,6 +297,7 @@ def execute_edit_plan(
     original = deepcopy(output)
     limits = normalize_session_constraints(constraints)
     original_facts = deepcopy(collected_info or {})
+    metadata = deepcopy(resume_meta or {})
     results = []
     writer_targets: list[tuple[str, str]] = []
     writer_whole = False
@@ -309,6 +310,15 @@ def execute_edit_plan(
         op = str(raw.get("op") or "")
         target = str(raw.get("target") or "")
         args = raw.get("args") if isinstance(raw.get("args"), dict) else {}
+        if op == 'merge_duplicates':
+            from app.services.resume_preflight import quality_edit_requested, preflight_resume
+            if not quality_edit_requested(instruction):
+                results.append(_result(index, op, target, 'needs_confirmation', '本轮用户原话未要求合并重复或清理技术栈'))
+                continue
+            output, metadata, report = preflight_resume(output, metadata, original_facts, merge_request=instruction)
+            results.append(_result(index, op, target, 'done', changed=output != original,
+                                   affected=[row['item_id'] for row in report['merged']]))
+            continue
         if op == "move_item":
             destination = SECTION_ALIASES.get(str(args.get("section") or ""))
             from app.agents.turn_actions import section_move_ops
@@ -572,4 +582,4 @@ def execute_edit_plan(
         writer_requests.append({"scope": scope, "targets": list(dict.fromkeys(target for target in targets if target)),
                                 "instruction": instruction})
     return {"data": output, "constraints": limits, "operation_results": results,
-            "writer_requests": writer_requests, "collected_info": original_facts}
+            "writer_requests": writer_requests, "collected_info": original_facts, "resume_meta": metadata}

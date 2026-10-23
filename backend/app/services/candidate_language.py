@@ -14,7 +14,12 @@ PLACEHOLDER_NAMES = {
 }
 _CAMPUS = re.compile(r"协会|社团|学生会|学生组织|班委|志愿|宣传部|校园经历|校园活动")
 _PROSE_NAME = re.compile(r"^(?:我|本人|负责|运用|使用|对接|完成|参与|做过|做了|整理了|处理了)|^\d+(?:家|人|张)|[，,。；;？！?!\n]|时候|这些|那些|添加了|处理了|公司名字|工作内容|主要为|希望|不知道|我(?:们|的|在|做|参与)|(?:^|的)工作(?:在|$)")
-_NON_FACT = re.compile(r"[？?]|(?:我|个人|自己)(?:认为|觉得|感觉|希望|想知道|想问|打算|计划)|"
+# A lead-in announces content that follows (“做了几个关键决定：…”); on its own it
+# states no fact, and with a colon only the content after it is the fact.
+_EMPTY_LEAD_IN = (r"(?:(?:本人|我)(?:还|也|主要)?)?(?:做了|做出了?|作出了?|完成了?|完成出|做过|有)?"
+                  r"(?:(?:以下|如下|这)?(?:几个|几点|几项|若干个?|一些|多个)|以下|如下)(?:关键|重要|主要|核心)?(?:的)?"
+                  r"(?:产品|技术|设计|架构)?(?:决定|决策|取舍|选择|改进|优化|设计)(?:如下|包括|是)?")
+_NON_FACT = re.compile(r"^\s*" + _EMPTY_LEAD_IN + r"\s*[:：]?\s*$|[？?]|(?:我|个人|自己)(?:认为|觉得|感觉|希望|想知道|想问|打算|计划)|"
                        r"^(?:计划|打算|希望|准备|以后|将来)|不知道|哪些岗位|什么方向|能力尚浅|希望.{0,12}(?:工作|职业)|可以接单|有自信|有信心|"
                        r"^(?:请|帮我|给我|不要|不能|不写成|保留|突出)|(?:把|将).{0,30}(?:润色|写成|改写)|材料.{0,3}给全|直接生成|"
                        r"^(?:这是|以下.*是)?虚构测试|^(?:我叫|姓名[:：]?)|"
@@ -118,7 +123,10 @@ def without_wording_constraints(text: str) -> str:
 
 
 def placeholder_name(value: str) -> bool:
-    return value in PLACEHOLDER_NAMES.values() or value in {"课程作业（待补名称）", "个人练习（待补名称）"}
+    import unicodedata
+    value = unicodedata.normalize('NFKC', str(value or '')).strip()
+    return (value in {unicodedata.normalize('NFKC', name) for name in PLACEHOLDER_NAMES.values()}
+            or bool(re.fullmatch(r'(?:课程作业|个人练习)\(待补名称\)|待命名(?:经历|项目)?|未命名(?:经历|项目)?|待补(?:名称|项目名)|空名', value)))
 
 
 def safe_objective(value: str) -> str:
@@ -202,7 +210,8 @@ _DATE_ONLY = re.compile(r"^(?:(?:项目)?(?:时间|日期)(?:为|是|[:：])?\s*
 
 def date_only(text: str) -> bool:
     """年月/时间字段属于标题；数量、耗时和有动作的日期句不是日期字段。"""
-    return bool(_DATE_ONLY.fullmatch(str(text or "").strip()))
+    from app.services.experience_fields import date_like
+    return date_like(text) or bool(_DATE_ONLY.fullmatch(str(text or "").strip()))
 
 
 def without_date_clauses(text: str) -> str:
@@ -212,10 +221,36 @@ def without_date_clauses(text: str) -> str:
                    for i in range(0, len(pieces), 2) if not date_only(pieces[i])).rstrip('，,；;\n')
 
 
+def without_empty_lead_in(text: str) -> str:
+    """Drop content-free announcements, keeping the specifics after the colon."""
+    text = re.sub(r'(^|[：:，,；;。\n])\s*' + _EMPTY_LEAD_IN + r'\s*[:：]\s*', r'\1', str(text or ''))
+    pieces = re.split(r"([，,。；;\n])", text)
+    if not any(re.fullmatch(_EMPTY_LEAD_IN, pieces[i].strip()) for i in range(0, len(pieces), 2)):
+        return text
+    kept = [(pieces[i], pieces[i + 1] if i + 1 < len(pieces) else '') for i in range(0, len(pieces), 2)
+            if not re.fullmatch(_EMPTY_LEAD_IN, pieces[i].strip())]
+    return ''.join(a + b for a, b in kept).strip('，,；;\n ')
+
+
+def strip_oral_prefixes(text: str) -> str:
+    """Presentation-only fallback; preserve negation and collective ownership."""
+    boundary = r'(^|[：:，,；;。\n])\s*'
+    text = re.sub(boundary + r'(?:(?:然后|就是|这个|那个)\s*)+', r'\1', text)
+    text = without_empty_lead_in(text)
+    text = re.sub(boundary + r'本人(?:还|也|主要)?', r'\1', text)
+    # Collective actions remain attributed to a team, never become individual claims.
+    text = re.sub(boundary + r'我们(?=来|负责|完成|补充|开发|实现|提供|设计|使用|参与|测试|验证|维护)', r'\1团队', text)
+    text = re.sub(r'(?<![\w])(?:叫做|名字是|名字叫)\s*', '', text)
+    text = text.replace('叫做', '名为')
+    text = re.sub(r'这个|那个|就是|然后', '', text)
+    text = re.sub(r'是市面上当时体验过的(.{1,24}?)都不满意', r'对已体验的\1不满意', text)
+    return text
+
+
 def resume_bullet(text: str, *, name: str = "", role: str = "") -> str:
     """Deletion-only fallback: strip speech, questions and header echoes, retain limits."""
     clauses, separators = [], []
-    pieces = re.split(r"([，,。；;\n])", str(text or ""))
+    pieces = re.split(r"([，,。；;\n])", strip_oral_prefixes(str(text or "")))
     for index in range(0, len(pieces), 2):
         clause = pieces[index]
         clause = clause.strip(" -•\t")

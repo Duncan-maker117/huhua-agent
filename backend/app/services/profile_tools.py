@@ -54,7 +54,7 @@ def rank_items(items, query):
 
 
 def profile_catalog(db, account):
-    from app.services.profile_service import _open, migrate_legacy_basic_facts
+    from app.services.profile_service import _open, _key, migrate_legacy_basic_facts
     migrate_legacy_basic_facts(db, account)
     groups = {}
     for row in db.scalars(select(ProfileFact).where(ProfileFact.account_id == account, ProfileFact.status == "active",
@@ -62,6 +62,7 @@ def profile_catalog(db, account):
         data = _open(row)
         key = (row.category, data["subject"])
         item = groups.setdefault(key, {"id": row.id, "category": row.category, "name": data["subject"],
+                                      'profile_item_id': _key(account, [row.category, data['subject']], scope='item'),
                                       "start": "", "end": "", "summary": "", "role": "", "fact_ids": []})
         item["fact_ids"].append(row.id)
         field, value = data["field"], data["value"]

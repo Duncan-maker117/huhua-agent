@@ -145,25 +145,27 @@ class SDKFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([row['name'] for row in metrics['tools']], ['record_facts'])
         self.assertTrue(any(e.get('tool') == 'use_skill' and e.get('message') == '正在查看做法…' for e in events))
 
-    async def test_four_real_tools_plus_skill_keep_budget_and_final_call(self):
+    async def test_repeated_read_only_tools_plus_skill_keep_model_budget_and_final_call(self):
         check = AsyncMock(return_value=tools.ToolOutcome({'status': 'ok'}))
         registry = {**tools.TOOLS, 'check_layout': replace(tools.TOOLS['check_layout'], handler=check)}
         _, requests, _, metrics = await self.run_script([
             [('check_layout', {}), ('use_skill', {'name': 'one-page'})],
-            *[[('check_layout', {})] for _ in range(3)], '已核对。'], registry=registry)
-        self.assertEqual((metrics['model_calls'], metrics['tool_steps']), (5, 4))
-        self.assertEqual(check.await_count, 4)
+            *[[('check_layout', {})] for _ in range(loop.MAX_MODEL_CALLS - 2)], '已核对。'], registry=registry)
+        self.assertEqual((metrics['model_calls'], metrics['tool_steps']), (loop.MAX_MODEL_CALLS, 0))
+        check.assert_awaited_once()
         self.assertEqual(requests[-1]['tool_choice'], 'none')
 
-    async def test_skill_only_calls_use_model_budget_and_duplicate_body_once(self):
+    async def test_skill_only_calls_use_model_budget_and_reuse_same_result(self):
         _, requests, _, metrics = await self.run_script([
-            *[[('use_skill', {'name': 'tech-stack'})] for _ in range(4)], '已查看。'])
-        self.assertEqual((metrics['model_calls'], metrics['tool_steps']), (5, 0))
+            *[[('use_skill', {'name': 'tech-stack'})] for _ in range(loop.MAX_MODEL_CALLS - 1)], '已查看。'])
+        self.assertEqual((metrics['model_calls'], metrics['tool_steps']), (loop.MAX_MODEL_CALLS, 0))
         self.assertEqual(metrics['tools'], [])
         self.assertEqual(metrics['skills'], ['tech-stack'])
         results = [json.loads(m['content']) for m in requests[-1]['messages'] if m['role'] == 'tool']
-        self.assertEqual(sum('body' in row for row in results), 1)
-        self.assertEqual(results[-1]['message'], '已加载')
+        self.assertEqual(len(results), loop.MAX_MODEL_CALLS - 1)
+        self.assertTrue(all(row == results[0] for row in results))
+        self.assertIn('body', results[0])
+        self.assertEqual(results[-1]['body'], FLOW_SKILLS['tech-stack'].body)
 
     async def test_next_turn_does_not_reuse_tools_or_skills_from_history(self):
         first, _, _, _ = await self.run_script([[('use_skill', {'name': 'tech-stack'})], '已查看。'])

@@ -190,6 +190,8 @@ def _fact_view(db, row):
             source_data = _open(source)
             sources.append({"id": source.id, "kind": source.kind, "session_id": source.session_id,
                             "recorded_at": _iso(source.recorded_at),
+                            "import_batch_id": source_data.get("import_batch_id"),
+                            "evidence": source_data.get("evidence"),
                             "excerpt": source_data.get("human_text", "")[:400]})
     # Temporal history is viewable to the user, but never routine model context.
     update_notice = ({"fact_id": row.id, "revision": row.revision,
@@ -268,7 +270,9 @@ def get_profile(db, account_id):
         reason = getattr(row, "error_code", "") or ("import_unavailable" if row.status == "failed" else "")
         import_tasks.append({"session_id": row.session_id, "status": row.status,
                              "attempts": getattr(row, "attempts", 0), "error_code": reason, "reason_type": reason})
+    from app.services.profile_memory import list_imports
     return {"profile_id": profile.id, "revision": profile.revision,
+            "memory_imports": list_imports(db, account_id),
             "facts": [f for f in facts if f["category"] != "preference"],
             "preferences": [f for f in facts if f["category"] == "preference"],
             "conflicts": conflicts, "jobs": jobs,
@@ -345,6 +349,9 @@ def compensate_archive_events(db, account_id=None):
     """
     query = select(ProfileSource).where(
         ProfileSource.disabled.is_(False),
+        # Explicit memory imports already applied synchronously. Their batch
+        # manifests and per-fact evidence are not legacy worker inputs.
+        ProfileSource.kind.notin_(["memory_batch", "memory_import"]),
         ~exists().where(ProfileArchiveEvent.source_id == ProfileSource.id),
     )
     if account_id:
@@ -758,6 +765,8 @@ def migrate_legacy_equivalent_conflicts(db, account_id):
                 or fact.revision != conflict.expected_revision):
             continue
         data, old = _open(conflict), _open(fact)
+        if data.get("review_required"):
+            continue
         if fact.category == "skill" or not _source_enabled(db, account_id, data.get("source_id")):
             continue
         proposed = data.get("proposed_value") or ""
@@ -801,6 +810,8 @@ def migrate_legacy_skill_facts(db, account_id):
         eligible = []
         for conflict in conflicts:
             data = _open(conflict)
+            if data.get("review_required"):
+                continue
             proposed = split_skill_values(data.get("proposed_value") or "")
             if (proposed and _source_enabled(db, account_id, data.get("source_id"))
                     and not any(_skill_blocked(db, account_id, item["value"]) for item in proposed)):
@@ -854,6 +865,8 @@ def migrate_legacy_narrative_conflicts(db, account_id):
         if not fact or fact.account_id != account_id or fact.status != "active" or fact.revision != conflict.expected_revision:
             continue
         data, old = _open(conflict), _open(fact)
+        if data.get("review_required"):
+            continue
         proposed = str(data.get("proposed_value") or "").strip()
         if not (_narrative_slot(fact.category, old["field"], old["value"]) and proposed
                 and _source_enabled(db, account_id, data.get("source_id"))):
@@ -1006,31 +1019,70 @@ def list_inbox_items(db, account_id):
     expire_inbox_items(db, account_id)
     rows = db.scalars(select(ProfileInbox).where(ProfileInbox.account_id == account_id,
                       ProfileInbox.status == "pending").order_by(ProfileInbox.created_at.desc())).all()
+    facts = list(db.scalars(select(ProfileFact).where(ProfileFact.account_id == account_id, ProfileFact.status == "active")))
     return {"items": [{**_open(row), "id": row.id, "status": row.status,
+                       "source_kind": "memory_import" if row.token_id == "web-memory-import" else "mcp",
+                       "expected_revision": _inbox_revision(db, row, facts),
                        "created_at": _iso(row.created_at), "expires_at": _iso(row.expires_at)} for row in rows],
             "pending_count": len(rows)}
 
 
-def accept_inbox_item(db, account_id, item_id, *, value=None):
+def _inbox_revision(db, row, facts=None):
+    """Opaque revision of the suggestion and the relevant archive slots."""
+    candidate = _open(row)
+    if facts is None:
+        facts = db.scalars(select(ProfileFact).where(ProfileFact.account_id == row.account_id, ProfileFact.status == "active")).all()
+    related = []
+    for fact in facts:
+        data = _open(fact)
+        if fact.category == candidate.get("category") and (fact.category in {"basic", "skill"} or (
+                _normalized_text(data.get("subject", "")) == _normalized_text(candidate.get("subject", ""))
+                and data.get("field") == candidate.get("field"))):
+            related.append((fact.id, fact.revision))
+    return _key(row.account_id, [row.id, row.status, _iso(row.expires_at), candidate, sorted(related)], "inbox_revision")
+
+
+def accept_inbox_item(db, account_id, item_id, *, value=None, expected_revision=None):
     """Cookie-only caller confirms the exact value; same manual archive transaction."""
     row = _owned(db, ProfileInbox, account_id, item_id)
     if row.status != "pending" or row.expires_at <= _now():
         raise ProfileRevisionConflict("inbox_not_pending")
+    _bump(db, ensure_profile(db, account_id))
+    if expected_revision is not None and expected_revision != _inbox_revision(db, row):
+        raise ProfileRevisionConflict("inbox_revision_conflict")
     candidate = _open(row)
     if value is not None:
         candidate["value"] = value
-    proposal = _inbox_proposal(candidate)
+    elif candidate.get("proficiency"):
+        candidate["value"] = candidate["proficiency"] + " " + candidate["value"]
+    from app.services import profile_memory
+    if profile_memory.placeholder(candidate["value"]):
+        raise ProfileValidationError("请先补充这条信息的具体内容")
+    proposal = _inbox_proposal({key: candidate[key] for key in ("category", "subject", "field", "value", "evidence")})
     claimed = db.execute(update(ProfileInbox).where(ProfileInbox.id == item_id,
                          ProfileInbox.account_id == account_id, ProfileInbox.status == "pending",
                          ProfileInbox.expires_at > _now()).values(status="accepted", resolved_at=_now()))
     if claimed.rowcount != 1:
         raise ProfileRevisionConflict("inbox_not_pending")
-    _bump(db, ensure_profile(db, account_id))
+    if candidate.get("import_batch_id"):
+        batch = _owned(db, ProfileSource, account_id, candidate["import_batch_id"])
+        counts = profile_memory.apply_candidate(db, account_id, {
+            **{key: candidate[key] for key in ("category", "subject", "field", "value", "evidence")},
+            "subject": proposal.subject, "field": proposal.field, "value": proposal.value}, batch)
+        result = "conflict" if counts["conflict_count"] else "added" if counts["added_count"] else "duplicate"
+        row.payload = _seal(row, {**candidate, "archive_result": result})
+        db.flush()
+        return {"id": row.id, "status": "accepted", "archive_result": result}
     event = enqueue_archive_event(db, account_id, "mcp-inbox:" + row.id, None,
                                   {"human_text": proposal.subject + "：" + proposal.value,
-                                   "source_kind": "manual"}, "manual_fact")
+                                   "source_kind": "manual", "evidence": candidate["evidence"]}, "manual_fact")
     source = _owned(db, ProfileSource, account_id, event.source_id)
+    if row.token_id == "web-memory-import":
+        # Legacy pasted imports lack batch IDs, but their origin is still known.
+        source.kind = "memory_import"
     result = _apply_proposal(db, account_id, proposal, source, event.id)
+    if result in {"blocked", "ambiguous_correction"}:
+        raise ProfileRevisionConflict("archive_changed")
     event.status, event.completed_at = "completed", _now()
     event.payload = _seal(event, {"results": [result]})
     row.payload = _seal(row, {**candidate, "archive_result": result})
@@ -1038,14 +1090,54 @@ def accept_inbox_item(db, account_id, item_id, *, value=None):
     return {"id": row.id, "status": "accepted", "archive_result": result}
 
 
-def reject_inbox_item(db, account_id, item_id):
+def reject_inbox_item(db, account_id, item_id, *, expected_revision=None):
     row = _owned(db, ProfileInbox, account_id, item_id)
+    if expected_revision is not None and expected_revision != _inbox_revision(db, row):
+        raise ProfileRevisionConflict("inbox_revision_conflict")
     changed = db.execute(update(ProfileInbox).where(ProfileInbox.id == row.id,
                          ProfileInbox.status == "pending", ProfileInbox.expires_at > _now()).values(
                              status="rejected", resolved_at=_now(), payload=_seal(row, {})))
     if changed.rowcount != 1:
         raise ProfileRevisionConflict("inbox_not_pending")
     return {"id": item_id, "status": "rejected"}
+
+
+def batch_confirmations(db, account_id, *, action, items):
+    """One account write lock, per-item savepoints, and pre-batch revision checks.
+
+    Checking against the initial snapshot prevents this batch's own writes from
+    invalidating its remaining items. Concurrent external writes still use CAS.
+    """
+    if len({(item["kind"], item["id"]) for item in items}) != len(items):
+        raise ProfileValidationError("duplicate_selection")
+    _bump(db, ensure_profile(db, account_id))
+    snapshots = {row["id"]: row["expected_revision"] for row in list_inbox_items(db, account_id)["items"]}
+    results = []
+    for item in items:
+        result = {"id": item["id"], "kind": item["kind"]}
+        try:
+            with db.begin_nested():
+                if item["kind"] == "inbox":
+                    if snapshots.get(item["id"]) != item["expected_revision"]:
+                        raise ProfileRevisionConflict("inbox_revision_conflict")
+                    response = (accept_inbox_item if action == "accept" else reject_inbox_item)(db, account_id, item["id"])
+                    result.update(archive_result=response.get("archive_result"))
+                else:
+                    resolve_conflict(db, account_id, item["id"], choice="replace" if action == "accept" else "keep",
+                                     expected_revision=item["expected_revision"])
+                result["status"] = "accepted" if action == "accept" else "rejected"
+        except ProfileRevisionConflict:
+            result.update(status="failed", code="revision_conflict", message="档案已更新或此项已处理，请重新查看")
+        except ProfileNotFound:
+            result.update(status="failed", code="not_found", message="此项已不存在或不可访问")
+        except ProfileValidationError:
+            result.update(status="failed", code="invalid_value", message="请修改并补充具体内容后再确认")
+        results.append(result)
+    profile = get_profile(db, account_id)
+    pending = list_inbox_items(db, account_id)["pending_count"] + len(profile["conflicts"])
+    return {"results": results, "accepted_count": sum(row["status"] == "accepted" for row in results),
+            "rejected_count": sum(row["status"] == "rejected" for row in results),
+            "failed_count": sum(row["status"] == "failed" for row in results), "pending_count": pending}
 
 
 def edit_fact(db, account_id, fact_id, *, value, expected_revision, effective_at=None):
@@ -1162,8 +1254,14 @@ def resolve_conflict(db, account_id, conflict_id, *, choice, expected_revision, 
                                           {"human_text": selected, "source_kind": "manual"}, "manual_fact")
             event.status, event.completed_at = "completed", _now()
             source_id = event.source_id
+        proficiency = _UNSET
+        if fact.category == "skill":
+            skills = split_skill_values(selected)
+            if len(skills) != 1 or normalize_skill(skills[0]["value"]) != normalize_skill(_open(fact)["value"]):
+                raise ProfileValidationError("edit_one_skill_at_a_time")
+            selected, proficiency = skills[0]["value"], skills[0]["proficiency"]
         _replace_fact(db, fact, selected.strip(), source_id, expected_revision,
-                      data.get("effective_at") if choice == "replace" else None)
+                      data.get("effective_at") if choice == "replace" else None, proficiency=proficiency)
         row.status = "resolved"
     else:
         raise ProfileValidationError("invalid_choice")
@@ -1209,6 +1307,8 @@ def get_context(db, account_id, *, subject_ids=None, limit=30, include_contacts=
         facts.append({"id": row.id, "revision": row.revision, "category": row.category,
                       "subject": data["subject"], "field": data["field"], "value": data["value"],
                       "effective_at": data.get("effective_at"), "source_type": "user_provided",
+                      **({'profile_item_id': _key(account_id, [row.category, data['subject']], scope='item')}
+                         if row.category in {'project', 'work', 'education', 'campus', 'open_source', 'awards'} else {}),
                       **({"proficiency": data.get("proficiency")} if row.category == "skill" else {}),
                       "source_ids": data.get("source_ids", [])})
     profile = db.scalar(select(PersonalProfile).where(PersonalProfile.account_id == account_id))
@@ -1264,6 +1364,7 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
     Preferences remain prompt/UI settings and are never résumé biography.
     """
     from app.services.resume_facts import normalize_fact_store, new_fact
+    from app.services.experience_fields import normalize_field, normalize_name, normalize_item_fields, matching_item, require_confirmation, names_match
     result = normalize_fact_store(current or {})
     result.setdefault("basic_info", {})
     result.setdefault("education", [])
@@ -1282,20 +1383,53 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
             skills.append(entry)
             known_skills.add(normalized)
     result["skills"] = skills
+    # Resolve an archive item once, with all of its identity fields available.
+    # Matching the subject before seeing dates/role used to silently absorb a
+    # different engagement into the first same-name row.
+    descriptors, selected_items = {}, {}
+    collection_keys = {"project": ("projects", "name"), "work": ("work_experience", "company"),
+                       "education": ("education", "school"), "campus": ("campus", "name"),
+                       "open_source": ("open_source", "name"), "awards": ("awards", "name")}
+    def group_key(fact):
+        return fact.get('category'), fact.get('profile_item_id') or fact.get('subject', '')
+    for fact in context.get('facts') or []:
+        if fact.get('category') not in collection_keys:
+            continue
+        collection, identity = collection_keys[fact['category']]
+        descriptor = descriptors.setdefault(group_key(fact), {identity: normalize_name(fact.get('subject')), 'facts': []})
+        if fact.get('profile_item_id'):
+            descriptor['profile_item_id'] = fact['profile_item_id']
+        if fact.get('field') in {identity, 'role', 'title', 'degree', 'major', 'start_date', 'end_date', 'pr', 'level', 'date'}:
+            if fact['category'] == 'project' and fact['field'] == 'role' and is_project_status(fact.get('value')):
+                continue
+            descriptor[fact['field']] = fact.get('value')
+    for (category, _), descriptor in descriptors.items():
+        normalize_item_fields(descriptor, collection_keys[category][0])
 
     def bind(item, collection, field, fact):
         if not item.get("item_id"):
             item["item_id"] = new_id()
         reference = {"fact_id": fact["id"], "revision": fact["revision"]}
         evidence = item.setdefault("facts", [])
-        matching = next((entry for entry in evidence if entry.get("text") == fact["value"]
+        value = normalize_field(field, fact['value'])
+        if value is None:
+            require_confirmation(item, field, fact.get('source_quote') or fact['value'],
+                                 fact={'profile_refs': [reference]})
+            return
+        if field in {'name', 'company', 'school'} and names_match(item.get(field), value):
+            value = item[field]
+        stored_field = None if field in {'description', 'bullets', 'polished_bullets'} else 'link' if field == 'links' else field
+        matching = next((entry for entry in evidence if entry.get("text") == value
+                         and entry.get('field') == stored_field
                          and entry.get("status", "active") == "active"), None)
         if matching is None:
-            matching = new_fact(fact["value"], source="import", kind="context")
+            matching = new_fact(value, quote=fact.get('source_quote') or fact['value'], source="import", kind="context")
             if field not in {"description", "bullets", "polished_bullets"}:
                 matching["field"] = "link" if field == "links" else field
             evidence.append(matching)
         matching["profile_field"] = fact["field"]
+        if fact.get('profile_item_id'):
+            matching['profile_item_id'] = fact['profile_item_id']
         references = matching.setdefault("profile_refs", [])
         if reference not in references:
             references.append(reference)
@@ -1335,10 +1469,16 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                                     "awards": ("awards", "name")}[category]
             subject = fact.get("subject", "")
             items = result[collection]
-            item = next((entry for entry in items if entry.get("profile_subject", entry.get(identity)) == subject), None)
+            key = group_key(fact)
+            item = selected_items.get(key)
             if item is None:
-                item = {identity: subject, **({"profile_subject": subject} if category in {"campus", "open_source", "awards"} else {})}
+                item = matching_item(items, descriptors[key], collection)
+            if item is None:
+                item = {identity: normalize_name(subject), 'profile_subject': subject}
+                if fact.get('profile_item_id'):
+                    item['profile_item_id'] = fact['profile_item_id']
                 items.append(item)
+            selected_items[key] = item
             plain_fields = {
                 "project": {"name", "role", "start_date", "end_date"},
                 "work": {"company", "title", "start_date", "end_date"},
@@ -1348,13 +1488,23 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 "awards": {"name", "level", "date"},
             }[category]
             if field in plain_fields:
-                if not item.get(field) or (category in {"campus", "open_source", "awards"} and field == "name" and item[field] == subject):
+                value = normalize_field(field, value)
+                if value is None:
+                    bind(item, collection, field, fact)
+                    continue
+                subject_label = category in {'campus', 'open_source', 'awards'} and item.get(field) == normalize_name(subject)
+                if field == identity and not subject_label and names_match(item.get(field), value):
+                    value = item[field]
+                if not item.get(field) or (subject_label and field == 'name'):
                     item[field] = value
                     bind(item, collection, field, fact)
                 elif item[field] == value:
                     # Explicitly selecting the exact same fact establishes its
                     # source, while a different manual value remains unbound.
                     bind(item, collection, field, fact)
+                elif field in {'role', 'title'}:
+                    conflicts = item.setdefault('merge_conflicts', {})
+                    conflicts[field] = list(dict.fromkeys([*(conflicts.get(field) or []), item[field], value]))
             elif category in {'project', 'work'} and field == 'tech_stack':
                 from app.services.tech_stack import split_stack, normalize_stack
                 item['tech_stack'] = normalize_stack([*(item.get('tech_stack') or []), *split_stack(value)])
@@ -1387,7 +1537,13 @@ def context_to_collected_info(context, current=None, *, projection_bindings=None
                 if value not in lines:
                     item["description"] = "\n".join([*filter(None, lines), value])
                 bind(item, collection, "description", fact)
-    return result
+    normalized = normalize_fact_store(result)
+    if projection_bindings is not None:
+        aliases = {old['item_id']: item['item_id'] for collection in collection_keys.values()
+                   for item in normalized.get(collection[0]) or [] for old in item.get('merged_from') or []}
+        for binding in projection_bindings:
+            binding['item_id'] = aliases.get(binding['item_id'], binding['item_id'])
+    return normalized
 
 
 def get_projection_guard(db, account_id):

@@ -43,6 +43,7 @@ class ToolContext:
     emit: Callable | None = None
     company_used: bool = False
     ask_used: bool = False
+    duplicate_card: bool = False
     followup_available: bool = True
     automatic_tools: list[dict] = field(default_factory=list)
     profile_item_ids: set[str] = field(default_factory=set)
@@ -164,7 +165,23 @@ def _source_parts(text: str) -> tuple[str, str]:
         prefix = text[:marker.start()]
         if re.search(r"(?:^|\n)\s*(?:我的经历|本人经历|我的项目)\s*[:：]", prefix):
             return prefix, text[marker.start():]
+    if not jd:
+        candidate, jd = _labelled_jd_paragraph(text)
     return candidate, jd
+
+
+def _labelled_jd_paragraph(text: str) -> tuple[str, str]:
+    """A paragraph whose lines are labelled 职责：/要求： is a posting, even unprefixed.
+
+    “岗位职责/任职要求” are not required; the candidate's own paragraphs around it stay theirs.
+    """
+    paragraphs = re.split(r"\n\s*\n", text)
+    labels = (r"(?:^|\n)\s*(?:岗位|工作|主要)?职责\s*[:：]", r"(?:^|\n)\s*(?:岗位|任职|职位)?要求\s*[:：]")
+    for index, paragraph in enumerate(paragraphs):
+        if all(re.search(label, paragraph) for label in labels):
+            rest = "\n\n".join(paragraphs[:index] + paragraphs[index + 1:]).strip()
+            return (rest, paragraph.strip()) if rest else (text, "")
+    return text, ""
 
 
 def _structured(ctx: ToolContext):
@@ -200,12 +217,20 @@ def _register(name, args_model, description, progress):
                 outcome = _error("tool_exception", error_type=type(exc).__name__)
             if name == 'edit_resume' and outcome.result.get('status') in {'ok', 'partial', 'unchanged'}:
                 _edit_diff_receipt(state, outcome)
-            if name == 'edit_resume' and outcome.result.get('status') not in {'ok', 'partial', 'unchanged'}:
+            if name == 'edit_resume' and outcome.result.get('status') not in {'ok', 'partial', 'unchanged', 'needs_confirmation'}:
                 # A failed edit cannot publish a draft, metadata or fact patch.
                 outcome.update = {}
+            if name in {'write_draft', 'edit_resume'} and outcome.result.get('status') in {'ok', 'partial', 'unchanged'}:
+                from app.services.resume_preflight import precheck_for_state
+                current = {**state, **outcome.update}
+                if current.get('resume_data'):
+                    report = precheck_for_state(current)
+                    outcome.update['resume_meta'] = {**deepcopy(current.get('resume_meta') or {}), 'precheck': report}
+                    outcome.result['counts'] = deepcopy(report['counts'])
             # Repository instructions must retain literal tool/field names and
-            # must not pass through the candidate-data sanitizer.
-            if name != 'use_skill':
+            # check_resume has a public issue-ID contract. Model-boundary contact
+            # redaction still runs in project_tool_result, without stripping IDs.
+            if name not in {'use_skill', 'check_resume'}:
                 outcome.result = _safe_result(outcome.result, state, outcome.update, name)
             completed = outcome.result.get("status") in {"ok", "partial", "unchanged"}
             await status("completed", "处理完成" if completed else "本次处理未完成，请查看结果")
@@ -271,7 +296,13 @@ async def read_jd(state, args, ctx):
     candidate, jd = _source_parts(source.content)
     text, page, card = jd or source.content, None, None
     urls = re.findall(r"https?://[^\s<>\]）)]+", text)
-    if not jd and not urls and not _jd_decode_allowed(text, state):
+    # Links only name a posting when the message carries no JD body. In a mixed,
+    # unlabelled message the URLs are the candidate's own (PRs, repos) and the
+    # body is decoded as is.
+    from app.agents.resume_graph import _has_jd_text
+    if urls and _has_jd_text(text) and len(re.sub(r"https?://\S+", "", text).strip()) >= 30:
+        urls = []
+    elif not jd and not urls and not _jd_decode_allowed(text, state):
         return _error("not_job_material")
     if urls:
         if len(set(urls)) != 1:
@@ -355,7 +386,10 @@ async def record_facts(state, args, ctx):
         collected = apply_answers(state.get("collected_info") or {}, source, project_fields=True)
         update = await _persist_intake(state, collected)
         ctx.recorded_sources.add(source_id)
-        return ToolOutcome({"status": "ok", "collected_info": collected}, update)
+        from app.services.experience_fields import confirmation_requests
+        pending = confirmation_requests(collected)
+        return ToolOutcome({"status": "partial" if pending else "ok", "collected_info": collected,
+                            **({'field_confirmations': pending, 'message': '请依据 source_quote 再确认一次字段；不得写成 bullet。'} if pending else {})}, update)
     from app.services.tech_stack import parse_stack_edit, record_stack_edit
     tech_text = _candidate_evidence(text)
     tech_edit = parse_stack_edit(state.get('resume_data') or {}, tech_text,
@@ -427,43 +461,33 @@ async def record_facts(state, args, ctx):
     update = await _persist_intake(state, collected)
     update.update(_direction_profile_update(state, text, collected))
     ctx.recorded_sources.add(source_id)
-    return ToolOutcome({"status": "partial" if uncovered or incomplete else "ok",
+    from app.services.experience_fields import confirmation_requests
+    pending = confirmation_requests(collected)
+    return ToolOutcome({"status": "partial" if uncovered or incomplete or pending else "ok",
                         "changed": collected != previous, "collected_info": collected,
                         "uncovered": uncovered, "incomplete": incomplete,
+                        **({'field_confirmations': pending, 'message': '请依据 source_quote 再确认一次字段；不得写成 bullet。'} if pending else {}),
                         "rejected_count": len(patch.get("rejected") or [])}, update)
 
 
 def _bind_campus_identity(collected):
-    """Rejoin a placeholder only when its role names one same-turn campus item."""
-    from app.services.candidate_language import placeholder_name
-    from app.services.fact_corrections import apply_experience_merges
-    items = collected.get("campus") or []
-    for item in items[:]:
-        if not placeholder_name(item.get("name", "")):
-            continue
-        active = [f for f in item.get("facts") or [] if f.get("status", "active") == "active"]
-        roles = [f for f in active if f.get("kind") == "role" and f.get("turn_id")]
-        matches = [(other, fact) for other in items if other is not item and other.get("name")
-                   and not placeholder_name(other["name"]) for fact in roles
-                   if re.search(r"(?:在|于)\s*" + re.escape(other["name"]) + r"\s*(?:担任|任|做)", fact["text"])
-                   and any(f.get("turn_id") == fact["turn_id"] for f in other.get("facts") or [])]
-        targets = {row["item_id"] for row, _ in matches}
-        if len(targets) != 1:
-            continue
-        target, role = matches[0]
-        if any(f.get("turn_id") != role["turn_id"] for f in active):
-            continue
-        # Conflicting periods may be separate stints in the same organization.
-        if any(item.get(key) and target.get(key) and item[key] != target[key] for key in ("start_date", "end_date")):
-            continue
-        apply_experience_merges(collected, [{"section": "campus", "name": target["name"],
-            "target_item_id": target["item_id"], "source_item_ids": [item["item_id"]],
-            "source_quote": role.get("source_quote") or role["text"], "turn_id": role["turn_id"]}])
+    """Compatibility boundary: campus uses the same strict identity rules."""
+    from app.services.experience_fields import merge_normalized_experiences
+    merge_normalized_experiences(collected, {})
 
 
 @_register("ask_user", AskArgs, "给出必要的补充问题卡；跳过已关闭的维度，不将选项当作事实。", "正在整理补充问题…")
 async def ask_user(state, args, ctx):
     from app.agents.loop_followup import questions_allowed
+    if not all(q.id.startswith("dup-") for q in args.card.questions) and re.search(
+            r"重复|同一(?:个|段)?(?:项目|经历)|合并", " ".join(
+            [args.card.subject, *(q.prompt for q in args.card.questions)])) and state.get("resume_data") \
+            and not (state.get("collected_info") or {}).get("no_more_questions"):
+        # Duplicate verdicts are only actionable through the system card (ids dup-…).
+        if ctx.duplicate_card:
+            return ToolOutcome({"status": "limited", "code": "duplicate_card_already_attached"})
+        if _quality_complaint(state) and not ctx.ask_used and (card := await _attach_duplicate_card(state, ctx)):
+            return card
     if ctx.ask_used:
         return ToolOutcome({"status": "limited", "code": "question_card_already_used"})
     if state.get("pending_plan") or (state.get("collected_info") or {}).get("no_more_questions"):
@@ -547,6 +571,18 @@ def _draft_followup(state, ctx):
     from app.agents.loop_followup import questions_allowed
     if ctx.ask_used or state.get("pending_plan") or not questions_allowed(state):
         return {}
+    from app.services.experience_fields import confirmation_requests
+    for row in confirmation_requests(state.get('collected_info') or {}):
+        if row.get('confirmation_attempts'):
+            continue
+        date_field = row['field'] in {'dates', 'start_date', 'end_date'}
+        prompt = ('刚才的起止时间未能识别，请再确认年月？' if date_field else
+                  '刚才的角色未能确认，请再确认角色？' if row['field'] in {'role', 'title'} else '刚才的名称未能确认，请再确认名称？')
+        question = {'id': 'confirm_' + row['field'], 'kind': 'text', 'prompt': prompt,
+                    'placeholder': '原话：' + row['source_quote'][:100]}
+        card = validate_card({'subject': row['item_id'], 'questions': [question]}, state, ctx.turn_id)
+        if card:
+            return {'subject': card['subject'], 'questions': card['questions']}
     data = state.get("resume_data") or {}
     plan = state.get("confirmed_plan") or (state.get("resume_meta") or {}).get("confirmed_plan") or state.get("match_plan") or {}
     selections = {row["item_id"]: row for row in plan.get("experience_plan") or []}
@@ -705,6 +741,9 @@ async def _write(state, ctx, instruction, *, scope="whole", targets=(), base=Non
     before_projection = deepcopy(data)
     _restore_unwritten_items(state, update, scope, targets)
     _project_identity(data, state)
+    from app.services.resume_preflight import preflight_resume
+    data, update['resume_meta'], _ = preflight_resume(data, update.get('resume_meta'), collected)
+    update['resume_data'] = data
     if data != before_projection:
         from app.services.resume_versions import prepare_version
         from app.services.resume_capacity import measure_rendered_pages
@@ -839,6 +878,7 @@ async def write_draft(state, args, ctx):
         outcome.update = {**direction_update, **outcome.update, "pending_plan": {}, "plan_required": False}
         outcome.stop = True
         working = {**state, **outcome.update}
+        outcome.result['experience_inventory'] = _experience_inventory(working)
         if followup := _draft_followup(working, ctx):
             outcome.result["followup"] = followup
             outcome.stop = False
@@ -853,6 +893,37 @@ async def write_draft(state, args, ctx):
         outcome.update["session_constraints"] = {**(outcome.update.get("session_constraints") or state.get("session_constraints") or {}),
                                                   "contacts_requested": True}
     return outcome
+
+
+def _experience_inventory(state):
+    """The saved document, not the plan, determines what was actually delivered."""
+    from app.schemas.facts import FACT_LABELS
+    data, meta = state.get('resume_data') or {}, state.get('resume_meta') or {}
+    included, omitted = [], []
+    for section, label in FACT_LABELS.items():
+        for row in data.get(section) or []:
+            if not row.get('hidden'):
+                included.append({'section': section, 'item_id': row.get('item_id'), 'name': row.get(label, '')})
+    visible = {row['item_id'] for row in included}
+    merged = {old: main for main, ids in (meta.get('merged_items') or {}).items() if main in visible for old in ids if old != main}
+    plan = state.get('match_plan') or state.get('confirmed_plan') or meta.get('confirmed_plan') or {}
+    selections = {row['item_id']: row for row in plan.get('experience_plan') or []}
+    for section, label in FACT_LABELS.items():
+        for row in (state.get('collected_info') or {}).get(section) or []:
+            iid = row.get('item_id')
+            destination = iid if iid in visible else merged.get(iid)
+            for old in row.get('merged_from') or []:
+                if destination and old.get('item_id') not in visible:
+                    omitted.append({'section': old.get('section', section), 'item_id': old.get('item_id'),
+                                    'name': old.get('name', ''), 'reason': 'merged', 'merged_into': destination})
+            if iid in visible:
+                continue
+            selection = selections.get(iid, {})
+            reason = ('merged' if iid in merged else 'backup' if selection.get('treatment') == 'backup'
+                      or selection.get('target_bullets') == 0 else 'not_in_draft')
+            omitted.append({'section': section, 'item_id': iid, 'name': row.get(label, ''), 'reason': reason,
+                            **({'merged_into': merged[iid]} if iid in merged else {})})
+    return {'included': included, 'not_included': list({row['item_id']: row for row in omitted}.values())}
 
 
 def _split_identity_clarification(state):
@@ -940,6 +1011,8 @@ def _new_experiences_for_edit(state, literal, instruction, ctx):
             continue
         section = 'work_experience' if source_section == 'internship' else source_section
         existing = {row.get('item_id') for row in data.get(section) or []}
+        existing.update(alias for iid, aliases in (state.get('resume_meta') or {}).get('merged_items', {}).items()
+                        if iid in existing for alias in aliases)
         for item in active_facts_for_writer(state.get('collected_info') or {}).get(source_section) or []:
             if item['item_id'] in existing or item.get('hidden') or not item.get('facts'):
                 continue
@@ -954,8 +1027,84 @@ def _new_experiences_for_edit(state, literal, instruction, ctx):
     return pending
 
 
+def _literal_request(state):
+    """Authority is the actual user message, never the tool's paraphrased instruction."""
+    from app.agents.fact_extractor import _candidate_evidence
+    from app.agents.resume_graph import _candidate_source_allowed
+    source = _source(state, "current")
+    return (_candidate_evidence(source.content) if source and isinstance(source.content, str)
+            and _candidate_source_allowed(source) else '')
+
+
+def _quality_complaint(state):
+    from app.services.resume_preflight import quality_edit_requested
+    return quality_edit_requested(_literal_request(state))
+
+
+def _unhandled_duplicates(current):
+    """Look-alike pairs still waiting for the user's verdict, with their system questions."""
+    from app.services.resume_preflight import duplicate_question, suspected_duplicates
+    asked = []
+    for pair in suspected_duplicates(current.get('resume_data') or {}, current.get('collected_info'),
+                                     current.get('resume_meta')):
+        question = duplicate_question(pair)
+        if not is_closed(current, '', question['id'], question['prompt']):
+            asked.append((pair, question))
+    return asked
+
+
+async def _attach_duplicate_card(state, ctx):
+    """Show the system confirmation card, without relying on the model's tool choice.
+
+    Returns the ask_user outcome when the card is shown, None otherwise.
+    """
+    asked = _unhandled_duplicates(state)
+    if not asked or ctx.duplicate_card:
+        return None
+    card = await ask_user(state, {'card': {'subject': '', 'questions': [q for _, q in asked[:3]]}}, ctx)
+    if card.result.get('status') != 'ok':
+        return None
+    ctx.duplicate_card = True
+    card.result['confirmation_attached'] = True
+    return card
+
+
+async def _confirm_suspected_duplicates(state, outcome, ctx):
+    """Look-alike entries are never merged on a vague complaint: ask, via the ask_user card."""
+    current = {**state, **outcome.update}
+    asked = _unhandled_duplicates(current)
+    if not asked:
+        return outcome
+    candidates = [{'section': pair['section'], 'names': pair['names']} for pair, _ in asked]
+    card = None if ctx.duplicate_card else await _attach_duplicate_card(current, ctx)
+    shown = ctx.duplicate_card
+    note = ('已向用户展示确认卡，等待回答；回答前不要合并、删除或改写这些条目，也不要再次询问。' if shown
+            else '这些条目只是名称相近，未合并也未删除；请在回复中问用户它们是否为同一段经历。')
+    if shown and not outcome.result.get('changed'):
+        return ToolOutcome({'status': 'needs_confirmation', 'changed': False, 'candidates': candidates,
+                            'card_shown': True, 'message': note},
+                           card.update if card else {}, card.events if card else [], stop=True)
+    outcome.result.update(needs_confirmation=candidates, card_shown=shown,
+                          message=(outcome.result.get('message', '') + note).strip())
+    if shown:
+        if card:
+            outcome.update['messages'] = card.update['messages']
+            outcome.events = [*outcome.events, *card.events]
+        outcome.stop = True
+    return outcome
+
+
 @_register("edit_resume", EditArgs, "修改已有条目并返回实际改动；新事实先 record_facts，新增经历须用 write_draft。", "正在修改简历…")
 async def edit_resume(state, args, ctx):
+    outcome = await _edit_resume(state, args, ctx)
+    from app.services.resume_preflight import quality_edit_requested
+    if (outcome.result.get('status') in {'ok', 'partial', 'unchanged'} and state.get('resume_data')
+            and quality_edit_requested(_literal_request(state))):
+        outcome = await _confirm_suspected_duplicates(state, outcome, ctx)
+    return outcome
+
+
+async def _edit_resume(state, args, ctx):
     from app.agents.tailor_pipeline import infer_edit_scope
     from app.services.resume_versions import restore_payload
     from app.services.resume_review import resume_to_text
@@ -964,12 +1113,10 @@ async def edit_resume(state, args, ctx):
         return ToolOutcome({"status": "insufficient", "missing": ["已有简历"]})
     source = _source(state, "current")
     from app.services.tech_stack import parse_stack_edit, stack_edit_update, item_facts, supporting_ids
-    # Authority is the actual user message, never the tool's paraphrased instruction.
-    from app.agents.fact_extractor import _candidate_evidence
-    from app.agents.resume_graph import _candidate_source_allowed
-    literal = (_candidate_evidence(source.content) if source and isinstance(source.content, str)
-               and _candidate_source_allowed(source) else '')
-    tech_edit = parse_stack_edit(data, literal,
+    literal = _literal_request(state)
+    from app.services.resume_preflight import quality_edit_requested
+    quality_edit = quality_edit_requested(literal)
+    tech_edit = None if quality_edit else parse_stack_edit(data, literal,
                                 excluded=(state.get('resume_meta') or {}).get('tech_stack_excluded'))
     if tech_edit:
         def receipt(outcome):
@@ -1012,25 +1159,42 @@ async def edit_resume(state, args, ctx):
                             **({'hint': "先 use_skill('add-experience')"} if 'add-experience' not in ctx.loaded_skills else {}),
                             'changed': False, 'pending_experiences': pending, 'next_tool': 'write_draft',
                             'message': '新经历已记录，但尚未写入稿件；请调用 write_draft 纳入这些经历，不能声称已新增。'})
-    scope, targets = infer_edit_scope(data, args.instruction, state.get("collected_info"))
+    scope, targets = ('whole', []) if quality_edit else infer_edit_scope(data, args.instruction, state.get("collected_info"))
     if scope == "item" and not targets:
         return ToolOutcome({"status": "insufficient", "missing": ["能唯一定位的经历名称或序号"]})
     from app.agents.turn_actions import choose_edit_plan, render_operation_report
     from app.agents.resume_graph import _latest_human_text
     from app.services.edit_plan import execute_edit_plan
     facts = state.get("collected_info") or {}
-    plan = choose_edit_plan(args.instruction, data, [], facts, router_failed=True)
+    plan = choose_edit_plan(literal if quality_edit else args.instruction, data, [], facts, router_failed=True)
     if plan:
         # Literal field/delete authorization comes from the user, never from
         # an orchestration model's rewritten instruction.
         executed = execute_edit_plan(data, state.get("session_constraints"), plan,
-                                     collected_info=facts, instruction=_latest_human_text(state))
+                                     collected_info=facts, instruction=literal, resume_meta=state.get('resume_meta'))
+        if (any(row['op'] == 'merge_duplicates' for row in executed['operation_results'])
+                and not any(row['status'] == 'done' for row in executed['operation_results'])):
+            return ToolOutcome({'status': 'insufficient', 'changed': False,
+                                'message': '本轮用户原话未授权合并或清理，稿件未修改。'})
+        if quality_edit and not any(row['op'] in {'delete_item', 'hide_item', 'remove_section', 'move_item'}
+                                    for row in executed['operation_results']):
+            # Merging may fold an entry into another; nothing else may vanish.
+            from app.services.resume_versions import ITEM_SECTIONS
+
+            def ids(document):
+                return {row.get('item_id') for section in ITEM_SECTIONS for row in document.get(section) or []}
+            folded = {x for row in (executed['resume_meta'].get('merged_items') or {}).values() for x in row}
+            if ids(data) - ids(executed['data']) - folded:
+                return ToolOutcome({'status': 'insufficient', 'changed': False,
+                                    'message': '合并没有按预期执行，稿件未修改，没有删除任何条目。'})
         if executed["collected_info"] != facts:
             return ToolOutcome({"status": "insufficient", "code": "record_facts_first",
                                 "missing": ["先从用户原始消息记录或更正事实"]})
         if not executed["writer_requests"]:
             from app.agents.tailor_pipeline import apply_deterministic_update
             update = await apply_deterministic_update({**state, "resume_data": executed["data"],
+                "resume_meta": executed['resume_meta'],
+                "previous_resume_meta": state.get('resume_meta') or {},
                 "previous_resume_data": data, "session_constraints": executed["constraints"]},
                 executed["data"], _latest_human_text(state), dedupe=True)
             update["change_summary"] = render_operation_report(executed["operation_results"], data, update["resume_data"])
@@ -1044,6 +1208,63 @@ async def edit_resume(state, args, ctx):
             state = {**state, "session_constraints": executed["constraints"]}
             data = executed["data"]
     return await _write(state, ctx, args.instruction, scope=scope, targets=targets, base=data)
+
+
+async def duplicate_answer_update(state, previous, message):
+    """Apply the user's answers to a duplicate-confirmation card; None for any other card."""
+    from app.agents.resume_graph import _persist_intake
+    from app.services.resume_preflight import apply_duplicate_answers, precheck_for_state
+    answers = message.additional_kwargs.get('answers') or {}
+    card = None
+    for prior in reversed(previous.get('messages') or []):
+        if isinstance(prior, HumanMessage):
+            break
+        shown = isinstance(prior, AIMessage) and (prior.additional_kwargs or {}).get('ask_user')
+        if shown and shown.get('turn_id') == answers.get('turn_id'):
+            card = shown
+            break
+    if not card or not state.get('resume_data') or not all(
+            str(q.get('id', '')).startswith('dup-') for q in card.get('questions') or []):
+        return None
+    result = apply_duplicate_answers(state['resume_data'], state.get('resume_meta') or {},
+                                     state.get('collected_info') or {}, answers)
+    update = {}
+    if result['collected'] != (state.get('collected_info') or {}):
+        update.update(await _persist_intake(state, result['collected']))
+    if result['merged']:
+        from app.services.resume_versions import prepare_version
+        from app.services.resume_review import resume_to_text
+        from app.services.resume_capacity import measure_rendered_pages
+        update.update(prepare_version(state['resume_data'], state.get('resume_meta') or {},
+                                      state.get('resume_versions') or [], result['data'], result['meta'],
+                                      label='合并重复经历'))
+        update.update(resume_data=result['data'], resume_draft=resume_to_text(result['data']),
+                      page_check=await asyncio.to_thread(measure_rendered_pages, result['data'],
+                                                         state.get('session_constraints')))
+        update['resume_meta']['page_check'] = update['page_check']
+    current = {**state, **update}
+    update['resume_meta'] = {**deepcopy(current.get('resume_meta') or {}), 'precheck': precheck_for_state(current)}
+
+    def label(pair):
+        return '「' + '」和「'.join(re.split(r'[｜|]', name)[0].strip() for name in pair['names']) + '」'
+    lines = [f'已把{label(pair)}合并成一条，两边的内容都已保留。' for pair in result['merged']]
+    lines += [f'已记下{label(pair)}是两段不同的经历，分开保留，之后不再提示它们重复。' for pair in result['apart']]
+    if result['failed'] or result['unmatched']:
+        lines.append('有的条目在这张卡之后已经变化，那部分没有改动。')
+    return {'update': update, 'receipt': ''.join(lines) or '这个问题先跳过，稿件没有改动。'}
+
+
+@_register("check_resume", NoArgs, "检查当前稿件的重复、格式和岗位证据缺口，只返回问题清单，不修改正文。", "正在检查简历…")
+async def check_resume(state, args, ctx):
+    from app.services.resume_preflight import precheck_for_state
+    report = precheck_for_state(state)
+    outcome = ToolOutcome({key: report[key] for key in ('status', 'issues', 'counts')})
+    # A complaint about duplicates plus unresolved look-alikes: the system card
+    # carries the question, so a model-made card (whose answer nothing acts on) is unnecessary.
+    if state.get('resume_data') and _quality_complaint(state) and (card := await _attach_duplicate_card(state, ctx)):
+        outcome.result['confirmation_attached'] = True
+        outcome.update, outcome.events = card.update, card.events
+    return outcome
 
 
 @_register("check_layout", NoArgs, "只测量已有简历页数，不写 PDF、不改正文。", "正在检查排版…")

@@ -9,8 +9,8 @@
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
 <link rel="stylesheet" href="/static/chat-markdown.css?v=20261013-ui"/>
 <link rel="stylesheet" href="/static/conversation-history.css?v=20261013-ui"/>
-<link rel="stylesheet" href="/static/account-profile.css?v=20261021-1"/>
-<script src="/static/account-profile.js?v=20261021-1"></script>
+<link rel="stylesheet" href="/static/account-profile.css?v=20261023-memory-batch3"/>
+<script src="/static/account-profile.js?v=20261023-memory-batch3"></script>
 <script src="/static/vendor/marked.umd.js?v=1"></script>
 <script src="/static/vendor/purify.min.js?v=1"></script>
 <script src="/static/chat-markdown.js?v=20261002-1"></script>
@@ -58,7 +58,7 @@
     #chat-pane > .app-header .account-entry { padding-inline: 8px; font-size: 12px; }
   }
 </style>
-<link rel="stylesheet" href="/static/resume-workspace.css?v=20261022-mobile"/>
+<link rel="stylesheet" href="/static/resume-workspace.css?v=20261023-scan"/>
 <script src="/static/chat-viewport.js?v=20261022-mobile" defer></script>
 <link rel="stylesheet" href="/static/change-card.css?v=20261013-ui"/>
 </head>
@@ -141,7 +141,7 @@
           <div class="z-10">
             <span class="text-primary font-semibold text-xs">模板</span>
             <h3 class="font-semibold text-base mt-1.5 text-on-surface">模板画廊</h3>
-            <p class="text-on-surface-variant text-sm mt-2 leading-relaxed">6 款 A4 单页模板，点击即可实时预览。</p>
+            <p id="gallery-template-count" class="text-on-surface-variant text-sm mt-2 leading-relaxed">A4 单页模板，点击即可实时预览。</p>
           </div>
           <div class="z-10 mt-6">
             <span class="inline-flex items-center gap-1 text-primary text-sm font-semibold group-hover:gap-2 transition-all">
@@ -272,9 +272,9 @@
   </aside>
 </div>
 
-<script src="/static/change-card.js?v=20261021-1"></script>
+<script src="/static/change-card.js?v=20261023-quality-18d"></script>
 <script src="/static/resume-evidence.js?v=20261022-19a"></script>
-<script src="/static/resume-workspace.js?v=20261022-19a"></script>
+<script src="/static/resume-workspace.js?v=20261023-scan"></script>
 <script src="/static/resume-actions.js?v=20261014-ui1"></script>
 <script src="/static/template-preview.js?v=20261022-history"></script>
 <script src="/static/chat-cancel.js?v=20261015-batch8"></script>
@@ -286,8 +286,7 @@ const MSG_KEY = 'huhua_messages';
 const SAVED_AT_KEY = 'huhua_saved_at';
 function localRead(key) { try { return localStorage.getItem(key); } catch (_) { return null; } }
 // Only session identifiers persist. Unsaved messages live in this tab's memory.
-const LEGACY_SESSION_ID = localRead(SESSION_KEY);
-let SESSION_ID = new URLSearchParams(location.search).get('session') || LEGACY_SESSION_ID || null;
+let SESSION_ID = new URLSearchParams(location.search).get('session') || null;
 let conversationReady = false;
 let conversationBusy = true;
 const legacyMessages = [];
@@ -474,9 +473,9 @@ async function send(text, {quickReply = false, keepDraft = false, answers = null
   statusEl.classList.remove('hidden');
   const updateWaiting = () => {
     if (buffer) { statusEl.textContent = '正在回复…'; return; }
-    if (toolMessage) { statusEl.textContent = toolMessage; return; }
     const seconds = Math.floor((Date.now() - startedAt) / 1000);
-    statusEl.textContent = seconds < 20 ? `正在整理资料… ${seconds} 秒` : `仍在处理中… ${seconds} 秒，可点击发送按钮中断`;
+    const waiting = seconds < 20 ? `正在整理资料… ${seconds} 秒` : `仍在处理中… ${seconds} 秒，可点击发送按钮中断`;
+    statusEl.textContent = toolMessage ? `${toolMessage} · ${waiting}` : waiting;
   };
   updateWaiting();
   waitingTimer = setInterval(updateWaiting, 1000);
@@ -1160,6 +1159,12 @@ if (entryPanel === 'profile' || entryPanel === 'connect') {
 }
 
 </script>
-<script src="/static/conversation-history.js?v=20261021-1"></script>
+<script>
+  fetch('/api/resume/templates').then(response => response.ok ? response.json() : null).then(body => {
+    const count = body?.templates?.length;
+    if (count) document.getElementById('gallery-template-count').textContent = `${count} 款 A4 单页模板，点击即可实时预览。`;
+  }).catch(() => {});
+</script>
+<script src="/static/conversation-history.js?v=20261023-lifecycle"></script>
 </body>
 </html>

@@ -33,7 +33,7 @@ with patch("app.config.get_settings", return_value=Settings(_env_file=None, DATA
     from app.services.conversation_store import (
         GUEST_COOKIE, WORKSPACE_COOKIE, ConversationNotFound, assert_session_owner,
         checkpoint_owner, create_conversation, guest_identity, load_conversation,
-        remove_conversation,
+        remove_conversation, touch_conversation,
     )
     from app.services.data_crypto import crypto_from_settings
     from app.services.profile_bridge import ClaimedHistoryImport, import_claimed_history
@@ -178,7 +178,9 @@ class GuestIdentityTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_claim_reseals_suggestion_and_cleanup_removes_temporary_payloads(self):
         first, _ = await self.create()
+        touch_conversation(first["session_id"], "待认领的消息", first["owner"])
         second, _ = await self.create()
+        self.assertNotEqual(first["session_id"], second["session_id"])
         payload = {"source_text": "GUEST_PRIVATE_SOURCE", "before_data": {"projects": []}}
         with self.factory() as db:
             db.add(ResumeSuggestion(id="claimed-suggestion", owner=first["owner"],
@@ -209,7 +211,9 @@ class GuestIdentityTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_claim_only_current_session_preserves_encryption_and_imports_after_login(self):
         first, _ = await self.create()
+        touch_conversation(first["session_id"], "待认领的消息", first["owner"])
         second, _ = await self.create()
+        self.assertNotEqual(first["session_id"], second["session_id"])
         legacy_token = "legacy-browser-token-keeps-unrelated-history-723"
         legacy = create_conversation(hashlib.sha256(legacy_token.encode()).hexdigest())
         self.client.cookies.set(WORKSPACE_COOKIE, legacy_token)

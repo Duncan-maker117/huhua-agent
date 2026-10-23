@@ -6,8 +6,25 @@ from copy import deepcopy
 from datetime import UTC, datetime
 import hashlib
 import uuid
+import re
+import unicodedata
 
 ITEM_SECTIONS = ('education', 'work_experience', 'projects', 'campus', 'open_source', 'awards')
+
+
+def visible_value(value):
+    """Compare display text, excluding provenance and empty/default fields."""
+    if isinstance(value, str):
+        return re.sub(r'\s+', ' ', unicodedata.normalize('NFC', value).replace('\u200b', '').replace('\ufeff', '')).strip() or None
+    if isinstance(value, list):
+        return [normalized for row in value if (normalized := visible_value(row)) is not None] or None
+    if isinstance(value, dict):
+        internal = {'item_id', 'source', 'sources', 'profile_refs', 'fact_ids', 'raw_notes', 'raw_description', 'facts'}
+        return {key: normalized for key, row in value.items()
+                if key not in internal and not key.startswith('_')
+                and not (key == 'description' and value.get('polished_bullets'))
+                and (normalized := visible_value(row)) is not None} or None
+    return None if value is False else value
 
 
 def text_hash(text: str) -> str:
@@ -43,6 +60,18 @@ def valid_bullet_metadata(data: dict, meta: dict) -> dict:
     if 'tech_stack' in result or tech:
         result['tech_stack'] = tech
     result['bullets'] = valid
+    # A merge only exists while the merged-away entries are gone from the draft.
+    # After a rewrite or undo brings them back, their mapping and conflicts end.
+    present = {item.get('item_id') for section in ITEM_SECTIONS for item in data.get(section) or []}
+    merged = {}
+    for main, ids in (result.get('merged_items') or {}).items():
+        kept = [x for x in ids if x == main or x not in present]
+        if any(x != main for x in kept):
+            merged[main] = kept
+    if 'merged_items' in result:
+        result['merged_items'] = merged
+    if 'merge_conflicts' in result:
+        result['merge_conflicts'] = {main: row for main, row in result['merge_conflicts'].items() if main in merged}
     return result
 
 
@@ -54,8 +83,16 @@ def document_diff(before: dict, after: dict) -> list[dict]:
         def keyed(items):
             return {item.get('item_id') or f'{section}:{index}': item for index, item in enumerate(items)}
         old, new = keyed(old_items), keyed(new_items)
+        # Re-keying the same visible experience is not a delete + add.
+        for new_id in list(new):
+            if new_id in old:
+                continue
+            match = next((old_id for old_id in old if old_id not in new
+                          and visible_value(old[old_id]) == visible_value(new[new_id])), None)
+            if match is not None:
+                new = {match if key == new_id else key: value for key, value in new.items()}
         for item_id in dict.fromkeys([*old, *new]):
-            if old.get(item_id) != new.get(item_id):
+            if visible_value(old.get(item_id)) != visible_value(new.get(item_id)):
                 changes.append({'section': section, 'item_id': item_id,
                                 'before': deepcopy(old.get(item_id)), 'after': deepcopy(new.get(item_id))})
         old_order, new_order = list(old), list(new)
@@ -63,7 +100,7 @@ def document_diff(before: dict, after: dict) -> list[dict]:
             changes.append({'section': section, 'item_id': None, 'field': 'order',
                             'before': old_order, 'after': new_order})
     for field in ('basic_info', 'skills', 'skill_groups', 'certificates', 'summary', 'self_evaluation', 'sections', 'layout'):
-        if before.get(field) != after.get(field):
+        if visible_value(before.get(field)) != visible_value(after.get(field)):
             changes.append({'section': field, 'item_id': None,
                             'before': deepcopy(before.get(field)), 'after': deepcopy(after.get(field))})
     return changes

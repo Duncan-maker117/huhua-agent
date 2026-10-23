@@ -346,12 +346,112 @@
     }
     return transferable.length + metrics.length;
   }
+  // Resume scan: deterministic precheck issues grouped like an ATS scan, plus JD coverage.
+  const SCAN_GROUPS = [
+    ['format', '格式与解析', '联系方式、日期、标题宽度和链接写法', ['duplicate_contact', 'contact_label', 'date_format', 'title_overflow', 'long_link']],
+    ['writing', '表达质量', '口语原话、重复要点、技术栈和重复经历', ['oral_phrase', 'repeated_point', 'tech_stack_noise', 'duplicate_experience']],
+    ['match', '岗位缺口', '岗位要求里还没有证据支撑的部分', ['jd_gap']],
+  ];
+  const SEVERITY_LABEL = {error: '需处理', warning: '建议改', info: '提示'};
+  function scanItemName(itemId) {
+    if (!itemId) return '';
+    for (const section of ['projects', 'work_experience', 'campus', 'open_source', 'awards', 'education']) {
+      const item = list(resumeData?.[section]).find(row => row?.item_id === itemId);
+      if (item) return plain(item.name || item.company || item.school);
+    }
+    return '';
+  }
+  function coverageBar(requirements) {
+    const counts = {direct: 0, transferable: 0, gap: 0};
+    requirements.forEach(row => { counts[STATUS_LABEL[row.status] ? row.status : 'gap'] += 1; });
+    const total = requirements.length;
+    const box = node('div', undefined, 'scan-coverage');
+    const head = node('div', undefined, 'scan-coverage-head');
+    head.append(node('span', '岗位要求覆盖', 'scan-coverage-title'), node('span', `${counts.direct + counts.transferable} / ${total}`, 'scan-coverage-value'));
+    const bar = node('div', undefined, 'scan-bar');
+    bar.setAttribute('role', 'img');
+    bar.setAttribute('aria-label', `共 ${total} 条要求：直接证据 ${counts.direct}，可迁移 ${counts.transferable}，缺口 ${counts.gap}`);
+    const legend = node('div', undefined, 'scan-legend');
+    for (const key of ['direct', 'transferable', 'gap']) {
+      if (counts[key]) {
+        const segment = node('span', undefined, 'scan-bar-' + key);
+        segment.style.width = (counts[key] / total * 100) + '%';
+        bar.append(segment);
+      }
+      const label = node('span', undefined, 'scan-legend-item');
+      label.append(node('i', undefined, 'scan-dot scan-dot-' + key), node('span', `${STATUS_LABEL[key]} ${counts[key]}`));
+      legend.append(label);
+    }
+    box.append(head, bar, legend);
+    return box;
+  }
+  function renderScan(panel) {
+    const precheck = workspace.tailor?.resume_meta?.precheck;
+    const requirements = list(workspace.tailor?.match_plan?.requirements).filter(row => row && row.req_id);
+    if (!precheck && !requirements.length) return 0;
+    const issues = precheck?.stale ? [] : list(precheck?.issues).filter(issue => issue && plain(issue.message));
+    const group = node('section', undefined, 'workspace-group scan');
+    group.setAttribute('aria-label', '简历体检');
+    group.append(node('h3', '简历体检'), node('p', '按规则逐项检查当前稿件，不是 ATS 评分，也不代表录用概率。', 'workspace-description'));
+    if (precheck?.stale) {
+      const note = node('div', undefined, 'scan-stale');
+      note.append(node('p', '稿件有新改动，上次的检查结果已过期。'));
+      note.append(button('重新检查', () => fill('帮我检查当前简历，指出重复、格式和表达问题。'), 'workspace-button workspace-secondary'));
+      group.append(note);
+    }
+    const tiles = node('div', undefined, 'scan-tiles');
+    const grouped = new Map(SCAN_GROUPS.map(([key]) => [key, []]));
+    for (const issue of issues) {
+      const entry = SCAN_GROUPS.find(row => row[3].includes(issue.category));
+      grouped.get(entry ? entry[0] : 'writing').push(issue);
+    }
+    // The JD comparison is authoritative for gaps; precheck jd_gap rows only add suggestions.
+    const gaps = requirements.length ? requirements.filter(row => !['direct', 'transferable'].includes(row.status)).length : null;
+    for (const [key, title, hint] of SCAN_GROUPS) {
+      const rows = grouped.get(key);
+      const count = key === 'match' && gaps !== null ? gaps : rows.length;
+      const unknown = Boolean(precheck?.stale) && !(key === 'match' && gaps !== null);
+      const errors = rows.filter(issue => issue.severity === 'error').length;
+      const tone = unknown ? 'is-unknown' : !count ? 'is-ok' : key === 'match' ? 'is-info' : errors ? 'is-error' : 'is-warning';
+      const tile = node('div', undefined, 'scan-tile ' + tone);
+      tile.append(node('span', title, 'scan-tile-title'));
+      tile.append(node('strong', unknown ? '待重查' : count ? `${count} ${key === 'match' ? '条' : '处'}` : key === 'match' ? '无缺口' : '通过', 'scan-tile-value'));
+      tile.append(node('span', hint, 'scan-tile-hint'));
+      tiles.append(tile);
+    }
+    group.append(tiles);
+    if (requirements.length) group.append(coverageBar(requirements));
+    for (const [key, title] of SCAN_GROUPS) {
+      const rows = grouped.get(key);
+      if (!rows.length) continue;
+      const block = node('div', undefined, 'scan-issues');
+      block.append(node('h4', title));
+      for (const issue of rows) {
+        const severity = SEVERITY_LABEL[issue.severity] ? issue.severity : 'info';
+        const card = node('article', undefined, 'scan-issue scan-' + severity);
+        const head = node('div', undefined, 'scan-issue-head');
+        const name = scanItemName(issue.item_id);
+        head.append(node('span', SEVERITY_LABEL[severity], 'scan-badge'));
+        if (name) head.append(node('span', name, 'scan-issue-where'));
+        card.append(head, node('p', issue.message, 'scan-issue-message'));
+        if (plain(issue.suggestion)) card.append(node('p', issue.suggestion, 'scan-issue-suggestion'));
+        const actions = node('div', undefined, 'scan-issue-actions');
+        if (name) actions.append(button('定位', () => locate(name), 'workspace-button workspace-secondary scan-action'));
+        actions.append(button('让胡话改', () => fill(`请按核对结果修改${name ? `「${name}」` : ''}：${plain(issue.message)}${plain(issue.suggestion) ? ' ' + plain(issue.suggestion) : ''}`), 'workspace-button workspace-secondary scan-action'));
+        card.append(actions);
+        block.append(card);
+      }
+      group.append(block);
+    }
+    panel.append(group);
+    return issues.length + requirements.length;
+  }
   function renderReview() {
     const panel = $('workspace-panel-review'); panel.replaceChildren();
     heading(panel, '投递前核对', '先解决影响真实性和岗位表达的问题。');
     const items = list(workspace.review?.items);
     const reply = plain(workspace.review?.reply);
-    const extras = renderTailorChecks(panel);
+    const extras = renderScan(panel) + renderTailorChecks(panel);
     if (reply) {
       const report = node('article', undefined, 'workspace-card workspace-review-reply');
       if (window.HuhuaMarkdown) window.HuhuaMarkdown.render(report, reply);

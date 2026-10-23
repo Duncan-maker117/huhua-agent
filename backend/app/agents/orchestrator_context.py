@@ -110,12 +110,15 @@ def _items(data, *, facts=False):
 def _facts(data):
     no_more_questions = bool(data.get("no_more_questions"))
     verification_notes = data.get("verification_notes") or []
+    from app.services.experience_fields import confirmation_requests
+    pending_fields = confirmation_requests(data)
     data = active_facts_for_writer(data)
     basic = data.get("basic_info") or {}
     return {"basic_info": _pick(basic, ("name", "objective", "location", "availability")),
             "contacts_present": {key: bool(basic.get(key)) for key in ("phone", "email")},
             "no_more_questions": no_more_questions, **_items(data, facts=True),
-            "skills": data.get("skills") or [], "verification_notes": verification_notes}
+            "skills": data.get("skills") or [], "verification_notes": verification_notes,
+            **({'field_confirmations': pending_fields} if pending_fields else {})}
 
 
 def _document(data):
@@ -142,11 +145,15 @@ def _plan(data):
 
 def project_tool_result(name, result, privacy):
     result = safe_data(result, privacy)
+    if name == 'check_resume':
+        # The model must see the same actionable checklist as the workspace.
+        # The outer context budget remains the hard bound on very large lists.
+        return result
     # Decision/status fields come first so large optional diagnostics cannot crowd them out.
     projected = _pick(result, ("status", "code", "error_type", "changed", "restored", "version_id",
         "missing", "contacts_missing", "contacts_requested", "basics_complete", "imported", "message",
         "hint", "tech_stack_body_receipt", "next_tool", "pending_experiences", "document_changes", "uncovered_facts",
-        "followup", "followup_attached", "tech_stack_receipt",
+        "followup", "followup_attached", "tech_stack_receipt", "counts",
         "uncovered", "incomplete", "rejected_count", "source_kind", "candidate_facts"))
     transforms = {"page_check": _page, "jd_info": _job, "collected_info": _facts,
                   "resume_data": _document, "plan": _plan}
@@ -162,7 +169,12 @@ def project_tool_result(name, result, privacy):
         # These IDs are required for use_profile_items, unlike provenance/fact IDs.
         projected["items"] = [_pick(row, ("id", "category", "name", "role", "start", "end", "summary"))
                               for row in result["items"]]
-    return _bounded(projected, TOOL_RESULT_CHARS)
+    projected = _bounded(projected, TOOL_RESULT_CHARS)
+    if name == 'write_draft' and 'experience_inventory' in result:
+        # This is the delivery receipt. The outer context budget, not a small
+        # diagnostics truncation limit, governs complete experience identities.
+        projected['experience_inventory'] = result['experience_inventory']
+    return projected
 
 
 def _asked(state):

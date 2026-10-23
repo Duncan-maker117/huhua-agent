@@ -1,4 +1,6 @@
 // Real local API/database roundtrip with synthetic text only; no model requests.
+// Use disposable stores, REQUIRE_ACCOUNT=false and ALLOW_GUEST_EXPERIENCE=false
+// for the legacy local-cookie flow. Production guest/login has separate tests.
 // playwright-cli -s=huhua-history-real run-code --filename=tests/conversation_history_live.browser.js
 async (page) => {
   const checks = [];
@@ -21,7 +23,7 @@ async (page) => {
     const a = await page.evaluate(() => new URL(location.href).searchParams.get('session'));
     check(Boolean(a), '首页创建数据库会话并保留URL');
     await page.goto(`${origin}/resume?session=${a}`);
-    await page.getByRole('button', {name: '新建空白草稿', exact: true}).click();
+    await page.getByRole('button', {name: '新建我的空白草稿', exact: true}).click();
     await saved();
     await input('/basic_info/name').fill('历史测试候选人A');
     await input('/basic_info/email').fill('history-a@example.test');
@@ -33,12 +35,13 @@ async (page) => {
     await page.locator('#btn-new-chat').click();
     await page.waitForFunction(old => new URL(location.href).searchParams.get('session') !== old && document.getElementById('btn-send')?.disabled === false, a);
     const b = await page.evaluate(() => new URL(location.href).searchParams.get('session'));
-    check(a !== b && (await catalog()).conversations.length === 2, '新建B保留A且两会话独立');
+    check(a !== b && (await catalog()).conversations.length === 1, '新建B保留A，空白B暂不出现在历史');
     await page.goto(`${origin}/resume?session=${b}`);
-    await page.getByRole('button', {name: '新建空白草稿', exact: true}).click();
+    await page.getByRole('button', {name: '新建我的空白草稿', exact: true}).click();
     await saved();
     await input('/basic_info/name').fill('历史测试候选人B');
     await saved();
+    check((await catalog()).conversations.length === 2, 'B保存简历后两会话都出现在历史');
     await page.locator('#back-to-chat').click();
     await page.waitForFunction(() => document.getElementById('btn-send')?.disabled === false);
     await page.locator('#btn-history').click();

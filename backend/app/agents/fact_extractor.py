@@ -13,7 +13,7 @@ import uuid
 from app.schemas.facts import FACT_FIELDS, FACT_LABELS, FACT_SECTIONS
 from app.services.candidate_language import (
     PLACEHOLDER_NAMES, campus_evidence, coursework_evidence, literal_item_name, placeholder_name,
-    non_fact, safe_item_name, safe_major, safe_objective, literal_employment, personal_header,
+    non_fact, without_empty_lead_in, safe_item_name, safe_major, safe_objective, literal_employment, personal_header,
     experience_constraint, wording_constraint,
 )
 from app.services.candidate_skills import canonical_skill_text, declared_skills, skill_declaration
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 _CONTRACT = """从候选人本轮消息抽取简历事实，只输出 JSON patch：
 {"items":[{"section":"projects|work_experience|internship|education|campus|open_source|awards","item_id":"已有ID或空","name":"经历名","facts":[{"kind":"role|action|method_tool|deliverable|result_metric|result_qualitative|scope_scale|status_limit|context|team","field":"结构字段可选","text":"规范化陈述","source_quote":"本轮连续原文"}],"links":[{"text":"PR或链接名","url":"用户提供的链接"}],"raw_notes":["本轮相关原话"]}],"basic_info":{"name":"姓名","phone":"电话占位原文","email":"邮箱占位原文","location":"城市","objective":"求职意向","links":[{"text":"GitHub或个人主页","url":"原文URL/域名/账号"}],"availability":"可实习时间原文"},"skills":[],"corrections":[{"item_id":"","fact_id":"","replacement":{"kind":"","text":"","source_quote":""}}],"removals":[{"item_id":"","fact_id":""}]}。
 口语可转书面，但不能新增数字、动作、职责、成果或工具；否定、计划、Demo、未上线必须保留。归属已有经历须用已有 item_id。
+不同经历分别抽取：名称包含或相近（如 mtagent 与同路 mtagent）、同一消息、同一技术栈都不能证明是同一项目。没有名称的另一个项目使用独立占位条目。起止时间写入结构化字段；“2025.09 开始”只填 start_date，“2023.09—预计2027年6月”填 start_date=2023.09、end_date=2027.06（预计）。URL 中的 demo 不是项目阶段。
 followup_target 是当前追问针对的已有经历；用户短答未重复经历名时优先带该 item_id。用户转向其他/新经历时不得沿用，归属不明确不要猜。
 更正旧事实用 corrections，删除事实用 removals；删除文稿的句子不等于删除事实。
 JD、示例、助手建议、计划要做的事情不能变成已完成事实。metadata_context 和 previous_assistant 只帮助理解短答和冲突，不是正文事实；source_quote 只能来自 message。
@@ -243,7 +244,8 @@ def followup_item(collected: dict, *, evidence: str | None = None) -> dict | Non
 
 def _name_answer(evidence: str, target: dict) -> str:
     """A naming follow-up accepts nouns or a refusal, never an experience paragraph."""
-    text = evidence.strip(" 。！!\n")
+    from app.services.experience_fields import normalize_name
+    text = normalize_name(evidence.strip(" 。！!\n"))
     if re.fullmatch(r"(?:不方便(?:说|透露)|没有|不想说|暂不提供)", text):
         return "refused"
     if skill_declaration(text) or re.fullmatch(
@@ -474,6 +476,14 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             return None
         if skill_declaration(quote):
             return None
+        # “做了几个关键决定：…” announces content; only the specifics are facts.
+        text = without_empty_lead_in(text)
+        if not text:
+            result.setdefault("metadata_context", []).append(quote)
+            return None
+        # Narrow the evidence to the specifics when that is still the user's literal span.
+        if (specifics := without_empty_lead_in(quote)) and specifics != quote and specifics in evidence:
+            quote = specifics
         if naming_answer == "refused":
             return None
         context_clauses = [part for part in re.split(r"[，,。；;\n]", evidence) if quote in part]
@@ -483,12 +493,19 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         if _quote_has_unquoted_limit(evidence, quote):
             result["rejected"].append({"text": text, "reason": "source_quote_omits_limit"})
             return None
-        if (errors := lexical_fact_errors(text, quote)):
+        from app.services.experience_fields import HEADER_FIELDS, normalize_field, parse_dates
+        header = raw.get('field')
+        normalized_quote = normalize_field(header, quote) if header in HEADER_FIELDS else None
+        if header in {'start_date', 'end_date'}:
+            from app.services.experience_fields import dates_in_text
+            normalized_quote = parse_dates(quote).get(header) or dates_in_text(quote).get(header) or normalized_quote
+        literal_header = bool(normalized_quote and normalized_quote == normalize_field(header, text))
+        if not literal_header and (errors := lexical_fact_errors(text, quote)):
             result["rejected"].append({"text": text, "reason": errors})
             return None
         fact = new_fact(text, kind="context" if product_pain(quote) else "status_limit" if experience_constraint(quote) else raw.get("kind", "context"), quote=quote,
                         source="chat", turn_id=turn_id)
-        if _is_large_rewrite(text, quote):
+        if not literal_header and _is_large_rewrite(text, quote):
             semantic_pairs.append({"id": fact["id"], "text": text, "source_quotes": [quote]})
             pending.append(fact)
         return fact
@@ -595,9 +612,14 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "conflicting_followup_target"})
             continue
         if not item_id:
-            name = normalize_text(raw_item.get("name", ""))
-            matches = [item for item in outline if name and item["name"] and (
-                name in normalize_text(item["name"]) or normalize_text(item["name"]) in name)]
+            from app.services.experience_fields import normalize_name
+            name = normalize_text(normalize_name(raw_item.get("name", "")))
+            from app.services.experience_fields import same_experience, normalize_item_fields
+            candidate_item = {FACT_LABELS[raw_item['section']]: raw_item.get('name'),
+                              'facts': [dict(f, id=f'candidate-{i}') for i, f in enumerate(raw_item.get('facts') or []) if f.get('text')]}
+            normalize_item_fields(candidate_item, raw_item['section'])
+            matches = [item for item in outline if item['section'] == raw_item['section']
+                       and same_experience(next(row for row in visible[item['section']] if row['item_id'] == item['item_id']), candidate_item, item['section'])]
             if len(matches) > 1:
                 ambiguous_owner = True
                 result["rejected"].append({"text": str(raw_item.get("name", "")), "reason": "item_name_not_in_candidate_message"})
@@ -620,8 +642,8 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
         employment = literal_employment(item_evidence)
         if not item_id and employment[0]:
             section = 'internship' if '实习' in employment[1] else 'work_experience'
-        from app.services.resume_field_hygiene import trim_name_punctuation
-        label = trim_name_punctuation(raw_item.get("name") or "")
+        from app.services.experience_fields import normalize_name
+        label = normalize_name(raw_item.get("name") or "")
         if section == 'education':
             from app.services.education_fields import clean_education_value
             label = clean_education_value('school', label)
@@ -824,7 +846,7 @@ async def extract_facts_patch(message: str, collected: dict, llm, *, turn_id: st
             if not entries:
                 result["items"].append(entry)
             entry.update(section=target["section"], item_id=target["item_id"], name=label)
-            fact = new_fact(label, kind="context", quote=label, turn_id=turn_id)
+            fact = new_fact(label, kind="context", quote=evidence.strip(), turn_id=turn_id)
             fact["field"] = FACT_LABELS[target["section"]]
             entry["facts"].append(fact)
     # Deterministic subject recovery and model rows may describe the same
@@ -1084,4 +1106,5 @@ def apply_fact_patch(collected: dict, patch: dict) -> dict:
                 if dated:
                     active = [fact['text'] for fact in dated if fact.get('status', 'active') == 'active']
                     item[field] = active[-1] if active else ''
-    return normalize_fact_store(result)
+    from app.services.experience_fields import merge_normalized_experiences
+    return merge_normalized_experiences(normalize_fact_store(result), collected)

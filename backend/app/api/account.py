@@ -24,6 +24,7 @@ class TokenCreate(BaseModel):
 
 class InboxAccept(BaseModel):
     value: str | None = Field(default=None, min_length=1, max_length=4000)
+    expected_revision: str | None = Field(default=None, min_length=1, max_length=128)
 
 
 @router.get("/mcp/tokens")
@@ -80,7 +81,7 @@ def accept_mcp_inbox(item_id: str, body: InboxAccept, request: Request, response
     assert_same_origin(request)
     principal = require_account(request)
     response.headers["Cache-Control"] = "no-store"
-    return _inbox_action(db, profile_service.accept_inbox_item, principal.id, item_id, value=body.value)
+    return _inbox_action(db, profile_service.accept_inbox_item, principal.id, item_id, **body.model_dump())
 
 
 @router.post("/mcp/inbox/{item_id}/reject")

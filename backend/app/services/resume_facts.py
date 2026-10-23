@@ -152,6 +152,8 @@ def normalize_fact_store(collected: dict | None) -> dict:
                                                    if isinstance(note, str) and note.strip()))
             if not had_fact_field and not item["raw_notes"] and raw:
                 item["raw_notes"] = [raw]
+            from app.services.experience_fields import normalize_item_fields
+            normalize_item_fields(item, section)
     skills = result.get("skills", [])
     if isinstance(skills, list):
         education_values = _education_values(result)
@@ -169,7 +171,8 @@ def normalize_fact_store(collected: dict | None) -> dict:
             if isinstance(skill, dict) and skill.get("name") and _fold_value(skill["name"]) not in education_values:
                 normalized_skills.append(skill)
         result["skills"] = normalized_skills
-    return result
+    from app.services.experience_fields import merge_normalized_experiences
+    return merge_normalized_experiences(result, collected or {})
 
 
 def _editor_texts(item: dict, section: str) -> list[str]:

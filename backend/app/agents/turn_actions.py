@@ -122,7 +122,7 @@ def parse_education_fields(message: str) -> dict[str, str]:
     # Only an education paragraph/sentence can supply education dates.
     from app.services.experience_subjects import subject_span
     for sentence in re.split(r'[。；;\n]', education_text):
-        dates = re.search(r"(20\d{2}[./年-]\d{1,2}月?)\s*[—–~～至-]\s*(20\d{2}[./年-]\d{1,2}月?|至今)", sentence)
+        dates = re.search(r"(20\d{2}[./年-]\d{1,2}月?)\s*[—–~～至-]\s*(预计\s*20\d{2}[./年-]\d{1,2}月?|20\d{2}[./年-]\d{1,2}月?|至今)", sentence)
         if not dates:
             continue
         scope = subject_span(dates[0], message)
@@ -213,7 +213,7 @@ def absorb_education(collected: dict, previous: dict | None, message: str, turn_
             target[field] = value
     if school:
         target["school"] = school
-    return result
+    return normalize_fact_store(result)
 
 
 _COMMAND_SENTENCE = re.compile(r"先给我|给我出|帮我|请(?:你)?(?:先|帮|给)|出一版|生成|看看吧?$")
@@ -479,7 +479,13 @@ def deterministic_compound_plan(message: str, data: dict | None = None) -> list[
     """Fallback ops for one user message. A single vague verb stays empty."""
     labels = _item_labels(data)
     ops = []
+    from app.services.resume_preflight import quality_edit_requested
+    quality = quality_edit_requested(message)
+    if quality:
+        ops.append({'op': 'merge_duplicates', 'target': 'whole', 'args': {}})
     for clause in edit_clauses(message):
+        if quality_edit_requested(clause):
+            continue
         from app.services.resume_layout import density_operations
         ops.extend(density_operations(clause))
         target = _match_label(clause, labels) or _ordinal_target(clause)
@@ -889,7 +895,7 @@ def render_operation_report(results: list[dict], before: dict, after: dict) -> l
     labels = {"rewrite": "改写", "compress": "压缩", "refocus": "调整重点", "set_field": "修改字段",
               "delete_item": "删除", "hide_item": "隐藏", "cap_bullets": "限制条数",
               "remove_section": "去掉栏目", "set_constraint": "更新篇幅要求", "clean_format": "清理格式",
-              "honor": "已遵守", "move_item": "移动栏目"}
+              "honor": "已遵守", "move_item": "移动栏目", "merge_duplicates": "合并重复并清理格式"}
     hidden_targets = {"", "whole", "understand", "set_field", "set_constraint"}
 
     def find(document: dict, item_id: str):

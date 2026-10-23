@@ -134,7 +134,7 @@ class EvidenceProjectionTest(unittest.TestCase):
 
 
 class EvidenceRenderTest(unittest.TestCase):
-    def test_export_and_editor_html_match_prechange_bytes_all_templates(self):
+    def test_export_and_editor_html_match_approved_baseline_all_templates(self):
         baseline = json.loads((ROOT / 'tests/fixtures/batch19a-render-baseline.json').read_text())
         for filename, digest in baseline['sha256'].items():
             with self.subTest(filename=filename):

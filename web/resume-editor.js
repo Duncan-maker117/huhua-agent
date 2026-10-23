@@ -1309,11 +1309,12 @@
       }
       if (currentData) activateData(currentData, 'personal');
       else if (state.loginNeeded) showLoginNeeded();
-      else if (window.HuhuaAccount?.guest() || !session) {
+      else {
+        // No personal draft yet: show the sample instead of an empty page.
         const sample = await fetch('/api/resume/sample');
         if (sample.ok) activateData(await sample.json(), 'sample');
         else showStartChoice();
-      } else showStartChoice();
+      }
       offerRecovery();
       if (state.templates.length) selectTemplate(restoreTemplate());
       else setStatus('暂无可用模板', true);

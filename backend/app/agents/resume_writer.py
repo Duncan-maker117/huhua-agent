@@ -86,6 +86,8 @@ _STYLE_CONTRACT += '\n' + LABELED_SEMANTICS + LABELED_SELECTION
 _STYLE_CONTRACT += "\n结构化答案的 question_prompt 仅解释回答语境，只有 answer_value/source_quote 是本人确认的事实，不将题干中的推测当成经历。\n岗位成稿结构为 labeled 时，每段 2–4 行，每行 1–3 个短句，用分号串联；无素材的行省略。允许概括、重组、合并多条事实；禁止新增数字、实体、动作、因果、程度或状态。title.positioning 是本经历的一句产品定位，须有 title.fact_ids；名称和性质由事实确定，不输出占位符。"
 _PROSE_CONTRACT = """所有经历正文（projects/work_experience/campus/open_source/awards，实习已合并至 work_experience）都要改写为简历语言，动词开头，去第一人称、时间铺垫和口语。组织/参与经历与担任职务合并在标题和角色，不重复成 bullet。排除自评、计划、提问（如认为能力尚浅、想知道适合什么岗位、认为可以接单）。不把「运用可画完成」升级为「独立设计」；独立性与动作必须分别有原文支持。"""
 _PROSE_CONTRACT += "status_limit 中的后台权限、账号负责人、选题决定权、文案来源和数据缺失只约束措辞，不单独成 bullet 或备用条目；据此禁止升级为负责、运营账号、策划选题、独立完成或增长成果。"
+_PROSE_CONTRACT += "溯源不等于照抄。标签后的‘本人发现’‘本人做了几个关键决定’及‘是市面上当时体验过的工具都不满意’必须改为简洁书面表达；‘我们’保留团队归属。问题与决策不得重复同一要点。"
+_PROSE_CONTRACT += "原话是事实依据，不是成品文案；source_quote 保留原话，字段和要点必须审改规范。去掉‘叫做’‘这个’‘那个’‘就是’‘然后’等口语填充和冗余，动词开头；不得添加原话没有的事实、数字或扩大参与程度。"
 _WRITE_CONTRACT += '\n' + _PROSE_CONTRACT
 _ONE_PASS_CONTRACT += '\n' + _PROSE_CONTRACT
 _WRITE_CONTRACT += '\n' + _STYLE_CONTRACT
@@ -107,6 +109,7 @@ violations.guard 是 JSON 诊断资料，semantic 中的失败维度和 unsuppor
 
 _TECH_CONTRACT = """项目和工作/实习的 tech_stack 是独立技术栈行，列出用户说过的技术、框架、协议或模型能力，最多8项，保持提及顺序；tech_stack_fact_ids 引用本经历支持每一项的 active facts。只可按确定性别名表修正拼写/大小写（longchain→LangChain、toolcalling/tool calling→Tool Calling、mcp→MCP），不能扩写用户未说过的技术。用户明确要求标技术栈或说项目用了哪些技术时必须填。纯技术清单放 tech_stack，不再生成“技术栈：…”或“技术：…”的 bullet；技术栈已单独成行，要点写“用 X 做了什么”，不要单纯罗列“项目采用/使用 X、Y、Z”；正文技术名也用同一别名表的规范名，具体技术动作仍可留在要点中。"""
 _WRITE_CONTRACT += _TECH_CONTRACT
+_WRITE_CONTRACT += "关键产品决策、用户口语和产品定位即使有原话支持也不是技术名词，禁止放入 tech_stack。"
 _ONE_PASS_CONTRACT += _TECH_CONTRACT
 
 
@@ -1072,6 +1075,8 @@ async def _polish_rows(rows: list[dict], facts: dict, model, writer_llm, role_fa
                "active_facts": [fact for fact in facts.values() if fact["item_id"] in item_ids]}
     contract = ("只润色给出的单条 bullet，返回 RepairOutput，保持 id 与原 fact_ids。未列出的句子不得改写。"
                 "去第一人称、口语与流水账，动词开头，不补原因、职责、工具、数量或结果，不丢原有独立动作。"
+                "溯源不等于照抄：标签后的‘本人发现’‘本人做了几个关键决定’也必须改写；"
+                "‘我们’保留为团队归属，不能变成个人功劳。问题和决策各写独立要点，不复述同一句。"
                 "同一动作的概括与具体描述合并，不为凑字数添加形容词。" + _PROSE_CONTRACT)
     proposals = {}
     try:

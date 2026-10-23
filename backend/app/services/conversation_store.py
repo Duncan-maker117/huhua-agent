@@ -126,6 +126,25 @@ def _active(row: ResumeSession | None) -> bool:
     return bool(row and row.stage != DELETED_STAGE and not _is_expired(row))
 
 
+def _has_messages(conversation: Conversation, row: ResumeSession) -> bool:
+    state = row.resume_state or {}
+    if "has_messages" in state:
+        return bool(state["has_messages"])
+    # Before the explicit marker, touch_conversation advanced updated_at on
+    # submission (including failed/cancelled turns). An untouched row was
+    # flushed BEFORE its catalog entry was created. Treat other legacy writes
+    # conservatively as activity so old conversations cannot be reused as blank.
+    return bool(row.stage != "JD_INPUT" or state.get("authoritative")
+                or (row.updated_at and conversation.created_at
+                    and row.updated_at > conversation.created_at))
+
+
+def _is_empty(conversation: Conversation, row: ResumeSession) -> bool:
+    return (not _has_messages(conversation, row)
+            and not resume_data_has_content(row.resume_data)
+            and not (row.resume_draft or "").strip())
+
+
 def _metadata(conversation: Conversation, row: ResumeSession) -> dict:
     updated = row.updated_at
     if updated and updated.tzinfo is None:
@@ -136,6 +155,7 @@ def _metadata(conversation: Conversation, row: ResumeSession) -> dict:
         "updated_at": updated.isoformat() if updated else "",
         "stage": row.stage or "JD_INPUT",
         "has_data": resume_data_has_content(row.resume_data),
+        "has_messages": _has_messages(conversation, row),
     }
 
 
@@ -150,7 +170,7 @@ def list_conversations(owner_hash: str, *, title_recovery_ids: list[str] | None 
         )
         result = []
         for conversation, row in rows:
-            if not _active(row):
+            if not _active(row) or _is_empty(conversation, row):
                 continue
             result.append(_metadata(conversation, row))
             if title_recovery_ids is not None:
@@ -180,9 +200,17 @@ def create_conversation(owner_hash: str, session_id: str | None = None) -> dict:
                     raise ConversationNotFound()
                 return _metadata(conversation, row)
         else:
+            candidates = (db.query(Conversation, ResumeSession)
+                          .join(ResumeSession, ResumeSession.session_id == Conversation.session_id)
+                          .filter(Conversation.owner_hash == owner_hash, ResumeSession.stage != DELETED_STAGE)
+                          .order_by(Conversation.created_at.desc()).all())
+            for conversation, row in candidates:
+                if _active(row) and _is_empty(conversation, row):
+                    return _metadata(conversation, row)
             session_id = str(uuid.uuid4())
             row = ResumeSession(session_id=session_id, owner_key=owner_hash, resume_data={}, stage="JD_INPUT",
-                                resume_state={"title_source": "auto", "auto_title": DEFAULT_TITLE})
+                                resume_state={"title_source": "auto", "auto_title": DEFAULT_TITLE,
+                                              "has_messages": False})
             db.add(row)
             # Keep insertion order valid on databases with foreign keys enabled.
             db.flush()
@@ -291,6 +319,7 @@ def touch_conversation(session_id: str, first_input: str, owner_hash: str | None
         if conversation is None and owner_hash:
             conversation = Conversation(session_id=session_id, owner_hash=owner_hash, title=DEFAULT_TITLE)
             db.add(conversation)
+        row.resume_state = {**(row.resume_state or {}), "has_messages": True}
         row.updated_at = datetime.now(UTC).replace(tzinfo=None)
         db.commit()
 

@@ -1,11 +1,22 @@
 /* "本次修改" card under an assistant reply: per-experience before/after bullets, per-op receipts, one-click undo. */
 (() => {
   'use strict';
-  const FIELDS = {tech_stack: '技术栈', name: '名称', role: '角色', company: '公司', position: '职位', title: '职位', start_date: '开始时间', end_date: '结束时间', school: '学校', degree: '学历', major: '专业'};
+  const FIELDS = {tech_stack: '技术栈', name: '名称', role: '角色', positioning: '项目定位', project_type: '项目性质', company: '公司', position: '职位', title: '职位', start_date: '开始时间', end_date: '结束时间', school: '学校', degree: '学历', major: '专业', highlights: '补充信息', summary: '说明', pr: 'PR', level: '等级', date: '日期'};
   const SECTIONS = {projects: '项目', work_experience: '工作 / 实习', education: '教育', skills: '技能', skill_groups: '技能', basic_info: '基本信息', certificates: '证书', self_evaluation: '个人总结', sections: '栏目设置', campus: '校园经历', open_source: '开源贡献', awards: '竞赛荣誉', summary: '定位', layout: '排版'};
   const MARKER = /^\s*(✅|⚠️?|❌)\s*/u;
   const cards = [];
   const text = value => typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+  const normalized = value => text(value).normalize('NFC').replace(/[\u200b\ufeff]/g, '').replace(/\s+/g, ' ').trim();
+  function visible(value) {
+    if (typeof value === 'string') return normalized(value) || null;
+    if (Array.isArray(value)) { const rows = value.map(visible).filter(row => row !== null); return rows.length ? rows : null; }
+    if (value == null || value === false) return null;
+    if (typeof value !== 'object') return value;
+    const internal = new Set(['item_id', 'source', 'sources', 'profile_refs', 'fact_ids', 'raw_notes', 'raw_description', 'facts']);
+    const rows = Object.keys(value).sort().filter(key => !internal.has(key) && !key.startsWith('_')
+      && !(key === 'description' && value.polished_bullets?.length)).map(key => [key, visible(value[key])]).filter(([, row]) => row !== null);
+    return rows.length ? Object.fromEntries(rows) : null;
+  }
   const node = (tag, content, className) => {
     const el = document.createElement(tag);
     if (content !== undefined) el.textContent = text(content);
@@ -39,13 +50,13 @@
     const old = bulletsOf(section, before), next = bulletsOf(section, after);
     const remaining = [...next];
     const removed = old.filter(line => {
-      const index = remaining.indexOf(line);
+      const index = remaining.findIndex(value => normalized(value) === normalized(line));
       if (index >= 0) { remaining.splice(index, 1); return false; }
       return true;
     });
     const pool = [...old];
     const rows = next.map(line => {
-      const index = pool.indexOf(line);
+      const index = pool.findIndex(value => normalized(value) === normalized(line));
       if (index >= 0) { pool.splice(index, 1); return {kind: 'same', line}; }
       return {kind: 'add', line};
     });
@@ -53,7 +64,7 @@
     for (const [key, label] of Object.entries(FIELDS)) {
       const from = key === 'tech_stack' ? (before?.[key] || []).join('、') : text(before?.[key]);
       const to = key === 'tech_stack' ? (after?.[key] || []).join('、') : text(after?.[key]);
-      if (from !== to && (before && after)) fields.push(`${label}：${from || '空'} → ${to || '空'}`);
+      if (normalized(from) !== normalized(to) && (before && after)) fields.push(`${label}：${from || '空'} → ${to || '空'}`);
     }
     return {tag, title: titleOf(before, after), removed, rows, fields};
   }
@@ -92,8 +103,9 @@
   }
   function create(meta, options = {}) {
     if (!meta || typeof meta !== 'object') return null;
-    const diff = (Array.isArray(meta.diff) ? meta.diff : []).filter(entry => entry && typeof entry === 'object');
-    const receipts = receiptRows(meta.change_summary);
+    const diff = (Array.isArray(meta.diff) ? meta.diff : []).filter(entry => entry && typeof entry === 'object'
+      && JSON.stringify(visible(entry.before)) !== JSON.stringify(visible(entry.after)));
+    const receipts = receiptRows(meta.change_summary).filter(row => diff.length || ['warn', 'fail'].includes(row.kind));
     const itemEntries = diff.filter(entry => entry.item_id && ['projects', 'work_experience', 'education'].includes(entry.section));
     const notes = extraNotes(diff);
     if (!itemEntries.length && !receipts.length && !notes.length) return null;
